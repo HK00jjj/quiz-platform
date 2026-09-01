@@ -1,6 +1,9 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <!-- 雷核纹章：暗夜深底 + 鎏金环 + 电流青电弧内核 -->
-  <circle cx="256" cy="256" r="256" fill="#0A0F1E"/>
-  <circle cx="256" cy="256" r="204" fill="none" stroke="#D4AF37" stroke-width="26"/>
-  <polygon points="288,106 172,282 249,282 213,406 350,221 267,221 319,106" fill="#4CC9FF"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="10" fill="#0d1117"/>
+  <g stroke="#c9a84c" stroke-width="2" fill="none">
+    <circle cx="32" cy="32" r="22"/>
+    <circle cx="32" cy="32" r="10"/>
+    <path d="M32 10v44M10 32h44M16.4 16.4l31.2 31.2M47.6 16.4L16.4 47.6"/>
+  </g>
+  <circle cx="32" cy="32" r="4.5" fill="#5aa89c"/>
 </svg>
