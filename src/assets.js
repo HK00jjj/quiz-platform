@@ -19,7 +19,6 @@ export const A = {
   sealedDeck: img('p16.webp'),      // 封印牌叠（污染重阅）
   cardPile: img('p17.webp'),        // 塔罗牌堆（随机翻阅）
   cardTower: img('p18.webp'),       // 卡牌螺旋塔（全部秘典）
-  scroll: img('p19.webp'),          // 羊皮纸卷轴（导入）
   roseWindow: img('p20.webp'),      // 玫瑰窗魔法阵
   warnRune: img('p22.webp'),        // 警告符文
   stepDone: img('p23-1.webp'),      // 流程节点：完成

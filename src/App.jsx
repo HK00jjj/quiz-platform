@@ -16,6 +16,7 @@ function Shell() {
   const navigate = useNavigate()
   const location = useLocation()
   const phase = useStore((s) => s.phase)
+  const abortSession = useStore((s) => s.abortSession)
   const wrongCount = useStore((s) => lastResultMap(s.records))
   const wrongN = [...wrongCount.values()].filter((v) => v === false).length
   const inPractice = location.pathname === '/practice'
@@ -27,6 +28,11 @@ function Shell() {
     setVeil(true)
     setTimeout(() => { navigate(to); setTimeout(() => setVeil(false), 260) }, 300)
   }
+  // 离开答题页就中止会话：否则 phase 会永远停在 answering/feedback/done，
+  // 下次再进答题页会拿到残留会话，且任何依赖 phase 的 UI 都回不到初始态
+  useEffect(() => {
+    if (!inPractice && phase !== 'idle') abortSession()
+  }, [inPractice])
   return (
     <div className="app-shell">
       <Background intensity={inPractice ? 1.6 : 1} />
@@ -40,7 +46,8 @@ function Shell() {
         <Route path="/practice" element={<Practice />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-      {!inPractice && phase === 'idle' && (
+      {/* 底部导航：除答题页外一律显示（不再受会话 phase 制约），active 由当前路由得出 */}
+      {!inPractice && (
         <BottomNav active={activeKey} wrongCount={wrongN} onNav={(to) => navTo(to)} />
       )}
     </div>

@@ -326,8 +326,8 @@ input, textarea, select { font-family: inherit; }
 .parchment-text { color: var(--ink-parch); }
 .parchment-text .muted-p { color: rgba(44,24,16,.62); }
 
-/* 首字下沉 */
-.drop-cap::first-letter { float: left; font-size: 2.1em; line-height: 1; padding: 2px 6px 0 0; color: var(--gold-text); font-family: 'Cinzel', 'Noto Serif SC', serif; text-shadow: 0 0 8px rgba(184,150,58,.4); }
+/* 首字下沉：羊皮纸上用暗青铜色（亮金在浅底上对比不足），大字号仍达 WCAG 大字 3:1 以上 */
+.drop-cap::first-letter { float: left; font-size: 2.1em; line-height: 1; padding: 2px 6px 0 0; color: #6b4f0e; font-family: 'Cinzel', 'Noto Serif SC', serif; text-shadow: 0 1px 0 rgba(255,253,247,.85); }
 
 /* 列表行入场 */
 @keyframes row-in { from { opacity: 0; transform: translateY(10px) } to { opacity: 1; transform: none } }

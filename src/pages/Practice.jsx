@@ -227,6 +227,8 @@ export default function Practice() {
           {/* 牌面：内缩进尖拱/藤蔓/龙首纹样之内，正文可滚、主操作钉在牌底 */}
           <div className="q-face">
           <div className="q-face-scroll">
+            {/* ── 分区一 · 题目区：视觉层级最高，底色最干净 ── */}
+            <section className="zone zone-q">
             <div className="q-tags">
               <img className="stamp" src={A.seals[TYPE_SEAL_INDEX[q.type] ?? 0]} alt={q.type} title={q.type} />
               {q.knowledgeDomain && <span className="q-domain-tag">{domainLabel(q.knowledgeDomain)}</span>}
@@ -237,10 +239,15 @@ export default function Practice() {
                 </span>
               )}
             </div>
-            {/* 符文谜面（羊皮纸贴层）钉在塔罗牌面上 */}
+            {/* 符文谜面：直接写在卷轴上 */}
             <div className="parch-layer"><Stem q={q} /></div>
+            </section>
 
-            {/* 题型专属答题区 */}
+            <div className="zone-rule" aria-hidden="true" />
+
+            {/* ── 分区二 · 作答区 ── */}
+            <section className="zone zone-a">
+            <h5 className="zone-label">{objective ? '◇ 择 符 作 答' : '◇ 誊 写 作 答'}</h5>
             <div className="q-answer-zone">
               {(q.type === '单选题' || q.type === '多选题') && (q.options ?? []).map((opt, i) => {
                 const letter = opt.match(/^([A-E])[.、]/)?.[1] ?? 'ABCDE'[i]
@@ -318,8 +325,23 @@ export default function Practice() {
                 </div>
               )}
             </div>
+            </section>
 
-            {/* 判分反馈：启封后卷轴自上而下展开 */}
+            <div className="zone-rule" aria-hidden="true" />
+
+            {/* ── 分区三 · 答案区：未答=蜡封遮挡，答后=墨迹显影 ── */}
+            <section className={'zone zone-s' + (answered || showAnswer ? ' revealed' : '')}>
+            <h5 className="zone-label">{answered || showAnswer ? '◇ 真 理 已 启 封' : '◇ 真 理 封 印 中'}</h5>
+            {seal !== 'broken' && (
+              <div className={'seal-lock ' + seal}>
+                <span className="seal-wax" aria-hidden="true">
+                  {A.waxSeal.map((s, k) => <img key={k} className={'f' + (k + 1)} src={s} alt="" decoding="async" />)}
+                </span>
+                <span>{objective ? '答案已封印 · 解读符文后启封' : '参考答案已封印 · 展开卷轴后启封'}</span>
+              </div>
+            )}
+
+            {/* 判分反馈：启封后墨迹自左向右显影 */}
             {answered && (
               <div className="grade-panel">
                 {(objective || committed) && (
@@ -329,7 +351,7 @@ export default function Practice() {
                   </div>
                 )}
                 <div className={'answer-scroll-box ' + ((objective ? grade?.correct : lastRating === '记得') ? 'ok' : 'bad')}>
-                  <h5>{(objective ? grade?.correct : lastRating === '记得') ? '◆ 真理原文' : '◆ 被掩盖的真理'}</h5>
+                  <h5>{(objective ? grade?.correct : lastRating === '记得') ? '◆ 正解' : '◆ 被掩盖的正解'}</h5>
                   <p>{objective ? (grade?.expected ?? q.answer) : q.answer}</p>
                   {q.explanation && <>
                     <p className="lab">【秘典解析】</p>
@@ -343,7 +365,7 @@ export default function Practice() {
             {!objective && !answered && showAnswer && (
               <div className="grade-panel">
                 <div className="answer-scroll-box">
-                  <h5>◆ 参考答案卷轴</h5>
+                  <h5>◆ 参考答案</h5>
                   <p>{q.answer}</p>
                   {q.explanation && <>
                     <p className="lab">【秘典解析】</p>
@@ -352,20 +374,11 @@ export default function Practice() {
                 </div>
               </div>
             )}
+            </section>
           </div>
 
           {/* 牌底：铜质藤蔓花纹分隔 + 当前唯一主操作（不随正文滚动，永远在手边） */}
           <div className="q-face-foot">
-            {/* 答案封印：钉在牌底（不随正文滚动），未启封前一直看得见 */}
-            {seal !== 'broken' && (
-              <div className={'seal-lock ' + seal}>
-                {/* 蜡封三帧：完整 → 半碎 → 碎裂散开（启封时逐帧切换） */}
-                <span className="seal-wax" aria-hidden="true">
-                  {A.waxSeal.map((s, k) => <img key={k} className={'f' + (k + 1)} src={s} alt="" decoding="async" />)}
-                </span>
-                <span>{objective ? '真理已封印 · 解读符文后启封' : '参考答案已封印 · 展开卷轴后启封'}</span>
-              </div>
-            )}
             <div className="q-face-rule" aria-hidden="true" />
             {!answered && (objective ? (
               <GiltBtn size="lg" block className="reveal-btn" disabled={!canSubmit} onClick={doCheck}>

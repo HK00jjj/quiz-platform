@@ -91,12 +91,12 @@
 .gem-dot.ok { background: var(--teal-lt); box-shadow: 0 0 6px rgba(90,168,156,.8); }
 .gem-dot.bad { background: var(--fault-lt); box-shadow: 0 0 6px rgba(139,42,74,.8); }
 .practice-count { font-size: 12px; letter-spacing: 2px; color: var(--muted); white-space: nowrap; }
-/* 题卡 = 一张严格等比的竖版塔罗牌：p2 已裁掉透明留白、从 2457×4701 原图重取为 768×1470 牌体，
-   100%×100% 铺满即零变形（留白不裁的话，可见牌面只占元素宽度 72%，且覆盖层会与牌面错位）。
-   宽度受视口高度约束（×0.5224 = 768/1470），保证整张牌一屏内完整可见。 */
+/* 题卡：从“竖版塔罗牌比例(0.5224)”改为更适合阅读与作答的 0.72 分区比例——
+   同样一屏内完整可见，但牌面可用宽度从 297px 提升到约 450px。
+   正面是 p19 九切片卷轴（比例无关），牌背 p6 用 cover 居中裁切（不拉伸玫瑰窗）。 */
 .q-card-wrap {
   position: relative; animation: rise-in .5s ease both; perspective: 1600px;
-  width: clamp(268px, min(600px, 94vw, calc((100vh - 132px) * 0.5224)), 600px);
+  width: clamp(300px, min(620px, 94vw, calc((100vh - 132px) * 0.72)), 620px);
   margin: 0 auto;
 }
 /* 真 3D 双面翻牌：正反两面同属一个 preserve-3d 体，各自 backface-visibility:hidden，
@@ -105,15 +105,24 @@
    退出 300ms / 入场 420ms，同轴同曲线（退出与入场走同一条路）；
    180° 旋转低于 300ms 会糊成闪烁，所以这里有意超出常规 UI 时长 */
 .q-flipper {
-  position: relative; width: 100%; aspect-ratio: 768 / 1470;
+  position: relative; width: 100%; aspect-ratio: 720 / 1000;
   transform-style: preserve-3d; transform: rotateY(180deg); will-change: transform;
   transition: transform 300ms var(--ease-flip);
 }
 .q-flipper.is-front { transform: rotateY(0deg); transition-duration: 420ms; }
+/* 硬切换保险：翻到 90°（200ms）时用 visibility 交换两面。
+   backface-visibility 在祖先带 paint containment / 合成层时会失效，
+   一失效就两面同绘、背面文字镜像叠在正面上（看起来就是“正反面内容反了”）。
+   visibility 不参与插值，只在延迟到点后瞬间切换，正好落在牌侧立不可见的时刻。 */
+.q-card, .card-flip-cover { transition: visibility 0s linear 200ms; }
+.q-flipper .q-card { visibility: hidden; }
+.q-flipper .card-flip-cover { visibility: visible; }
+.q-flipper.is-front .q-card { visibility: visible; }
+.q-flipper.is-front .card-flip-cover { visibility: hidden; }
 /* 牌背（p6）：背景色必须透明——任何不透明底色都会在 p6 的尖拱透明角处露出黑块 */
 .card-flip-cover {
   position: absolute; inset: 0; backface-visibility: hidden; transform: rotateY(180deg);
-  background-color: transparent; background-size: 100% 100%; background-repeat: no-repeat;
+  background-color: transparent; background-size: cover; background-position: center; background-repeat: no-repeat;
   display: flex; align-items: center; justify-content: center;
   filter: drop-shadow(0 18px 36px rgba(0,0,0,.55));
 }
@@ -124,23 +133,40 @@
    中央羊皮纸会被 .q-face 自己的无缝纹理整块盖住，所以中心切片怎么拉都看不出来。 */
 .q-card {
   position: absolute; inset: 0; backface-visibility: hidden;
-  border: 26px solid transparent; border-left-width: 52px; border-right-width: 52px; border-bottom-width: 36px;
-  border-image: url('/quiz-platform/img/p19.webp') 125 256 179 256 fill / 26px 52px 36px 52px stretch;
+  /* 龙首杆用降饱和提亮过的 p19-soft，且宽度从 52px 收到 36px：装饰退为氛围，不抢题目 */
+  border: 18px solid transparent; border-left-width: 36px; border-right-width: 36px; border-bottom-width: 24px;
+  border-image: url('/quiz-platform/img/p19-soft.webp') 125 256 179 256 fill / 18px 36px 24px 36px stretch;
   filter: drop-shadow(0 18px 36px rgba(0,0,0,.55));
 }
 @media (max-width: 560px) {
-  .q-card { border-width: 18px 34px 26px 34px; border-image-width: 18px 34px 26px 34px; }
+  .q-card { border-width: 12px 22px 16px 22px; border-image-width: 12px 22px 16px 22px; }
 }
 /* 牌面：铺无缝羊皮纸纹理（cover 等比裁切、不变形），题目直接写在卷轴上；
    inset:0 对应的是 border-image 的 padding box，刚好落在两道龙首杆之间 */
 .q-face {
   position: absolute; inset: 0; z-index: 1; container-type: inline-size;
-  display: flex; flex-direction: column; min-height: 0; padding: 14px 16px 12px;
-  background-color: #e3d7bb;
-  background-image: linear-gradient(rgba(44,24,16,.03), rgba(44,24,16,.11)), url('/quiz-platform/img/p4.webp');
+  display: flex; flex-direction: column; min-height: 0; padding: 16px 18px 12px;
+  /* 羊皮纸纹理压到约两成权重：一层近纸色的洗白叠在 p4 之上，纹理只做氛围不抢字 */
+  background-color: #f1e9d6;
+  background-image: linear-gradient(rgba(247,242,229,.8), rgba(241,233,214,.84)), url('/quiz-platform/img/p4.webp');
   background-size: auto, cover; background-position: center, center;
-  box-shadow: inset 0 0 34px rgba(90,74,42,.28);
+  box-shadow: inset 0 0 40px rgba(90,74,42,.16);
 }
+/* ── 三分区：题目区（最亮最干净，层级最高）/ 作答区（原纸）/ 答案区（略沉，封印态虚线框）── */
+.zone { position: relative; }
+.zone-q {
+  padding: 10px 12px 12px; margin-bottom: 2px;
+  background: rgba(255,253,247,.66);
+  border: 1px solid rgba(90,74,42,.22);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.55), 0 4px 12px rgba(90,74,42,.1);
+}
+.zone-a { padding: 2px 2px 4px; }
+.zone-s { padding: 8px 10px 10px; background: rgba(90,74,42,.07); border: 1px dashed rgba(107,26,58,.42); }
+.zone-s.revealed { border-style: solid; border-color: rgba(90,74,42,.32); background: rgba(90,74,42,.05); }
+.zone-label { font-size: clamp(9.5px, 2.3cqw, 11.5px); letter-spacing: 3px; color: #7a5f1f; font-weight: 700; margin-bottom: 7px; }
+/* 分区之间的铜质藤蔓分隔条（p44） */
+.zone-rule { height: clamp(8px, 2.4cqw, 14px); margin: 10px 0; opacity: .55;
+  background: url('/quiz-platform/img/p44.png') center / contain no-repeat; }
 .q-face-scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden; padding-right: 5px; }
 .q-face-scroll::-webkit-scrollbar { width: 5px; }
 .q-face-foot { flex: 0 0 auto; padding-top: 8px; }
@@ -162,15 +188,14 @@
 .q-tags .stamp { width: clamp(30px, 8.4cqw, 48px); height: clamp(30px, 8.4cqw, 48px); }
 .q-tags .gem { width: clamp(18px, 4.6cqw, 26px); height: clamp(18px, 4.6cqw, 26px); }
 .q-domain-tag {
-  font-size: clamp(10px, 2.5cqw, 12.5px); color: #4a3520; padding: 3px 11px; letter-spacing: 1px;
-  background: rgba(90,74,42,.13); border: 1px solid rgba(90,74,42,.42);
+  font-size: clamp(11px, 2.6cqw, 13px); font-weight: 600; color: #3a2a18; padding: 3px 11px; letter-spacing: 1px;
+  background: rgba(90,74,42,.1); border: 1px solid rgba(90,74,42,.42);
   clip-path: polygon(4% 0, 96% 0, 100% 30%, 100% 70%, 96% 100%, 4% 100%, 0 70%, 0 30%);
 }
-/* 符文谜面：整张牌面已经是羊皮纸，所以谜面不再套一层纸板（否则又是“糊上去”），
-   只留一条朱砂栏线把谜面与答题区分开——像手抄本的 rubric 分隔 */
-.parch-layer { position: relative; margin-top: 4px; padding: 2px 2px 12px; border-bottom: 1px solid rgba(107,26,58,.28); }
-.q-stem { position: relative; margin: 0; padding: 0; line-height: 2; font-size: clamp(12.5px, 2.9cqw, 15.5px);
-  color: var(--ink-parch); background: none; box-shadow: none; text-shadow: none; }
+/* 谜面：题目区已经有自己的底板与分隔，这里不再加框线 */
+.parch-layer { position: relative; margin-top: 6px; padding: 0; }
+.q-stem { position: relative; margin: 0; padding: 0; line-height: 1.95; font-size: clamp(14.5px, 3.5cqw, 18px);
+  font-weight: 600; color: #231509; background: none; box-shadow: none; text-shadow: none; }
 /* 输入框在羊皮纸上需要比周围更亮一点才读得出“这是要写的地方”（只限牌面内，不影响设置/导入页） */
 .q-face .rune-input, .q-face .rune-textarea {
   background: rgba(255,252,244,.66); border-color: rgba(90,74,42,.55);
@@ -179,10 +204,10 @@
 .q-answer-zone { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
 /* 选项：羊皮纸上的墨框（不再是暗色玻璃板），选中/对错用墨色浓淡与色调区分 */
 .opt-row {
-  display: flex; align-items: center; gap: 10px; padding: 9px 12px; text-align: left; width: 100%;
-  border: 1px solid rgba(90,74,42,.42); background: rgba(255,251,240,.4); color: #3d2c1c;
-  font-size: clamp(11.5px, 2.7cqw, 14.5px); line-height: 1.65; transition: all .18s ease;
-  box-shadow: inset 0 0 10px rgba(90,74,42,.12);
+  display: flex; align-items: center; gap: 10px; padding: 10px 12px; text-align: left; width: 100%;
+  border: 1px solid rgba(90,74,42,.5); background: rgba(255,253,247,.62); color: #2c1c10;
+  font-size: clamp(13px, 3.1cqw, 16px); font-weight: 500; line-height: 1.6; transition: all .18s ease;
+  box-shadow: inset 0 0 10px rgba(90,74,42,.08);
 }
 .opt-row:hover { border-color: var(--teal-dk); background: rgba(58,138,126,.14); transform: translateX(3px); }
 /* 符文选框：真实素材两态（空心符文 / 宝石填充），不再用 CSS 画圆方框 */
@@ -206,8 +231,8 @@
   transition: transform .22s var(--ease-pop), filter .22s ease, opacity .22s ease;
 }
 .judge-label {
-  font-size: clamp(11px, 2.9cqw, 15px); letter-spacing: 4px; color: #e2d5ab; padding: 0 8% 15%;
-  text-shadow: 0 1px 4px rgba(0,0,0,.95), 0 0 12px rgba(0,0,0,.7);
+  font-size: clamp(12px, 3cqw, 16px); font-weight: 700; letter-spacing: 4px; color: #f6efdb; padding: 0 8% 15%;
+  text-shadow: 0 1px 4px rgba(0,0,0,.95), 0 0 12px rgba(0,0,0,.75);
 }
 .judge-card:hover { transform: translateY(-6px); }
 .judge-card.j-true:hover, .judge-card.j-true.selected { transform: translateY(-6px) rotate(-1.6deg) scale(1.03); filter: drop-shadow(0 0 20px rgba(90,168,156,.85)) drop-shadow(0 10px 20px rgba(0,0,0,.5)); }
@@ -218,34 +243,35 @@
 .judge-card.j-false.selected .judge-label { color: #e6c3cd; }
 .fill-grid { display: flex; flex-direction: column; gap: 10px; }
 .fill-item { display: flex; align-items: center; gap: 10px; }
-.fill-item .no { font-family: 'Cinzel', serif; color: #6b5a1a; font-size: clamp(10.5px, 2.6cqw, 13px); width: 40px; flex-shrink: 0; letter-spacing: 1px; }
+.fill-item .no { font-family: 'Cinzel', serif; color: #5a4413; font-weight: 700; font-size: clamp(11px, 2.7cqw, 13.5px); width: 42px; flex-shrink: 0; letter-spacing: 1px; }
 .fill-item.right .rune-input { border-color: var(--teal); box-shadow: var(--glow-teal); }
 .fill-item.wronged .rune-input { border-color: var(--fault-lt); box-shadow: var(--glow-red); }
 .fill-expected { font-size: 12.5px; color: var(--teal-dk); margin-top: 3px; }
 .subjective-area { position: relative; }
 .subjective-area textarea { min-height: clamp(110px, 30cqw, 180px); background-image: repeating-linear-gradient(transparent, transparent 30px, rgba(90,74,42,.16) 31px); }
-.char-count { text-align: right; font-size: 11px; color: rgba(44,24,16,.55); margin-top: 4px; }
+.char-count { text-align: right; font-size: 11.5px; color: rgba(44,24,16,.68); margin-top: 4px; }
 .reveal-btn { margin-top: 0; }
-.grade-panel { margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(90,74,42,.32); }
-.grade-panel h4 { font-size: clamp(10.5px, 2.6cqw, 13px); letter-spacing: 3px; color: #6b5a1a; margin-bottom: 8px; text-align: center; }
+/* 答案区已由 .zone-s 给出分隔与底色，面板自身不再重复画分隔线 */
+.grade-panel { margin-top: 2px; padding-top: 0; border-top: none; }
+.grade-panel h4 { font-size: clamp(11px, 2.7cqw, 13.5px); letter-spacing: 3px; color: #5a4413; font-weight: 700; margin-bottom: 8px; text-align: center; }
 .rate-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 0; }
 /* 三档自评：羊皮纸上用白底糖果按钮 + 档位深色文字 + 同色 4px 按压底边（下沉手感） */
-.rate-btn { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 9px 4px;
-  border: 1px solid; border-bottom-width: 4px; background: #f4edda;
-  font-size: clamp(11px, 2.7cqw, 14px); letter-spacing: 2px;
+.rate-btn { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 10px 4px;
+  border: 1px solid; border-bottom-width: 4px; background: #f6efdb;
+  font-size: clamp(12px, 2.9cqw, 15px); font-weight: 700; letter-spacing: 2px;
   transition: transform .15s ease, box-shadow .18s ease, border-bottom-width .15s ease; }
 .rate-btn:active { transform: translateY(3px); border-bottom-width: 1px; }
 .rate-btn small { font-size: clamp(8px, 2cqw, 10px); letter-spacing: 1px; opacity: .72; }
 .rate-btn.r-forget { border-color: #8b2a4a; color: #8b2a4a; }
 .rate-btn.r-forget:hover { box-shadow: 0 4px 12px rgba(139,42,74,.35); }
-.rate-btn.r-hazy { border-color: #8a6f10; color: #8a6f10; }
+.rate-btn.r-hazy { border-color: #6d560a; color: #6d560a; }
 .rate-btn.r-hazy:hover { box-shadow: 0 4px 12px rgba(168,138,26,.35); }
-.rate-btn.r-remember { border-color: #2f7a6d; color: #2f7a6d; }
+.rate-btn.r-remember { border-color: #1f5a4f; color: #1f5a4f; }
 .rate-btn.r-remember:hover { box-shadow: 0 4px 12px rgba(47,122,109,.35); }
 .self-judge-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 0; }
 /* 评分后翻牌期间的轻提示（取代已删除的「下一卷」按钮） */
-.flip-hint { text-align: center; padding: 14px 0 6px; letter-spacing: 3px; color: rgba(44,24,16,.55);
-  font-size: clamp(10px, 2.4cqw, 12.5px); animation: rise-in .3s ease both; }
+.flip-hint { text-align: center; padding: 14px 0 6px; letter-spacing: 3px; color: rgba(44,24,16,.68);
+  font-size: clamp(10.5px, 2.5cqw, 13px); animation: rise-in .3s ease both; }
 /* 真理原文：不再套第二张卷轴（整张牌面已是羊皮纸，再套一层就又是“糊上去”），
    改为同一张纸上“墨迹显影”：左侧一条对/错色调的朱栏，答案自左向右写出来 */
 .answer-scroll-box {
@@ -256,11 +282,11 @@
 }
 .answer-scroll-box.ok { border-left-color: var(--teal-dk); background: rgba(58,138,126,.12); }
 .answer-scroll-box.bad { border-left-color: var(--fault-lt); background: rgba(139,42,74,.12); }
-.answer-scroll-box h5 { font-size: clamp(10.5px, 2.5cqw, 13px); letter-spacing: 3px; margin-bottom: 6px; color: #6b5a1a; }
-.answer-scroll-box.ok h5 { color: var(--teal-dk); }
-.answer-scroll-box.bad h5 { color: #8b2a4a; }
-.answer-scroll-box p { font-size: clamp(11.5px, 2.7cqw, 14px); line-height: 1.95; color: var(--ink-parch); }
-.answer-scroll-box .lab { font-size: clamp(10px, 2.3cqw, 12px); color: rgba(44,24,16,.62); margin-top: 8px; letter-spacing: 2px; }
+.answer-scroll-box h5 { font-size: clamp(11px, 2.6cqw, 13.5px); letter-spacing: 3px; margin-bottom: 6px; color: #5a4413; font-weight: 700; }
+.answer-scroll-box.ok h5 { color: #1f5a4f; }
+.answer-scroll-box.bad h5 { color: #7a1f3c; }
+.answer-scroll-box p { font-size: clamp(13px, 3cqw, 15.5px); font-weight: 500; line-height: 1.9; color: #241608; }
+.answer-scroll-box .lab { font-size: clamp(10.5px, 2.4cqw, 12.5px); color: rgba(44,24,16,.74); margin-top: 8px; letter-spacing: 2px; font-weight: 600; }
 
 /* ── 答案封印：未启封前真理被暗红蜡封（p16 触手纹封印牌叠）遮挡 ── */
 .seal-lock {
@@ -268,7 +294,7 @@
   padding: 5px 10px 5px clamp(44px, 13cqw, 58px);
   border: 1px dashed rgba(107,26,58,.6);
   background: linear-gradient(100deg, rgba(107,26,58,.16), rgba(107,26,58,.05));
-  color: #7a2340; letter-spacing: 1.5px; font-size: clamp(9.5px, 2.3cqw, 12px);
+  color: #6d1f38; letter-spacing: 1.5px; font-size: clamp(10px, 2.4cqw, 12.5px); font-weight: 600;
 }
 /* 蜡封三帧叠放：待机只显完整态，启封时 完整→半碎→碎裂 逐帧切换 */
 .seal-wax { position: absolute; left: 6px; top: 50%; transform: translateY(-50%);
@@ -300,8 +326,8 @@
 @keyframes crack-f3 { 0% { opacity: 0 } 62% { opacity: .95 } 100% { opacity: 0 } }
 
 .verdict-banner { position: relative; text-align: center; padding: 10px; margin-top: 12px; font-size: clamp(15px, 4.2cqw, 21px); letter-spacing: 5px; font-weight: 900; animation: crack-in .4s var(--ease-pop) both; }
-.verdict-banner.ok { color: var(--teal-dk); text-shadow: 0 1px 0 rgba(255,251,240,.75); }
-.verdict-banner.bad { color: #8b2a4a; text-shadow: 0 1px 0 rgba(255,251,240,.75); animation: crack-in .4s var(--ease-pop) both, tremble .5s .1s ease; }
+.verdict-banner.ok { color: #1f5a4f; text-shadow: 0 1px 0 rgba(255,251,240,.8); }
+.verdict-banner.bad { color: #7a1f3c; text-shadow: 0 1px 0 rgba(255,251,240,.8); animation: crack-in .4s var(--ease-pop) both, tremble .5s .1s ease; }
 @keyframes tremble { 0%,100% { transform: translateX(0) } 25% { transform: translateX(-2px) } 75% { transform: translateX(2px) } }
 .combo-pop { position: absolute; top: -2px; right: 14px; font-size: 13px; color: #8a6f10; text-shadow: 0 1px 0 rgba(255,251,240,.85), 0 0 10px rgba(184,150,58,.5); animation: combo-in .5s var(--ease-pop) both; letter-spacing: 1px; }
 @keyframes combo-in { from { opacity: 0; transform: scale(.4) rotate(-8deg) } to { opacity: 1; transform: scale(1) } }
@@ -340,11 +366,10 @@
    正面封印谜面，轻触 3D 翻面看此卷全部秘辛 */
 .bank-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(214px, 1fr)); gap: 24px 18px; }
 @media (max-width: 520px) { .bank-list { grid-template-columns: repeat(auto-fill, minmax(156px, 1fr)); gap: 18px 12px; } }
-.bank-item {
-  position: relative; aspect-ratio: 768 / 1470; cursor: pointer; perspective: 1200px; container-type: inline-size;
-  /* 50 张牌一页：屏外卡牌不参与布局/绘制（aspect-ratio 保证占位高度不变，不会跳动） */
-  content-visibility: auto; contain-intrinsic-size: auto 410px;
-}
+/* 千万不要在这上加 content-visibility:auto：它隐含 contain:paint，而 paint containment 是 3D 分组属性，
+   会把子级 .tarot-inner 的 preserve-3d 压平、backface-visibility 随之失效
+   → 正反面同时绘制、牌背文字镜像叠在正面上（就是“正反面内容反了”的成因） */
+.bank-item { position: relative; aspect-ratio: 768 / 1470; cursor: pointer; perspective: 1200px; container-type: inline-size; }
 .bank-item .tarot-inner {
   position: relative; width: 100%; height: 100%; transform-style: preserve-3d;
   transition: transform .78s cubic-bezier(.45,.05,.25,1);
@@ -353,12 +378,17 @@
 .tarot-face {
   position: absolute; inset: 0; backface-visibility: hidden; overflow: hidden;
   background: url('/quiz-platform/img/p2.webp') center / 100% 100% no-repeat;
-  box-shadow: 0 10px 24px rgba(0,0,0,.45); transition: box-shadow .25s ease;
+  box-shadow: 0 10px 24px rgba(0,0,0,.45); transition: box-shadow .25s ease, visibility 0s linear 390ms;
 }
 .bank-item:hover .tarot-face { box-shadow: 0 16px 34px rgba(0,0,0,.55), 0 0 18px rgba(184,150,58,.22); }
 .tarot-face.back { transform: rotateY(180deg);
   /* 牌背用专门的塔罗背面素材（p6 玫瑰窗+藤蔓），与正面 p2 尖拱框彻底区分 */
   background-image: url('/quiz-platform/img/p6.webp'); }
+/* 硬切换保险：翻到一半（390ms，牌侧立不可见）用 visibility 交换正反面，
+   即使某个浏览器/合成层让 backface-visibility 失效，也不会两面同绘 */
+.bank-item .tarot-face.back { visibility: hidden; }
+.bank-item.flipped .tarot-face.front { visibility: hidden; }
+.bank-item.flipped .tarot-face.back { visibility: visible; }
 /* 牌面内缩：上让尖拱宝石冠、左右让藤蔓、下让龙首 */
 .tarot-face .face-in {
   position: absolute; inset: 29% 18% 13% 19.5%; display: flex; flex-direction: column; min-height: 0;
