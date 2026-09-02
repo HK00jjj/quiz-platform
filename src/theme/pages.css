@@ -99,21 +99,29 @@
   width: clamp(268px, min(600px, 94vw, calc((100vh - 132px) * 0.5224)), 600px);
   margin: 0 auto;
 }
-/* 塔罗牌 3D 翻面：牌背封面旋开，露出题干正面 */
-.card-flip-cover { position: absolute; inset: 0; z-index: 5; background-color: #10171d; background-size: 100% 100%;
-  backface-visibility: hidden; transform: rotateY(0deg); transition: transform .72s cubic-bezier(.45,.05,.25,1);
-  display: flex; align-items: center; justify-content: center; }
-.card-flip-cover.gone { transform: rotateY(180deg); pointer-events: none; }
+/* 真 3D 双面翻牌：正反两面同属一个 preserve-3d 体，各自 backface-visibility:hidden，
+   翻转全程只有一面朝外。旧的“牌背覆盖层”自带不透明暗色矩形（#10171d）且不在同一 3D 体，
+   旋转时那块矩形就是“黑边”的来源。
+   退出 300ms / 入场 420ms，同轴同曲线（退出与入场走同一条路）；
+   180° 旋转低于 300ms 会糊成闪烁，所以这里有意超出常规 UI 时长 */
+.q-flipper {
+  position: relative; width: 100%; aspect-ratio: 768 / 1470;
+  transform-style: preserve-3d; transform: rotateY(180deg); will-change: transform;
+  transition: transform 300ms var(--ease-flip);
+}
+.q-flipper.is-front { transform: rotateY(0deg); transition-duration: 420ms; }
+/* 牌背（p6）：背景色必须透明——任何不透明底色都会在 p6 的尖拱透明角处露出黑块 */
+.card-flip-cover {
+  position: absolute; inset: 0; backface-visibility: hidden; transform: rotateY(180deg);
+  background-color: transparent; background-size: 100% 100%; background-repeat: no-repeat;
+  display: flex; align-items: center; justify-content: center;
+  filter: drop-shadow(0 18px 36px rgba(0,0,0,.55));
+}
 .card-flip-cover img { width: 24%; max-width: 130px; opacity: .92; animation: spin-slow 12s linear infinite; filter: drop-shadow(0 0 14px rgba(90,168,156,.6)); }
-/* 归档飞出：做对飞右上「已掌握」，做错飞右下「污染封印」 */
-.q-card-wrap.fly-ok { animation: fly-tr .46s cubic-bezier(.55,-.15,.85,.5) forwards !important; }
-.q-card-wrap.fly-bad { animation: fly-br .46s cubic-bezier(.55,-.15,.85,.5) forwards !important; }
-@keyframes fly-tr { 60% { opacity: 1 } to { transform: translate(46vw, -46vh) scale(.05) rotate(9deg); opacity: 0 } }
-@keyframes fly-br { 60% { opacity: 1 } to { transform: translate(46vw, 46vh) scale(.05) rotate(-11deg); opacity: 0 } }
 .q-card {
-  position: relative; width: 100%; aspect-ratio: 768 / 1470; container-type: inline-size;
+  position: absolute; inset: 0; backface-visibility: hidden; container-type: inline-size;
   background: url('/quiz-platform/img/p2.webp') center / 100% 100% no-repeat;
-  filter: drop-shadow(0 24px 46px rgba(0,0,0,.6));
+  filter: drop-shadow(0 18px 36px rgba(0,0,0,.55));
 }
 /* 牌面内缩值由金饰剖面实测换算（p2 已裁掉透明留白，画布=牌体 768×1470）：
    上 29% 让开尖拱+宝石+玫瑰窗圆花，左 19.5% / 右 18% 让开藤蔓，下 13% 让开龙首 */
@@ -143,20 +151,19 @@
   background: linear-gradient(160deg, var(--parchment-0), var(--parchment-1));
   clip-path: polygon(4% 0, 96% 0, 100% 30%, 100% 70%, 96% 100%, 4% 100%, 0 70%, 0 30%);
 }
-/* 符文谜面：镶嵌进牌面暗青石板的鎏金刻文（不再是一张糊上去的米色纸） */
+/* 符文谜面：真羊皮纸（p4 无缝纹理做底 + 极淡墨色压暗保证对比），深色宋体刻文，
+   牌面上“镶”而不“糊”：毛边 clip-path + 内阴影 + 外投影让它从牌面浮起来 */
 .parch-layer {
   position: relative; margin-top: 10px; padding: 12px 14px; overflow: hidden;
-  background: linear-gradient(160deg, rgba(224,212,188,.16), rgba(200,184,154,.09)), rgba(8,13,17,.4);
-  border: 1px solid rgba(201,168,76,.3);
-  box-shadow: inset 0 0 26px rgba(0,0,0,.5), 0 6px 16px rgba(0,0,0,.32);
+  background-color: #ddd0b4;
+  background-image: linear-gradient(rgba(44,24,16,.04), rgba(44,24,16,.13)), url('/quiz-platform/img/p4.webp');
+  background-size: auto, cover; background-position: center, center;
+  border: 1px solid rgba(90,74,42,.55);
+  box-shadow: inset 0 0 26px rgba(90,74,42,.3), 0 6px 16px rgba(0,0,0,.42);
   clip-path: polygon(0 7px, 7px 0, calc(100% - 7px) 0, 100% 7px, 100% calc(100% - 7px), calc(100% - 7px) 100%, 7px 100%, 0 calc(100% - 7px));
 }
-.parch-layer::before { /* 羊皮纸纤维：极低透明度，给石板一点材质而不是糊一张纸 */
-  content: ''; position: absolute; inset: 0; opacity: .07; mix-blend-mode: soft-light; pointer-events: none;
-  background: url('/quiz-platform/img/p4.webp') center / cover no-repeat;
-}
 .q-stem { position: relative; margin: 0; padding: 0; line-height: 2; font-size: clamp(12.5px, 2.9cqw, 15.5px);
-  color: #ded0a6; background: none; box-shadow: none; text-shadow: 0 1px 3px rgba(0,0,0,.8); }
+  color: var(--ink-parch); background: none; box-shadow: none; text-shadow: none; }
 .q-answer-zone { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
 .opt-row {
   display: flex; align-items: center; gap: 10px; padding: 10px 12px; text-align: left; width: 100%;
@@ -220,6 +227,9 @@
 .rate-btn.r-remember { border-color: var(--teal); color: var(--teal-lt); }
 .rate-btn.r-remember:hover { box-shadow: var(--glow-teal); transform: translateY(-3px); }
 .self-judge-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 0; }
+/* 评分后翻牌期间的轻提示（取代已删除的「下一卷」按钮） */
+.flip-hint { text-align: center; padding: 14px 0 6px; letter-spacing: 3px; color: var(--muted);
+  font-size: clamp(10px, 2.4cqw, 12.5px); animation: rise-in .3s ease both; }
 /* 真理原文 = 一张真卷轴：p35 九切片（左右龙首卷轴杆定宽不拉伸，中间羊皮纸任意延展），
    墨色刻文写在羊皮纸上；与牌面上「暗青石板谜面」形成材质对比（谜面=刻在牌上，答案=摊开的卷轴） */
 .answer-scroll-box {

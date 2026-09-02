@@ -1,6 +1,8 @@
 // GitHub Git Data API 部署：dist → gh-pages（无需 git 直连）
-// 用法: node deploy-api.mjs <token>
+// 用法: node deploy-api.mjs <token> <dist目录> [提交信息]
 import { readFileSync, readdirSync, statSync } from 'fs'
+
+const COMMIT_MSG = process.argv[4] || 'chore: 部署构建产物'
 
 const token = process.argv[2]
 const repo = 'HK00jjj/quiz-platform'
@@ -49,7 +51,7 @@ const newTree = await req('POST', `/repos/${repo}/git/trees`, { tree })
 console.log('new tree:', newTree.sha)
 
 const commit = await req('POST', `/repos/${repo}/git/commits`, {
-  message: 'fix+feat: 素材归一化(裁透明留白/统一实体尺寸/从原图重取768x1470) + 牌面内缩改为实测值 + 标题装饰条锁4.94比例 + 修手机端横向溢出 + 蜡封钉在牌底 + 答案卷轴p35九切片',
+  message: COMMIT_MSG,
   tree: newTree.sha,
   parents: [parentSha],
   author: { name: 'HK00jjj', email: 'hk00jjj@users.noreply.github.com', date: new Date().toISOString() },

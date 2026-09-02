@@ -56,9 +56,9 @@ export default function Practice() {
     setChoice(null); setMulti([]); setJudge(null); setFills(blanksOf(q?.stem ?? '').map(() => ''))
     setText(''); setShowAnswer(false); setFlash('')
     clearTimeout(sealTimer.current); setSeal('intact')
-    // 新卡牌入场：先见牌背，再 3D 翻到正面（翻开秘典的仪式感）
+    // 新卡牌入场：先见牌背，再 3D 翻到正面（上一题已翻回牌背，这里只留极短停留避免同帧交错）
     setFlipped(false)
-    const t = setTimeout(() => setFlipped(true), 480)
+    const t = setTimeout(() => setFlipped(true), 120)
     return () => clearTimeout(t)
   }, [index, q?.id])
 
@@ -130,22 +130,27 @@ export default function Practice() {
     } catch { return true }
   }
 
-  function commitSelf(ok) {
-    submitSubjective(ok ? '记得' : '忘记')
-    const r = document.querySelector('.q-card')?.getBoundingClientRect()
-    if (r) burstParticles(r.left + r.width / 2, r.top + 60, ok ? 'teal' : 'red', 18)
-    if (!ok) window.dispatchEvent(new Event('abyss-pulse'))
-  }
-
-  function goNext(e) {
+  /* 评分即翻牌：翻回牌背（与入场同轴同曲线）→ 到位后自动切下一题，全程无需再点「下一卷」 */
+  function flipToNext(ok) {
     if (flying.current) return
     flying.current = true
-    const ok = objective ? !!grade?.correct : lastRating === '记得'
-    burstParticles(e.clientX, e.clientY, ok ? 'teal' : 'red', 10)
-    // 卡牌缩小化为光球飞向对应牌堆（做对右上「已掌握」/做错右下「污染封印」）
-    const wrap = document.querySelector('.q-card-wrap')
-    if (wrap) wrap.classList.add(ok ? 'fly-ok' : 'fly-bad')
-    setTimeout(() => { flying.current = false; next() }, 440)
+    const r = document.querySelector('.q-card-wrap')?.getBoundingClientRect()
+    if (r) burstParticles(r.left + r.width / 2, r.top + r.height * 0.32, ok ? 'teal' : 'red', 14)
+    if (!ok) window.dispatchEvent(new Event('abyss-pulse'))
+    setFlipped(false)
+    // 300ms = .q-flipper 退出时长，留 60ms 余量再切题
+    setTimeout(() => { flying.current = false; next() }, 360)
+  }
+
+  function commitSelf(ok) {
+    submitSubjective(ok ? '记得' : '忘记')
+    flipToNext(ok)
+  }
+
+  /* 客观题三档自评：记录 + 评级后立即翻牌切题 */
+  function rate(rating) {
+    rateObjective(rating)
+    flipToNext(rating === '记得')
   }
 
   /* ── 结算 ── */
@@ -209,6 +214,8 @@ export default function Practice() {
       </div>
 
       <div className="q-card-wrap" key={q.id + '-' + index}>
+        {/* 真 3D 双面翻牌容器：正面(p2) 与 牌背(p6) 是同一个 preserve-3d 体的两面 */}
+        <div className={'q-flipper' + (flipped ? ' is-front' : '')}>
         <div className={'q-card ' + flash}>
           {combo >= 3 && !answered && <span className="combo-pop" style={{ zIndex: 8 }}>✦ {combo} 连击！</span>}
           {/* 深渊侵蚀：真实裂纹素材三帧自四角向中心蔓延（与牌面同 2:3 比例，零变形） */}
@@ -380,25 +387,22 @@ export default function Practice() {
               <>
                 <h4>你的记忆状态？</h4>
                 <div className="rate-row">
-                  <button className="rate-btn r-forget" onClick={() => rateObjective('忘记')}>忘记<small>被深渊侵蚀</small></button>
-                  <button className="rate-btn r-hazy" onClick={() => rateObjective('模糊')}>模糊<small>灵知游离</small></button>
-                  <button className="rate-btn r-remember" onClick={() => rateObjective('记得')}>记得<small>灵知铭刻</small></button>
+                  <button className="rate-btn r-forget" onClick={() => rate('忘记')}>忘记<small>被深渊侵蚀</small></button>
+                  <button className="rate-btn r-hazy" onClick={() => rate('模糊')}>模糊<small>灵知游离</small></button>
+                  <button className="rate-btn r-remember" onClick={() => rate('记得')}>记得<small>灵知铭刻</small></button>
                 </div>
               </>
             )}
 
-            {committed && (
-              <GiltBtn size="lg" block
-                tone={(objective ? grade?.correct : lastRating === '记得') ? 'teal' : 'ghost'} onClick={goNext}>
-                {index + 1 >= questions.length ? '完成仪式 ✦' : '下一卷 →'}
-              </GiltBtn>
-            )}
+            {/* 评分即翻牌：已删除「下一卷」按钮，翻牌期间只给一行轻提示，避免牌底突然空掉 */}
+            {committed && <p className="flip-hint">✦ 此卷已归档 · 正在发下一张牌 ✦</p>}
           </div>
           </div>
         </div>
-        {/* 塔罗牌背封面：入场时 3D 翻面旋开 */}
-        <div className={'card-flip-cover' + (flipped ? ' gone' : '')} style={{ backgroundImage: `url(${A.cardBack})` }} aria-hidden="true">
+        {/* 牌背（p6）：自身再转 180°，使 flipper 在 180° 时它朝外 */}
+        <div className="card-flip-cover" style={{ backgroundImage: `url(${A.cardBack})` }} aria-hidden="true">
           <img src={A.roseWindow} alt="" />
+        </div>
         </div>
       </div>
     </div>
