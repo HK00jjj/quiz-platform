@@ -297,7 +297,7 @@ export default function Practice() {
                     }
                     return (
                       <button key={label} disabled={answered} className={`judge-card ${cls} ${extra}`}
-                        style={{ backgroundImage: `url(${label === '正确' ? A.judgeCard.ok : A.judgeCard.no})` }}
+                        style={{ '--judge-art': `url(${label === '正确' ? A.judgeCard.ok : A.judgeCard.no})` }}
                         aria-pressed={judge === label} onClick={() => setJudge(label)}>
                         <span className="judge-label">{label}</span>
                       </button>
