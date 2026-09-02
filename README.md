@@ -78,9 +78,30 @@ node scripts/push-src.mjs <GitHub_TOKEN> <app目录绝对路径> <tools目录绝
 ```powershell
 node scripts/optimize-assets.mjs   # 分级降采样 + WebP 转码 + 删未引用 + 自动改引用
 node scripts/ingest-assets.mjs     # 摄入外部新素材（按文件夹名前缀映射到语义文件名）
+node scripts/measure-assets.mjs    # 量 alpha 真实边界框 + 雕花边框的金饰剖面（定内缩/九切片值用）
+node scripts/normalize-assets.mjs  # 裁透明留白 + 同组素材统一到同一画布/实体尺寸
 node scripts/fix-assets.mjs        # 还原转大的素材 + 清死映射 + 引用可达校验
 node scripts/check-refs.mjs        # 校验 A.<key> 与磁盘文件一一对应（防 undefined 崩溃 / 404）
+node scripts/purge-dist.mjs        # 构建后从 dist 清除无人引用的孤儿素材
+powershell -File verify-ui.ps1     # agent-browser 实视口量几何 + 截图（配合 probe.js）
 ```
+
+### 实测几何常量（不要凭感觉改，这些是用 measure-assets / agent-browser 量出来的）
+
+| 对象 | 实测值 | 用在哪 |
+| --- | --- | --- |
+| p2 牌体（已裁透明留白，从 2457×4701 原图重取） | 768×1470，比例 **0.5224** | `.q-card` / `.bank-item` 的 `aspect-ratio` |
+| p2 金饰内缘（藤蔓/尖拱/龙首） | 上 29% 右 18% 下 13% 左 19.5% | `.q-face` / `.tarot-face .face-in` 的 `inset` |
+| p6 牌背 | 归一化到与 p2 同一画布 768×1470 | 题库牌背 / 答题入场翻牌封面 |
+| p45 标题装饰条 | 1600×324，比例 **4.94** | `.page-head` 用 `width:min(100%,800px)` + `aspect-ratio:1600/324` 锁比例 |
+| p35 答案卷轴 | **杆在左右两侧**（不是上下），杆宽约 19% | `border-image: 60 200 60 200 fill / 12px 38px stretch` |
+| 判断题铜牌 | 两张统一到 378×640（原实体比例 .591/.558 不一致） | `.judge-card` 的 `aspect-ratio` |
+| 符文选框 / 导航图标 | 实体统一 84 / 112（原先填充率 54.7%~93.1% 不齐） | 选中时不会缩水、五个图标视觉重量一致 |
+
+归一化前的两个坑（已修，别再退回去）：
+- **不裁透明留白**：p2 原本左右各有 13%/15% 透明边，`background-size:100% 100%` 下可见牌面只占元素宽度 72%，
+  而且裂纹层/翻牌封面按满盒铺会与可见牌面错位。
+- **内缩值凭感觉**：曾写成 `26% 12.2% 11%`，实测藤蔓占到 x=13%~27%，题干直接压在藤蔓上。
 
 ### 外部补充素材（用户第二批提供，已接入）
 

@@ -48,13 +48,13 @@ export const A = {
   divider: img('p44.png'),         // 铜质花纹分隔条
   titleDecor: img('p45.png'),      // 页面顶部标题装饰条
   /* ── 外部补充素材（用户提供，已经 ingest-assets.mjs 零感知损失压缩）── */
-  navIcons: { learn: img('nav-learn.webp'), bank: img('nav-bank.webp'), import: img('nav-import.webp'), stats: img('nav-stats.webp'), settings: img('nav-settings.webp') },
-  markRadio: { off: img('mark-radio-off.webp'), on: img('mark-radio-on.webp') },   // 单选符文框两态
-  markCheck: { off: img('mark-check-off.webp'), on: img('mark-check-on.webp') },   // 多选符文框两态
-  judgeCard: { ok: img('judge-true.webp'), no: img('judge-false.webp') },          // 判断题尖拱铜牌
-  waxSeal: [img('seal-1.webp'), img('seal-2.webp'), img('seal-3.webp')],           // 蜡封：完整/半碎/碎裂
-  cracks: [img('crack-1.webp'), img('crack-2.webp'), img('crack-3.webp')],         // 牌面裂纹蔓延三帧
-  abyss: [img('abyss-1.webp'), img('abyss-2.webp'), img('abyss-3.webp')]           // 深渊不可名状剑影
+  navIcons: { learn: img('nav-learn-n.webp'), bank: img('nav-bank-n.webp'), import: img('nav-import-n.webp'), stats: img('nav-stats-n.webp'), settings: img('nav-settings-n.webp') },
+  markRadio: { off: img('mark-radio-off-n.webp'), on: img('mark-radio-on-n.webp') },   // 单选符文框两态
+  markCheck: { off: img('mark-check-off-n.webp'), on: img('mark-check-on-n.webp') },   // 多选符文框两态
+  judgeCard: { ok: img('judge-true.webp'), no: img('judge-false.webp') },              // 判断题尖拱铜牌
+  waxSeal: [img('wax-1.webp'), img('wax-2.webp'), img('wax-3.webp')],                 // 蜡封：完整/半碎/碎裂
+  cracks: [img('crack-1.webp'), img('crack-2.webp'), img('crack-3.webp')],             // 牌面裂纹蔓延三帧
+  abyss: [img('abyss-1-n.webp'), img('abyss-2-n.webp'), img('abyss-3-n.webp')]         // 深渊不可名状剑影
 }
 
 export const TYPE_SEAL_INDEX = {

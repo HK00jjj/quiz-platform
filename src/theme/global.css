@@ -65,7 +65,7 @@ input, textarea, select { font-family: inherit; }
 .font-cinzel { font-family: 'Cinzel', 'Noto Serif SC', serif; }
 
 /* ═══ 全局背景层 ═══ */
-.bg-stage { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
+.bg-stage { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
 .bg-texture { position: absolute; inset: 0; background-size: cover; background-position: center; opacity: .55; }
 .bg-stained {
   position: absolute; inset: 0;
@@ -129,8 +129,10 @@ input, textarea, select { font-family: inherit; }
    横条按原始尺寸贴左上角并被 header 盒子裁掉 → 只剩一角（“显示不完整”）。
    现改为整条 100%×100% 铺满且不重复，并把 header 撑到装饰条的合适高度。 */
 .page-head {
-  position: relative; text-align: center; margin-bottom: 20px;
-  min-height: 134px; padding: 26px 18px 24px;
+  position: relative; text-align: center; margin: 0 auto 20px; padding: 0 18px;
+  /* p45 原图 1600×324（比例 4.94）：宽限 800px + aspect-ratio 锁比例。
+     实测不锁的话在 828~992px 宽容器里会被拉成 6.18~7.40 倍比例，装饰条横向压扁 */
+  width: min(100%, 800px); aspect-ratio: 1600 / 324;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   background-size: 100% 100%; background-repeat: no-repeat; background-position: center;
 }
@@ -239,7 +241,7 @@ input, textarea, select { font-family: inherit; }
   animation: breathe 4s ease-in-out infinite;
   transition: transform .3s var(--ease-pop), box-shadow .3s ease;
 }
-.nav-center .nav-icon-wrap img { width: 40px; height: 40px; object-fit: contain; filter: drop-shadow(0 0 10px rgba(90,168,156,.5)); transition: transform .35s var(--ease-pop); }
+.nav-center .nav-icon-wrap img { width: 38px; height: 38px; object-fit: contain; filter: drop-shadow(0 0 10px rgba(90,168,156,.5)); transition: transform .35s var(--ease-pop); }
 .nav-center.active .nav-icon-wrap img { transform: rotateY(360deg); }
 .nav-center.active .nav-icon-wrap { box-shadow: 0 0 22px rgba(90,168,156,.7), inset 0 0 14px rgba(90,168,156,.4); }
 .nav-center:active .nav-icon-wrap { transform: scale(.92) rotate(20deg); }
@@ -338,7 +340,7 @@ input, textarea, select { font-family: inherit; }
 .empty-state img { width: 130px; max-width: 40%; opacity: .8; filter: sepia(.3) brightness(.85); animation: float-y 5s ease-in-out infinite; margin-bottom: 14px; }
 
 @media (max-width: 640px) {
-  .page-head { min-height: 104px; padding: 18px 10px 16px; }
+  .page-head { padding: 0 10px; }
   .page-head h1 { font-size: 21px; letter-spacing: 4px; }
   .panel { padding: 16px; }
 }

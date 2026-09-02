@@ -69,6 +69,21 @@ export default function Practice() {
     sealTimer.current = setTimeout(() => setSeal('broken'), 520)
   }
 
+  /* 牌面是固定比例的塔罗牌，正文区可能溢出：答案卷轴展开后自动滚到可见。
+     注意：这里必须用 store 的 phase，不能用下面才声明的 answered（const 有 TDZ，
+     依赖数组在渲染期求值会报 Cannot access 'answered' before initialization 而整页崩溃） */
+  useEffect(() => {
+    if (phase !== 'feedback' && !showAnswer) return
+    const sc = document.querySelector('.q-face-scroll')
+    const gp = document.querySelector('.grade-panel')
+    if (!sc || !gp) return
+    const t = setTimeout(() => {
+      const delta = gp.getBoundingClientRect().top - sc.getBoundingClientRect().top + sc.scrollTop - 4
+      sc.scrollTo({ top: Math.max(0, delta), behavior: 'smooth' })
+    }, 420)
+    return () => clearTimeout(t)
+  }, [phase, showAnswer])
+
   useEffect(() => {
     const t = setInterval(() => setElapsed(Math.floor((Date.now() - startAt.current) / 1000)), 1000)
     return () => clearInterval(t)
@@ -297,17 +312,6 @@ export default function Practice() {
               )}
             </div>
 
-            {/* 答案封印：未启封前，真理被暗红蜡封（触手纹）遮住 */}
-            {seal !== 'broken' && (
-              <div className={'seal-lock ' + seal}>
-                {/* 蜡封三帧：完整 → 半碎 → 碎裂散开（启封时逐帧切换） */}
-                <span className="seal-wax" aria-hidden="true">
-                  {A.waxSeal.map((s, k) => <img key={k} className={'f' + (k + 1)} src={s} alt="" decoding="async" />)}
-                </span>
-                <span>{objective ? '真理已封印 · 解读符文后启封' : '参考答案已封印 · 展开卷轴后启封'}</span>
-              </div>
-            )}
-
             {/* 判分反馈：启封后卷轴自上而下展开 */}
             {answered && (
               <div className="grade-panel">
@@ -345,6 +349,16 @@ export default function Practice() {
 
           {/* 牌底：铜质藤蔓花纹分隔 + 当前唯一主操作（不随正文滚动，永远在手边） */}
           <div className="q-face-foot">
+            {/* 答案封印：钉在牌底（不随正文滚动），未启封前一直看得见 */}
+            {seal !== 'broken' && (
+              <div className={'seal-lock ' + seal}>
+                {/* 蜡封三帧：完整 → 半碎 → 碎裂散开（启封时逐帧切换） */}
+                <span className="seal-wax" aria-hidden="true">
+                  {A.waxSeal.map((s, k) => <img key={k} className={'f' + (k + 1)} src={s} alt="" decoding="async" />)}
+                </span>
+                <span>{objective ? '真理已封印 · 解读符文后启封' : '参考答案已封印 · 展开卷轴后启封'}</span>
+              </div>
+            )}
             <div className="q-face-rule" aria-hidden="true" />
             {!answered && (objective ? (
               <GiltBtn size="lg" block className="reveal-btn" disabled={!canSubmit} onClick={doCheck}>

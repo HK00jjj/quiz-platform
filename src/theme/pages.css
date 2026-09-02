@@ -91,11 +91,12 @@
 .gem-dot.ok { background: var(--teal-lt); box-shadow: 0 0 6px rgba(90,168,156,.8); }
 .gem-dot.bad { background: var(--fault-lt); box-shadow: 0 0 6px rgba(139,42,74,.8); }
 .practice-count { font-size: 12px; letter-spacing: 2px; color: var(--muted); white-space: nowrap; }
-/* 题卡 = 一张严格 2:3 的竖版塔罗牌：p2 原图 1066×1600 等比铺满，尖拱/藤蔓/龙首永不变形。
-   宽度受视口高度约束（×0.6663 = 1066/1600），保证整张牌一屏内完整可见。 */
+/* 题卡 = 一张严格等比的竖版塔罗牌：p2 已裁掉透明留白、从 2457×4701 原图重取为 768×1470 牌体，
+   100%×100% 铺满即零变形（留白不裁的话，可见牌面只占元素宽度 72%，且覆盖层会与牌面错位）。
+   宽度受视口高度约束（×0.5224 = 768/1470），保证整张牌一屏内完整可见。 */
 .q-card-wrap {
   position: relative; animation: rise-in .5s ease both; perspective: 1600px;
-  width: clamp(268px, min(600px, 94vw, calc((100vh - 132px) * 0.6663)), 600px);
+  width: clamp(268px, min(600px, 94vw, calc((100vh - 132px) * 0.5224)), 600px);
   margin: 0 auto;
 }
 /* 塔罗牌 3D 翻面：牌背封面旋开，露出题干正面 */
@@ -110,12 +111,13 @@
 @keyframes fly-tr { 60% { opacity: 1 } to { transform: translate(46vw, -46vh) scale(.05) rotate(9deg); opacity: 0 } }
 @keyframes fly-br { 60% { opacity: 1 } to { transform: translate(46vw, 46vh) scale(.05) rotate(-11deg); opacity: 0 } }
 .q-card {
-  position: relative; width: 100%; aspect-ratio: 1066 / 1600; container-type: inline-size;
+  position: relative; width: 100%; aspect-ratio: 768 / 1470; container-type: inline-size;
   background: url('/quiz-platform/img/p2.webp') center / 100% 100% no-repeat;
   filter: drop-shadow(0 24px 46px rgba(0,0,0,.6));
 }
-/* 牌面：内缩进纹样之内——上让尖拱宝石冠(26%)、左右让藤蔓(12.2%)、下让龙首(11%) */
-.q-face { position: absolute; inset: 26% 12.2% 11%; display: flex; flex-direction: column; min-height: 0; z-index: 1; }
+/* 牌面内缩值由金饰剖面实测换算（p2 已裁掉透明留白，画布=牌体 768×1470）：
+   上 29% 让开尖拱+宝石+玫瑰窗圆花，左 19.5% / 右 18% 让开藤蔓，下 13% 让开龙首 */
+.q-face { position: absolute; inset: 29% 18% 13% 19.5%; display: flex; flex-direction: column; min-height: 0; z-index: 1; }
 .q-face-scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden; padding-right: 5px; }
 .q-face-scroll::-webkit-scrollbar { width: 5px; }
 .q-face-foot { flex: 0 0 auto; padding-top: 8px; }
@@ -173,18 +175,18 @@
 .opt-row.right { border-color: var(--teal-lt); background: rgba(31,90,82,.35); color: #d9efe9; }
 .opt-row.wronged { border-color: var(--fault-lt); background: rgba(107,26,58,.28); color: #d9a0b0; }
 .opt-row.missed { border: 1.5px dashed var(--teal); color: var(--teal-lt); }
-/* 判断题 = 两张对立的竖版尖拱铜牌（真实素材 341×512，2:3），选中即被拿起 */
+/* 判断题 = 两张对立的竖版尖拱铜牌（两张已归一化到同一画布 378×640，成为真正的一对），选中即被拿起 */
 .judge-pair { display: flex; gap: 12px; justify-content: center; align-items: flex-end; margin-top: 4px; }
 .judge-card {
-  position: relative; flex: 0 0 auto; width: auto; height: clamp(132px, 36cqw, 258px);
-  aspect-ratio: 341 / 512; border: none; background-color: transparent;
+  position: relative; flex: 0 1 auto; width: 46%; max-width: 190px; height: auto;
+  aspect-ratio: 378 / 640; border: none; background-color: transparent;
   background-position: center; background-size: 100% 100%; background-repeat: no-repeat;
   display: flex; align-items: flex-end; justify-content: center;
   filter: drop-shadow(0 10px 20px rgba(0,0,0,.5));
   transition: transform .22s var(--ease-pop), filter .22s ease, opacity .22s ease;
 }
 .judge-label {
-  font-size: clamp(11px, 2.9cqw, 15px); letter-spacing: 4px; color: #e2d5ab; padding: 0 10px 7%;
+  font-size: clamp(11px, 2.9cqw, 15px); letter-spacing: 4px; color: #e2d5ab; padding: 0 8% 15%;
   text-shadow: 0 1px 4px rgba(0,0,0,.95), 0 0 12px rgba(0,0,0,.7);
 }
 .judge-card:hover { transform: translateY(-6px); }
@@ -240,15 +242,15 @@
 
 /* ── 答案封印：未启封前真理被暗红蜡封（p16 触手纹封印牌叠）遮挡 ── */
 .seal-lock {
-  position: relative; display: flex; align-items: center; gap: 10px; margin-top: 12px;
-  padding: 9px 12px 9px clamp(58px, 17cqw, 78px);
+  position: relative; display: flex; align-items: center; gap: 8px; margin: 0 0 8px;
+  padding: 5px 10px 5px clamp(44px, 13cqw, 58px);
   border: 1px dashed rgba(139,42,74,.6);
   background: linear-gradient(100deg, rgba(42,10,24,.55), rgba(10,15,19,.3));
-  color: #c98a9d; letter-spacing: 2px; font-size: clamp(10px, 2.4cqw, 12.5px);
+  color: #c98a9d; letter-spacing: 1.5px; font-size: clamp(9.5px, 2.3cqw, 12px);
 }
 /* 蜡封三帧叠放：待机只显完整态，启封时 完整→半碎→碎裂 逐帧切换 */
-.seal-wax { position: absolute; left: 8px; top: 50%; transform: translateY(-50%);
-  width: clamp(40px, 12cqw, 58px); aspect-ratio: 1; }
+.seal-wax { position: absolute; left: 6px; top: 50%; transform: translateY(-50%);
+  width: clamp(32px, 9.5cqw, 46px); aspect-ratio: 1; }
 .seal-wax img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; opacity: 0;
   filter: drop-shadow(0 0 8px rgba(139,42,74,.55)); }
 .seal-wax img.f1 { opacity: 1; animation: breathe 3.4s ease-in-out infinite; }
@@ -305,18 +307,21 @@
 .bank-search input:focus { box-shadow: var(--glow-teal), inset 0 0 16px rgba(58,138,126,.15); border-color: var(--teal-lt); }
 .bank-meta { display: flex; justify-content: space-between; align-items: center; font-size: 12.5px; color: var(--muted); letter-spacing: 1px; margin-bottom: 12px; flex-wrap: wrap; gap: 8px; }
 .deck-row { display: flex; gap: 12px; margin-bottom: 16px; }
-.deck { flex: 1; position: relative; border: 1px solid rgba(139,115,50,.5); background: rgba(21,29,36,.8); padding: 10px 12px; text-align: center; cursor: pointer; transition: all .2s ease; }
+/* min-width:0 必需：flex 子项默认 min-width:auto，select 会被最长选项文字（如「知识域：模拟与数字电子技术」）
+   顶住不能收缩，实测 390px 视口下三个筛选框把页面撑到 490px 造成横向溢出 */
+.deck { flex: 1; min-width: 0; position: relative; border: 1px solid rgba(139,115,50,.5); background: rgba(21,29,36,.8); padding: 10px 12px; text-align: center; cursor: pointer; transition: all .2s ease; }
+@media (max-width: 520px) { .deck-row { gap: 8px; } .deck { padding: 8px 4px; font-size: 12px; } }
 .deck:hover { border-color: var(--teal); box-shadow: var(--glow-teal); transform: translateY(-2px); }
 .deck h5 { font-size: 11px; letter-spacing: 2px; color: var(--muted); margin-bottom: 4px; }
 .deck .val { font-size: 14px; color: var(--teal-lt); letter-spacing: 1px; }
-/* 禁书库 = 一面竖版塔罗牌墙：每张牌严格 2:3（p2 原图 1066×1600 等比铺满，零变形），
+/* 禁书库 = 一面竖版塔罗牌墙：每张牌按牌体比例 768×1470 等比铺满（零变形），
    正面封印谜面，轻触 3D 翻面看此卷全部秘辛 */
-.bank-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(198px, 1fr)); gap: 22px 18px; }
-@media (max-width: 520px) { .bank-list { grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); gap: 16px 12px; } }
+.bank-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(214px, 1fr)); gap: 24px 18px; }
+@media (max-width: 520px) { .bank-list { grid-template-columns: repeat(auto-fill, minmax(156px, 1fr)); gap: 18px 12px; } }
 .bank-item {
-  position: relative; aspect-ratio: 1066 / 1600; cursor: pointer; perspective: 1200px; container-type: inline-size;
+  position: relative; aspect-ratio: 768 / 1470; cursor: pointer; perspective: 1200px; container-type: inline-size;
   /* 50 张牌一页：屏外卡牌不参与布局/绘制（aspect-ratio 保证占位高度不变，不会跳动） */
-  content-visibility: auto; contain-intrinsic-size: auto 300px;
+  content-visibility: auto; contain-intrinsic-size: auto 410px;
 }
 .bank-item .tarot-inner {
   position: relative; width: 100%; height: 100%; transform-style: preserve-3d;
@@ -334,7 +339,7 @@
   background-image: url('/quiz-platform/img/p6.webp'); }
 /* 牌面内缩：上让尖拱宝石冠、左右让藤蔓、下让龙首 */
 .tarot-face .face-in {
-  position: absolute; inset: 25% 12% 11%; display: flex; flex-direction: column; min-height: 0;
+  position: absolute; inset: 29% 18% 13% 19.5%; display: flex; flex-direction: column; min-height: 0;
   padding: 7px 7px 6px; background: rgba(8,13,17,.34); border: 1px solid rgba(201,168,76,.18);
   box-shadow: inset 0 0 20px rgba(0,0,0,.45);
 }
@@ -356,8 +361,8 @@
 .tarot-hint { text-align: center; letter-spacing: 2px; color: rgba(122,106,74,.95); margin-top: 5px;
   font-size: clamp(7.5px, 4.2cqw, 10px); }
 .bank-item.flipped .tarot-hint { visibility: hidden; }
-/* 掌握状态宝珠：钉在牌面右上藤蔓内缘 */
-.tarot-orb { position: absolute; top: 21%; right: 8.5%; z-index: 2; border-radius: 50%;
+/* 掌握状态宝珠：排在签条行内（原先绝对定位在 top 21%/right 8.5%，裁掉留白后会压到藤蔓上） */
+.tarot-orb { flex-shrink: 0; border-radius: 50%;
   width: clamp(8px, 5cqw, 12px); height: clamp(8px, 5cqw, 12px);
   border: 1.5px solid rgba(139,115,50,.75); background: rgba(10,14,18,.7); }
 .tarot-orb.half { background: rgba(58,138,126,.4); border-color: var(--teal); }

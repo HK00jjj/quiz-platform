@@ -49,7 +49,7 @@ const newTree = await req('POST', `/repos/${repo}/git/trees`, { tree })
 console.log('new tree:', newTree.sha)
 
 const commit = await req('POST', `/repos/${repo}/git/commits`, {
-  message: 'feat: 接入外部素材(导航图标/符文选框/判断题铜牌/蜡封三帧/裂纹三帧/深渊剑影) + p35九切片真卷轴 + 禁书库竖版塔罗牌墙 + 素材WebP化54MB→7.2MB',
+  message: 'fix+feat: 素材归一化(裁透明留白/统一实体尺寸/从原图重取768x1470) + 牌面内缩改为实测值 + 标题装饰条锁4.94比例 + 修手机端横向溢出 + 蜡封钉在牌底 + 答案卷轴p35九切片',
   tree: newTree.sha,
   parents: [parentSha],
   author: { name: 'HK00jjj', email: 'hk00jjj@users.noreply.github.com', date: new Date().toISOString() },

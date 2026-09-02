@@ -103,6 +103,8 @@ export default function Bank() {
                     <img className="tarot-seal" src={A.seals[TYPE_SEAL_INDEX[q.type] ?? 0]} alt={q.type} title={q.type} loading="lazy" decoding="async" />
                     <p className="tarot-stem">{q.stem}</p>
                     <div className="tarot-tags">
+                      <span className={'tarot-orb' + (mastered ? ' full' : touched ? ' half' : '') + (last === false ? ' polluted' : '')}
+                        title={mastered ? '已掌握' : touched ? '复习中' : '未参悟'} />
                       {q.difficulty && A.gems[q.difficulty] && (
                         <img className="tarot-gem" src={A.gems[q.difficulty]} alt="" title={q.difficulty} loading="lazy" decoding="async" />)}
                       {q.knowledgeDomain && <span className="tag">{domainLabel(q.knowledgeDomain)}</span>}
@@ -110,8 +112,6 @@ export default function Bank() {
                     </div>
                     <span className="tarot-hint">✦ 轻触翻面 ✦</span>
                   </div>
-                  <span className={'tarot-orb' + (mastered ? ' full' : touched ? ' half' : '') + (last === false ? ' polluted' : '')}
-                    title={mastered ? '已掌握' : touched ? '复习中' : '未参悟'} />
                 </div>
 
                 {/* 背面：此卷全部信息 */}
