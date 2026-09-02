@@ -26,9 +26,9 @@ React 18 + Vite 5 + zustand + react-router（HashRouter）+ @supabase/supabase-j
 | `src/lib/stats.js` · `src/lib/dates.js` | 连胜 / 日历 / 契合度统计 |
 | `src/pages/` | Login · Learn · Bank · Import · Stats · Settings · Practice |
 | `src/theme/` | `global.css`（全站基调）+ `pages.css`（分页样式） |
-| `public/img/` | 85 张素材图（约 53 MB），已由 sharp 压缩 |
+| `public/img/` | 57 张素材 / 约 5.9 MB：54 张 WebP + 3 张 PNG（p12/p44/p45，这三张转 WebP 反而变大） |
 | `public/fonts/` | Cinzel 700 自托管 woff2（含中文子集扩展） |
-| `scripts/` | 部署与素材压缩工具 |
+| `scripts/` | 部署 / 素材优化 / 引用校验工具 |
 
 ## 本地开发
 
@@ -64,6 +64,32 @@ node scripts/push-src.mjs <GitHub_TOKEN> <app目录绝对路径> <tools目录绝
 ```
 
 推送完会自动回读校验（本地/远端文件数与 git blob SHA 全量比对），输出 `RESULT: SRC BACKUP OK` 才算成功。
+
+## 素材管线与性能红线
+
+站点曾因素材体积卡到不可用（85 张 PNG / 53.5 MB，而且 1600px 大图当 44px 小图标用）。
+现已优化到 **57 张 / 5.9 MB（dist 共 6.4 MB）**，且**零感知画质损失**：
+
+- 采样上限 = 实际显示尺寸 × 2（2× DPR 视网膜余量），小图标给到 3~8 倍余量；全屏背景一张没缩。
+- WebP q92；雕花金线/细边框类（p2/p6/p8/p34/p35/p44/p45 等）用 q95 + `alphaQuality: 100`，避免细金线出现压缩振铃。
+- 平滑渐变类转 WebP 反而比 PNG 大（p12 漩涡 / p44 分隔条 / p45 标题装饰条），这三张保留 PNG。
+- 未被任何代码引用的素材直接删除（p0/p0-b/p1/p3/p11b/p12b/p13b/p21/p25/p26/p27/p37/p39/p41/p46/p47~p50/p52-*/p54-*/p2-arch）。
+
+```powershell
+node scripts/optimize-assets.mjs   # 分级降采样 + WebP 转码 + 删未引用 + 自动改引用
+node scripts/fix-assets.mjs        # 还原转大的素材 + 清死映射 + 引用可达校验
+node scripts/check-refs.mjs        # 校验 A.<key> 与磁盘文件一一对应（防 undefined 崩溃 / 404）
+```
+
+**改 UI 时勿犯的性能/视觉红线**：
+
+1. 不要在多个元素上无限动画 `background-position`（原 `.btn` 的 gold-flow 让十几个按钮永久重绘，是卡顿主因）；
+   流光一律用 `transform` 位移的伪元素，走合成器不触发重绘。
+2. 长列表（题库一页 50 张牌）用 `content-visibility: auto` + `contain-intrinsic-size`，屏外卡牌不参与绘制。
+3. 牌面图用 `aspect-ratio: 1066/1600` 锁死 2:3 配 `background-size: 100% 100%` 才能零变形；
+   用九切片 `border-image` 会把 130px 厚的花纹压成 26px，卡牌就会「扁得不像塔罗牌」。
+4. 页面标题装饰条（p45，1600×324）必须 `no-repeat` + `100% 100%`，否则会被平铺裁切只剩左上角一块。
+5. `assets.js` 里有模板字面量 `` img(`p34-${i}.webp`) ``，批量改扩展名时最容易漏它（已因此踩过坑）。
 
 ## 凭据与安全
 

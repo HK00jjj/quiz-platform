@@ -189,7 +189,7 @@ export const useStore = create((set, get) => ({
     return { ...parsed, added: 0 }
   },
   deleteQuestion: async (id) => {
-    await repo.deleteQuestion(id)
+    if (!DEMO) await repo.deleteQuestion(id)
     set((s) => ({
       questions: s.questions.filter((q) => q.id !== id),
       cards: s.cards.filter((c) => c.questionId !== id),

@@ -49,7 +49,7 @@ const newTree = await req('POST', `/repos/${repo}/git/trees`, { tree })
 console.log('new tree:', newTree.sha)
 
 const commit = await req('POST', `/repos/${repo}/git/commits`, {
-  message: 'feat: tarot-style full redesign (Arcane Archive / Abyss Gaze edition)',
+  message: 'feat+perf: 禁书库竖版塔罗牌墙(正p2/背p6翻面) + 答题牌面2:3重排+答案蜡封启封 + 素材WebP化54MB→6.4MB + 修标题装饰条裁切',
   tree: newTree.sha,
   parents: [parentSha],
   author: { name: 'HK00jjj', email: 'hk00jjj@users.noreply.github.com', date: new Date().toISOString() },

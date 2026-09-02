@@ -46,6 +46,8 @@ export default function Practice() {
   const [showAnswer, setShowAnswer] = useState(false) // 主观题答案展开
   const [flash, setFlash] = useState('')
   const [flipped, setFlipped] = useState(false)   // 卡牌 3D 翻面
+  const [seal, setSeal] = useState('intact')      // 答案封印：intact → cracking → broken
+  const sealTimer = useRef(null)
   const flying = useRef(false)
   const startAt = useRef(Date.now())
   const [elapsed, setElapsed] = useState(0)
@@ -53,11 +55,19 @@ export default function Practice() {
   useEffect(() => {
     setChoice(null); setMulti([]); setJudge(null); setFills(blanksOf(q?.stem ?? '').map(() => ''))
     setText(''); setShowAnswer(false); setFlash('')
+    clearTimeout(sealTimer.current); setSeal('intact')
     // 新卡牌入场：先见牌背，再 3D 翻到正面（翻开秘典的仪式感）
     setFlipped(false)
     const t = setTimeout(() => setFlipped(true), 480)
     return () => clearTimeout(t)
   }, [index, q?.id])
+
+  /* 启封：蜡封裂开 520ms 后消散，答案卷轴随后展开 */
+  function breakSeal() {
+    setSeal('cracking')
+    clearTimeout(sealTimer.current)
+    sealTimer.current = setTimeout(() => setSeal('broken'), 520)
+  }
 
   useEffect(() => {
     const t = setInterval(() => setElapsed(Math.floor((Date.now() - startAt.current) / 1000)), 1000)
@@ -90,6 +100,7 @@ export default function Practice() {
 
   function doCheck(e) {
     if (!canSubmit) return
+    breakSeal()
     submitObjective(inputText)
     const ok = lastGradeAfter(inputText)
     setFlash(ok ? 'ok-flash' : 'bad-flash')
@@ -184,10 +195,10 @@ export default function Practice() {
 
       <div className="q-card-wrap" key={q.id + '-' + index}>
         <div className={'q-card ' + flash}>
-          {/* 哥特尖拱冠饰：压在牌顶的唯一性主视觉 */}
-          <img className="q-card-arch" src={A.cardArch} alt="" aria-hidden="true" />
           {combo >= 3 && !answered && <span className="combo-pop" style={{ zIndex: 8 }}>✦ {combo} 连击！</span>}
-          <div className="q-card-inner">
+          {/* 牌面：内缩进尖拱/藤蔓/龙首纹样之内，正文可滚、主操作钉在牌底 */}
+          <div className="q-face">
+          <div className="q-face-scroll">
             <div className="q-tags">
               <img className="stamp" src={A.seals[TYPE_SEAL_INDEX[q.type] ?? 0]} alt={q.type} title={q.type} />
               {q.knowledgeDomain && <span className="q-domain-tag">{domainLabel(q.knowledgeDomain)}</span>}
@@ -279,18 +290,15 @@ export default function Practice() {
               )}
             </div>
 
-            {/* 操作区 */}
-            {!answered && (objective ? (
-              <GiltBtn size="lg" block className="reveal-btn" disabled={!canSubmit} onClick={doCheck}>
-                🔍 解读符文
-              </GiltBtn>
-            ) : (
-              <GiltBtn size="lg" block className="reveal-btn" onClick={() => setShowAnswer(true)} disabled={!showAnswer && text.trim() === ''}>
-                📜 展开参考答案卷轴
-              </GiltBtn>
-            ))}
+            {/* 答案封印：未启封前，真理被暗红蜡封（触手纹）遮住 */}
+            {seal !== 'broken' && (
+              <div className={'seal-lock ' + seal}>
+                <img src={A.sealedDeck} alt="" aria-hidden="true" />
+                <span>{objective ? '真理已封印 · 解读符文后启封' : '参考答案已封印 · 展开卷轴后启封'}</span>
+              </div>
+            )}
 
-            {/* 判分反馈 */}
+            {/* 判分反馈：启封后卷轴自上而下展开 */}
             {answered && (
               <div className="grade-panel">
                 {(objective || committed) && (
@@ -299,41 +307,18 @@ export default function Practice() {
                     {(objective ? grade?.correct : lastRating === '记得') ? '✦ 窥见真理 ✦' : '✗ 深渊侵蚀 ✗'}
                   </div>
                 )}
-                <div className={'answer-scroll-box ' + (!committed && !objective ? '' : (objective ? grade?.correct : lastRating === '记得') ? 'ok' : 'bad')}>
-                  <h5>{committed || objective ? ((objective ? grade?.correct : lastRating === '记得') ? '◆ 真理原文' : '◆ 被掩盖的真理') : '◆ 参考答案卷轴'}</h5>
+                <div className={'answer-scroll-box ' + ((objective ? grade?.correct : lastRating === '记得') ? 'ok' : 'bad')}>
+                  <h5>{(objective ? grade?.correct : lastRating === '记得') ? '◆ 真理原文' : '◆ 被掩盖的真理'}</h5>
                   <p>{objective ? (grade?.expected ?? q.answer) : q.answer}</p>
                   {q.explanation && <>
                     <p className="lab">【秘典解析】</p>
                     <p>{q.explanation}</p>
                   </>}
                 </div>
-
-                {objective && !committed && (
-                  <>
-                    <h4 style={{ marginTop: 16 }}>你的记忆状态？</h4>
-                    <div className="rate-row">
-                      <button className="rate-btn r-forget" onClick={() => rateObjective('忘记')}>忘记<small>被深渊侵蚀</small></button>
-                      <button className="rate-btn r-hazy" onClick={() => rateObjective('模糊')}>模糊<small>灵知游离</small></button>
-                      <button className="rate-btn r-remember" onClick={() => rateObjective('记得')}>记得<small>灵知铭刻</small></button>
-                    </div>
-                  </>
-                )}
-                {!objective && !committed && (
-                  <div className="self-judge-row">
-                    <GiltBtn tone="teal" onClick={() => commitSelf(true)}>✓ 我答对了</GiltBtn>
-                    <GiltBtn tone="danger" onClick={() => commitSelf(false)}>✗ 我答错了</GiltBtn>
-                  </div>
-                )}
-                {committed && (
-                  <GiltBtn size="lg" block style={{ marginTop: 18 }}
-                    tone={(objective ? grade?.correct : lastRating === '记得') ? 'teal' : 'ghost'} onClick={goNext}>
-                    {index + 1 >= questions.length ? '完成仪式 ✦' : '下一卷 →'}
-                  </GiltBtn>
-                )}
               </div>
             )}
 
-            {/* 主观题：展开参考答案后直接自判（无需先提交） */}
+            {/* 主观题：展开参考答案后与自己写的对照（尚未提交） */}
             {!objective && !answered && showAnswer && (
               <div className="grade-panel">
                 <div className="answer-scroll-box">
@@ -344,12 +329,47 @@ export default function Practice() {
                     <p>{q.explanation}</p>
                   </>}
                 </div>
-                <div className="self-judge-row">
-                  <GiltBtn tone="teal" onClick={() => commitSelf(true)}>✓ 我答对了</GiltBtn>
-                  <GiltBtn tone="danger" onClick={() => commitSelf(false)}>✗ 我答错了</GiltBtn>
-                </div>
               </div>
             )}
+          </div>
+
+          {/* 牌底：铜质藤蔓花纹分隔 + 当前唯一主操作（不随正文滚动，永远在手边） */}
+          <div className="q-face-foot">
+            <div className="q-face-rule" aria-hidden="true" />
+            {!answered && (objective ? (
+              <GiltBtn size="lg" block className="reveal-btn" disabled={!canSubmit} onClick={doCheck}>
+                🔍 解读符文
+              </GiltBtn>
+            ) : showAnswer ? (
+              <div className="self-judge-row">
+                <GiltBtn tone="teal" onClick={() => commitSelf(true)}>✓ 我答对了</GiltBtn>
+                <GiltBtn tone="danger" onClick={() => commitSelf(false)}>✗ 我答错了</GiltBtn>
+              </div>
+            ) : (
+              <GiltBtn size="lg" block className="reveal-btn" disabled={text.trim() === ''}
+                onClick={() => { breakSeal(); setShowAnswer(true) }}>
+                📜 展开参考答案卷轴
+              </GiltBtn>
+            ))}
+
+            {answered && objective && !committed && (
+              <>
+                <h4>你的记忆状态？</h4>
+                <div className="rate-row">
+                  <button className="rate-btn r-forget" onClick={() => rateObjective('忘记')}>忘记<small>被深渊侵蚀</small></button>
+                  <button className="rate-btn r-hazy" onClick={() => rateObjective('模糊')}>模糊<small>灵知游离</small></button>
+                  <button className="rate-btn r-remember" onClick={() => rateObjective('记得')}>记得<small>灵知铭刻</small></button>
+                </div>
+              </>
+            )}
+
+            {committed && (
+              <GiltBtn size="lg" block
+                tone={(objective ? grade?.correct : lastRating === '记得') ? 'teal' : 'ghost'} onClick={goNext}>
+                {index + 1 >= questions.length ? '完成仪式 ✦' : '下一卷 →'}
+              </GiltBtn>
+            )}
+          </div>
           </div>
         </div>
         {/* 塔罗牌背封面：入场时 3D 翻面旋开 */}

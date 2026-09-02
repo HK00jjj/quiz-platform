@@ -83,12 +83,7 @@
 .chip.on { border-color: var(--teal); color: var(--teal-lt); background: rgba(31,90,82,.25); box-shadow: var(--glow-teal); }
 
 /* ── 答题界面 ── */
-.practice-stage { position: relative; z-index: 1; min-height: 100vh; padding: 14px 12px 40px; max-width: 760px; margin: 0 auto; }
-@media (min-width: 900px) {
-  /* 桌面宽屏：题卡以塔罗牌竖版形态居中呈现 */
-  .practice-stage { max-width: 940px; }
-  .q-card-wrap { max-width: 640px; margin-left: auto; margin-right: auto; }
-}
+.practice-stage { position: relative; z-index: 1; min-height: 100vh; padding: 14px 12px 40px; max-width: 940px; margin: 0 auto; }
 .practice-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; padding: 0 4px; }
 .gem-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .gem-dot { width: 11px; height: 11px; border-radius: 50%; background: rgba(139,115,50,.35); border: 1px solid rgba(139,115,50,.5); transition: all .3s ease; }
@@ -96,63 +91,81 @@
 .gem-dot.ok { background: var(--teal-lt); box-shadow: 0 0 6px rgba(90,168,156,.8); }
 .gem-dot.bad { background: var(--fault-lt); box-shadow: 0 0 6px rgba(139,42,74,.8); }
 .practice-count { font-size: 12px; letter-spacing: 2px; color: var(--muted); white-space: nowrap; }
-.q-card-wrap { position: relative; animation: rise-in .5s ease both; perspective: 1400px; }
-/* 塔罗牌 3D 翻面：牌背封面旋开，露出题干正面（卡牌有厚度） */
+/* 题卡 = 一张严格 2:3 的竖版塔罗牌：p2 原图 1066×1600 等比铺满，尖拱/藤蔓/龙首永不变形。
+   宽度受视口高度约束（×0.6663 = 1066/1600），保证整张牌一屏内完整可见。 */
+.q-card-wrap {
+  position: relative; animation: rise-in .5s ease both; perspective: 1600px;
+  width: clamp(268px, min(600px, 94vw, calc((100vh - 132px) * 0.6663)), 600px);
+  margin: 0 auto;
+}
+/* 塔罗牌 3D 翻面：牌背封面旋开，露出题干正面 */
 .card-flip-cover { position: absolute; inset: 0; z-index: 5; background-color: #10171d; background-size: 100% 100%;
   backface-visibility: hidden; transform: rotateY(0deg); transition: transform .72s cubic-bezier(.45,.05,.25,1);
-  display: flex; align-items: center; justify-content: center;
-  border: 1px solid rgba(201,168,76,.45); box-shadow: 0 16px 44px rgba(0,0,0,.5); }
+  display: flex; align-items: center; justify-content: center; }
 .card-flip-cover.gone { transform: rotateY(180deg); pointer-events: none; }
-.card-flip-cover img { width: 92px; height: 92px; opacity: .92; animation: spin-slow 12s linear infinite; filter: drop-shadow(0 0 12px rgba(90,168,156,.6)); }
+.card-flip-cover img { width: 24%; max-width: 130px; opacity: .92; animation: spin-slow 12s linear infinite; filter: drop-shadow(0 0 14px rgba(90,168,156,.6)); }
 /* 归档飞出：做对飞右上「已掌握」，做错飞右下「污染封印」 */
 .q-card-wrap.fly-ok { animation: fly-tr .46s cubic-bezier(.55,-.15,.85,.5) forwards !important; }
 .q-card-wrap.fly-bad { animation: fly-br .46s cubic-bezier(.55,-.15,.85,.5) forwards !important; }
 @keyframes fly-tr { 60% { opacity: 1 } to { transform: translate(46vw, -46vh) scale(.05) rotate(9deg); opacity: 0 } }
 @keyframes fly-br { 60% { opacity: 1 } to { transform: translate(46vw, 46vh) scale(.05) rotate(-11deg); opacity: 0 } }
 .q-card {
-  position: relative; padding: 34px 30px 40px;
-  background: linear-gradient(180deg, rgba(16,26,30,.9), rgba(19,29,34,.86));
-  /* 竖版塔罗卡牌边框：藤蔓铜饰九切片（尖拱主视觉已拆出为独立冠饰） */
-  border: 26px solid transparent;
-  border-image: url('/quiz-platform/img/p2.png') 70 130 170 130 fill / 26px stretch;
-  box-shadow: 0 18px 46px rgba(0,0,0,.55);
+  position: relative; width: 100%; aspect-ratio: 1066 / 1600; container-type: inline-size;
+  background: url('/quiz-platform/img/p2.webp') center / 100% 100% no-repeat;
+  filter: drop-shadow(0 24px 46px rgba(0,0,0,.6));
 }
-/* 哥特尖拱冠饰：唯一性主视觉，绝对定位压在牌顶，不参与平铺 */
-.q-card-arch { position: absolute; top: -24px; left: 50%; transform: translateX(-50%); width: 46%;
-  pointer-events: none; z-index: 4; filter: drop-shadow(0 8px 16px rgba(0,0,0,.55)); }
-.q-card-inner { position: relative; z-index: 1; padding: 8px 10px; margin-top: 84px; }
-@media (max-width: 560px) {
-  .q-card { padding: 24px 16px 30px; border-width: 20px; }
-  .q-card-inner { margin-top: 58px; }
+/* 牌面：内缩进纹样之内——上让尖拱宝石冠(26%)、左右让藤蔓(12.2%)、下让龙首(11%) */
+.q-face { position: absolute; inset: 26% 12.2% 11%; display: flex; flex-direction: column; min-height: 0; z-index: 1; }
+.q-face-scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden; padding-right: 5px; }
+.q-face-scroll::-webkit-scrollbar { width: 5px; }
+.q-face-foot { flex: 0 0 auto; padding-top: 8px; }
+.q-face-foot h4 { text-align: center; font-size: clamp(10.5px, 2.6cqw, 13px); letter-spacing: 3px; color: var(--gold-text); margin-bottom: 8px; }
+.q-face-rule { height: clamp(10px, 3cqw, 18px); margin-bottom: 8px; opacity: .75;
+  background: url('/quiz-platform/img/p44.png') center / contain no-repeat; }
+/* 判分闪光改用 drop-shadow，贴合牌形而不是矩形盒阴影 */
+.q-card.ok-flash { animation: card-flash-ok .9s ease; }
+.q-card.bad-flash { animation: card-flash-bad .9s ease; }
+@keyframes card-flash-ok {
+  0%, 100% { filter: drop-shadow(0 24px 46px rgba(0,0,0,.6)) }
+  40% { filter: drop-shadow(0 0 34px rgba(90,168,156,.95)) drop-shadow(0 24px 46px rgba(0,0,0,.6)) }
 }
-.q-card.ok-flash { animation: flash-teal .9s ease; }
-.q-card.bad-flash { animation: flash-red .9s ease; }
-.q-tags { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+@keyframes card-flash-bad {
+  0%, 100% { filter: drop-shadow(0 24px 46px rgba(0,0,0,.6)) }
+  40% { filter: drop-shadow(0 0 34px rgba(139,42,74,.95)) drop-shadow(0 24px 46px rgba(0,0,0,.6)) }
+}
+.q-tags { display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; }
+.q-tags .stamp { width: clamp(30px, 8.4cqw, 48px); height: clamp(30px, 8.4cqw, 48px); }
+.q-tags .gem { width: clamp(18px, 4.6cqw, 26px); height: clamp(18px, 4.6cqw, 26px); }
 .q-domain-tag {
-  font-size: 12px; color: var(--ink-parch); padding: 4px 12px; letter-spacing: 1px;
+  font-size: clamp(10px, 2.5cqw, 12.5px); color: var(--ink-parch); padding: 3px 11px; letter-spacing: 1px;
   background: linear-gradient(160deg, var(--parchment-0), var(--parchment-1));
   clip-path: polygon(4% 0, 96% 0, 100% 30%, 100% 70%, 96% 100%, 4% 100%, 0 70%, 0 30%);
 }
-/* 羊皮纸贴层：符文谜面与答题区钉在牌面上 */
+/* 符文谜面：镶嵌进牌面暗青石板的鎏金刻文（不再是一张糊上去的米色纸） */
 .parch-layer {
-  position: relative; margin-top: 8px; padding: 16px 18px;
-  background: linear-gradient(160deg, rgba(224,212,188,.96), rgba(200,184,154,.96));
-  color: var(--ink-parch);
-  border: 1px solid rgba(90,74,42,.55);
-  clip-path: polygon(0 8px, 6px 0, calc(100% - 6px) 0, 100% 8px, 100% calc(100% - 8px), calc(100% - 6px) 100%, 6px 100%, 0 calc(100% - 8px));
-  box-shadow: inset 0 0 26px rgba(90,74,42,.22);
+  position: relative; margin-top: 10px; padding: 12px 14px; overflow: hidden;
+  background: linear-gradient(160deg, rgba(224,212,188,.16), rgba(200,184,154,.09)), rgba(8,13,17,.4);
+  border: 1px solid rgba(201,168,76,.3);
+  box-shadow: inset 0 0 26px rgba(0,0,0,.5), 0 6px 16px rgba(0,0,0,.32);
+  clip-path: polygon(0 7px, 7px 0, calc(100% - 7px) 0, 100% 7px, 100% calc(100% - 7px), calc(100% - 7px) 100%, 7px 100%, 0 calc(100% - 7px));
 }
-.q-stem { margin-top: 0; padding: 0; line-height: 2; font-size: 15.5px; background: none; color: inherit; box-shadow: none; }
-.q-answer-zone { margin-top: 16px; display: flex; flex-direction: column; gap: 10px; }
+.parch-layer::before { /* 羊皮纸纤维：极低透明度，给石板一点材质而不是糊一张纸 */
+  content: ''; position: absolute; inset: 0; opacity: .07; mix-blend-mode: soft-light; pointer-events: none;
+  background: url('/quiz-platform/img/p4.webp') center / cover no-repeat;
+}
+.q-stem { position: relative; margin: 0; padding: 0; line-height: 2; font-size: clamp(12.5px, 2.9cqw, 15.5px);
+  color: #ded0a6; background: none; box-shadow: none; text-shadow: 0 1px 3px rgba(0,0,0,.8); }
+.q-answer-zone { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
 .opt-row {
-  display: flex; align-items: center; gap: 12px; padding: 12px 14px; text-align: left; width: 100%;
-  border: 1.5px solid rgba(139,115,50,.55); background: rgba(21,29,36,.8); color: #c9b98a;
-  font-size: 14.5px; line-height: 1.6; transition: all .18s ease;
+  display: flex; align-items: center; gap: 10px; padding: 10px 12px; text-align: left; width: 100%;
+  border: 1px solid rgba(201,168,76,.26); background: rgba(10,17,21,.55); color: #cbbb90;
+  font-size: clamp(11.5px, 2.7cqw, 14.5px); line-height: 1.65; transition: all .18s ease;
+  box-shadow: inset 0 0 14px rgba(0,0,0,.35);
 }
 .opt-row:hover { border-color: var(--gilt); background: rgba(31,90,82,.14); transform: translateX(3px); }
 .opt-row .mark {
-  flex-shrink: 0; width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid rgba(139,115,50,.7);
-  display: flex; align-items: center; justify-content: center; font-size: 12px; color: transparent; transition: all .18s ease;
+  flex-shrink: 0; width: clamp(18px, 4.4cqw, 22px); height: clamp(18px, 4.4cqw, 22px); border-radius: 50%; border: 1.5px solid rgba(139,115,50,.7);
+  display: flex; align-items: center; justify-content: center; font-size: clamp(10px, 2.4cqw, 12px); color: transparent; transition: all .18s ease;
 }
 .opt-row.square .mark { border-radius: 4px; }
 .opt-row.selected { border-color: var(--teal-lt); background: rgba(31,90,82,.3); color: #e6efe9; box-shadow: var(--glow-teal); }
@@ -160,9 +173,9 @@
 .opt-row.right { border-color: var(--teal-lt); background: rgba(31,90,82,.35); color: #d9efe9; }
 .opt-row.wronged { border-color: var(--fault-lt); background: rgba(107,26,58,.28); color: #d9a0b0; }
 .opt-row.missed { border: 1.5px dashed var(--teal); color: var(--teal-lt); }
-.judge-pair { display: flex; gap: 12px; }
-.judge-card { flex: 1; min-height: 110px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; border: 1.5px solid rgba(139,115,50,.55); background: rgba(21,29,36,.8); color: #c9b98a; font-size: 16px; letter-spacing: 4px; transition: all .2s var(--ease-pop); }
-.judge-card .rune { font-size: 30px; }
+.judge-pair { display: flex; gap: 10px; }
+.judge-card { flex: 1; min-height: clamp(74px, 20cqw, 116px); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; border: 1px solid rgba(201,168,76,.26); background: rgba(10,17,21,.55); color: #cbbb90; font-size: clamp(12px, 3cqw, 16px); letter-spacing: 3px; transition: all .2s var(--ease-pop); box-shadow: inset 0 0 14px rgba(0,0,0,.35); }
+.judge-card .rune { font-size: clamp(20px, 6cqw, 32px); }
 .judge-card:hover { transform: translateY(-4px); }
 .judge-card.j-true:hover, .judge-card.j-true.selected { border-color: var(--teal-lt); color: var(--teal-lt); box-shadow: var(--glow-teal); transform: translateY(-4px) rotate(-1.2deg); }
 .judge-card.j-false:hover, .judge-card.j-false.selected { border-color: var(--fault-lt); color: #d98ba0; box-shadow: var(--glow-red); transform: translateY(-4px) rotate(1.2deg); }
@@ -170,35 +183,81 @@
 .judge-card.dimmed { opacity: .4; transform: scale(.96); }
 .fill-grid { display: flex; flex-direction: column; gap: 10px; }
 .fill-item { display: flex; align-items: center; gap: 10px; }
-.fill-item .no { font-family: 'Cinzel', serif; color: var(--gold-text); font-size: 13px; width: 44px; flex-shrink: 0; letter-spacing: 1px; }
+.fill-item .no { font-family: 'Cinzel', serif; color: var(--gold-text); font-size: clamp(10.5px, 2.6cqw, 13px); width: 40px; flex-shrink: 0; letter-spacing: 1px; }
 .fill-item.right .rune-input { border-color: var(--teal); box-shadow: var(--glow-teal); }
 .fill-item.wronged .rune-input { border-color: var(--fault-lt); box-shadow: var(--glow-red); }
 .fill-expected { font-size: 12.5px; color: var(--teal-lt); margin-top: 3px; }
 .subjective-area { position: relative; }
-.subjective-area textarea { min-height: 180px; background-image: repeating-linear-gradient(transparent, transparent 30px, rgba(90,74,42,.16) 31px); }
+.subjective-area textarea { min-height: clamp(110px, 30cqw, 180px); background-image: repeating-linear-gradient(transparent, transparent 30px, rgba(90,74,42,.16) 31px); }
 .char-count { text-align: right; font-size: 11px; color: var(--muted); margin-top: 4px; }
-.reveal-btn { margin-top: 18px; }
-.grade-panel { margin-top: 18px; padding-top: 16px; border-top: 1px solid rgba(139,115,50,.4); }
-.grade-panel h4 { font-size: 13px; letter-spacing: 3px; color: var(--gold-text); margin-bottom: 10px; }
-.rate-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 10px; }
-.rate-btn { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 12px 6px; border: 1.5px solid; background: rgba(13,17,23,.85); font-size: 14px; letter-spacing: 3px; transition: all .18s ease; }
-.rate-btn small { font-size: 10px; letter-spacing: 1px; opacity: .7; }
+.reveal-btn { margin-top: 0; }
+.grade-panel { margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(201,168,76,.22); }
+.grade-panel h4 { font-size: clamp(10.5px, 2.6cqw, 13px); letter-spacing: 3px; color: var(--gold-text); margin-bottom: 8px; text-align: center; }
+.rate-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 0; }
+/* 三档自评：同色 3px 底边做下沉手感，按下即沉 */
+.rate-btn { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 9px 4px; border: 1px solid; border-bottom-width: 3px; background: rgba(10,16,20,.78); font-size: clamp(11px, 2.7cqw, 14px); letter-spacing: 2px; transition: all .18s ease; }
+.rate-btn:active { transform: translateY(2px); border-bottom-width: 1px; }
+.rate-btn small { font-size: clamp(8px, 2cqw, 10px); letter-spacing: 1px; opacity: .7; }
 .rate-btn.r-forget { border-color: var(--fault-lt); color: #d98ba0; }
 .rate-btn.r-forget:hover { box-shadow: var(--glow-red); transform: translateY(-3px); }
 .rate-btn.r-hazy { border-color: var(--mid); color: #d9c26a; }
 .rate-btn.r-hazy:hover { box-shadow: var(--glow-gold); transform: translateY(-3px); }
 .rate-btn.r-remember { border-color: var(--teal); color: var(--teal-lt); }
 .rate-btn.r-remember:hover { box-shadow: var(--glow-teal); transform: translateY(-3px); }
-.self-judge-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
-.answer-scroll-box { position: relative; margin-top: 16px; padding: 18px 20px; background: linear-gradient(160deg, rgba(224,212,188,.95), rgba(200,184,154,.95)); color: var(--ink-parch); animation: rise-in .4s ease both; }
-.answer-scroll-box.ok { border: 1.5px solid var(--teal); box-shadow: var(--glow-teal); }
-.answer-scroll-box.bad { border: 1.5px solid var(--fault-lt); box-shadow: var(--glow-red); }
-.answer-scroll-box h5 { font-size: 13px; letter-spacing: 3px; margin-bottom: 8px; }
-.answer-scroll-box.ok h5 { color: var(--teal-dk); }
-.answer-scroll-box.bad h5 { color: var(--fault-lt); }
-.answer-scroll-box p { font-size: 14px; line-height: 1.9; }
-.answer-scroll-box .lab { font-size: 12px; color: rgba(44,24,16,.6); margin-top: 10px; letter-spacing: 2px; }
-.verdict-banner { position: relative; text-align: center; padding: 12px; margin-top: 14px; font-size: 20px; letter-spacing: 6px; font-weight: 900; animation: crack-in .4s var(--ease-pop) both; }
+.self-judge-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 0; }
+/* 真理原文/解析：与谜面同一套镶嵌石板语言，不再是一块亮米色纸贴在牌上 */
+.answer-scroll-box { position: relative; margin-top: 12px; padding: 12px 14px; overflow: hidden;
+  background: linear-gradient(160deg, rgba(224,212,188,.10), rgba(200,184,154,.05)), rgba(8,13,17,.5);
+  color: #ded0a6; border: 1px solid rgba(201,168,76,.3); box-shadow: inset 0 0 24px rgba(0,0,0,.5);
+  animation: rise-in .4s ease both; }
+.answer-scroll-box.ok { border-color: rgba(90,168,156,.65); box-shadow: inset 0 0 24px rgba(0,0,0,.5), 0 0 14px rgba(58,138,126,.28); }
+.answer-scroll-box.bad { border-color: rgba(139,42,74,.7); box-shadow: inset 0 0 24px rgba(0,0,0,.5), 0 0 14px rgba(107,26,58,.3); }
+.answer-scroll-box h5 { font-size: clamp(10.5px, 2.5cqw, 13px); letter-spacing: 3px; margin-bottom: 6px; color: var(--gilt); }
+.answer-scroll-box.ok h5 { color: var(--teal-lt); }
+.answer-scroll-box.bad h5 { color: #d98ba0; }
+.answer-scroll-box p { font-size: clamp(11.5px, 2.7cqw, 14px); line-height: 1.9; text-shadow: 0 1px 2px rgba(0,0,0,.6); }
+.answer-scroll-box .lab { font-size: clamp(10px, 2.3cqw, 12px); color: rgba(201,168,76,.72); margin-top: 8px; letter-spacing: 2px; }
+
+/* ── 答案封印：未启封前真理被暗红蜡封（p16 触手纹封印牌叠）遮挡 ── */
+.seal-lock {
+  position: relative; display: flex; align-items: center; gap: 10px; margin-top: 12px;
+  padding: 9px 12px 9px clamp(46px, 13cqw, 60px);
+  border: 1px dashed rgba(139,42,74,.6);
+  background: linear-gradient(100deg, rgba(42,10,24,.55), rgba(10,15,19,.3));
+  color: #c98a9d; letter-spacing: 2px; font-size: clamp(10px, 2.4cqw, 12.5px);
+}
+.seal-lock img {
+  position: absolute; left: 7px; top: 50%; transform: translateY(-50%); object-fit: contain;
+  width: clamp(30px, 9cqw, 44px); height: clamp(30px, 9cqw, 44px);
+  filter: drop-shadow(0 0 8px rgba(139,42,74,.55)); animation: breathe 3.4s ease-in-out infinite;
+}
+.seal-lock.cracking { animation: seal-crack .52s ease forwards; }
+@keyframes seal-crack {
+  0% { opacity: 1; filter: none }
+  30% { filter: brightness(1.9) drop-shadow(0 0 16px rgba(201,168,76,.85)); transform: scale(1.02) }
+  100% { opacity: 0; transform: scale(.93) translateY(8px); filter: blur(4px) brightness(2.2) }
+}
+/* 真理原文卷轴：p35 龙首卷轴杆压在顶部，启封后自上而下铺开 */
+.answer-scroll-box { padding-top: clamp(20px, 6cqw, 30px); animation: unroll .42s .34s cubic-bezier(.2,.7,.3,1) both; }
+.answer-scroll-box::before {
+  content: ''; position: absolute; left: 0; right: 0; top: 0; pointer-events: none; opacity: .92;
+  height: clamp(18px, 5.4cqw, 28px);
+  background: url('/quiz-platform/img/p35.webp') center top / 100% auto no-repeat;
+}
+@keyframes unroll { from { clip-path: inset(0 0 100% 0); opacity: .35 } to { clip-path: inset(0 0 0 0); opacity: 1 } }
+/* 深渊侵蚀：牌面四角暗红裂纹蔓延（纯 CSS 近似） */
+.q-card.bad-flash::after {
+  content: ''; position: absolute; inset: 0; z-index: 3; pointer-events: none;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(139,42,74,.55), transparent 20%),
+    radial-gradient(circle at 100% 0%, rgba(139,42,74,.55), transparent 20%),
+    radial-gradient(circle at 0% 100%, rgba(139,42,74,.55), transparent 20%),
+    radial-gradient(circle at 100% 100%, rgba(139,42,74,.55), transparent 20%);
+  animation: crack-fade .9s ease both;
+}
+@keyframes crack-fade { 0% { opacity: 0 } 30% { opacity: 1 } 100% { opacity: 0 } }
+
+.verdict-banner { position: relative; text-align: center; padding: 10px; margin-top: 12px; font-size: clamp(15px, 4.2cqw, 21px); letter-spacing: 5px; font-weight: 900; animation: crack-in .4s var(--ease-pop) both; }
 .verdict-banner.ok { color: var(--teal-lt); text-shadow: var(--glow-teal); }
 .verdict-banner.bad { color: #d9607f; text-shadow: var(--glow-red); animation: crack-in .4s var(--ease-pop) both, tremble .5s .1s ease; }
 @keyframes tremble { 0%,100% { transform: translateX(0) } 25% { transform: translateX(-2px) } 75% { transform: translateX(2px) } }
@@ -232,28 +291,82 @@
 .deck:hover { border-color: var(--teal); box-shadow: var(--glow-teal); transform: translateY(-2px); }
 .deck h5 { font-size: 11px; letter-spacing: 2px; color: var(--muted); margin-bottom: 4px; }
 .deck .val { font-size: 14px; color: var(--teal-lt); letter-spacing: 1px; }
-.bank-list { display: flex; flex-direction: column; gap: 12px; }
+/* 禁书库 = 一面竖版塔罗牌墙：每张牌严格 2:3（p2 原图 1066×1600 等比铺满，零变形），
+   正面封印谜面，轻触 3D 翻面看此卷全部秘辛 */
+.bank-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(198px, 1fr)); gap: 22px 18px; }
+@media (max-width: 520px) { .bank-list { grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); gap: 16px 12px; } }
 .bank-item {
-  position: relative; display: flex; gap: 14px; align-items: center; padding: 18px 24px; cursor: pointer;
-  background: linear-gradient(160deg, rgba(17,26,30,.92), rgba(20,30,34,.88));
-  /* 横向塔罗小卡牌边框九切片（拉伸避免中央圆章被平铺重复） */
-  border: 16px solid transparent;
-  border-image: url('/quiz-platform/img/p3.png') 110 190 / 16px stretch;
-  transition: all .2s var(--ease-pop);
+  position: relative; aspect-ratio: 1066 / 1600; cursor: pointer; perspective: 1200px; container-type: inline-size;
+  /* 50 张牌一页：屏外卡牌不参与布局/绘制（aspect-ratio 保证占位高度不变，不会跳动） */
+  content-visibility: auto; contain-intrinsic-size: auto 300px;
 }
-@media (max-width: 560px) { .bank-item { padding: 14px 14px; border-width: 12px; } }
-.bank-item:hover { transform: translateY(-3px); border-color: var(--gilt); box-shadow: 0 10px 24px rgba(0,0,0,.4), var(--glow-gold); }
-.bank-item:hover .arrow { color: var(--teal-lt); transform: translateX(4px); text-shadow: var(--glow-teal); }
-.bank-item .state-col { display: flex; flex-direction: column; gap: 6px; align-items: center; flex-shrink: 0; }
-.state-ring { width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid rgba(139,115,50,.7); }
-.state-ring.half { background: rgba(58,138,126,.35); border-color: var(--teal); }
-.state-ring.full { background: var(--teal); border-color: var(--teal-lt); box-shadow: var(--glow-teal); animation: breathe 2.4s ease-in-out infinite; }
-.state-ring.polluted { box-shadow: 0 0 0 2px rgba(139,42,74,.35); }
-.bank-item .body { flex: 1; min-width: 0; position: relative; z-index: 1; }
-.bank-item .mini-tags { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
-.bank-item .stem-prev { font-size: 13.5px; color: #c9b98a; line-height: 1.6; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.bank-item .arrow { position: relative; z-index: 1; color: var(--muted); font-size: 18px; transition: all .2s ease; flex-shrink: 0; }
-.pager { display: flex; align-items: center; justify-content: center; gap: 16px; margin-top: 18px; color: var(--muted); font-size: 13px; }
+.bank-item .tarot-inner {
+  position: relative; width: 100%; height: 100%; transform-style: preserve-3d;
+  transition: transform .78s cubic-bezier(.45,.05,.25,1);
+}
+.bank-item.flipped .tarot-inner { transform: rotateY(180deg); }
+.tarot-face {
+  position: absolute; inset: 0; backface-visibility: hidden; overflow: hidden;
+  background: url('/quiz-platform/img/p2.webp') center / 100% 100% no-repeat;
+  box-shadow: 0 10px 24px rgba(0,0,0,.45); transition: box-shadow .25s ease;
+}
+.bank-item:hover .tarot-face { box-shadow: 0 16px 34px rgba(0,0,0,.55), 0 0 18px rgba(184,150,58,.22); }
+.tarot-face.back { transform: rotateY(180deg);
+  /* 牌背用专门的塔罗背面素材（p6 玫瑰窗+藤蔓），与正面 p2 尖拱框彻底区分 */
+  background-image: url('/quiz-platform/img/p6.webp'); }
+/* 牌面内缩：上让尖拱宝石冠、左右让藤蔓、下让龙首 */
+.tarot-face .face-in {
+  position: absolute; inset: 25% 12% 11%; display: flex; flex-direction: column; min-height: 0;
+  padding: 7px 7px 6px; background: rgba(8,13,17,.34); border: 1px solid rgba(201,168,76,.18);
+  box-shadow: inset 0 0 20px rgba(0,0,0,.45);
+}
+.tarot-face.back .face-in { background: rgba(7,12,16,.82); border-color: rgba(201,168,76,.3);
+  box-shadow: inset 0 0 26px rgba(0,0,0,.62); }
+.tarot-seq { text-align: center; font-family: 'Cinzel', serif; letter-spacing: 1.5px; color: rgba(201,168,76,.85);
+  font-size: clamp(8px, 4.8cqw, 11px); }
+.tarot-seal { display: block; width: clamp(24px, 17cqw, 46px); height: clamp(24px, 17cqw, 46px); margin: 2px auto 5px;
+  object-fit: contain; filter: drop-shadow(0 0 6px rgba(201,168,76,.4)); }
+.tarot-stem {
+  flex: 1 1 auto; min-height: 0; overflow: hidden; margin: 0; text-align: justify;
+  font-size: clamp(10px, 5.8cqw, 13.5px); line-height: 1.72; color: #d8ca9f; text-shadow: 0 1px 2px rgba(0,0,0,.75);
+  display: -webkit-box; -webkit-line-clamp: 8; -webkit-box-orient: vertical;
+}
+.tarot-tags { display: flex; align-items: center; justify-content: center; gap: 4px; flex-wrap: wrap; margin-top: 6px; }
+.tarot-tags .tag { font-size: clamp(8px, 4.6cqw, 11px); padding: 1px 6px; letter-spacing: .5px; }
+.tarot-gem { width: clamp(13px, 8cqw, 20px); height: clamp(13px, 8cqw, 20px); object-fit: contain;
+  filter: drop-shadow(0 0 4px rgba(58,138,126,.55)); }
+.tarot-hint { text-align: center; letter-spacing: 2px; color: rgba(122,106,74,.95); margin-top: 5px;
+  font-size: clamp(7.5px, 4.2cqw, 10px); }
+.bank-item.flipped .tarot-hint { visibility: hidden; }
+/* 掌握状态宝珠：钉在牌面右上藤蔓内缘 */
+.tarot-orb { position: absolute; top: 21%; right: 8.5%; z-index: 2; border-radius: 50%;
+  width: clamp(8px, 5cqw, 12px); height: clamp(8px, 5cqw, 12px);
+  border: 1.5px solid rgba(139,115,50,.75); background: rgba(10,14,18,.7); }
+.tarot-orb.half { background: rgba(58,138,126,.4); border-color: var(--teal); }
+.tarot-orb.full { background: var(--teal); border-color: var(--teal-lt); box-shadow: var(--glow-teal); animation: breathe 2.4s ease-in-out infinite; }
+.tarot-orb.polluted { box-shadow: 0 0 0 2px rgba(139,42,74,.4); }
+/* 牌背：此卷全部秘辛，可滚 */
+.tarot-scroll {
+  flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden; padding-right: 4px; text-align: left;
+  font-size: clamp(9px, 5cqw, 12px); line-height: 1.7; color: #cbbb90;
+}
+.tarot-scroll::-webkit-scrollbar { width: 4px; }
+.tarot-scroll h6 { letter-spacing: 2px; color: var(--gilt); margin: 8px 0 3px; font-size: clamp(9px, 4.8cqw, 11.5px); }
+.tarot-scroll h6:first-child { margin-top: 0; }
+.tarot-scroll p { margin: 0 0 4px; text-shadow: 0 1px 2px rgba(0,0,0,.6); }
+.tarot-kv { display: flex; gap: 6px; margin-bottom: 2px; }
+.tarot-kv b { flex-shrink: 0; font-weight: 400; color: rgba(201,168,76,.8); }
+.tarot-opt { color: #b9ab84; }
+.tarot-ans { color: var(--teal-lt); }
+.tarot-recs { display: flex; flex-wrap: wrap; gap: 4px; }
+.tarot-recs .tag { font-size: clamp(7.5px, 4.2cqw, 10px); padding: 1px 5px; }
+.tarot-foot { flex: 0 0 auto; display: flex; gap: 6px; justify-content: center; padding-top: 7px; }
+.tarot-foot button { letter-spacing: 1px; padding: 4px 9px; border: 1px solid rgba(139,115,50,.6);
+  background: rgba(15,20,26,.88); color: #9c8452; font-size: clamp(8.5px, 4.6cqw, 11px); transition: all .18s ease; }
+.tarot-foot button:hover { color: var(--teal-lt); border-color: var(--teal); box-shadow: var(--glow-teal); }
+.tarot-foot button.danger { border-color: rgba(139,42,74,.75); color: #c98a9d; }
+.tarot-foot button.danger:hover { box-shadow: var(--glow-red); color: #e0a8b8; }
+.pager { display: flex; align-items: center; justify-content: center; gap: 16px; margin-top: 22px; color: var(--muted); font-size: 13px; }
 
 /* ── 导入（誊写仪式） ── */
 .step-bar { display: flex; align-items: center; justify-content: center; gap: 0; margin: 6px 0 20px; }

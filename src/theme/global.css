@@ -120,11 +120,15 @@ input, textarea, select { font-family: inherit; }
 .page-wrap.wide { max-width: 1024px; }
 @keyframes page-in { from { opacity: 0; filter: blur(6px); transform: translateY(10px); } to { opacity: 1; filter: blur(0); transform: none; } }
 
-/* 页面标题区 */
-.page-head { position: relative; text-align: center; padding: 18px 12px 20px; margin-bottom: 18px; }
-.page-head::before {
-  content: ''; position: absolute; inset: 0; background-size: 100% 100%; background-repeat: no-repeat;
-  opacity: .9; pointer-events: none;
+/* 页面标题区
+   p45 装饰条原图 1600×324，此前 backgroundImage 写在元素自身却是默认 auto + repeat，
+   横条按原始尺寸贴左上角并被 header 盒子裁掉 → 只剩一角（“显示不完整”）。
+   现改为整条 100%×100% 铺满且不重复，并把 header 撑到装饰条的合适高度。 */
+.page-head {
+  position: relative; text-align: center; margin-bottom: 20px;
+  min-height: 134px; padding: 26px 18px 24px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  background-size: 100% 100%; background-repeat: no-repeat; background-position: center;
 }
 .page-head h1 { position: relative; font-size: 26px; letter-spacing: 6px; color: var(--gold-text); text-shadow: var(--glow-gold); font-weight: 900; }
 .page-head h1 .rune { color: var(--teal-lt); font-size: 18px; vertical-align: 2px; }
@@ -154,23 +158,33 @@ input, textarea, select { font-family: inherit; }
 /* ═══ 鎏金按钮 ═══ */
 .btn {
   position: relative; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-  min-height: 46px; padding: 10px 26px; border: 1.5px solid var(--copper);
+  min-height: 46px; padding: 10px 26px; border: 1.5px solid var(--copper); overflow: hidden;
   color: #241a04; font-weight: 900; font-size: 15px; letter-spacing: 2px;
   background: linear-gradient(90deg, #6b5a1a 0%, #a8860d 28%, #c9a84c 50%, #a8860d 72%, #6b5a1a 100%);
-  background-size: 220% auto; animation: gold-flow 5s linear infinite;
   box-shadow: 0 3px 0 #3d3110, 0 6px 16px rgba(0,0,0,.4);
   transition: transform .15s ease, box-shadow .2s ease, filter .2s ease;
   user-select: none;
 }
+/* 鎏金流光：原先每个按钮都在无限动画 background-position（十几个按钮 = 十几处永久重绘，卡顿主因之一）。
+   改为 transform 位移的高光条，走合成器不触发重绘；只有主操作按钮待机时缓慢流光，其余 hover 才扫一次。 */
+.btn::after {
+  content: ''; position: absolute; top: 0; bottom: 0; left: 0; width: 45%; pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(255,244,214,.38), transparent);
+  transform: translateX(-140%);
+}
+.btn.lg::after { animation: sheen-slide 5s linear infinite; }
+.btn:hover::after { animation: sheen-slide 1.1s ease; }
+@keyframes sheen-slide { from { transform: translateX(-140%) } to { transform: translateX(320%) } }
 @keyframes gold-flow { from { background-position: 0% center } to { background-position: 220% center } }
 .btn:hover { transform: translateY(-2px); box-shadow: 0 3px 0 #3d3110, 0 8px 20px rgba(0,0,0,.5), var(--glow-teal); }
 .btn:active { transform: translateY(1px) scale(.97); box-shadow: 0 1px 0 #3d3110; }
 .btn:disabled { filter: grayscale(.7) brightness(.6); cursor: not-allowed; transform: none; animation: none; }
 .btn.ghost { background: transparent; color: var(--gold-text); animation: none; }
+.btn.ghost::after { display: none; }
 .btn.ghost:hover { color: var(--teal-lt); border-color: var(--teal); box-shadow: var(--glow-teal); }
-.btn.danger { background: linear-gradient(90deg, #4a1228, #6b1a3a, #8b2a4a, #6b1a3a, #4a1228); background-size: 220% auto; animation: gold-flow 5s linear infinite; color: #e8c8d0; border-color: var(--fault-lt); box-shadow: 0 3px 0 #2a0a18, 0 6px 16px rgba(0,0,0,.4); }
+.btn.danger { background: linear-gradient(90deg, #4a1228, #6b1a3a, #8b2a4a, #6b1a3a, #4a1228); color: #e8c8d0; border-color: var(--fault-lt); box-shadow: 0 3px 0 #2a0a18, 0 6px 16px rgba(0,0,0,.4); }
 .btn.danger:hover { box-shadow: 0 3px 0 #2a0a18, var(--glow-red); }
-.btn.teal { background: linear-gradient(90deg, #1f5a52, #3a8a7e, #5aa89c, #3a8a7e, #1f5a52); background-size: 220% auto; color: #06201c; border-color: var(--teal); }
+.btn.teal { background: linear-gradient(90deg, #1f5a52, #3a8a7e, #5aa89c, #3a8a7e, #1f5a52); color: #06201c; border-color: var(--teal); }
 .btn.lg { min-height: 54px; font-size: 17px; padding: 12px 34px; }
 .btn.sm { min-height: 36px; font-size: 13px; padding: 6px 16px; letter-spacing: 1px; }
 .btn.block { width: 100%; }
@@ -317,6 +331,15 @@ input, textarea, select { font-family: inherit; }
 .empty-state img { width: 130px; max-width: 40%; opacity: .8; filter: sepia(.3) brightness(.85); animation: float-y 5s ease-in-out infinite; margin-bottom: 14px; }
 
 @media (max-width: 640px) {
+  .page-head { min-height: 104px; padding: 18px 10px 16px; }
   .page-head h1 { font-size: 21px; letter-spacing: 4px; }
   .panel { padding: 16px; }
+}
+
+/* 系统开启「减少动态效果」时：停掉所有装饰性无限动画（同时也消除后台重绘开销） */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important; animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important; scroll-behavior: auto !important;
+  }
 }
