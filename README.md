@@ -54,6 +54,17 @@ powershell -File scripts/deploy-ghpages.ps1 <GitHub_TOKEN>
 `scripts/compress-sharp.mjs` 用于把原始素材批量压缩进 `public/img`
 （PowerShell 的 `System.Drawing` 处理 >10MB PNG 会报「参数无效」，必须走 sharp）。
 
+## 备份源码到本分支
+
+改完源码后，用 `scripts/push-src.mjs` 把整个工程重新推到 `src` 分支（走 Git Data API，
+不需要 git 直连；已存在且内容一致的文件自动跳过，中断后重跑即可续传）：
+
+```powershell
+node scripts/push-src.mjs <GitHub_TOKEN> <app目录绝对路径> <tools目录绝对路径> <README路径>
+```
+
+推送完会自动回读校验（本地/远端文件数与 git blob SHA 全量比对），输出 `RESULT: SRC BACKUP OK` 才算成功。
+
 ## 凭据与安全
 
 - GitHub token、Supabase URL/anon key、登录邮箱密码、Vercel token 统一存放在
