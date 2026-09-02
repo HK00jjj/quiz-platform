@@ -69,20 +69,31 @@ export default function Practice() {
     sealTimer.current = setTimeout(() => setSeal('broken'), 520)
   }
 
-  /* 牌面是固定比例的塔罗牌，正文区可能溢出：答案卷轴展开后自动滚到可见。
-     注意：这里必须用 store 的 phase，不能用下面才声明的 answered（const 有 TDZ，
-     依赖数组在渲染期求值会报 Cannot access 'answered' before initialization 而整页崩溃） */
+  /* 答案揭晓后把答案区滚进可见范围。三个关键点：
+     ① 时机：蜡封在 520ms 才卸载（seal==='broken'），提前滚会让上方内容在滚动途中突然少 ~40px
+        → 目标位置移动 = 浏览器重定向/中断平滑滚动 = 顿挫感。所以等蜡封真消失后，
+        再用双 rAF 等这次 DOM 变更提交并完成布局，才去测量+滚动。
+     ② 测量：全程只读一次几何（双 rAF 内），不在滚动回调里反复读，避免强制同步布局。
+     ③ 缓动：交给 CSS scroll-behavior:smooth（见 pages.css），这里只下一次 scrollTo；
+        不自写 rAF 补间——否则与 CSS 平滑叠加会双重缓动，反而更顿。
+     注意：依赖里用 store 的 phase 而不是下面才声明的 answered（const 有 TDZ，会整页崩溃） */
   useEffect(() => {
     if (phase !== 'feedback' && !showAnswer) return
-    const sc = document.querySelector('.q-face-scroll')
-    const gp = document.querySelector('.grade-panel')
-    if (!sc || !gp) return
-    const t = setTimeout(() => {
-      const delta = gp.getBoundingClientRect().top - sc.getBoundingClientRect().top + sc.scrollTop - 4
-      sc.scrollTo({ top: Math.max(0, delta), behavior: 'smooth' })
-    }, 420)
-    return () => clearTimeout(t)
-  }, [phase, showAnswer])
+    if (seal !== 'broken') return           // 蜡封未卸载，布局还没定型
+    let raf1 = 0, raf2 = 0
+    raf1 = requestAnimationFrame(() => {
+      raf2 = requestAnimationFrame(() => {
+        const sc = document.querySelector('.q-face-scroll')
+        const gp = document.querySelector('.grade-panel')
+        if (!sc || !gp) return
+        const top = gp.getBoundingClientRect().top - sc.getBoundingClientRect().top + sc.scrollTop - 6
+        const to = Math.max(0, Math.min(top, sc.scrollHeight - sc.clientHeight))
+        if (Math.abs(to - sc.scrollTop) < 2) return   // 已完整可见就不滚，省掉一次无谓动画
+        sc.scrollTo({ top: to })
+      })
+    })
+    return () => { cancelAnimationFrame(raf1); cancelAnimationFrame(raf2) }
+  }, [phase, showAnswer, seal])
 
   useEffect(() => {
     const t = setInterval(() => setElapsed(Math.floor((Date.now() - startAt.current) / 1000)), 1000)

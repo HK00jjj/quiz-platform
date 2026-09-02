@@ -51,7 +51,7 @@ export const A = {
   markCheck: { off: img('mark-check-off-n.webp'), on: img('mark-check-on-n.webp') },   // 多选符文框两态
   judgeCard: { ok: img('judge-true.webp'), no: img('judge-false.webp') },              // 判断题尖拱铜牌
   waxSeal: [img('wax-1.webp'), img('wax-2.webp'), img('wax-3.webp')],                 // 蜡封：完整/半碎/碎裂
-  cracks: [img('crack-1.webp'), img('crack-2.webp'), img('crack-3.webp')],             // 牌面裂纹蔓延三帧
+  cracks: [img('crack-1s.webp'), img('crack-2s.webp'), img('crack-3s.webp')],             // 牌面裂纹蔓延三帧
   abyss: [img('abyss-1-n.webp'), img('abyss-2-n.webp'), img('abyss-3-n.webp')]         // 深渊不可名状剑影
 }
 

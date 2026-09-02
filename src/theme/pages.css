@@ -161,13 +161,21 @@
   box-shadow: inset 0 1px 0 rgba(255,255,255,.55), 0 4px 12px rgba(90,74,42,.1);
 }
 .zone-a { padding: 2px 2px 4px; }
-.zone-s { padding: 8px 10px 10px; background: rgba(90,74,42,.07); border: 1px dashed rgba(107,26,58,.42); }
+.zone-s { padding: 6px 8px 8px; background: rgba(90,74,42,.07); border: 1px dashed rgba(107,26,58,.42); }
 .zone-s.revealed { border-style: solid; border-color: rgba(90,74,42,.32); background: rgba(90,74,42,.05); }
 .zone-label { font-size: clamp(9.5px, 2.3cqw, 11.5px); letter-spacing: 3px; color: #7a5f1f; font-weight: 700; margin-bottom: 7px; }
 /* 分区之间的铜质藤蔓分隔条（p44） */
-.zone-rule { height: clamp(8px, 2.4cqw, 14px); margin: 10px 0; opacity: .55;
+.zone-rule { height: clamp(8px, 2.4cqw, 14px); margin: 8px 0; opacity: .55;
   background: url('/quiz-platform/img/p44.png') center / contain no-repeat; }
-.q-face-scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden; padding-right: 5px; }
+/* 平滑滚动由 CSS 接管（组件里只下一次 scrollTo，不自写 rAF 补间，避免双重缓动）；
+   overscroll-behavior:contain → 滚到边界不把滚动链传给页面（嵌套滚动在移动端的典型抖动源）；
+   scrollbar-gutter:stable → 预留滚动条槽位，答案出现后不会因为滚动条冒出而横向缩 5px 抖动；
+   （prefers-reduced-motion 下降为 auto，由 global.css 的统一规则接管） */
+.q-face-scroll {
+  flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden;
+  scroll-behavior: smooth; overscroll-behavior: contain; scrollbar-gutter: stable;
+  padding-right: 2px;
+}
 .q-face-scroll::-webkit-scrollbar { width: 5px; }
 .q-face-foot { flex: 0 0 auto; padding-top: 8px; }
 .q-face-foot h4 { text-align: center; font-size: clamp(10.5px, 2.6cqw, 13px); letter-spacing: 3px; color: #6b5a1a; margin-bottom: 8px; }
@@ -275,8 +283,8 @@
 /* 真理原文：不再套第二张卷轴（整张牌面已是羊皮纸，再套一层就又是“糊上去”），
    改为同一张纸上“墨迹显影”：左侧一条对/错色调的朱栏，答案自左向右写出来 */
 .answer-scroll-box {
-  position: relative; margin-top: 12px; overflow: hidden; color: var(--ink-parch);
-  padding: 10px 14px; background: rgba(90,74,42,.09);
+  position: relative; margin-top: 8px; overflow: hidden; color: var(--ink-parch);
+  padding: 8px 12px; background: rgba(90,74,42,.09);
   border: 1px solid rgba(90,74,42,.4); border-left: 3px solid var(--copper);
   box-shadow: inset 0 0 18px rgba(90,74,42,.14);
 }
@@ -325,7 +333,7 @@
 @keyframes crack-f2 { 0% { opacity: 0 } 34% { opacity: 1 } 62% { opacity: 0 } 100% { opacity: 0 } }
 @keyframes crack-f3 { 0% { opacity: 0 } 62% { opacity: .95 } 100% { opacity: 0 } }
 
-.verdict-banner { position: relative; text-align: center; padding: 10px; margin-top: 12px; font-size: clamp(15px, 4.2cqw, 21px); letter-spacing: 5px; font-weight: 900; animation: crack-in .4s var(--ease-pop) both; }
+.verdict-banner { position: relative; text-align: center; padding: 6px 8px; margin-top: 0; font-size: clamp(15px, 4.2cqw, 21px); letter-spacing: 5px; font-weight: 900; animation: crack-in .4s var(--ease-pop) both; }
 .verdict-banner.ok { color: #1f5a4f; text-shadow: 0 1px 0 rgba(255,251,240,.8); }
 .verdict-banner.bad { color: #7a1f3c; text-shadow: 0 1px 0 rgba(255,251,240,.8); animation: crack-in .4s var(--ease-pop) both, tremble .5s .1s ease; }
 @keyframes tremble { 0%,100% { transform: translateX(0) } 25% { transform: translateX(-2px) } 75% { transform: translateX(2px) } }
