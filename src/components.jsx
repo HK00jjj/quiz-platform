@@ -1,19 +1,16 @@
 import { useEffect, useMemo, useState } from 'react'
 import { A } from './assets'
 
-/* 深渊触手轮廓（极淡闪现，不可名状） */
-const SILHOUETTE = (
-  <svg className="abyss-silhouette" viewBox="0 0 200 160" aria-hidden="true">
-    <g fill="none" stroke="rgba(90,168,156,.9)" strokeWidth="2.4" strokeLinecap="round">
-      <path d="M30 150 C 40 100, 18 78, 44 46 C 58 28, 52 14, 66 8" />
-      <path d="M70 152 C 76 110, 60 92, 82 62 C 96 44, 88 26, 104 16" />
-      <path d="M112 152 C 116 116, 104 96, 124 70 C 138 52, 132 34, 148 26" />
-      <path d="M152 150 C 158 118, 148 100, 164 78 C 176 62, 170 46, 184 40" />
-      <ellipse cx="100" cy="74" rx="26" ry="13" />
-      <circle cx="100" cy="74" r="5" fill="rgba(90,168,156,.7)" stroke="none" />
-    </g>
-  </svg>
-)
+/* 深渊轮廓（极淡闪现，不可名状）：三张真实剪影素材，各自方位与周期不同，几乎不会同时出现 */
+function AbyssSilhouettes() {
+  return (
+    <>
+      {A.abyss.map((src, i) => (
+        <img key={i} className={'abyss-silhouette s' + (i + 1)} src={src} alt="" aria-hidden="true" decoding="async" />
+      ))}
+    </>
+  )
+}
 
 /* ── 全局动态背景：纹理 + 彩窗光斑 + 烟雾 + 深渊星空 + 凝视 + 暗角 ── */
 export function Background({ intensity = 1 }) {
@@ -46,7 +43,7 @@ export function Background({ intensity = 1 }) {
             style={{ left: `${s.left}%`, top: `${s.top}%`, animationDelay: `${s.delay}s` }} />
         ))}
       </div>
-      {SILHOUETTE}
+      <AbyssSilhouettes />
       <div className="bg-vignette" />
     </div>
   )
@@ -121,11 +118,11 @@ export function BootRitual({ onDone }) {
 
 /* ── 底部导航：穹顶五柱 ── */
 const NAV_ITEMS = [
-  { key: 'learn', label: '修习', icon: '📖', to: '/' },
-  { key: 'bank', label: '秘典', icon: '🃏', to: '/bank' },
-  { key: 'import', label: '誊写', icon: '🔮', to: '/import', center: true },
-  { key: 'stats', label: '星象', icon: '📊', to: '/stats' },
-  { key: 'settings', label: '工坊', icon: '⚙️', to: '/settings' }
+  { key: 'learn', label: '修习', img: A.navIcons.learn, to: '/' },
+  { key: 'bank', label: '秘典', img: A.navIcons.bank, to: '/bank' },
+  { key: 'import', label: '誊写', img: A.navIcons.import, to: '/import', center: true },
+  { key: 'stats', label: '星象', img: A.navIcons.stats, to: '/stats' },
+  { key: 'settings', label: '工坊', img: A.navIcons.settings, to: '/settings' }
 ]
 export function BottomNav({ active, wrongCount, onNav }) {
   return (
@@ -133,13 +130,13 @@ export function BottomNav({ active, wrongCount, onNav }) {
       <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${A.navBar})`, backgroundSize: 'cover', backgroundPosition: 'center', opacity: .35, pointerEvents: 'none' }} />
       {NAV_ITEMS.map((it) => it.center ? (
         <button key={it.key} className={'nav-item nav-center' + (active === it.key ? ' active' : '')} onClick={() => onNav(it.to)}>
-          <span className="nav-icon-wrap">{it.icon}</span>
+          <span className="nav-icon-wrap"><img src={it.img} alt="" decoding="async" /></span>
           <span>{it.label}</span>
         </button>
       ) : (
         <button key={it.key} className={'nav-item' + (active === it.key ? ' active' : '')} onClick={() => onNav(it.to)}>
           {it.key === 'bank' && wrongCount > 0 && <span className="dot" />}
-          <span className="nav-icon">{it.icon}</span>
+          <img className="nav-icon" src={it.img} alt="" decoding="async" />
           <span>{it.label}</span>
         </button>
       ))}

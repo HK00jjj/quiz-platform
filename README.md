@@ -26,7 +26,7 @@ React 18 + Vite 5 + zustand + react-router（HashRouter）+ @supabase/supabase-j
 | `src/lib/stats.js` · `src/lib/dates.js` | 连胜 / 日历 / 契合度统计 |
 | `src/pages/` | Login · Learn · Bank · Import · Stats · Settings · Practice |
 | `src/theme/` | `global.css`（全站基调）+ `pages.css`（分页样式） |
-| `public/img/` | 57 张素材 / 约 5.9 MB：54 张 WebP + 3 张 PNG（p12/p44/p45，这三张转 WebP 反而变大） |
+| `public/img/` | 77 张素材 / 约 6.7 MB：74 张 WebP + 3 张 PNG（p12/p44/p45，这三张转 WebP 反而变大） |
 | `public/fonts/` | Cinzel 700 自托管 woff2（含中文子集扩展） |
 | `scripts/` | 部署 / 素材优化 / 引用校验工具 |
 
@@ -68,7 +68,7 @@ node scripts/push-src.mjs <GitHub_TOKEN> <app目录绝对路径> <tools目录绝
 ## 素材管线与性能红线
 
 站点曾因素材体积卡到不可用（85 张 PNG / 53.5 MB，而且 1600px 大图当 44px 小图标用）。
-现已优化到 **57 张 / 5.9 MB（dist 共 6.4 MB）**，且**零感知画质损失**：
+现已优化到 **77 张 / 6.7 MB（dist 共 7.2 MB）**，且**零感知画质损失**：
 
 - 采样上限 = 实际显示尺寸 × 2（2× DPR 视网膜余量），小图标给到 3~8 倍余量；全屏背景一张没缩。
 - WebP q92；雕花金线/细边框类（p2/p6/p8/p34/p35/p44/p45 等）用 q95 + `alphaQuality: 100`，避免细金线出现压缩振铃。
@@ -77,9 +77,24 @@ node scripts/push-src.mjs <GitHub_TOKEN> <app目录绝对路径> <tools目录绝
 
 ```powershell
 node scripts/optimize-assets.mjs   # 分级降采样 + WebP 转码 + 删未引用 + 自动改引用
+node scripts/ingest-assets.mjs     # 摄入外部新素材（按文件夹名前缀映射到语义文件名）
 node scripts/fix-assets.mjs        # 还原转大的素材 + 清死映射 + 引用可达校验
 node scripts/check-refs.mjs        # 校验 A.<key> 与磁盘文件一一对应（防 undefined 崩溃 / 404）
 ```
+
+### 外部补充素材（用户第二批提供，已接入）
+
+| 文件 | 用在哪 |
+| --- | --- |
+| `nav-learn/bank/import/stats/settings` | 底部导航五柱图标（替掉原来的 emoji），中央誊写图标大 1.4 倍 |
+| `mark-radio-off/on`、`mark-check-off/on` | 单选/多选题的符文选框两态 |
+| `judge-true`、`judge-false` | 判断题两张对立竖版尖拱铜牌（341×512，2:3） |
+| `seal-1/2/3` | 答案蜡封三帧：完整 → 半碎 → 碎裂散开（启封动画） |
+| `crack-1/2/3` | 做错时牌面裂纹三帧（682×1024，与卡牌同 2:3，可整牌覆盖零变形） |
+| `abyss-1/2/3` | 深渊不可名状剪影（替掉原来手写的 SVG 简笔画），三个方位/周期错开闪现 |
+
+仍缺的素材（影响效果上限）：**七种题型印章**（原 P34-1~7 七个文件完全相同，现在题型在视觉上无法区分）、
+音效、术语解释词表。切牌式筛选（文档 5.2）的小卡牌背面与三角法阵底图已由用户提供，功能尚未实现。
 
 **改 UI 时勿犯的性能/视觉红线**：
 

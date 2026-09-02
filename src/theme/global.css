@@ -92,7 +92,11 @@ input, textarea, select { font-family: inherit; }
 .abyss-flash { transition: opacity .4s ease; }
 .bg-stage.abyss-on .abyss-flash { opacity: .16 !important; }
 .bg-stage.abyss-on .bg-smoke { animation-duration: 5s; }
-.abyss-silhouette { position: absolute; right: 6%; top: 10%; width: 190px; opacity: 0; pointer-events: none; filter: blur(1.2px); animation: silhouette-flash 34s linear infinite; }
+/* 深渊轮廓：三张真实剪影素材（触手群 / 星云 / 巨眼），各自方位与周期不同，几乎不会同时出现 */
+.abyss-silhouette { position: absolute; width: 230px; opacity: 0; pointer-events: none; filter: blur(1.4px); }
+.abyss-silhouette.s1 { right: 5%; top: 8%; animation: silhouette-flash 34s linear infinite; }
+.abyss-silhouette.s2 { left: 3%; top: 44%; width: 280px; animation: silhouette-flash 47s 13s linear infinite; }
+.abyss-silhouette.s3 { right: 11%; bottom: 14%; width: 190px; animation: silhouette-flash 61s 29s linear infinite; }
 @keyframes silhouette-flash { 0%, 94.8%, 98.4%, 100% { opacity: 0 } 95.8% { opacity: .1 } 96.8% { opacity: .05 } 97.6% { opacity: .08 } }
 
 /* 页面切换 · 法阵转移帷幕 */
@@ -216,9 +220,10 @@ input, textarea, select { font-family: inherit; }
   background: none; border: none; color: #6d5c34; font-size: 11px; letter-spacing: 2px; z-index: 1;
   transition: color .25s ease, transform .25s var(--ease-pop);
 }
-.nav-item .nav-icon { font-size: 21px; filter: grayscale(.8) brightness(.75); transition: filter .25s ease, transform .3s var(--ease-pop); }
+/* 导航图标：真实素材图（未选中压暗去色，选中亮起并翻一面） */
+.nav-item .nav-icon { width: 27px; height: 27px; object-fit: contain; filter: grayscale(.72) brightness(.72) drop-shadow(0 2px 4px rgba(0,0,0,.55)); transition: filter .25s ease, transform .35s var(--ease-pop); }
 .nav-item.active { color: var(--teal-lt); }
-.nav-item.active .nav-icon { filter: none; transform: translateY(-2px) rotateY(360deg); text-shadow: var(--glow-teal); }
+.nav-item.active .nav-icon { filter: drop-shadow(0 0 9px rgba(90,168,156,.75)); transform: translateY(-2px) rotateY(360deg); }
 .nav-item.active::after {
   content: ''; position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%);
   width: 26px; height: 3px; background: radial-gradient(ellipse, rgba(90,168,156,.9), transparent 70%);
@@ -234,6 +239,8 @@ input, textarea, select { font-family: inherit; }
   animation: breathe 4s ease-in-out infinite;
   transition: transform .3s var(--ease-pop), box-shadow .3s ease;
 }
+.nav-center .nav-icon-wrap img { width: 40px; height: 40px; object-fit: contain; filter: drop-shadow(0 0 10px rgba(90,168,156,.5)); transition: transform .35s var(--ease-pop); }
+.nav-center.active .nav-icon-wrap img { transform: rotateY(360deg); }
 .nav-center.active .nav-icon-wrap { box-shadow: 0 0 22px rgba(90,168,156,.7), inset 0 0 14px rgba(90,168,156,.4); }
 .nav-center:active .nav-icon-wrap { transform: scale(.92) rotate(20deg); }
 @keyframes breathe { 0%,100% { opacity: .85 } 50% { opacity: 1 } }

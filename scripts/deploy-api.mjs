@@ -49,7 +49,7 @@ const newTree = await req('POST', `/repos/${repo}/git/trees`, { tree })
 console.log('new tree:', newTree.sha)
 
 const commit = await req('POST', `/repos/${repo}/git/commits`, {
-  message: 'feat+perf: 禁书库竖版塔罗牌墙(正p2/背p6翻面) + 答题牌面2:3重排+答案蜡封启封 + 素材WebP化54MB→6.4MB + 修标题装饰条裁切',
+  message: 'feat: 接入外部素材(导航图标/符文选框/判断题铜牌/蜡封三帧/裂纹三帧/深渊剑影) + p35九切片真卷轴 + 禁书库竖版塔罗牌墙 + 素材WebP化54MB→7.2MB',
   tree: newTree.sha,
   parents: [parentSha],
   author: { name: 'HK00jjj', email: 'hk00jjj@users.noreply.github.com', date: new Date().toISOString() },

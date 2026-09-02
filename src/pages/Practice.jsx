@@ -196,6 +196,12 @@ export default function Practice() {
       <div className="q-card-wrap" key={q.id + '-' + index}>
         <div className={'q-card ' + flash}>
           {combo >= 3 && !answered && <span className="combo-pop" style={{ zIndex: 8 }}>✦ {combo} 连击！</span>}
+          {/* 深渊侵蚀：真实裂纹素材三帧自四角向中心蔓延（与牌面同 2:3 比例，零变形） */}
+          {flash === 'bad-flash' && (
+            <div className="crack-veil" aria-hidden="true">
+              {A.cracks.map((s, k) => <img key={k} className={'c' + (k + 1)} src={s} alt="" decoding="async" />)}
+            </div>
+          )}
           {/* 牌面：内缩进尖拱/藤蔓/龙首纹样之内，正文可滚、主操作钉在牌底 */}
           <div className="q-face">
           <div className="q-face-scroll">
@@ -231,7 +237,8 @@ export default function Practice() {
                     onClick={() => q.type === '单选题'
                       ? setChoice(letter)
                       : setMulti((m) => m.includes(letter) ? m.filter((x) => x !== letter) : [...m, letter].sort())}>
-                    <span className="mark">{selected ? (q.type === '单选题' ? '●' : '✓') : ''}</span>
+                    <img className="mark" decoding="async" alt="" aria-hidden="true"
+                      src={(q.type === '单选题' ? A.markRadio : A.markCheck)[selected ? 'on' : 'off']} />
                     <span>{opt}</span>
                   </button>
                 )
@@ -250,9 +257,9 @@ export default function Practice() {
                     }
                     return (
                       <button key={label} disabled={answered} className={`judge-card ${cls} ${extra}`}
-                        onClick={() => setJudge(label)}>
-                        <span className="rune">{rune}</span>
-                        <span>{label}</span>
+                        style={{ backgroundImage: `url(${label === '正确' ? A.judgeCard.ok : A.judgeCard.no})` }}
+                        aria-pressed={judge === label} onClick={() => setJudge(label)}>
+                        <span className="judge-label">{label}</span>
                       </button>
                     )
                   })}
@@ -293,7 +300,10 @@ export default function Practice() {
             {/* 答案封印：未启封前，真理被暗红蜡封（触手纹）遮住 */}
             {seal !== 'broken' && (
               <div className={'seal-lock ' + seal}>
-                <img src={A.sealedDeck} alt="" aria-hidden="true" />
+                {/* 蜡封三帧：完整 → 半碎 → 碎裂散开（启封时逐帧切换） */}
+                <span className="seal-wax" aria-hidden="true">
+                  {A.waxSeal.map((s, k) => <img key={k} className={'f' + (k + 1)} src={s} alt="" decoding="async" />)}
+                </span>
                 <span>{objective ? '真理已封印 · 解读符文后启封' : '参考答案已封印 · 展开卷轴后启封'}</span>
               </div>
             )}

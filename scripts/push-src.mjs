@@ -54,7 +54,7 @@ function blobSha(buf) {
 // ---------- 1. 组装待推送清单 ----------
 const files = walk(appDir, '', [])
 for (const t of ['deploy-api.mjs', 'deploy-ghpages.ps1', 'compress-sharp.mjs', 'compress-assets.ps1',
-  'optimize-assets.mjs', 'fix-assets.mjs', 'check-refs.mjs']) {
+  'optimize-assets.mjs', 'fix-assets.mjs', 'check-refs.mjs', 'ingest-assets.mjs']) {
   const p = toolsDir + '/' + t
   if (statSync(p).isFile()) files.push({ rel: 'scripts/' + t, p })
 }
