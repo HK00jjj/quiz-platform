@@ -1,0 +1,340 @@
+// 导入校验与解析（与线上规则 1:1，含 21 题批九类规则与返工话术）
+export const TYPE_LIST = ['单选题', '多选题', '判断题', '填空题', '简答题', '计算分析题', '综合设计/故障诊断题']
+const DIFFS = ['基础', '应用', '综合']
+const COG = ['记忆', '理解', '应用', '分析', '评价', '创造']
+const DOMAINS = Array.from({ length: 27 }, (_, i) => `K${i + 1}`)
+const META_MAP = { 基础: ['记忆', '理解'], 应用: ['应用', '分析'], 综合: ['评价', '创造'] }
+const ANALYSIS_LIMIT = { '综合设计/故障诊断题': 500, 计算分析题: 375 }
+const COMPREHENSIVE_ELEMENTS = ['方案', '选型计算', '控制逻辑', '保护与安全']
+
+const str = (v) => (v == null ? '' : String(v))
+function seqOf(item) {
+  const s = item.序号
+  if (typeof s === 'number') return Math.round(s)
+  const n = parseInt(str(s).trim(), 10)
+  return Number.isNaN(n) ? -1 : n
+}
+const whereOf = (item) => {
+  const s = seqOf(item)
+  return s < 0 ? '序号?' : `序号${s}`
+}
+function diffBand(seq) {
+  if (seq >= 2 && seq <= 9) return '基础'
+  if (seq >= 10 && seq <= 16) return '应用'
+  if (seq >= 17 && seq <= 21) return '综合'
+  return null
+}
+
+// 题目 id：内容哈希（与线上一致，保证去重与云端主键兼容）
+export function hashId(stem, type, answer) {
+  const s = stem + '\n' + type + '\n' + answer
+  let h = 2166136261
+  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619) }
+  return 'q_' + (h >>> 0).toString(36)
+}
+
+export class Validator {
+  issues = []
+  err(where, message) { this.issues.push({ where, level: '错误', message }) }
+  warn(where, message) { this.issues.push({ where, level: '告警', message }) }
+  run(items, batchMode) {
+    if (items.length === 1 && str(items[0].题型) === '异常') {
+      if (items[0].序号 !== 1 && seqOf(items[0]) !== 1) this.err('序号1', '异常输入序号应为1')
+      if (!str(items[0].题干).trim()) this.err('序号1', '异常输入题干为空')
+      return this.issues
+    }
+    if (batchMode && items.length !== 21) this.err('顶层', `数组应为21个元素，实际${items.length}个`)
+    if (batchMode && items.length === 21) {
+      items.forEach((it, i) => { if (seqOf(it) !== i + 1) this.err(`元素${i + 1}`, `序号应为${i + 1}，实际“${str(it.序号)}”`) })
+      this.checkQuota(items)
+    }
+    for (const it of items) {
+      this.checkCommon(it)
+      const type = str(it.题型)
+      if (TYPE_LIST.includes(type)) {
+        this.checkMetaMapping(it)
+        this.checkAnalysis(it)
+        if (type === '单选题' || type === '多选题') this.checkChoice(it)
+        else if (type === '判断题') this.checkJudgement(it)
+        else if (type === '填空题') this.checkFillBlank(it)
+        else this.checkSubjective(it)
+        if (batchMode) {
+          const seq = seqOf(it)
+          if (seq >= 2) {
+            const band = diffBand(seq)
+            const d = str(it.难度)
+            if (band && d !== band) this.err(whereOf(it), `难度应为“${band}”（按拓展题层段），实际“${d}”`)
+          }
+        }
+      }
+    }
+    return this.issues
+  }
+  checkCommon(it) {
+    const w = whereOf(it)
+    for (const f of ['题型', '难度', '知识点', '知识域', '认知层级', '题干', '答案', '解析']) {
+      if (it[f] == null) this.err(w, `缺少字段“${f}”`)
+    }
+    const type = str(it.题型)
+    if (!TYPE_LIST.includes(type)) this.err(w, `题型“${type}”非法`)
+    const d = str(it.难度)
+    if (!DIFFS.includes(d)) this.err(w, `难度“${d}”非法`)
+    const dom = str(it.知识域)
+    if (!DOMAINS.includes(dom)) this.err(w, `知识域“${dom}”非法，应取K1~K27`)
+    const cog = str(it.认知层级)
+    if (!COG.includes(cog)) this.err(w, `认知层级“${cog}”非法`)
+    if (!str(it.知识点).trim()) this.err(w, '“知识点”为空')
+    if (!str(it.题干).trim()) this.err(w, '“题干”为空')
+  }
+  checkMetaMapping(it) {
+    const d = str(it.难度), cog = str(it.认知层级), seq = seqOf(it)
+    if (!META_MAP[d] || !COG.includes(cog)) return
+    if (d === '综合' && cog === '分析' && seq >= 17 && seq <= 21) return
+    if (!META_MAP[d].includes(cog)) this.err(whereOf(it), `认知层级“${cog}”与难度“${d}”映射不一致`)
+  }
+  checkAnalysis(it) {
+    const w = whereOf(it)
+    const a = str(it.解析)
+    if (a.includes('\n') || a.includes('\r')) this.err(w, '“解析”含换行符，须为单行字符串')
+    const p1 = a.indexOf('【推导】'), p2 = a.indexOf('【记忆点】')
+    if (p1 < 0 || p2 < 0 || p1 > p2) this.err(w, '“解析”须依次包含【推导】【记忆点】标记')
+    const limit = ANALYSIS_LIMIT[str(it.题型)] ?? 250
+    if (a.length > limit) this.warn(w, `“解析”${a.length}字，超出建议上限${limit}字`)
+  }
+  checkChoice(it) {
+    const w = whereOf(it)
+    const single = str(it.题型) === '单选题'
+    const n = single ? 4 : 5
+    const letters = single ? 'ABCD' : 'ABCDE'
+    const opts = Array.isArray(it.选项) ? it.选项.map(String) : []
+    const ans = str(it.答案)
+    if (opts.length !== n) this.err(w, `选项数应为${n}，实际${opts.length}`)
+    else for (let i = 0; i < n; i++) {
+      const L = letters[i]
+      if (!opts[i].startsWith(L + '. ') && !opts[i].startsWith(L + '.')) this.err(w, `第${i + 1}个选项未以“${L}. ”开头`)
+    }
+    if (single) {
+      if (!/^[A-D]$/.test(ans)) this.err(w, `单选题答案应为单个字母A~D，实际“${ans}”`)
+    } else if (/^[A-E]{2,4}$/.test(ans)) {
+      if ([...ans].sort().join('') !== ans || new Set([...ans]).size !== ans.length) {
+        this.err(w, `多选题答案须按字母升序且无重复，实际“${ans}”`)
+      }
+    } else {
+      this.err(w, `多选题答案应为2~4个字母连写，实际“${ans}”`)
+    }
+  }
+  checkJudgement(it) {
+    const ans = str(it.答案)
+    if (ans !== '正确' && ans !== '错误') this.err(whereOf(it), `判断题答案应只填“正确”或“错误”，实际“${ans}”`)
+  }
+  checkFillBlank(it) {
+    const w = whereOf(it)
+    const stem = str(it.题干), ans = str(it.答案)
+    const blanks = [...stem.matchAll(/\{([^{}]*)\}/g)].map((m) => m[1])
+    const parts = ans ? ans.split('|') : []
+    const extended = seqOf(it) >= 2
+    if (extended && stem.trimStart().startsWith('{')) this.err(w, '空位居句首，违反挖空规则')
+    if (blanks.length !== parts.length) {
+      this.err(w, `题干{}空数${blanks.length}与答案竖线分段数${parts.length}不一致`)
+    } else {
+      blanks.forEach((b, i) => {
+        const bt = b.trim(), pt = parts[i].trim()
+        if (bt !== pt) this.err(w, `第${i + 1}空“${b}”与答案分段“${parts[i]}”不一致`)
+        if (bt.length > 10) this.warn(w, `第${i + 1}空答案“${bt}”超过10字`)
+      })
+    }
+    if (extended && blanks.length > 2) this.err(w, `拓展填空题应<=2空，实际${blanks.length}空`)
+  }
+  checkSubjective(it) {
+    const w = whereOf(it)
+    const type = str(it.题型), ans = str(it.答案)
+    if (ans.includes('\n') || ans.includes('\r')) this.err(w, '主观题“答案”含换行符，须为单行字符串')
+    if (type === '简答题') {
+      const points = ans.match(/(?:^|[；;])\s*\d+\./g) ?? []
+      if (points.length > 5) this.err(w, `简答题分点应<=5个，实际${points.length}个`)
+    } else if (type === '计算分析题') {
+      for (const mark of ['(1)', '(2)', '(3)']) {
+        if (!ans.includes(mark)) { this.warn(w, `答案中未见分问标记${mark}（三问递进）`); break }
+      }
+    } else if (type === '综合设计/故障诊断题') {
+      const missing = COMPREHENSIVE_ELEMENTS.filter((e) => !ans.includes(e))
+      if (missing.length > 0) this.err(w, `综合题答案缺少要素：${missing.join('、')}（四要素缺一判不合格）`)
+    }
+  }
+  checkQuota(items) {
+    const rest = items.slice(1)
+    const counts = new Map()
+    for (const it of rest) {
+      const t = str(it.题型)
+      counts.set(t, (counts.get(t) ?? 0) + 1)
+    }
+    const c = (t) => counts.get(t) ?? 0
+    for (const [t, expect] of [['多选题', 2], ['判断题', 2], ['填空题', 2], ['简答题', 2], ['综合设计/故障诊断题', 1]]) {
+      if (c(t) !== expect) this.err('配比', `${t}应为${expect}道，实际${c(t)}道`)
+    }
+    const calc = c('计算分析题')
+    if (calc < 2 || calc > 3) this.err('配比', `计算分析题为${calc}道，应为2~3道（默认3），不得增至4道`)
+    const single = c('单选题')
+    const expectSingle = 11 - calc
+    if (single !== expectSingle) this.err('配比', `单选题应为${expectSingle}道（11-计算${calc}），实际${single}道`)
+    const objective = single + c('多选题') + c('判断题') + c('填空题')
+    if (objective < 14) this.err('配比', `客观题仅${objective}道（<14），违反客观题>=14红线`)
+  }
+}
+
+export const validateItems = (items, batchMode) => new Validator().run(items, batchMode)
+
+export function reworkTalk(issues) {
+  return [
+    '以下是外部校验器对你上一轮输出的报错，请按报错逐题定向修正：',
+    '',
+    ...issues.filter((i) => i.level === '错误').map((i) => `错误  [${i.where}] ${i.message}`),
+    '',
+    '修正要求：',
+    '1. 只修改报错序号对应的题目，其余题目保持原文一字不动；',
+    '2. 修正后重新输出完整的 21 元素 JSON 数组（不是只输出改动的题）；',
+    '3. 输出纯 JSON，不加任何解释文字和 markdown 围栏。'
+  ].join('\n')
+}
+
+// ── 解析管道 ──
+function extractArray(text) {
+  const t = text.replace(/```(?:json)?/gi, '').trim()
+  const a = t.indexOf('['), b = t.lastIndexOf(']')
+  if (a === -1 || b === -1 || b <= a) return null
+  return t.slice(a, b + 1)
+}
+function toItem(raw) {
+  const seq = seqOf(raw)
+  const type = typeof raw.题型 === 'string' ? raw.题型 : ''
+  const stem = typeof raw.题干 === 'string' ? raw.题干.trim() : ''
+  const answer = typeof raw.答案 === 'string' ? raw.答案.trim() : ''
+  if (seq < 0) return '缺少有效序号'
+  if (type === '异常') return 'SKIP'
+  if (!TYPE_LIST.includes(type)) return `题型「${type}」不在支持范围`
+  if (!stem) return '缺少题干'
+  if (!answer) return '缺少答案'
+  const q = { id: hashId(stem, type, answer), seq, type, stem, answer }
+  if (typeof raw.难度 === 'string') q.difficulty = raw.难度
+  if (typeof raw.知识点 === 'string') q.knowledgePoint = raw.知识点
+  if (typeof raw.知识域 === 'string') q.knowledgeDomain = raw.知识域
+  if (typeof raw.认知层级 === 'string') q.cognitiveLevel = raw.认知层级
+  if (Array.isArray(raw.选项)) q.options = raw.选项.map(String)
+  if (typeof raw.解析 === 'string') q.explanation = raw.解析
+  return q
+}
+export function parseItems(text) {
+  const arr = extractArray(text)
+  if (!arr) return { items: [], errors: ['未找到 JSON 数组，请确认粘贴的是题库内容'] }
+  let parsed
+  try { parsed = JSON.parse(arr) } catch (e) {
+    return { items: [], errors: ['JSON 解析失败：' + (e instanceof Error ? e.message : String(e))] }
+  }
+  if (!Array.isArray(parsed)) return { items: [], errors: ['顶层结构必须是 JSON 数组'] }
+  const items = [], errors = []
+  parsed.forEach((it, i) => {
+    if (typeof it === 'object' && it !== null && !Array.isArray(it)) items.push(it)
+    else errors.push(`第${i + 1}个元素不是 JSON 对象，已跳过`)
+  })
+  return { items, errors }
+}
+function toQuestions(list) {
+  const questions = [], errors = [], seen = new Set()
+  let skipped = 0
+  for (const raw of list) {
+    if (typeof raw !== 'object' || raw === null) { errors.push('存在非对象条目，已跳过'); continue }
+    const q = toItem(raw)
+    if (q === 'SKIP') { skipped++; continue }
+    if (typeof q === 'string') { errors.push(`序号 ${raw.序号 ?? '?'}：${q}`); continue }
+    if (seen.has(q.id)) { skipped++; continue }
+    seen.add(q.id)
+    questions.push(q)
+  }
+  return { questions, skipped, errors }
+}
+export function parseBank(text) {
+  const arr = extractArray(text)
+  if (!arr) return { questions: [], skipped: 0, errors: ['未找到 JSON 数组，请确认粘贴的是题库内容'] }
+  let parsed
+  try { parsed = JSON.parse(arr) } catch (e) {
+    return { questions: [], skipped: 0, errors: ['JSON 解析失败：' + (e instanceof Error ? e.message : String(e))] }
+  }
+  return Array.isArray(parsed) ? toQuestions(parsed) : { questions: [], skipped: 0, errors: ['顶层结构必须是 JSON 数组'] }
+}
+const validCard = (c, ids) =>
+  typeof c === 'object' && c !== null && typeof c.questionId === 'string' && ids.has(c.questionId) &&
+  typeof c.easeFactor === 'number' && typeof c.intervalDays === 'number' && typeof c.reps === 'number' &&
+  typeof c.lapses === 'number' && typeof c.dueAt === 'number' && typeof c.learnedAt === 'number'
+const validRecord = (r, ids) =>
+  typeof r === 'object' && r !== null && typeof r.questionId === 'string' && ids.has(r.questionId) &&
+  typeof r.date === 'string' && typeof r.timestamp === 'number' && typeof r.correct === 'boolean' && typeof r.detail === 'string'
+export function parseBackup(text) {
+  const t = text.replace(/```(?:json)?/gi, '').trim()
+  if (!t.startsWith('{')) return null
+  let parsed
+  try { parsed = JSON.parse(t) } catch { return null }
+  if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) return null
+  if (!Array.isArray(parsed.questions)) return null
+  const { questions } = toQuestions(parsed.questions)
+  const ids = new Set(questions.map((q) => q.id))
+  const cards = Array.isArray(parsed.cards) ? parsed.cards.filter((c) => validCard(c, ids)) : []
+  const records = Array.isArray(parsed.records)
+    ? parsed.records.filter((r) => validRecord(r, ids)).map(({ id, ...rest }) => rest)
+    : []
+  return { questions, cards, records }
+}
+
+// ── 客观题作答归一化与判分 ──
+const SPLIT = /[、，,;；|/\s]+/
+export const blanksOf = (stem) => [...stem.matchAll(/\{([^{}]*)\}/g)].map((m) => m[1].trim())
+export function normalizeAnswer(type, input) {
+  const t = input.trim()
+  if (!t) return null
+  switch (type) {
+    case '单选题': {
+      const m = t.toUpperCase().match(/[A-D]/g)
+      return !m || m.length !== 1 ? null : m[0]
+    }
+    case '多选题': {
+      const m = t.toUpperCase().match(/[A-E]/g)
+      if (!m) return null
+      const s = [...new Set(m)].sort()
+      return s.length < 2 ? null : s.join('')
+    }
+    case '判断题':
+      if (/^(正确|对|√|是|T|TRUE|YES)$/i.test(t)) return '正确'
+      if (/^(错误|错|×|非|否|F|FALSE|NO)$/i.test(t)) return '错误'
+      return null
+    case '填空题':
+      return t.split(SPLIT).map((p) => p.trim()).filter(Boolean).join(',')
+    default:
+      return null
+  }
+}
+export function gradeObjective(q, input) {
+  if (!isObjType(q.type)) throw new Error(`题型「${q.type}」为主观题，不参与自动判分`)
+  const normalized = normalizeAnswer(q.type, input)
+  if (q.type === '填空题') {
+    const blankCount = Math.max(blanksOf(q.stem).length, 1)
+    const expected = q.answer.split(/[，,、;；|]/).map((p) => p.trim()).filter(Boolean).join(',')
+    const got = normalized ? normalized.split(',') : []
+    const expParts = expected.split(',')
+    return {
+      correct: got.length === blankCount && got.length === expParts.length && got.every((g, i) => g === expParts[i]),
+      normalized, expected
+    }
+  }
+  const expected = q.answer.trim().toUpperCase()
+  return { correct: normalized !== null && normalized === expected, normalized, expected }
+}
+const isObjType = (t) => ['单选题', '多选题', '判断题', '填空题'].includes(t)
+
+// ── 导入分类入口 ──
+export function classifyImport(text) {
+  const backup = parseBackup(text)
+  if (backup) return { kind: 'backup' }
+  const { items, errors } = parseItems(text)
+  if (errors.length) return { kind: 'parse-error', errors }
+  const batchMode = items.length <= 21
+  return { kind: 'batch', issues: validateItems(items, batchMode), batchMode }
+}
