@@ -118,18 +118,33 @@
   filter: drop-shadow(0 18px 36px rgba(0,0,0,.55));
 }
 .card-flip-cover img { width: 24%; max-width: 130px; opacity: .92; animation: spin-slow 12s linear infinite; filter: drop-shadow(0 0 14px rgba(90,168,156,.6)); }
+/* 正面 = 一整张摊开的羊皮纸卷轴（p19 龙首杆，从 5120×2868 原图重取为 1600×896）。
+   九切片值由剖面实测：杆区 x≈5%~15% 与 84%~92%、焦边 y≈5%~14% 与 78%~88% → slice 125 256 179 256；
+   边框宽按 0.2 倍统一缩放 → 四角龙首不变形，杆上藤蔓仅纵向拉伸 19%。
+   中央羊皮纸会被 .q-face 自己的无缝纹理整块盖住，所以中心切片怎么拉都看不出来。 */
 .q-card {
-  position: absolute; inset: 0; backface-visibility: hidden; container-type: inline-size;
-  background: url('/quiz-platform/img/p2.webp') center / 100% 100% no-repeat;
+  position: absolute; inset: 0; backface-visibility: hidden;
+  border: 26px solid transparent; border-left-width: 52px; border-right-width: 52px; border-bottom-width: 36px;
+  border-image: url('/quiz-platform/img/p19.webp') 125 256 179 256 fill / 26px 52px 36px 52px stretch;
   filter: drop-shadow(0 18px 36px rgba(0,0,0,.55));
 }
-/* 牌面内缩值由金饰剖面实测换算（p2 已裁掉透明留白，画布=牌体 768×1470）：
-   上 29% 让开尖拱+宝石+玫瑰窗圆花，左 19.5% / 右 18% 让开藤蔓，下 13% 让开龙首 */
-.q-face { position: absolute; inset: 29% 18% 13% 19.5%; display: flex; flex-direction: column; min-height: 0; z-index: 1; }
+@media (max-width: 560px) {
+  .q-card { border-width: 18px 34px 26px 34px; border-image-width: 18px 34px 26px 34px; }
+}
+/* 牌面：铺无缝羊皮纸纹理（cover 等比裁切、不变形），题目直接写在卷轴上；
+   inset:0 对应的是 border-image 的 padding box，刚好落在两道龙首杆之间 */
+.q-face {
+  position: absolute; inset: 0; z-index: 1; container-type: inline-size;
+  display: flex; flex-direction: column; min-height: 0; padding: 14px 16px 12px;
+  background-color: #e3d7bb;
+  background-image: linear-gradient(rgba(44,24,16,.03), rgba(44,24,16,.11)), url('/quiz-platform/img/p4.webp');
+  background-size: auto, cover; background-position: center, center;
+  box-shadow: inset 0 0 34px rgba(90,74,42,.28);
+}
 .q-face-scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden; padding-right: 5px; }
 .q-face-scroll::-webkit-scrollbar { width: 5px; }
 .q-face-foot { flex: 0 0 auto; padding-top: 8px; }
-.q-face-foot h4 { text-align: center; font-size: clamp(10.5px, 2.6cqw, 13px); letter-spacing: 3px; color: var(--gold-text); margin-bottom: 8px; }
+.q-face-foot h4 { text-align: center; font-size: clamp(10.5px, 2.6cqw, 13px); letter-spacing: 3px; color: #6b5a1a; margin-bottom: 8px; }
 .q-face-rule { height: clamp(10px, 3cqw, 18px); margin-bottom: 8px; opacity: .75;
   background: url('/quiz-platform/img/p44.png') center / contain no-repeat; }
 /* 判分闪光改用 drop-shadow，贴合牌形而不是矩形盒阴影 */
@@ -147,41 +162,39 @@
 .q-tags .stamp { width: clamp(30px, 8.4cqw, 48px); height: clamp(30px, 8.4cqw, 48px); }
 .q-tags .gem { width: clamp(18px, 4.6cqw, 26px); height: clamp(18px, 4.6cqw, 26px); }
 .q-domain-tag {
-  font-size: clamp(10px, 2.5cqw, 12.5px); color: var(--ink-parch); padding: 3px 11px; letter-spacing: 1px;
-  background: linear-gradient(160deg, var(--parchment-0), var(--parchment-1));
+  font-size: clamp(10px, 2.5cqw, 12.5px); color: #4a3520; padding: 3px 11px; letter-spacing: 1px;
+  background: rgba(90,74,42,.13); border: 1px solid rgba(90,74,42,.42);
   clip-path: polygon(4% 0, 96% 0, 100% 30%, 100% 70%, 96% 100%, 4% 100%, 0 70%, 0 30%);
 }
-/* 符文谜面：真羊皮纸（p4 无缝纹理做底 + 极淡墨色压暗保证对比），深色宋体刻文，
-   牌面上“镶”而不“糊”：毛边 clip-path + 内阴影 + 外投影让它从牌面浮起来 */
-.parch-layer {
-  position: relative; margin-top: 10px; padding: 12px 14px; overflow: hidden;
-  background-color: #ddd0b4;
-  background-image: linear-gradient(rgba(44,24,16,.04), rgba(44,24,16,.13)), url('/quiz-platform/img/p4.webp');
-  background-size: auto, cover; background-position: center, center;
-  border: 1px solid rgba(90,74,42,.55);
-  box-shadow: inset 0 0 26px rgba(90,74,42,.3), 0 6px 16px rgba(0,0,0,.42);
-  clip-path: polygon(0 7px, 7px 0, calc(100% - 7px) 0, 100% 7px, 100% calc(100% - 7px), calc(100% - 7px) 100%, 7px 100%, 0 calc(100% - 7px));
-}
+/* 符文谜面：整张牌面已经是羊皮纸，所以谜面不再套一层纸板（否则又是“糊上去”），
+   只留一条朱砂栏线把谜面与答题区分开——像手抄本的 rubric 分隔 */
+.parch-layer { position: relative; margin-top: 4px; padding: 2px 2px 12px; border-bottom: 1px solid rgba(107,26,58,.28); }
 .q-stem { position: relative; margin: 0; padding: 0; line-height: 2; font-size: clamp(12.5px, 2.9cqw, 15.5px);
   color: var(--ink-parch); background: none; box-shadow: none; text-shadow: none; }
-.q-answer-zone { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
-.opt-row {
-  display: flex; align-items: center; gap: 10px; padding: 10px 12px; text-align: left; width: 100%;
-  border: 1px solid rgba(201,168,76,.26); background: rgba(10,17,21,.55); color: #cbbb90;
-  font-size: clamp(11.5px, 2.7cqw, 14.5px); line-height: 1.65; transition: all .18s ease;
-  box-shadow: inset 0 0 14px rgba(0,0,0,.35);
+/* 输入框在羊皮纸上需要比周围更亮一点才读得出“这是要写的地方”（只限牌面内，不影响设置/导入页） */
+.q-face .rune-input, .q-face .rune-textarea {
+  background: rgba(255,252,244,.66); border-color: rgba(90,74,42,.55);
+  box-shadow: inset 0 1px 5px rgba(90,74,42,.22);
 }
-.opt-row:hover { border-color: var(--gilt); background: rgba(31,90,82,.14); transform: translateX(3px); }
+.q-answer-zone { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
+/* 选项：羊皮纸上的墨框（不再是暗色玻璃板），选中/对错用墨色浓淡与色调区分 */
+.opt-row {
+  display: flex; align-items: center; gap: 10px; padding: 9px 12px; text-align: left; width: 100%;
+  border: 1px solid rgba(90,74,42,.42); background: rgba(255,251,240,.4); color: #3d2c1c;
+  font-size: clamp(11.5px, 2.7cqw, 14.5px); line-height: 1.65; transition: all .18s ease;
+  box-shadow: inset 0 0 10px rgba(90,74,42,.12);
+}
+.opt-row:hover { border-color: var(--teal-dk); background: rgba(58,138,126,.14); transform: translateX(3px); }
 /* 符文选框：真实素材两态（空心符文 / 宝石填充），不再用 CSS 画圆方框 */
 .opt-row .mark {
   flex-shrink: 0; object-fit: contain; width: clamp(20px, 5.2cqw, 27px); height: clamp(20px, 5.2cqw, 27px);
   filter: drop-shadow(0 1px 3px rgba(0,0,0,.6)); transition: transform .18s var(--ease-pop), filter .18s ease;
 }
-.opt-row.selected { border-color: var(--teal-lt); background: rgba(31,90,82,.3); color: #e6efe9; box-shadow: var(--glow-teal); }
-.opt-row.selected .mark { transform: scale(1.1); filter: drop-shadow(0 0 8px rgba(90,168,156,.8)); }
-.opt-row.right { border-color: var(--teal-lt); background: rgba(31,90,82,.35); color: #d9efe9; }
-.opt-row.wronged { border-color: var(--fault-lt); background: rgba(107,26,58,.28); color: #d9a0b0; }
-.opt-row.missed { border: 1.5px dashed var(--teal); color: var(--teal-lt); }
+.opt-row.selected { border-color: var(--teal-dk); background: rgba(58,138,126,.22); color: #14312c; box-shadow: 0 0 10px rgba(58,138,126,.3); }
+.opt-row.selected .mark { transform: scale(1.1); filter: drop-shadow(0 0 6px rgba(58,138,126,.6)); }
+.opt-row.right { border-color: var(--teal-dk); background: rgba(58,138,126,.26); color: #12332c; }
+.opt-row.wronged { border-color: var(--fault-lt); background: rgba(139,42,74,.2); color: #6d1f38; }
+.opt-row.missed { border: 1.5px dashed var(--teal-dk); color: var(--teal-dk); }
 /* 判断题 = 两张对立的竖版尖拱铜牌（两张已归一化到同一画布 378×640，成为真正的一对），选中即被拿起 */
 .judge-pair { display: flex; gap: 12px; justify-content: center; align-items: flex-end; margin-top: 4px; }
 .judge-card {
@@ -205,48 +218,47 @@
 .judge-card.j-false.selected .judge-label { color: #e6c3cd; }
 .fill-grid { display: flex; flex-direction: column; gap: 10px; }
 .fill-item { display: flex; align-items: center; gap: 10px; }
-.fill-item .no { font-family: 'Cinzel', serif; color: var(--gold-text); font-size: clamp(10.5px, 2.6cqw, 13px); width: 40px; flex-shrink: 0; letter-spacing: 1px; }
+.fill-item .no { font-family: 'Cinzel', serif; color: #6b5a1a; font-size: clamp(10.5px, 2.6cqw, 13px); width: 40px; flex-shrink: 0; letter-spacing: 1px; }
 .fill-item.right .rune-input { border-color: var(--teal); box-shadow: var(--glow-teal); }
 .fill-item.wronged .rune-input { border-color: var(--fault-lt); box-shadow: var(--glow-red); }
-.fill-expected { font-size: 12.5px; color: var(--teal-lt); margin-top: 3px; }
+.fill-expected { font-size: 12.5px; color: var(--teal-dk); margin-top: 3px; }
 .subjective-area { position: relative; }
 .subjective-area textarea { min-height: clamp(110px, 30cqw, 180px); background-image: repeating-linear-gradient(transparent, transparent 30px, rgba(90,74,42,.16) 31px); }
-.char-count { text-align: right; font-size: 11px; color: var(--muted); margin-top: 4px; }
+.char-count { text-align: right; font-size: 11px; color: rgba(44,24,16,.55); margin-top: 4px; }
 .reveal-btn { margin-top: 0; }
-.grade-panel { margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(201,168,76,.22); }
-.grade-panel h4 { font-size: clamp(10.5px, 2.6cqw, 13px); letter-spacing: 3px; color: var(--gold-text); margin-bottom: 8px; text-align: center; }
+.grade-panel { margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(90,74,42,.32); }
+.grade-panel h4 { font-size: clamp(10.5px, 2.6cqw, 13px); letter-spacing: 3px; color: #6b5a1a; margin-bottom: 8px; text-align: center; }
 .rate-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 0; }
-/* 三档自评：同色 3px 底边做下沉手感，按下即沉 */
-.rate-btn { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 9px 4px; border: 1px solid; border-bottom-width: 3px; background: rgba(10,16,20,.78); font-size: clamp(11px, 2.7cqw, 14px); letter-spacing: 2px; transition: all .18s ease; }
-.rate-btn:active { transform: translateY(2px); border-bottom-width: 1px; }
-.rate-btn small { font-size: clamp(8px, 2cqw, 10px); letter-spacing: 1px; opacity: .7; }
-.rate-btn.r-forget { border-color: var(--fault-lt); color: #d98ba0; }
-.rate-btn.r-forget:hover { box-shadow: var(--glow-red); transform: translateY(-3px); }
-.rate-btn.r-hazy { border-color: var(--mid); color: #d9c26a; }
-.rate-btn.r-hazy:hover { box-shadow: var(--glow-gold); transform: translateY(-3px); }
-.rate-btn.r-remember { border-color: var(--teal); color: var(--teal-lt); }
-.rate-btn.r-remember:hover { box-shadow: var(--glow-teal); transform: translateY(-3px); }
+/* 三档自评：羊皮纸上用白底糖果按钮 + 档位深色文字 + 同色 4px 按压底边（下沉手感） */
+.rate-btn { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 9px 4px;
+  border: 1px solid; border-bottom-width: 4px; background: #f4edda;
+  font-size: clamp(11px, 2.7cqw, 14px); letter-spacing: 2px;
+  transition: transform .15s ease, box-shadow .18s ease, border-bottom-width .15s ease; }
+.rate-btn:active { transform: translateY(3px); border-bottom-width: 1px; }
+.rate-btn small { font-size: clamp(8px, 2cqw, 10px); letter-spacing: 1px; opacity: .72; }
+.rate-btn.r-forget { border-color: #8b2a4a; color: #8b2a4a; }
+.rate-btn.r-forget:hover { box-shadow: 0 4px 12px rgba(139,42,74,.35); }
+.rate-btn.r-hazy { border-color: #8a6f10; color: #8a6f10; }
+.rate-btn.r-hazy:hover { box-shadow: 0 4px 12px rgba(168,138,26,.35); }
+.rate-btn.r-remember { border-color: #2f7a6d; color: #2f7a6d; }
+.rate-btn.r-remember:hover { box-shadow: 0 4px 12px rgba(47,122,109,.35); }
 .self-judge-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 0; }
 /* 评分后翻牌期间的轻提示（取代已删除的「下一卷」按钮） */
-.flip-hint { text-align: center; padding: 14px 0 6px; letter-spacing: 3px; color: var(--muted);
+.flip-hint { text-align: center; padding: 14px 0 6px; letter-spacing: 3px; color: rgba(44,24,16,.55);
   font-size: clamp(10px, 2.4cqw, 12.5px); animation: rise-in .3s ease both; }
-/* 真理原文 = 一张真卷轴：p35 九切片（左右龙首卷轴杆定宽不拉伸，中间羊皮纸任意延展），
-   墨色刻文写在羊皮纸上；与牌面上「暗青石板谜面」形成材质对比（谜面=刻在牌上，答案=摊开的卷轴） */
+/* 真理原文：不再套第二张卷轴（整张牌面已是羊皮纸，再套一层就又是“糊上去”），
+   改为同一张纸上“墨迹显影”：左侧一条对/错色调的朱栏，答案自左向右写出来 */
 .answer-scroll-box {
   position: relative; margin-top: 12px; overflow: hidden; color: var(--ink-parch);
-  padding: clamp(10px, 3cqw, 16px) clamp(12px, 3.4cqw, 18px);
-  border: 12px solid transparent; border-left-width: 38px; border-right-width: 38px;
-  border-image: url('/quiz-platform/img/p35.webp') 60 200 60 200 fill / 12px 38px stretch;
-  filter: drop-shadow(0 10px 22px rgba(0,0,0,.5));
+  padding: 10px 14px; background: rgba(90,74,42,.09);
+  border: 1px solid rgba(90,74,42,.4); border-left: 3px solid var(--copper);
+  box-shadow: inset 0 0 18px rgba(90,74,42,.14);
 }
-@media (max-width: 560px) {
-  .answer-scroll-box { border-left-width: 22px; border-right-width: 22px; border-image-width: 10px 22px; }
-}
-.answer-scroll-box.ok { box-shadow: 0 0 18px rgba(58,138,126,.35); }
-.answer-scroll-box.bad { box-shadow: 0 0 18px rgba(107,26,58,.4); }
+.answer-scroll-box.ok { border-left-color: var(--teal-dk); background: rgba(58,138,126,.12); }
+.answer-scroll-box.bad { border-left-color: var(--fault-lt); background: rgba(139,42,74,.12); }
 .answer-scroll-box h5 { font-size: clamp(10.5px, 2.5cqw, 13px); letter-spacing: 3px; margin-bottom: 6px; color: #6b5a1a; }
 .answer-scroll-box.ok h5 { color: var(--teal-dk); }
-.answer-scroll-box.bad h5 { color: var(--fault-lt); }
+.answer-scroll-box.bad h5 { color: #8b2a4a; }
 .answer-scroll-box p { font-size: clamp(11.5px, 2.7cqw, 14px); line-height: 1.95; color: var(--ink-parch); }
 .answer-scroll-box .lab { font-size: clamp(10px, 2.3cqw, 12px); color: rgba(44,24,16,.62); margin-top: 8px; letter-spacing: 2px; }
 
@@ -254,9 +266,9 @@
 .seal-lock {
   position: relative; display: flex; align-items: center; gap: 8px; margin: 0 0 8px;
   padding: 5px 10px 5px clamp(44px, 13cqw, 58px);
-  border: 1px dashed rgba(139,42,74,.6);
-  background: linear-gradient(100deg, rgba(42,10,24,.55), rgba(10,15,19,.3));
-  color: #c98a9d; letter-spacing: 1.5px; font-size: clamp(9.5px, 2.3cqw, 12px);
+  border: 1px dashed rgba(107,26,58,.6);
+  background: linear-gradient(100deg, rgba(107,26,58,.16), rgba(107,26,58,.05));
+  color: #7a2340; letter-spacing: 1.5px; font-size: clamp(9.5px, 2.3cqw, 12px);
 }
 /* 蜡封三帧叠放：待机只显完整态，启封时 完整→半碎→碎裂 逐帧切换 */
 .seal-wax { position: absolute; left: 6px; top: 50%; transform: translateY(-50%);
@@ -274,9 +286,9 @@
 @keyframes wax-flash { 0% { filter: none } 30% { filter: brightness(1.8) drop-shadow(0 0 18px rgba(201,168,76,.9)) } 100% { filter: none } }
 .seal-lock.cracking { animation: seal-crack .52s ease forwards; }
 @keyframes seal-crack { 0%, 62% { opacity: 1 } 100% { opacity: 0; transform: scale(.97) } }
-/* 展开动画：双杆向两侧拉开（clip-path 自中心向外），接在蜡封碎裂之后 */
-.answer-scroll-box { animation: unroll-x .46s .34s cubic-bezier(.2,.7,.3,1) both; }
-@keyframes unroll-x { from { clip-path: inset(0 50% 0 50%); opacity: .3 } to { clip-path: inset(0 0 0 0); opacity: 1 } }
+/* 显影动画：墨迹自左向右写出（clip-path 是合成器友好属性），接在蜡封碎裂之后 */
+.answer-scroll-box { animation: ink-write .5s .34s cubic-bezier(.2,.7,.3,1) both; }
+@keyframes ink-write { from { clip-path: inset(0 100% 0 0); opacity: .35 } to { clip-path: inset(0 0 0 0); opacity: 1 } }
 /* 深渊侵蚀：真实裂纹素材三帧自四角向中心蔓延（素材 682×1024 与牌面同 2:3，零变形） */
 .crack-veil { position: absolute; inset: 0; z-index: 4; pointer-events: none; }
 .crack-veil img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: fill; opacity: 0; }
@@ -288,10 +300,10 @@
 @keyframes crack-f3 { 0% { opacity: 0 } 62% { opacity: .95 } 100% { opacity: 0 } }
 
 .verdict-banner { position: relative; text-align: center; padding: 10px; margin-top: 12px; font-size: clamp(15px, 4.2cqw, 21px); letter-spacing: 5px; font-weight: 900; animation: crack-in .4s var(--ease-pop) both; }
-.verdict-banner.ok { color: var(--teal-lt); text-shadow: var(--glow-teal); }
-.verdict-banner.bad { color: #d9607f; text-shadow: var(--glow-red); animation: crack-in .4s var(--ease-pop) both, tremble .5s .1s ease; }
+.verdict-banner.ok { color: var(--teal-dk); text-shadow: 0 1px 0 rgba(255,251,240,.75); }
+.verdict-banner.bad { color: #8b2a4a; text-shadow: 0 1px 0 rgba(255,251,240,.75); animation: crack-in .4s var(--ease-pop) both, tremble .5s .1s ease; }
 @keyframes tremble { 0%,100% { transform: translateX(0) } 25% { transform: translateX(-2px) } 75% { transform: translateX(2px) } }
-.combo-pop { position: absolute; top: -14px; right: 6px; font-size: 14px; color: var(--gilt); text-shadow: var(--glow-gold); animation: combo-in .5s var(--ease-pop) both; letter-spacing: 1px; }
+.combo-pop { position: absolute; top: -2px; right: 14px; font-size: 13px; color: #8a6f10; text-shadow: 0 1px 0 rgba(255,251,240,.85), 0 0 10px rgba(184,150,58,.5); animation: combo-in .5s var(--ease-pop) both; letter-spacing: 1px; }
 @keyframes combo-in { from { opacity: 0; transform: scale(.4) rotate(-8deg) } to { opacity: 1; transform: scale(1) } }
 .pile-counter { position: fixed; z-index: 30; display: flex; align-items: center; gap: 6px; padding: 5px 10px; font-size: 12px; border: 1px solid rgba(139,115,50,.5); background: rgba(13,17,23,.8); backdrop-filter: blur(4px); pointer-events: none; }
 .pile-counter .pile { font-size: 14px; }

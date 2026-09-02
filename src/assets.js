@@ -33,7 +33,6 @@ export const A = {
   furnace: img('p32.webp'),         // 炼金熔炉
   navBar: img('p33.webp'),          // 底部导航横栏
   seals: [1, 2, 3, 4, 5, 6, 7].map((i) => img(`p34-${i}.webp`)), // 七种题型印章（模板字面量，改扩展名时易漏）
-  answerScroll: img('p35.webp'),    // 答案解析卷轴
   badgeFrame: img('p36.webp'),      // 圆形徽章边框
   emptyShelf: img('p38-1.webp'),
   emptyTable: img('p38-2.webp'),
