@@ -80,7 +80,7 @@ export default function Learn() {
   }
   // 「开始今日练习」优先链：到期复习 → 错题 → 新题 → 随机（按交接要求保留）
   const hero = dueCount > 0
-    ? { sub: `${dueCount} 题到期符文等待参悟`, run: () => run('review', { size: 20 }) }
+    ? { sub: `${dueCount} 道题到期等待复习`, run: () => run('review', { size: 20 }) }
     : wrongCount > 0
       ? { sub: `${wrongCount} 题酸了符文待净化`, run: () => run('wrong', { size: 20 }) }
       : newCount > 0
@@ -101,9 +101,9 @@ export default function Learn() {
         <div className="panel">
           <EmptyState
             img={A.emptyShelf}
-            title="典籍馆尚无题库"
-            hint="把「命题流水线」产出的题库 JSON 导入到导入厅，即可开始翻阅题库、间隔参悟与污染净化。"
-            action={<GiltBtn size="lg" onClick={() => navigate('/import')}>🔮 前往导入厅</GiltBtn>}
+            title="题库还是空的"
+            hint="把外部 AI 生成的题目 JSON 导入到导入页，就可以开始做题、间隔复习与错题重练。"
+            action={<GiltBtn size="lg" onClick={() => navigate('/import')}>🍬 去导入</GiltBtn>}
           />
         </div>
       </div>
@@ -116,7 +116,7 @@ export default function Learn() {
         <div className="brand gold-title font-gothic">✦ 糖果题库 ✦</div>
         {doneToday > 0 ? (
           <span className="tag teal" style={{ fontSize: 13, padding: '6px 14px' }}>
-            ✦ 今日已参悟，甜蜜值延续中 <FlameIcon />
+            ✦ 今日已做题，甜蜜值延续中 <FlameIcon />
           </span>
         ) : (
           <GiltBtn size="sm" onClick={(e) => {
@@ -143,7 +143,7 @@ export default function Learn() {
         <p style={{ marginTop: 10, fontSize: 12.5, color: 'var(--muted)', letterSpacing: 1 }}>{hero.sub}</p>
         {streak > 0 && (
           <p style={{ marginTop: 6, fontSize: 12, color: 'var(--gold-text)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-            <FlameIcon /> 甜蜜值已稳定燃烧 {streak} 天
+            <FlameIcon /> 已连续学习 {streak} 天
           </p>
         )}
       </div>
@@ -166,7 +166,7 @@ export default function Learn() {
           <span className="count-gem">{newCount}</span>
           <div className="art"><img src={A.magicBook} alt="魔法书" /></div>
           <h3>学习新篇</h3>
-          <p>{newCount} 题未翻阅题库 · 首次解读建立甜蜜值印记</p>
+          <p>{newCount} 题未做题 · 首次解读建立甜蜜值印记</p>
         </div>
         <div className="entry-card rise" style={{ animationDelay: '.32s' }} onClick={() => setOpenFilter('relearn')}>
           <span className="count-gem">{relearnCount}</span>

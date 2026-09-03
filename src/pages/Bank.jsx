@@ -45,7 +45,7 @@ export default function Bank() {
     return (
       <div className="page-wrap">
         <div className="panel">
-          <EmptyState img={A.emptyTable} title="糖果书架空空如也" hint="先去导入厅导入题库，封印入库后此处方能陈列。" />
+          <EmptyState img={A.emptyTable} title="糖果书架空空如也" hint="先去导入页导入题库，封印入库后此处方能陈列。" />
         </div>
       </div>
     )
@@ -104,7 +104,7 @@ export default function Bank() {
                     <p className="tarot-stem">{q.stem}</p>
                     <div className="tarot-tags">
                       <span className={'tarot-orb' + (mastered ? ' full' : touched ? ' half' : '') + (last === false ? ' polluted' : '')}
-                        title={mastered ? '已品尝' : touched ? '复习中' : '未参悟'} />
+                        title={mastered ? '已品尝' : touched ? '复习中' : '未做题'} />
                       {q.difficulty && A.gems[q.difficulty] && (
                         <img className="tarot-gem" src={A.gems[q.difficulty]} alt="" title={q.difficulty} loading="lazy" decoding="async" />)}
                       {q.knowledgeDomain && <span className="tag">{domainLabel(q.knowledgeDomain)}</span>}
@@ -125,7 +125,7 @@ export default function Bank() {
                       {q.knowledgePoint && <div className="tarot-kv"><b>知识点</b><span>{q.knowledgePoint}</span></div>}
                       {q.difficulty && <div className="tarot-kv"><b>难度</b><span>{q.difficulty}</span></div>}
                       {q.cognitiveLevel && <div className="tarot-kv"><b>认知层</b><span>{q.cognitiveLevel}</span></div>}
-                      <div className="tarot-kv"><b>甜蜜值</b><span>{mastered ? `已品尝 · 间隔 ${rc?.intervalDays ?? 0} 日` : touched ? `复习中 · 间隔 ${rc?.intervalDays ?? 0} 日` : '尚未参悟'}</span></div>
+                      <div className="tarot-kv"><b>甜蜜值</b><span>{mastered ? `已品尝 · 间隔 ${rc?.intervalDays ?? 0} 日` : touched ? `复习中 · 间隔 ${rc?.intervalDays ?? 0} 日` : '尚未做题'}</span></div>
                       <h6>◆ 题面</h6>
                       <p>{q.stem}</p>
                       {(q.options ?? []).map((o, k) => <p key={k} className="tarot-opt">{o}</p>)}
@@ -134,7 +134,7 @@ export default function Bank() {
                       {q.explanation && <><h6>◆ 题库解析</h6><p>{q.explanation}</p></>}
                       {qRecords.length > 0 && (
                         <>
-                          <h6>◆ 参悟记录（近 {qRecords.length} 次）</h6>
+                          <h6>◆ 做题记录（近 {qRecords.length} 次）</h6>
                           <div className="tarot-recs">
                             {qRecords.map((r) => (
                               <span key={r.id} className={'tag ' + (r.correct ? 'teal' : 'red')}>{r.date} {r.correct ? '✓' : '✗'}</span>

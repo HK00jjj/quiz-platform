@@ -37,10 +37,10 @@ export const nextTitleFor = (total) => TITLES.find((t) => t.at > total) ?? null
 // ── 成就（糖果成就 8 枚）──
 export function achievementsOf({ streak, total, days, accuracy }) {
   return [
-    { id: 'streak7', title: '初燃', desc: '连续参悟 7 天', done: streak >= 7, cat: '修行', rarity: 'common', points: 10, progress: `${Math.min(streak, 7)}/7 天` },
-    { id: 'days7', title: '全勤七曜', desc: '参悟覆盖 7 个不同日期', done: days >= 7, cat: '修行', rarity: 'rare', points: 25, progress: `${Math.min(days, 7)}/7 天` },
-    { id: 'streak30', title: '三十日长明', desc: '连续参悟 30 天', done: streak >= 30, cat: '修行', rarity: 'epic', points: 50, progress: `${Math.min(streak, 30)}/30 天` },
-    { id: 'streak100', title: '百日长明', desc: '连续参悟 100 天', done: streak >= 100, cat: '修行', rarity: 'legend', points: 100, progress: `${Math.min(streak, 100)}/100 天` },
+    { id: 'streak7', title: '初燃', desc: '连续做题 7 天', done: streak >= 7, cat: '修行', rarity: 'common', points: 10, progress: `${Math.min(streak, 7)}/7 天` },
+    { id: 'days7', title: '全勤七曜', desc: '做题覆盖 7 个不同日期', done: days >= 7, cat: '修行', rarity: 'rare', points: 25, progress: `${Math.min(days, 7)}/7 天` },
+    { id: 'streak30', title: '三十日长明', desc: '连续做题 30 天', done: streak >= 30, cat: '修行', rarity: 'epic', points: 50, progress: `${Math.min(streak, 30)}/30 天` },
+    { id: 'streak100', title: '百日长明', desc: '连续做题 100 天', done: streak >= 100, cat: '修行', rarity: 'legend', points: 100, progress: `${Math.min(streak, 100)}/100 天` },
     { id: 'q100', title: '百卷通读', desc: '累计翻阅 100 题', done: total >= 100, cat: '探索', rarity: 'common', points: 10, progress: `${Math.min(total, 100)}/100 题` },
     { id: 'q1000', title: '千卷行者', desc: '累计翻阅 1000 题', done: total >= 1000, cat: '探索', rarity: 'epic', points: 50, progress: `${Math.min(total, 1000)}/1000 题` },
     { id: 'acc90', title: '神准九成', desc: '正确率达到 90%', done: accuracy !== null && accuracy >= 0.9, cat: '特殊', rarity: 'rare', points: 25, progress: accuracy === null ? '未达成' : `${Math.round(accuracy * 100)}%` },

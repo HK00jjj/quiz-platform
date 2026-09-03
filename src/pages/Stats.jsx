@@ -69,7 +69,7 @@ export default function Stats() {
     <div className="page-wrap wide">
       <div className="page-head" style={{ backgroundImage: `url(${A.titleDecor})` }}>
         <h1 className="font-gothic"><span className="rune">📊</span> 星 界 观 测 台</h1>
-        <p>尝味师的成长档案 · 酸糖见证每一次参悟</p>
+        <p>尝味师的成长档案 · 酸糖见证每一次做题</p>
       </div>
 
       {/* ── 身份塔罗牌 ── */}
@@ -103,7 +103,7 @@ export default function Stats() {
               <span className="big teal-glow-text">{streak}</span>
               <span className="lab">天 稳 定</span>
               <span className={'foot ' + (doneToday > 0 ? 'gold-glow-text' : '')}>
-                {doneToday > 0 ? '✓ 今日已参悟' : '✗ 今日未参悟'}
+                {doneToday > 0 ? '✓ 今日已做题' : '✗ 今日未做题'}
               </span>
             </div>
             <div className="oath-badge">
@@ -175,9 +175,9 @@ export default function Stats() {
         </div>
       </div>
 
-      {/* ── 周参悟量 ── */}
+      {/* ── 周做题量 ── */}
       <div className="stat-section">
-        <h3>🕯 周参悟量 · 近7天</h3>
+        <h3>🕯 周做题量 · 近7天</h3>
         <div className="panel deep">
           <div className="week-bars">
             {bars.map((b) => {

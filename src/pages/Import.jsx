@@ -114,7 +114,7 @@ export default function Import() {
           <div className="panel-title">📖 导入说明</div>
           <p style={{ fontSize: 13, lineHeight: 1.9, color: 'var(--muted)' }}>
             将外部 AI 生成的题目 JSON 导入到下方卷轴，或拖入 JSON 文件，自动校验结构与规范。
-            21 卷批执行完整规则（配比 / 难度层段 / 元数据映射等 9 类）；超过 21 卷按大秘库逐题检测；备份 JSON 走回溯通道。
+            21 卷批执行完整规则（配比 / 难度层段 / 元数据映射等 9 类）；超过 21 卷按大秘库逐题检测；备份 JSON 走备份恢复。
           </p>
         </div>
 
@@ -154,7 +154,7 @@ export default function Import() {
           <div className="success-box">
             <img className="rose" src={A.roseWindow} alt="" />
             <p className="gold-glow-text" style={{ fontSize: 17, letterSpacing: 3 }}>{result.title}</p>
-            {result.backup && <p style={{ marginTop: 8, fontSize: 12, color: 'var(--muted)' }}>参悟记录一并回溯</p>}
+            {result.backup && <p style={{ marginTop: 8, fontSize: 12, color: 'var(--muted)' }}>做题记录一并回溯</p>}
             <div style={{ display: 'flex', gap: 10, justifyContent: 'center', marginTop: 14, flexWrap: 'wrap' }}>
               <GiltBtn onClick={(e) => { burstParticles(e.clientX, e.clientY, 'gold', 14); navigate('/bank') }}>前往糖果书架</GiltBtn>
               <GiltBtn tone="ghost" onClick={() => { setText(''); setResult(null) }}>继续导入</GiltBtn>

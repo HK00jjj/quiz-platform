@@ -29,7 +29,7 @@ export const A = {
   balance: img('p29.webp'),         // 炼金天平
   memoryFlask: img('p30.webp'),     // 记忆水晶瓶
   sigilBadge: img('p31.webp'),      // 尝味师徽章
-  furnace: img('p32.webp'),         // 炼金熔炉
+  furnace: img('p32.webp'),         // 糖果熔炉
   navBar: img('p33.webp'),          // 底部导航横栏
   seals: [1, 2, 3, 4, 5, 6, 7].map((i) => img(`p34-${i}.webp`)), // 七种题型印章（模板字面量，改扩展名时易漏）
   badgeFrame: img('p36.webp'),      // 圆形徽章边框

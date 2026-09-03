@@ -4,7 +4,7 @@ import { A } from '../assets'
 import { GiltBtn } from '../components'
 import Bookshelf from '../components/Bookshelf'
 
-/* 设置页 · 守秘人的糖果抽屉 */
+/* 设置页 · 尝味师的糖果抽屉 */
 export default function Settings() {
   const settings = useStore((s) => s.settings)
   const updateSettings = useStore((s) => s.updateSettings)
@@ -46,8 +46,8 @@ export default function Settings() {
   return (
     <div className="page-wrap">
       <div className="page-head" style={{ backgroundImage: `url(${A.titleDecor})` }}>
-        <h1 className="font-gothic"><span className="rune">⚗️</span> 炼 金 工 坊</h1>
-        <p>典籍馆设置 · 调配你的修行器具</p>
+        <h1 className="font-gothic"><span className="rune">⚗️</span> 糖 果 抽 屉</h1>
+        <p>题库设置 · 整理你的糖果抽屉</p>
       </div>
 
       {/* 题库书架：方案 5.3 定为设置页最重要、视觉权重最高的模块，所以置顶 */}
@@ -57,13 +57,13 @@ export default function Settings() {
         <div className="setting-row">
           <div className="tool"><img src={A.balance} alt="炼金天平" /></div>
           <div style={{ flex: 1 }}>
-            <div className="panel-title">⚖️ 参悟目标</div>
+            <div className="panel-title">⚖️ 每日目标</div>
             <div className="stepper">
               <button onClick={() => updateSettings({ dailyGoal: Math.max(5, goal - 5) })} disabled={goal <= 5} aria-label="减少">−</button>
               <span className="val">{goal}</span>
               <button onClick={() => updateSettings({ dailyGoal: Math.min(100, goal + 5) })} disabled={goal >= 100} aria-label="增加">+</button>
             </div>
-            <p style={{ fontSize: 12, color: 'var(--muted)' }}>首页的进度环以翻阅次数计算（含复习）</p>
+            <p style={{ fontSize: 12, color: 'var(--muted)' }}>首页的进度环以做题次数计算（含复习）</p>
           </div>
         </div>
       </div>
@@ -75,10 +75,10 @@ export default function Settings() {
             <div className="panel-title">🔮 甜蜜值备份</div>
             <p style={{ fontSize: 12.5, lineHeight: 1.9, color: 'var(--muted)' }}>
               数据存于云端，多设备登录同一账号实时同步。导出备份为可选保险，
-              备份 JSON 可在任意设备的导入厅（回溯通道）导入恢复。
+              备份 JSON 可在任意设备的导入页（备份恢复）导入恢复。
             </p>
             <div style={{ marginTop: 12 }}>
-              <GiltBtn onClick={exportBackup}>{exported ? '✓ 已封印导出' : '封印记忆 · 导出全量备份 JSON'}</GiltBtn>
+              <GiltBtn onClick={exportBackup}>{exported ? '✓ 已导出' : '封装记忆 · 导出全量备份 JSON'}</GiltBtn>
             </div>
           </div>
         </div>
@@ -99,11 +99,11 @@ export default function Settings() {
 
       <div className="panel furnace-zone">
         <div className="setting-row">
-          <div className="tool"><img src={A.furnace} alt="炼金熔炉" /></div>
+          <div className="tool"><img src={A.furnace} alt="糖果熔炉" /></div>
           <div style={{ flex: 1 }}>
-            <div className="panel-title">🔥 危险区 · 炼金熔炉</div>
+            <div className="panel-title">🔥 危险区 · 糖果熔炉</div>
             <p style={{ fontSize: 12.5, lineHeight: 1.9, color: '#d98ba0' }}>
-              清空题库、复习卡片与全部参悟记录。此操作不可撤销，请先封印记忆（导出备份）。
+              清空当前题库的题目、复习卡片与全部做题记录。此操作不可撤销，请先封装记忆（导出备份）。
             </p>
             {melted ? (
               <p className="red-glow-text" style={{ marginTop: 12, letterSpacing: 2 }}>✗ 全部数据已熔毁</p>
