@@ -59,7 +59,9 @@ export function BottomNav({ active, wrongCount, onNav }) {
       {NAV_ITEMS.map((it) => (
         <button key={it.key} className={'nav-item tone-' + it.tone + (active === it.key ? ' active' : '')}
           onClick={() => onNav(it.to)} aria-current={active === it.key ? 'page' : undefined}>
-          {it.key === 'learn' && wrongCount > 0 && <span className="dot" />}
+          {/* 导航「学习」右上角的错题绿点已按用户要求删除：学习页的「错题重练」卡
+              已经有草莓红计数徽章，信息重复；而且它用的 --sour-dk 酸橙绿与「错=草莓红」
+              的新双通道不同源。wrongCount 这个 prop 保留在签名里（App.jsx 仍在传），无害。 */}
           <span className="nav-emoji" aria-hidden="true">{it.icon}</span>
           <span>{it.label}</span>
         </button>

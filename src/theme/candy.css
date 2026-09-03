@@ -1227,3 +1227,52 @@ body, button, input, textarea, select {
 /* 危险区：哥特暗红边框与 #d98ba0 标题换成草莓红通道，与上面那段说明文字同色 */
 .furnace-zone { border-color: rgba(242, 86, 74, .55) !important; }
 .furnace-zone .panel-title { color: var(--bad-ink) !important; }
+
+/* ══════════════════════════════════════════════════════════
+   筛选弹窗：candy.css 的果冻玻璃分组里写的是 .modal-card，而 JSX 用的类名是
+   .modal-box——类名对不上，所以整个弹窗从第一天起就在吃 global.css 的哥特样式：
+   .modal-veil 是 rgba(6,8,12,.72) 近黑遮罩，.modal-box 是 var(--panel) 暗底 +
+   var(--copper) 铜框 + rgba(0,0,0,.6) 黑影 + ::before 内描金线，.modal-close 是暗底金色 ✕。
+
+   改成糖果果冻玻璃：遮罩换粉洗并保留模糊（只有 1 层、且弹窗是瞬时的，
+   不属于 §5 里「设置页 9 层 backdrop-filter 压在同一帧」那种情况）；
+   盒子用半透奶白，按 §5「降级技术而不是删掉效果」的原则**不给盒子再叠一层 blur**。
+   这几条故意不加 !important：global.css 原规则没带，同特异性靠后置层叠就赢，
+   而 .modal-box / .modal-veil / .modal-close 都没有内联样式（只有标题 h3 有，所以它那条要用）。 */
+.modal-veil { background: rgba(255, 214, 224, .5); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); }
+.modal-box {
+  background: rgba(255, 255, 255, .9);
+  border: 2px solid var(--candy-pink-lt); border-radius: 24px;
+  box-shadow: 0 18px 46px rgba(255, 143, 163, .3), inset 0 1px 0 rgba(255, 255, 255, .95);
+}
+.modal-box::before { display: none; }   /* 哥特内描金线 */
+.modal-close {
+  border: 2px solid var(--candy-pink-lt); background: #fff;
+  color: #D14767; font-weight: 800;
+}
+.modal-close:hover { color: #C2385A; border-color: var(--candy-pink-dk); box-shadow: var(--glow-pink); }
+/* 弹窗标题靠内联 style 写死了 color: var(--gold-text)（哥特金色），内联会压普通规则，
+   所以这一条必须带 !important。色值对齐 .panel-title / .zone-label / .settle-title（约 5.0:1）。 */
+.modal-box h3 { color: #D14767 !important; }
+
+/* ══════════════════════════════════════════════════════════
+   导入页卷轴框：pages.css 给的是 background: rgba(19,26,33,.7) 暗底 +
+   border: 1.5px solid rgba(139,115,50,.55) 铜框，套在浅色 textarea 外面
+   就是一圈突兀的近黑硬边（用户报的「框框颜色不搭」）。candy.css 之前只有
+   .q-face 里的输入框规则，没管过 .scroll-zone。三个状态都归糖果通道：
+   常态=奶粉边、拖入=薄荷、报错=草莓红（与判分双通道同源）。 */
+.scroll-zone {
+  border: 2px solid var(--candy-pink-lt); border-radius: var(--r-sm);
+  background: rgba(255, 255, 255, .55);
+}
+.scroll-zone.drag-on {
+  border-color: var(--mint-dk); background: rgba(127, 232, 200, .12);
+  box-shadow: 0 0 0 4px rgba(127, 232, 200, .22);
+}
+.scroll-zone.err { border-color: var(--bad-dk); box-shadow: 0 0 0 4px rgba(242, 86, 74, .16); }
+
+/* 导航「学习」右上角那个绿点已按用户要求删除（JSX 里也删了，这条是防编辑器缓冲区带回来的保险）。
+   它原本是 wrongCount > 0 的错题提醒，但学习页的「错题重练」卡已经有草莓红计数徽章，
+   信息重复；而且它用的 --sour-dk 酸橙绿与「错=草莓红」的新双通道不同源。
+   删完之后 --sour / --sour-dk / --glow-sour 已无任何活的使用点（只剩被覆盖掉的旧声明）。 */
+.nav-item .dot { display: none !important; }

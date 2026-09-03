@@ -608,3 +608,85 @@ purge-dist 实际清掉 56 个孤儿，**在用的变体一个没误删**：`p19
 - **`components.jsx` 里没人 import 的死 `Divider` 组件**（连带 `A.divider` / p44.png）、`Practice.jsx` 第 4 行的死导入 `TYPE_SEAL_INDEX`。归 §7.7。
 - **`global.css` 两个 Cinzel `@font-face`** 仍指向不存在的 `public/fonts/cinzel-*.woff2`，每次加载白拿 2 个 404（§3.1 记过，仍在）。
 - `Login.jsx` 在 demo 模式下进不去（`init` 直接置 signed-in），**本轮对它的改动只有构建与代码审查覆盖，没有浏览器实测**。
+
+---
+
+## 14. 第四轮（2026-09-04）· 筛选弹窗 / 导入卷轴框 / 导航绿点
+
+**gh-pages HEAD：`55a6e54`（父 `b91f8cb`），46 文件 / 4.91 MB，verify-deploy 缺失0/不一致0/多余0。**
+
+用户报了三个视觉问题，根因是**同一个**：candy.css 的选择器清单和 JSX 实际类名对不上。
+
+### 14.1 幽灵选择器审计（本轮最有价值的产出）
+
+candy.css 有两条**同样名单**的分组规则：L121 的果冻玻璃拟态（`background: var(--jelly) !important` + `backdrop-filter: blur(20px)`），
+和 L983 的性能补丁（同一批选择器 `backdrop-filter: none !important` + `background: rgba(255,255,255,.84) !important`）。
+拿词边界正则把名单里每个类名在 `src/**/*.{js,jsx}` 里精确数一遍（避免 `panel` 把 `panel-title`/`import-panel` 也算进去）：
+
+| 选择器 | JSX 出现次数 | |
+| --- | --- | --- |
+| `.panel` | 17 | ✅ |
+| `.entry-card` | 6 | ✅ |
+| `.ach-card` | 2 | ✅（Stats 页） |
+| `.book-card` | 2 | ✅ |
+| `.settle-card` / `.empty-state` / `.filter-group` | 各 1 | ✅ |
+| **`.modal-card`** | **0** | ❌ 幽灵 —— JSX 用的是 `.modal-box`（出现 2 次），**不在名单里** |
+| **`.import-panel`** | **0** | ❌ 幽灵，从来没存在过 |
+| **`.setting-card`** | **0** | ❌ 幽灵，从来没存在过 |
+| **`.stat-card`** | **0** | ❌ 幽灵（Stats 页用的是 `.stat-section` + `.panel deep`） |
+
+可复跑的检查命令（PowerShell，注意引号别嵌套、`-match` 默认不区分大小写）：
+
+```powershell
+cd app\src
+$all=(Get-ChildItem -Recurse -Include *.jsx,*.js | ForEach-Object { [IO.File]::ReadAllText($_.FullName) }) -join ' '
+foreach($s in @('panel','modal-card','modal-box','import-panel','setting-card','stat-card')){
+  $p='(?<![\w-])'+[regex]::Escape($s)+'(?![\w-])'
+  "{0,-14} {1}" -f $s, ([regex]::Matches($all,$p)).Count
+}
+```
+
+**结论**：`.modal-box` 从来没被 candy.css 覆盖过，一直在吃 `global.css` L308-312 的哥特样式。
+这也解释了为什么导入页/设置页看起来是正常的 —— 它们用的是 `.panel`（17 次，被覆盖到了），
+只有筛选弹窗用了名单外的 `.modal-box`。**这类 bug 不会报错、不会 404、console 干净，只能靠核对类名清单发现。**
+
+### 14.2 三处修复与实测
+
+| 用户报的 | 哥特原值（出处） | 改成 | 运行时实测 |
+| --- | --- | --- | --- |
+| 图一 弹窗黑底 | `.modal-veil{background:rgba(6,8,12,.72)}`、`.modal-box{background:var(--panel);border:2px solid var(--copper);box-shadow:0 20px 60px rgba(0,0,0,.6),var(--glow-gold)}`、`.modal-box::before` 内描金线、`.modal-close{background:var(--bg-1);color:var(--gold-text)}`（global.css L308-312） | 糖果果冻玻璃：遮罩粉洗 + 保留 blur，盒子半透奶白 + 奶粉边 + 24px 圆角 + 粉投影 + 内白高光 | `veilBg rgba(255,214,224,.5)` / `veilBlur blur(5px)` / `boxBg rgba(255,255,255,.9)` / `boxBorder 2px rgb(255,214,224)` / `boxRadius 24px` / `innerGoldLine none` / 关闭钮白底 `rgb(209,71,103)` / 标题 `rgb(209,71,103)` |
+| 图二 输入框边框不搭 | `.scroll-zone{border:1.5px solid rgba(139,115,50,.55);background:rgba(19,26,33,.7)}`（pages.css L479，candy.css 只管过 `.q-face` 里的输入框） | 常态奶粉边 + 半透白底 + 16px 圆角；`.drag-on` 薄荷；`.err` 草莓红（与判分双通道同源） | `border 2px solid rgb(255,214,224)` / `bg rgba(255,255,255,.55)` / `radius 16px`；内部 textarea `rgb(255,250,251)` + 同色边，内外协调 |
+| 图三 学习项右上角绿点 | `CandyBoot.jsx` L62 `{it.key==='learn' && wrongCount>0 && <span className="dot"/>}` + candy.css L224 `background:var(--sour-dk)` 酸橙绿 + `candy-pulse` 永久动画 | JSX 删掉 + CSS `display:none` 双保险 | `dots: 0`、`anyDot: 0`，导航三项 `🍬学习 / 📦导入 / ⚙️设置` |
+
+绿点是 `wrongCount > 0` 的错题提醒，删它的理由：学习页「错题重练」卡已经有草莓红计数徽章（信息重复），
+且它用的 `--sour-dk` 酸橙绿与 §11 建立的「错=草莓红」双通道不同源。
+`BottomNav` 的 `wrongCount` prop 保留在签名里（App.jsx 仍在传），无害。
+
+**删掉这个绿点之后，`--sour` / `--sour-dk` / `--glow-sour` 已经没有任何活的使用点**（只剩被末尾规则覆盖掉的旧声明）。
+§11 那句「不动 --sour 本体：.nav-item .dot 那个装饰绿点还在用它」的前提已经不成立，下一轮清死代码时可以连 token 一起收。
+
+### 14.3 !important 的取舍（延续 §13.6）
+
+- `.modal-veil` / `.modal-box` / `.modal-close` / `.scroll-zone*` **一律不加 `!important`**：
+  global.css 与 pages.css 的原规则都没带，同特异性靠后置层叠就赢，而且这些元素都没有内联样式。
+- **唯一例外是 `.modal-box h3 { color:#D14767 !important }`**：`Learn.jsx` 的 FilterModal 标题写了内联
+  `style={{ color: 'var(--gold-text)' }}`，内联会压普通规则，必须用 `!important` 才盖得住。
+  （`--gold-text` 虽已被 candy.css 重定义为糖果色，但字重与色值不如直接对齐 `.panel-title`/`.zone-label`/`.settle-title` 统一。）
+
+### 14.4 一个容易误判的现象：用户截图可能是旧构建
+
+用户三张截图里，导入页还显示 `甜蜜值凝聚 / 封印入库 / 检测并封印 / 已导入 — 题`，
+而这些在 `989d66d` 就已改成 `粘贴题库 / 收进书架 / 检测并入库 / 检测到 N 题`。
+截图时间（本地 00:47~00:52）正好卡在部署与 GitHub Pages 传播完成之间，是**缓存/传播延迟**，不是改动丢失。
+本轮 dev 上实测 `stepLabels: ["粘贴题库","导入检测","收进书架"]`、`btns: ["🔍 检测并入库",…]`、`h1: "🍬 检 测 & 入 库"` 全部正确。
+
+**教训**：用户报"某处没改"时，先确认他看的是哪个构建（对比截图里的文案与自己提交记录），
+别急着怀疑自己的改动被编辑器缓冲区回写了 —— 但也要真的去查（本项目确实有回写历史，见 §3.2 / §11.3）。
+最快的判别法：让用户硬刷（Ctrl+F5），或自己跑 `verify-live.mjs` 比对线上三哈希。
+
+### 14.5 剩余待办（未变 + 本轮新增）
+
+- **新增**：candy.css 那两条分组规则里的 4 个幽灵选择器（`.modal-card` / `.import-panel` / `.setting-card` / `.stat-card`）应删掉，
+  并把 `.modal-box` 正式补进名单；本轮是用末尾追加规则绕过的，名单本身还没修。归 §7.7。
+- **新增**：`--sour` / `--sour-dk` / `--glow-sour` 三个 token 已无活的使用点，可删。归 §7.7。
+- 其余见 §13.7（Stats.jsx 孤儿页去向、答题页哥特位图是否整体糖果化、死 Divider 组件、Cinzel @font-face 的 2 个 404）。
