@@ -126,16 +126,21 @@ export default function Learn() {
         )}
       </div>
 
-      <div className="learn-vision rise">
-        <img src={A.hallVision} alt="" />
-        <span className="cap">穹顶阅览厅 · 选择你的学习之道</span>
+      {/* 糖果橱窗横幅（取代哥特巫师位图 A.hallVision）：纯 CSS，零位图零请求。
+          三颗糖豆 + 一支旋转棒棒糖做氛围，幅度极小，不抢标题注意力 */}
+      <div className="learn-vision candy-hero rise">
+        <span className="ch-candy c1" aria-hidden="true" />
+        <span className="ch-candy c2" aria-hidden="true" />
+        <span className="ch-candy c3" aria-hidden="true" />
+        <span className="ch-lolli" aria-hidden="true" />
+        <span className="cap">糖果橱窗 · 选一个今天的口味</span>
       </div>
 
       <div className="panel deep" style={{ textAlign: 'center' }}>
         <div style={{ display: 'flex', justifyContent: 'center', gap: 10, marginBottom: 10 }} aria-hidden="true">
-          <span className="tag teal">✦</span>
-          <span className="tag">今 日 修 习</span>
-          <span className="tag teal">✦</span>
+          <span className="tag teal">🍬</span>
+          <span className="tag">今 日 复 习</span>
+          <span className="tag teal">🍭</span>
         </div>
         <GiltBtn size="lg" className="block" style={{ maxWidth: 420, margin: '0 auto' }} onClick={hero.run}>
           📖 开始今日练习

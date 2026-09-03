@@ -777,16 +777,21 @@ body, button, input, textarea, select {
 .step-node img { display: none !important; }
 .step-node { position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px; }
 .step-node::before {
-  content: '🔒'; width: 48px; height: 48px; border-radius: 50%; font-size: 20px;
+  content: '🍬'; width: 48px; height: 48px; border-radius: 50%; font-size: 20px;
   display: flex; align-items: center; justify-content: center;
   background: rgba(255, 255, 255, .85); border: 1px solid rgba(255, 255, 255, .9);
   box-shadow: 0 4px 14px rgba(255, 182, 193, .2), inset 0 1px 0 rgba(255, 255, 255, .9);
   filter: grayscale(1) opacity(.55);
 }
+/* 每一步有自己的语义图标（不再三个步骤共用一把灰锁）：
+   必须排在 .done 之前——两者特异性相同，靠先后顺序让“完成一律 ✓”胜出 */
+.step-node.st1::before { content: '🍬' }   /* 甜蜜值凝聚 = 粘贴题库 JSON */
+.step-node.st2::before { content: '📥' }   /* 导入检测 */
+.step-node.st3::before { content: '🍯' }   /* 封印入库 = 密封的糖罐 */
 .step-node.done::before { content: '✓'; font-weight: 900; color: #fff; filter: none;
   background: radial-gradient(circle at 34% 28%, #B8F5E3, #5FD4B0);
   box-shadow: 0 0 14px rgba(127, 232, 200, .45), inset 0 1px 0 rgba(255, 255, 255, .7); }
-.step-node.active::before { content: '📜'; width: 54px; height: 54px; font-size: 23px; filter: none;
+.step-node.active::before { width: 54px; height: 54px; font-size: 23px; filter: none;
   background: radial-gradient(circle at 34% 28%, #FFD6E0, #FF8FA3); color: #fff;
   box-shadow: 0 0 18px rgba(255, 143, 163, .5), inset 0 1px 0 rgba(255, 255, 255, .7); }
 /* 当前节点外圈的旋转糖环 */
@@ -840,4 +845,65 @@ body, button, input, textarea, select {
   .candy-balance::after, .candy-balance .cb-pan, .candy-jar .cj-body i,
   .candy-badge, .candy-furnace .cf-flame, .step-node.active::after, .step-line.on::after { animation: none !important; }
   .burst-bean { animation: none !important; opacity: 0 !important; }
+}
+
+/* ══ 学习页横幅：糖果橱窗（取代哥特巫师位图 A.hallVision）══
+   用 .learn-vision.candy-hero 双类名提特异性，确保压过哥特层对 .learn-vision 的底图/尺寸规则。
+   漂浮只动 transform，幅度 ≤9px：它是氛围层，不能抢标题的注意力。 */
+.learn-vision.candy-hero {
+  position: relative; overflow: hidden; height: 168px; border-radius: 28px;
+  display: flex; align-items: center; justify-content: center;
+  background:
+    radial-gradient(120% 150% at 12% 0%, rgba(255, 255, 255, .92) 0%, rgba(255, 255, 255, 0) 46%),
+    linear-gradient(115deg, #FFE3EC 0%, #E4FBF3 48%, #EDE4FF 100%);
+  border: 1px solid rgba(255, 255, 255, .9);
+  box-shadow: 0 12px 34px rgba(255, 143, 163, .22), inset 0 1px 0 rgba(255, 255, 255, .95);
+}
+.learn-vision.candy-hero img { display: none !important; }
+.candy-hero .cap {
+  position: relative; z-index: 2; padding: 10px 22px; border-radius: 22px;
+  background: rgba(255, 255, 255, .62); border: 1px solid rgba(255, 255, 255, .9);
+  color: #C2385A; font-size: 15px; font-weight: 700; letter-spacing: 2px;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, .9);
+  box-shadow: 0 4px 14px rgba(255, 143, 163, .18);
+}
+.ch-candy {
+  position: absolute; border-radius: 50%; opacity: .88;
+  box-shadow: inset 0 -3px 8px rgba(0, 0, 0, .07), inset 0 2px 0 rgba(255, 255, 255, .85), 0 6px 18px rgba(255, 143, 163, .25);
+  animation: candy-bob 6s ease-in-out infinite;
+}
+.ch-candy.c1 { left: 9%; top: 24%; width: 46px; height: 46px;
+  background: radial-gradient(circle at 32% 28%, #FFF0F4, #FF8FA3 72%); }
+.ch-candy.c2 { right: 11%; top: 16%; width: 34px; height: 34px; animation-delay: -2s;
+  background: radial-gradient(circle at 32% 28%, #EAFFF8, #5FD4B0 72%); }
+.ch-candy.c3 { right: 25%; bottom: 14%; width: 26px; height: 26px; animation-delay: -4s;
+  background: radial-gradient(circle at 32% 28%, #FFFBEB, #FFE066 72%); }
+/* 棒棒糖：棍子不转、只转糖体（把旋转放在 ::before，避免棍子跟着甩） */
+.ch-lolli { position: absolute; left: 21%; bottom: 12%; width: 54px; height: 82px; }
+.ch-lolli::before {
+  content: ''; position: absolute; top: 0; left: 0; width: 54px; height: 54px; border-radius: 50%;
+  background: repeating-conic-gradient(#FF8FA3 0 18deg, #FFF6F8 18deg 36deg);
+  box-shadow: 0 8px 20px rgba(255, 143, 163, .3), inset 0 0 0 3px rgba(255, 255, 255, .75);
+  animation: lolli-spin 14s linear infinite;
+}
+.ch-lolli::after { content: ''; position: absolute; top: 52px; left: 50%; width: 5px; height: 28px;
+  margin-left: -2.5px; border-radius: 3px; background: linear-gradient(180deg, #FFFFFF, #E9DCC5); }
+@keyframes lolli-spin { to { transform: rotate(360deg) } }
+
+/* 标签胶囊：哥特版是深色底 + 金字，在糖果页里像两块脏橡皮（实测截图里就是深灰方块），
+   换成奶白果冻胶囊 + 糖果色描边 */
+.tag {
+  background: rgba(255, 255, 255, .8) !important;
+  border: 1px solid rgba(255, 182, 193, .9) !important;
+  border-radius: 18px !important;
+  color: #8A6A3A !important;
+  box-shadow: 0 3px 10px rgba(255, 143, 163, .16), inset 0 1px 0 rgba(255, 255, 255, .95) !important;
+}
+.tag.teal {
+  border-color: rgba(127, 232, 200, .95) !important; color: #2FA98A !important;
+  box-shadow: 0 3px 10px rgba(127, 232, 200, .22), inset 0 1px 0 rgba(255, 255, 255, .95) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ch-candy, .ch-lolli::before { animation: none !important; }
 }

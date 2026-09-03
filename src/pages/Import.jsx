@@ -94,18 +94,18 @@ export default function Import() {
 
       <div className="panel deep">
         <div className="step-bar">
-          <div className={'step-node' + (stepState >= 1 ? (stepState === 1 ? ' active' : ' done') : '')}>
+          <div className={'step-node st1' + (stepState >= 1 ? (stepState === 1 ? ' active' : ' done') : '')}>
             {/* 节点图标由 CSS .step-node::before 提供（📜/🔒/✓），不再用位图：
                                 光靠 display:none 隐藏仍会发请求，必须从 JSX 里拿掉 */}
             <span>甜蜜值凝聚{stepState > 1 ? ' ✓' : ''}</span>
           </div>
           <div className={'step-line' + (stepState > 1 ? ' on' : '')} />
-          <div className={'step-node' + (stepState === 2 ? ' active' : stepState > 2 ? ' done' : '')}>
+          <div className={'step-node st2' + (stepState === 2 ? ' active' : stepState > 2 ? ' done' : '')}>
             
             <span>导入检测{busy ? '中…' : stepState > 2 ? ' ✓' : ''}</span>
           </div>
           <div className={'step-line' + (stepState > 2 ? ' on' : '')} />
-          <div className={'step-node' + (stepState === 3 ? ' active' : '')}>
+          <div className={'step-node st3' + (stepState === 3 ? ' active' : '')}>
             
             <span>封印入库{stepState === 3 ? ' ✓' : ''}</span>
           </div>
