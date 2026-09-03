@@ -55,7 +55,10 @@ export default function Settings() {
 
       <div className="panel">
         <div className="setting-row">
-          <div className="tool"><img src={A.balance} alt="炼金天平" /></div>
+          {/* 糖果天平（方案 5.4）：纯 CSS 实体——中央薄荷水晶柱 + 横梁 + 左右两个糖盘 */}
+          <div className="tool candy-balance" role="img" aria-label="糖果天平">
+            <span className="cb-pan l" /><span className="cb-pan r" />
+          </div>
           <div style={{ flex: 1 }}>
             <div className="panel-title">⚖️ 每日目标</div>
             <div className="stepper">
@@ -70,7 +73,11 @@ export default function Settings() {
 
       <div className="panel">
         <div className="setting-row">
-          <div className="tool"><img src={A.memoryFlask} alt="记忆水晶瓶" /></div>
+          {/* 糖果罐（方案 5.5）：半透玻璃罐 + 五颗彩色糖豆 + 粉桃盖子 */}
+          <div className="tool candy-jar" role="img" aria-label="糖果罐">
+            <span className="cj-lid" />
+            <span className="cj-body"><i /><i /><i /><i /><i /></span>
+          </div>
           <div style={{ flex: 1 }}>
             <div className="panel-title">🔮 甜蜜值备份</div>
             <p style={{ fontSize: 12.5, lineHeight: 1.9, color: 'var(--muted)' }}>
@@ -86,7 +93,8 @@ export default function Settings() {
 
       <div className="panel">
         <div className="setting-row">
-          <div className="tool"><img src={A.sigilBadge} alt="尝味师徽章" /></div>
+          {/* 尝味人徽章（方案 5.6）：圆形糖果徽章 */}
+          <div className="tool candy-badge" role="img" aria-label="尝味人徽章" />
           <div style={{ flex: 1 }}>
             <div className="panel-title">🏅 尝味师凭证</div>
             <p style={{ fontSize: 14, color: '#d6c79b', letterSpacing: 1 }}>{userEmail ?? '未登录'}</p>
@@ -99,7 +107,10 @@ export default function Settings() {
 
       <div className="panel furnace-zone">
         <div className="setting-row">
-          <div className="tool"><img src={A.furnace} alt="糖果熔炉" /></div>
+          {/* 糖果熔炉（方案 5.7）：橙红炉体 + 炉口 + 跳动的火焰（只动 transform/opacity） */}
+          <div className="tool candy-furnace" role="img" aria-label="糖果熔炉">
+            <span className="cf-flame" />
+          </div>
           <div style={{ flex: 1 }}>
             <div className="panel-title">🔥 危险区 · 糖果熔炉</div>
             <p style={{ fontSize: 12.5, lineHeight: 1.9, color: '#d98ba0' }}>

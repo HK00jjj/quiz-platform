@@ -229,18 +229,81 @@ body, button, input, textarea, select {
 @keyframes candy-pulse { 0%, 100% { transform: scale(1); opacity: .85 } 50% { transform: scale(1.3); opacity: 1 } }
 .nav-veil { background: rgba(255, 245, 247, .92) !important; backdrop-filter: blur(6px); }
 
-/* ── 开机仪式（方案 1.2） ── */
-.boot-veil { background: linear-gradient(160deg, #FFF5F7, #F0FFF9 55%, #F5F0FF) !important; }
+/* ══ 开机仪式：2 秒四段分镜（方案 1.2）══
+   全部只用 transform/opacity（合成器属性）：不碰 background-position、不连续动 blur、
+   不动任何布局属性。剥开靠左右两块 50% 面板 translateX 移出，露出下层主界面。 */
+.boot-veil { position: fixed; inset: 0; z-index: 200; overflow: hidden; background: transparent !important; }
 .boot-eye, .boot-rose { display: none !important; }
-.boot-veil::before {
-  content: '🍭'; font-size: 56px; display: block; margin-bottom: 10px;
-  animation: candy-bob 2.4s var(--jelly-ease) infinite;
+.boot-half {
+  position: absolute; top: 0; bottom: 0; width: 50.6%;
+  background: linear-gradient(160deg, #FFF5F7 0%, #F0FFF9 52%, #F5F0FF 100%);
+  transition: transform .5s var(--jelly-ease);
 }
+.boot-half.left { left: 0 }
+.boot-half.right { right: 0 }
+.boot-veil.s2 .boot-half.left, .boot-veil.s3 .boot-half.left { transform: translateX(-101%) }
+.boot-veil.s2 .boot-half.right, .boot-veil.s3 .boot-half.right { transform: translateX(101%) }
+.boot-center { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  transition: opacity .3s ease, transform .45s var(--jelly-ease); }
+.boot-veil.s2 .boot-center, .boot-veil.s3 .boot-center { opacity: 0; transform: scale(.94) }
+.boot-stage { position: relative; width: 264px; height: 152px; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 6px; }
+/* 糖纸：从糖豆的位置螺旋展开（scale+rotate，不动宽高） */
+.boot-foil {
+  position: absolute; inset: 0; border-radius: 32px; opacity: 0;
+  background: linear-gradient(120deg, #FFD6E0 0%, #B8F5E3 58%, #D4B8FF 100%);
+  box-shadow: 0 14px 40px rgba(255, 143, 163, .3), inset 0 2px 0 rgba(255, 255, 255, .8);
+  transform: scale(.16) rotate(-190deg);
+  transition: transform .85s var(--jelly-ease), opacity .4s ease;
+}
+.boot-veil.s1 .boot-foil { opacity: .94; transform: scale(1) rotate(0deg) }
+.boot-veil.s2 .boot-foil, .boot-veil.s3 .boot-foil { opacity: 0; transform: scale(1.22) rotate(7deg) }
+/* 糖纸顶部高光：静态，不做扫光动画（扫光要动 background-position = 每帧重绘） */
+.boot-foil::after { content: ''; position: absolute; top: 10px; left: 18px; right: 18px; height: 14px;
+  border-radius: 14px; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .7), transparent); }
+/* 糖豆：0–0.5s 从下方弹入，0.5s 后旋转化开 */
+.boot-bean {
+  position: absolute; top: 50%; left: 50%; width: 18px; height: 18px; margin: -9px 0 0 -9px; border-radius: 50%;
+  background: radial-gradient(circle at 32% 28%, #FFD6E0, #FF8FA3 72%);
+  box-shadow: 0 4px 12px rgba(255, 143, 163, .45), inset 0 1px 0 rgba(255, 255, 255, .75);
+  animation: bean-in .5s var(--jelly-ease) both;
+}
+@keyframes bean-in {
+  from { transform: translateY(70px) scale(.35); opacity: 0 }
+  62% { transform: translateY(-9px) scale(1.1); opacity: 1 }
+  to { transform: translateY(0) scale(1); opacity: 1 }
+}
+.boot-veil.s1 .boot-bean, .boot-veil.s2 .boot-bean, .boot-veil.s3 .boot-bean { animation: bean-open .55s var(--jelly-ease) both }
+@keyframes bean-open { to { transform: rotate(220deg) scale(2.4); opacity: 0 } }
 .boot-title {
+  position: relative; z-index: 1; font-size: 30px; font-weight: 900; letter-spacing: 2px;
   color: #E8607F !important;
-  text-shadow: 0 2px 0 rgba(255, 255, 255, .95), 0 8px 22px rgba(255, 143, 163, .35) !important;
+  text-shadow: 0 2px 0 rgba(255, 255, 255, .95), 0 8px 22px rgba(255, 143, 163, .3) !important;
+  opacity: 0; transform: translateY(10px);
+  transition: opacity .45s ease, transform .5s var(--jelly-ease);
 }
-.boot-sub { color: var(--ink-2) !important; }
+.boot-sub { position: relative; z-index: 1; font-size: 14px; color: #8A8A8A !important;
+  opacity: 0; transition: opacity .5s ease .18s; }
+.boot-veil.s1 .boot-title, .boot-veil.s2 .boot-title, .boot-veil.s3 .boot-title { opacity: 1; transform: none }
+.boot-veil.s1 .boot-sub, .boot-veil.s2 .boot-sub, .boot-veil.s3 .boot-sub { opacity: 1 }
+.boot-veil.s2 .boot-title, .boot-veil.s3 .boot-title,
+.boot-veil.s2 .boot-sub, .boot-veil.s3 .boot-sub { opacity: 0 }
+/* 1.5–2s：气泡从四周升起消散（6 颗，一次性，不循环） */
+.boot-bubbles { position: absolute; inset: 0; pointer-events: none; }
+.boot-bubbles i { position: absolute; bottom: -40px; width: 22px; height: 22px; border-radius: 50%; opacity: 0;
+  background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, .95), rgba(255, 182, 193, .3)); }
+.boot-bubbles i:nth-child(1) { left: 10%; width: 26px; height: 26px }
+.boot-bubbles i:nth-child(2) { left: 26%; animation-delay: .1s }
+.boot-bubbles i:nth-child(3) { left: 44%; width: 16px; height: 16px; animation-delay: .2s }
+.boot-bubbles i:nth-child(4) { left: 61%; animation-delay: .05s }
+.boot-bubbles i:nth-child(5) { left: 76%; width: 30px; height: 30px; animation-delay: .16s }
+.boot-bubbles i:nth-child(6) { left: 89%; width: 18px; height: 18px; animation-delay: .26s }
+.boot-veil.s2 .boot-bubbles i, .boot-veil.s3 .boot-bubbles i { animation: boot-bubble 1.05s ease-out both }
+@keyframes boot-bubble {
+  0% { transform: translateY(0) scale(.6); opacity: 0 }
+  22% { opacity: .75 }
+  100% { transform: translateY(-72vh) scale(1.15); opacity: 0 }
+}
 @keyframes candy-bob { 0%, 100% { transform: translateY(0) rotate(-4deg) } 50% { transform: translateY(-9px) rotate(4deg) } }
 
 /* ── 登录：糖果之门（方案 2.3） ── */
@@ -633,3 +696,132 @@ body, button, input, textarea, select {
 .book-confirm-title { margin: 0 0 6px; font-size: 15px; font-weight: 700; color: #8b2a4a; }
 .book-confirm-desc { margin: 0 0 10px; font-size: 12.5px; line-height: 1.8; color: rgba(44, 24, 16, .72); }
 .book-foot { margin: 12px 0 0; text-align: center; font-size: 12px; color: rgba(44, 24, 16, .55); }
+
+/* ══ 底部导航弹入（方案 1.2 最后一步）══
+   280ms 而不是 500ms：离开答题页时导航会重新挂载，属于“一天几十次”的频率，
+   按动效门控只能做快到几乎察觉不到的程度。 */
+.bottom-nav { animation: nav-in 280ms var(--jelly-ease) both; }
+@keyframes nav-in { from { transform: translateY(26%); opacity: 0 } to { transform: none; opacity: 1 } }
+
+/* ══ 设置页四个实体造型（方案 5.4/5.5/5.6/5.7）══
+   全部纯 CSS，零位图；持续动效只跑在小面积元素上，且只动 transform/opacity。 */
+/* 用 .setting-row .tool 而不是 .tool：哥特层里有更高特异性的同尺寸规则，
+   只写 .tool 会被它压过（实测盒子变成 84×64，两个糖盘被拉得比 52px 横梁还宽） */
+.setting-row .tool { position: relative; flex: 0 0 auto; width: 64px; height: 64px;
+  display: flex; align-items: center; justify-content: center; }
+.tool img { display: none !important; }
+
+/* 糖果天平：水晶柱 + 横梁 + 两个糖盘；每 4.6s “settling” 一次（前 72% 完全静止，成本极低） */
+.candy-balance::before { content: ''; position: absolute; left: 50%; bottom: 10px; width: 8px; height: 34px;
+  margin-left: -4px; border-radius: 4px;
+  background: linear-gradient(180deg, #B8F5E3, #5FD4B0); box-shadow: 0 0 12px rgba(127, 232, 200, .55); }
+.candy-balance::after { content: ''; position: absolute; left: 50%; top: 18px; width: 52px; height: 4px;
+  margin-left: -26px; border-radius: 4px; transform-origin: 50% 50%;
+  background: linear-gradient(90deg, #FFB6C1, #FFD6E0 50%, #FFB6C1);
+  animation: balance-wobble 4.6s var(--jelly-ease) infinite; }
+.candy-balance .cb-pan { position: absolute; top: 22px; width: 20px; height: 12px; border-radius: 0 0 12px 12px;
+  background: radial-gradient(circle at 50% 0%, #FFD6E0, #FF8FA3);
+  box-shadow: 0 3px 8px rgba(255, 143, 163, .35); }
+.candy-balance .cb-pan.l { left: 4px; animation: pan-l 4.6s var(--jelly-ease) infinite }
+.candy-balance .cb-pan.r { right: 4px; animation: pan-r 4.6s var(--jelly-ease) infinite }
+@keyframes balance-wobble { 0%, 72%, 100% { transform: rotate(0) } 80% { transform: rotate(-5deg) } 88% { transform: rotate(3deg) } 94% { transform: rotate(-1.5deg) } }
+@keyframes pan-l { 0%, 72%, 100% { transform: translateY(0) } 80% { transform: translateY(5px) } 88% { transform: translateY(-3px) } 94% { transform: translateY(1px) } }
+@keyframes pan-r { 0%, 72%, 100% { transform: translateY(0) } 80% { transform: translateY(-5px) } 88% { transform: translateY(3px) } 94% { transform: translateY(-1px) } }
+
+/* 糖果罐：玻璃罐体 + 五颗糖豆轻微晃动 + 粉桃盖子 */
+.candy-jar .cj-lid { position: absolute; top: 9px; left: 50%; width: 46px; height: 12px; margin-left: -23px;
+  border-radius: 6px; background: linear-gradient(180deg, #FFD6E0, #FF8FA3);
+  box-shadow: 0 3px 10px rgba(255, 143, 163, .4), inset 0 1px 0 rgba(255, 255, 255, .8); }
+.candy-jar .cj-body { position: absolute; bottom: 8px; left: 50%; width: 40px; height: 38px; margin-left: -20px;
+  border-radius: 8px 8px 14px 14px; overflow: hidden;
+  background: rgba(255, 255, 255, .45); border: 2px solid rgba(255, 255, 255, .85);
+  box-shadow: inset 0 0 12px rgba(255, 182, 193, .35), 0 4px 12px rgba(255, 143, 163, .22); }
+.candy-jar .cj-body i { position: absolute; width: 9px; height: 9px; border-radius: 50%;
+  animation: jar-jiggle 3.4s ease-in-out infinite; }
+.candy-jar .cj-body i:nth-child(1) { left: 4px; bottom: 4px; background: #FF8FA3 }
+.candy-jar .cj-body i:nth-child(2) { left: 15px; bottom: 3px; background: #7FE8C8; animation-delay: .4s }
+.candy-jar .cj-body i:nth-child(3) { left: 25px; bottom: 5px; background: #FFE066; animation-delay: .8s }
+.candy-jar .cj-body i:nth-child(4) { left: 9px; bottom: 14px; background: #D4B8FF; animation-delay: 1.2s }
+.candy-jar .cj-body i:nth-child(5) { left: 21px; bottom: 15px; background: #A8D8FF; animation-delay: 1.6s }
+@keyframes jar-jiggle { 0%, 100% { transform: translateY(0) } 50% { transform: translateY(-2px) } }
+
+/* 尝味人徽章：圆形糖果徽章，极轻微摇摆 */
+.candy-badge { width: 56px; height: 56px; border-radius: 50%; font-size: 26px;
+  background: radial-gradient(circle at 34% 28%, #FFD6E0, #FF8FA3 72%);
+  box-shadow: 0 0 18px rgba(255, 143, 163, .45), inset 0 2px 0 rgba(255, 255, 255, .8);
+  animation: candy-bob 5.2s ease-in-out infinite; }
+.candy-badge::after { content: '🍬' }
+
+/* 糖果熔炉：橙红炉体 + 炉口 + 火焰跳动（火焰只动 transform/opacity，静态 blur 不参与动画） */
+.candy-furnace::before { content: ''; position: absolute; bottom: 8px; left: 50%; width: 48px; height: 40px;
+  margin-left: -24px; border-radius: 12px 12px 16px 16px;
+  background: linear-gradient(180deg, #FFC98A, #FF8C5A 70%);
+  box-shadow: 0 6px 18px rgba(255, 140, 90, .35), inset 0 2px 0 rgba(255, 255, 255, .5); }
+.candy-furnace::after { content: ''; position: absolute; bottom: 19px; left: 50%; width: 28px; height: 14px;
+  margin-left: -14px; border-radius: 8px;
+  background: radial-gradient(circle at 50% 100%, #FFF3C4, #FF9F0A 60%, #C63D00); }
+.candy-furnace .cf-flame { position: absolute; bottom: 29px; left: 50%; width: 16px; height: 22px;
+  margin-left: -8px; transform-origin: 50% 100%; filter: blur(.3px);
+  border-radius: 50% 50% 46% 46% / 62% 62% 38% 38%;
+  background: linear-gradient(180deg, #FFE066, #FF9F0A 65%, #FF6A2A);
+  animation: flame-dance 1.5s ease-in-out infinite; }
+@keyframes flame-dance {
+  0%, 100% { transform: scaleY(1) scaleX(1) translateY(0); opacity: .92 }
+  35% { transform: scaleY(1.18) scaleX(.92) translateY(-2px); opacity: 1 }
+  70% { transform: scaleY(.9) scaleX(1.08) translateY(1px); opacity: .86 }
+}
+
+/* ══ 导入页三步糖果流程条（方案 4.5）══
+   JSX 不动：原有 .step-node.active/.done 与 .step-line.on 已经够语义，只把位图换成 CSS 糖豆节点。
+   能量流动用 translateX 百分比（相对 shine 自身宽），不动 background-position，避免每帧重绘。 */
+.step-node img { display: none !important; }
+.step-node { position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.step-node::before {
+  content: '🔒'; width: 48px; height: 48px; border-radius: 50%; font-size: 20px;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(255, 255, 255, .85); border: 1px solid rgba(255, 255, 255, .9);
+  box-shadow: 0 4px 14px rgba(255, 182, 193, .2), inset 0 1px 0 rgba(255, 255, 255, .9);
+  filter: grayscale(1) opacity(.55);
+}
+.step-node.done::before { content: '✓'; font-weight: 900; color: #fff; filter: none;
+  background: radial-gradient(circle at 34% 28%, #B8F5E3, #5FD4B0);
+  box-shadow: 0 0 14px rgba(127, 232, 200, .45), inset 0 1px 0 rgba(255, 255, 255, .7); }
+.step-node.active::before { content: '📜'; width: 54px; height: 54px; font-size: 23px; filter: none;
+  background: radial-gradient(circle at 34% 28%, #FFD6E0, #FF8FA3); color: #fff;
+  box-shadow: 0 0 18px rgba(255, 143, 163, .5), inset 0 1px 0 rgba(255, 255, 255, .7); }
+/* 当前节点外圈的旋转糖环 */
+.step-node.active::after { content: ''; position: absolute; top: -5px; left: 50%; width: 66px; height: 66px;
+  margin-left: -33px; border-radius: 50%; border: 2px dashed rgba(255, 182, 193, .8);
+  animation: candy-spin 7s linear infinite; }
+@keyframes candy-spin { to { transform: rotate(360deg) } }
+.step-node > span { font-size: 12.5px; letter-spacing: 1px; color: rgba(44, 24, 16, .68); }
+.step-node.active > span { color: #C2385A; font-weight: 700; }
+.step-node.done > span { color: #2FA98A; font-weight: 700; }
+.step-line { position: relative; flex: 1 1 auto; height: 2px; margin: 24px -2px 0; overflow: hidden;
+  background: repeating-linear-gradient(90deg, rgba(90, 74, 42, .3) 0 6px, transparent 6px 12px); }
+.step-line.on { background: linear-gradient(90deg, #5FD4B0, #7FE8C8);
+  box-shadow: 0 0 10px rgba(127, 232, 200, .5); }
+.step-line.on::after { content: ''; position: absolute; top: -2px; left: 0; width: 25%; height: 6px;
+  border-radius: 6px; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .95), transparent);
+  animation: energy-run 1.8s linear infinite; }
+/* translateX 的百分比是相对 shine 自身（=线长的 25%），所以 400% 正好走完整条线 */
+@keyframes energy-run { from { transform: translateX(-100%) } to { transform: translateX(400%) } }
+
+/* 返工面板的警告图标也去位图 */
+.rework-box h4 img { display: none !important; }
+.rework-box h4::before { content: '⚠️'; margin-right: 6px; }
+
+/* 新增动效的 reduced-motion 降级：开机仪式直接终态，循环动效全停 */
+@media (prefers-reduced-motion: reduce) {
+  .boot-half, .boot-center, .boot-foil, .boot-bean, .boot-title, .boot-sub { transition: none !important; animation: none !important; }
+  .boot-veil .boot-bean { opacity: 0 !important; }
+  .boot-veil .boot-foil { opacity: .94 !important; transform: none !important; }
+  .boot-veil .boot-title, .boot-veil .boot-sub { opacity: 1 !important; transform: none !important; }
+  .boot-veil.s2 .boot-half.left, .boot-veil.s3 .boot-half.left { transform: translateX(-101%) }
+  .boot-veil.s2 .boot-half.right, .boot-veil.s3 .boot-half.right { transform: translateX(101%) }
+  .boot-veil.s2 .boot-center, .boot-veil.s3 .boot-center { opacity: 0 !important; }
+  .boot-bubbles i { animation: none !important; opacity: 0 !important; }
+  .bottom-nav { animation: none !important; }
+  .candy-balance::after, .candy-balance .cb-pan, .candy-jar .cj-body i,
+  .candy-badge, .candy-furnace .cf-flame, .step-node.active::after, .step-line.on::after { animation: none !important; }
+}

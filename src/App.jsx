@@ -2,7 +2,10 @@ import React, { useEffect, useState } from 'react'
 import { HashRouter, Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom'
 import { useStore } from './store'
 import { A } from './assets'
-import { Background, BottomNav, BootRitual, TouchRitual } from './components'
+import { TouchRitual } from './components'
+/* 背景气泡 / 三格糖果导航 / 开机仪式改从 CandyBoot 引入：components.jsx 正被编辑器的
+   陈旧缓冲区反复回写（实测同一轮内被覆盖两次），改动会被吞掉，所以拆到新文件里 */
+import { Background, BottomNav, BootRitual } from './components/CandyBoot'
 import { lastResultMap } from './lib/stats'
 import Login from './pages/Login'
 import Learn from './pages/Learn'
