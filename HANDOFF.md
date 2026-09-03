@@ -690,3 +690,77 @@ foreach($s in @('panel','modal-card','modal-box','import-panel','setting-card','
   并把 `.modal-box` 正式补进名单；本轮是用末尾追加规则绕过的，名单本身还没修。归 §7.7。
 - **新增**：`--sour` / `--sour-dk` / `--glow-sour` 三个 token 已无活的使用点，可删。归 §7.7。
 - 其余见 §13.7（Stats.jsx 孤儿页去向、答题页哥特位图是否整体糖果化、死 Divider 组件、Cinzel @font-face 的 2 个 404）。
+
+---
+
+## 15. 第五轮（2026-09-04）· 最后两个吃哥特暗底的按钮组
+
+**gh-pages HEAD：`471e385`（父 `55a6e54`），46 文件 / 4.9 MB，verify-deploy 缺失0/不一致0/多余0。**
+
+用户报「设置页每日目标的 `+` / `−` 是纯黑填充，与糖果主题不搭」。根因：**pages.css L598**
+
+```css
+.stepper button { ... border: 2px solid var(--copper); border-bottom-width: 4px;
+                  background: var(--bg-1); color: var(--gold-text); ... }
+```
+
+`--bg-1` 是哥特近黑底 token，candy.css 从没覆盖过 `.stepper button`。
+**边框看着是粉的、只因为 `--copper` 被重定义过 —— 底色一直漏网**，所以截图里是"粉圈 + 黑心"。
+
+顺手把同类扫干净，又揪出一个：`.tarot-foot button`（题库页卡片背面的「🗑 删除 / 收起」），
+pages.css L461 给的是 `background: rgba(15,20,26,.88); color: #9c8452`（暗底铜字）。
+
+两处统一成 `.rate-btn` 那套糖果按钮语言：**白底 + 奶粉边 + 保留 4px 厚底 + 糖果色字**；
+销毁类动作（`.tarot-foot button.danger`）走草莓红通道，与全站「错 / 危险」同色，hover 反白。
+按 §14.3 的原则**不加 `!important`**（pages.css 原规则没带，两处都没有内联样式）。
+
+### 15.1 实测
+
+| 元素 | 原值 | 实测现值 |
+| --- | --- | --- |
+| `.stepper button`（±） | `background: var(--bg-1)` 近黑 | `bg rgb(255,255,255)`、`color rgb(209,71,103)`、`border rgb(255,214,224)`、`border-bottom-width 4px` |
+| `.stepper .val`（数字） | — | `rgb(209,71,103)`（上一轮 §13 已修，与按钮同色系） |
+| `.tarot-foot button.danger` | `rgba(15,20,26,.88)` + `#9c8452` | `bg rgb(255,255,255)`、`color rgb(196,55,46)`、`border rgb(255,138,122)` = `--bad` |
+| `.tarot-foot button`（收起） | 同上 | `bg rgb(255,255,255)`、`color rgb(209,71,103)`、`border rgb(255,214,224)` |
+
+console 全程 0 errors。
+
+### 15.2 全站暗底扫描的完整结论（可复跑，别再逐个等用户报）
+
+扫描口径：在 `pages.css` + `global.css` 里搜 `var(--bg-1)` / `var(--bg)` / `var(--panel)` /
+`background` 后跟暗色 `rgba(0~49, …)` / `#0…` / `#1…`，共 25 处命中。逐个核对 candy.css 是否接管：
+
+**已被覆盖（不用管）**：
+- `.entry-card`(L44)、`.entry-card .count-gem`(L59)、`.entry-card.hot .count-gem`(L62) → 果冻分组 + §11 规则
+- `.chip`(L79)、`.chip.on`(L83) → candy.css L599-600
+- `.pile-counter`(L356) → candy.css L546 `var(--jelly) !important`
+- `.settle-card`(L364) → 果冻分组
+- `.panel`(global L147)、`.panel.deep`(global L161，暗色渐变) → 果冻分组带 `!important`，
+  **`!important` 压过更高特异性的普通声明**，所以 `.panel.deep` 也是白的
+- `.bank-search input`(L375，`rgba(19,38,35,.55)` + `#cfe6de`) 与 `.deck`(L382，`rgba(21,29,36,.8)`)
+  → candy.css L176 的 `.rune-input, .rune-textarea, input, textarea, select` 带 `!important` 全接管
+- `.tarot-orb`(L441) → §12 规则
+- `.learn-vision::after`(L39 近黑遮罩) → §8 第 6 条已中和
+- `.btn.teal`(global L195 深青渐变 + `#06201c` 近黑字) → candy.css L152 已换成薄荷渐变
+- `.tag`(global L292) → candy.css L917；滚动条 track(global L63) → candy.css L89
+- `.fab-stats`(L66/L72) → 死代码，JSX 里已无此元素（§7.7）
+
+**本轮修掉的**：`.stepper button`、`.tarot-foot button`
+
+**剩下 4 处已逐个查实，全是死规则或已被接管，无真问题：**
+
+| global.css | 选择器 | 结论 |
+| --- | --- | --- |
+| L81 | `.bg-vignette`（暗角 radial-gradient） | JSX 里 **0 次出现** → 元素不存在，死规则 |
+| L105-106 | `.nav-veil`（切页法阵帷幕，暗色渐变） | 只出现在 `App.jsx` L28 一段解释「为何删掉它」的**注释**里 → 死规则（§7.7 已记） |
+| L213-217 | `.bottom-nav { background-color: rgba(16,20,26,.96) }` | `CandyBoot.jsx` L58 在用，但 candy.css L192「糖霜托盘三格」已接管 → 截图里就是浅粉底 |
+| L238-241 | `.nav-center .nav-icon-wrap`（暗青渐变圆） | JSX 里 **0 次出现**（糖果版底部导航是三格均分，没有中央凸起项）→ 死规则 |
+
+所以本轮之后，**可达页面上已没有任何吃哥特暗底的元素**。四条死规则归 §7.7 清死代码时一并删。
+
+### 15.3 又一次：用户截图是旧构建
+
+用户这张图里每日目标的数字还是**青绿色**（`--teal-lt`），而 §13 那轮（`b91f8cb`）已经把它改成
+`#D14767` 粉色并实测到 `rgb(209,71,103)`。本轮 dev 上复测仍是 `rgb(209,71,103)`。
+所以截图又是缓存 / Pages 传播延迟。**连续两轮都出现这个现象**，下次收到"某处没改"的截图，
+第一件事是比对截图里的文案与自己的提交记录，或直接跑 `verify-live.mjs` 看线上三哈希。

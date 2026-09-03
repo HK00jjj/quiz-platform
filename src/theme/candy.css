@@ -1276,3 +1276,29 @@ body, button, input, textarea, select {
    信息重复；而且它用的 --sour-dk 酸橙绿与「错=草莓红」的新双通道不同源。
    删完之后 --sour / --sour-dk / --glow-sour 已无任何活的使用点（只剩被覆盖掉的旧声明）。 */
 .nav-item .dot { display: none !important; }
+
+/* ══════════════════════════════════════════════════════════
+   最后两个还在吃哥特暗底的按钮组（全站扫描 var(--bg*) / 暗色 rgba 后剩下的）
+   pages.css L598 给 .stepper button 定了 background: var(--bg-1)（近黑）+ color: var(--gold-text)，
+   L461 给 .tarot-foot button 定了 background: rgba(15,20,26,.88) + color: #9c8452（暗底铜字）。
+   两处边框看着是粉的，只因为 --copper 被重定义过——底色一直漏网。
+   统一成 .rate-btn 那套糖果按钮语言：白底 + 奶粉边 + 厚底 4px + 糖果色字。
+   不加 !important：pages.css 原规则没带，同特异性靠后置层叠就赢，且两处都没有内联样式。
+   已核对过不是漏网的：.btn/.btn.teal/.btn.danger/.btn.ghost（L133-171）、.tag（L917）、
+   滚动条 track（L89）、.bank-search input 与 .deck（被 L176 的 input/select 规则带 !important 接管）。 */
+.stepper button {
+  background: #fff; border-color: var(--candy-pink-lt); color: #D14767; font-weight: 900;
+  box-shadow: 0 3px 10px rgba(255, 182, 193, .28);
+}
+.stepper button:hover:not(:disabled) {
+  border-color: var(--candy-pink-dk); color: #C2385A;
+  box-shadow: 0 4px 14px rgba(255, 143, 163, .4);
+}
+/* 题库页卡片背面的「删除 / 收起」：销毁类动作走草莓红通道，与全站「错/危险」同色 */
+.tarot-foot button {
+  background: #fff; border-color: var(--candy-pink-lt); color: #D14767;
+  box-shadow: 0 2px 8px rgba(255, 182, 193, .25);
+}
+.tarot-foot button:hover { color: #C2385A; border-color: var(--candy-pink-dk); box-shadow: 0 3px 12px rgba(255, 143, 163, .35); }
+.tarot-foot button.danger { color: var(--bad-ink); border-color: var(--bad); }
+.tarot-foot button.danger:hover { color: #fff; background: var(--bad-dk); border-color: var(--bad-dk); }
