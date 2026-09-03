@@ -476,10 +476,12 @@ export default function Practice() {
             {answered && objective && !committed && (
               <>
                 <h4>你的记忆状态？</h4>
+                {/* 三档副标题改成大白话：这三个选项直接驱动 FSRS 间隔算法，
+                    原文案「被答错了 / 正确率游离 / 正确率铭刻」语义含糊，选错会影响复习排期 */}
                 <div className="rate-row">
-                  <button className="rate-btn r-forget" onClick={() => rate('忘记')}>忘记<small>被答错了</small></button>
-                  <button className="rate-btn r-hazy" onClick={() => rate('模糊')}>模糊<small>正确率游离</small></button>
-                  <button className="rate-btn r-remember" onClick={() => rate('记得')}>记得<small>正确率铭刻</small></button>
+                  <button className="rate-btn r-forget" onClick={() => rate('忘记')}>忘记<small>完全想不起来</small></button>
+                  <button className="rate-btn r-hazy" onClick={() => rate('模糊')}>模糊<small>犹豫了一下才对</small></button>
+                  <button className="rate-btn r-remember" onClick={() => rate('记得')}>记得<small>一眼就答出来了</small></button>
                 </div>
               </>
             )}

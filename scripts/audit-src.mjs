@@ -11,7 +11,9 @@ if (!token) { console.log('用法: node audit-src.mjs <TOKEN>'); process.exit(2)
 
 const REPO = 'HK00jjj/quiz-platform'
 const ROOT = 'C:/Users/青丘白浅/Documents/QoderCN/2026-09-02/chat-1'
-const EXTRAS = ['HANDOFF.md', 'verify-deploy.mjs', 'verify-live.mjs']
+/* 根级 extras：push-src 把它们从工作区根直接推到仓库根，不在 app/ 下。
+   没列进来的会被归到 app/<name> 而误报「本地缺失」。 */
+const EXTRAS = ['HANDOFF.md', 'verify-deploy.mjs', 'verify-live.mjs', 'verify-books.ps1', 'verify-candy.ps1', 'verify-fill.ps1']
 
 const H = { Authorization: `token ${token}`, 'User-Agent': 'audit-src', Accept: 'application/vnd.github+json' }
 async function get(url) {

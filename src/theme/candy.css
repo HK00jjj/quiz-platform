@@ -528,19 +528,21 @@ body, button, input, textarea, select {
 .grade-panel h4, .q-face-foot h4 { color: #E8607F !important; }
 .flip-hint { color: var(--ink-2) !important; }
 
-/* 三档自评：白底糖果按钮，忘记=酸橙绿、模糊=柠檬、记得=薄荷 */
+/* 三档自评：白底糖果按钮。配色与判分双通道对齐——忘记=草莓红、模糊=柠檬、记得=薄荷绿。
+   原来忘记用的是酸橙绿（--sour），跟「错=红」并排看语义打架；
+   顺便把三个文字色的对比度从 3.0~3.3:1 提到 WCAG AA 4.5:1 以上。 */
 .rate-btn {
   background: #fff !important; border: 2px solid var(--candy-pink-lt) !important;
   border-bottom-width: 4px !important; border-radius: var(--r-xs) !important;
   color: #D14767 !important; box-shadow: 0 3px 12px rgba(255, 182, 193, .2);
 }
 .rate-btn small { opacity: .8; }
-.rate-btn.r-forget { border-color: var(--sour) !important; color: #6E9B2E !important; }
-.rate-btn.r-forget:hover { box-shadow: 0 4px 14px rgba(168, 224, 99, .4) !important; }
-.rate-btn.r-hazy { border-color: var(--lemon) !important; color: #A88A00 !important; }
-.rate-btn.r-hazy:hover { box-shadow: 0 4px 14px rgba(255, 212, 59, .4) !important; }
-.rate-btn.r-remember { border-color: var(--mint) !important; color: #2FA98A !important; }
-.rate-btn.r-remember:hover { box-shadow: 0 4px 14px rgba(127, 232, 200, .45) !important; }
+.rate-btn.r-forget { border-color: var(--bad-dk) !important; color: var(--bad-ink) !important; }
+.rate-btn.r-forget:hover { box-shadow: 0 4px 14px rgba(242, 86, 74, .4) !important; }
+.rate-btn.r-hazy { border-color: var(--lemon-dk) !important; color: #8A6D00 !important; }
+.rate-btn.r-hazy:hover { box-shadow: 0 4px 14px rgba(255, 212, 59, .45) !important; }
+.rate-btn.r-remember { border-color: var(--mint-dk) !important; color: var(--ok-ink) !important; }
+.rate-btn.r-remember:hover { box-shadow: 0 4px 14px rgba(95, 212, 176, .45) !important; }
 
 /* 糖罐计数器 + 进度糖豆 */
 .pile-counter {
@@ -1165,3 +1167,33 @@ body, button, input, textarea, select {
 /* 只改没挂类的那两个（用时 / 最高连对）：挂了的靠 .teal-glow-text / .red-glow-text 上色，
    而那两个类特异性更低，这里不能用 .settle-grid b 直接定 color，否则会把对/错颜色盖掉 */
 .settle-grid b:not([class]) { color: var(--ink) !important; }
+
+/* ══════════════════════════════════════════════════════════
+   题库页（#/bank，已从底部导航摘掉、仍可由 URL 直达）去哥特
+   candy.css 之前只接管了 .page-head 与 .tarot-face 的底色，牌面文字还在吃
+   pages.css 的哥特配色：.tarot-stem 是 #d8ca9f 浅米黄字 + 黑色 text-shadow（给暗底设计的），
+   压在浅色果冻底上几乎读不出来；牌背 .tarot-scroll 的 #cbbb90 / 金色 h6 同理。
+   所以换文案必须同时换字色，否则新文案照样看不见。
+   ══════════════════════════════════════════════════════════ */
+.tarot-stem { color: var(--ink) !important; text-shadow: none !important; }
+.tarot-scroll { color: var(--ink-2) !important; }
+.tarot-scroll p { text-shadow: none !important; }
+.tarot-scroll h6 { color: #D14767 !important; }
+.tarot-kv b { color: var(--muted) !important; }
+.tarot-opt { color: var(--ink-2) !important; }
+.tarot-ans { color: var(--ok-ink) !important; font-weight: 700; }
+/* 这行字只有 clamp(7.5px,4.2cqw,10px)，用 --ink-3(#999) 在浅底上只剩约 2.8:1，
+   小到这个份上必须提到 --muted(#6E6E6E，约 5.0:1) 才读得清 */
+.tarot-hint { color: var(--muted) !important; letter-spacing: 1px; }
+.tarot-seq { color: var(--muted) !important; font-family: 'Nunito', 'Noto Sans SC', sans-serif !important; }
+.bank-meta { color: var(--ink-2) !important; }
+.bank-search input::placeholder { color: var(--ink-3) !important; }
+/* 掌握状态宝珠：哥特的暗底金边换成糖果三色（未做=奶粉 / 复习中=浅薄荷 / 已掌握=深薄荷） */
+.tarot-orb { border-color: var(--candy-pink-lt) !important; background: #FFE4EC !important; }
+.tarot-orb.half { background: var(--mint-lt) !important; border-color: var(--mint) !important; }
+.tarot-orb.full { background: var(--mint-dk) !important; border-color: var(--mint-dk) !important; box-shadow: var(--glow-mint) !important; }
+.tarot-orb.polluted { box-shadow: 0 0 0 2px rgba(242, 86, 74, .45) !important; }
+/* 题型印章位图（p34-1~7，七个文件内容完全相同、本来就区分不出题型）已从 JSX 删掉，
+   改成 .type-candy 文字胶囊放进签条行；这条 display:none 只是防编辑器缓冲区把 img 带回来 */
+.tarot-seal { display: none !important; }
+.tarot-tags .type-candy { font-size: clamp(8px, 4.6cqw, 11px); padding: 1px 7px; }
