@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { useStore } from '../store'
 import { A } from '../assets'
 import { GiltBtn } from '../components'
+import Bookshelf from '../components/Bookshelf'
 
 /* 设置页 · 守秘人的糖果抽屉 */
 export default function Settings() {
@@ -48,6 +49,9 @@ export default function Settings() {
         <h1 className="font-gothic"><span className="rune">⚗️</span> 炼 金 工 坊</h1>
         <p>典籍馆设置 · 调配你的修行器具</p>
       </div>
+
+      {/* 题库书架：方案 5.3 定为设置页最重要、视觉权重最高的模块，所以置顶 */}
+      <Bookshelf />
 
       <div className="panel">
         <div className="setting-row">

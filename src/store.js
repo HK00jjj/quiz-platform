@@ -9,6 +9,53 @@ import { classifyImport, parseBackup, parseBank, gradeObjective } from './lib/va
 
 const RESUME_KEY = 'quiz-platform.resume.v1'
 const IMPORTED_AT_KEY = 'qp.importedAt.v1'
+const BOOKS_KEY = 'quiz-platform.books.v1'
+
+/* ── 多题库（书本）──
+   映射存在云端 settings 表的 key='books' 行（无需改表结构），并镜像一份到 localStorage：
+   云端写失败时降级本机，不至于丢掉整个书架（方案 10.5 崩溃兜底）。
+   cards/records 以 questionId 为键，所以只要各书题目 ID 不重叠，SRS 与做题记录天然隔离。 */
+function saveBooksLocal(payload) {
+  try { localStorage.setItem(BOOKS_KEY, JSON.stringify(payload)) } catch { /* ignore */ }
+}
+function loadBooksLocal() {
+  try { const raw = localStorage.getItem(BOOKS_KEY); return raw ? JSON.parse(raw) : null } catch { return null }
+}
+/* 首次启用时的零损失迁移：建一本默认书，把现有全部题目归进去 */
+function migrateBooks(questionIds) {
+  const id = 'b_default'
+  const now = Date.now()
+  return {
+    activeBookId: id, order: [id],
+    books: { [id]: { id, name: '默认题库', color: 'pink', icon: '📖', subject: '', createdAt: now, lastOpenedAt: now } },
+    assign: Object.fromEntries((questionIds ?? []).map((q) => [q, id]))
+  }
+}
+/* questions 是派生值：只留当前书本的题目。这样 Learn 计数 / 题库页 / 组卷 / 答题
+   全部自动变成书本作用域，页面代码一行都不用改。activeBookId 异常时退回全量，宁可多显示不可白屏。 */
+function scopeQuestions(all, bk) {
+  if (!bk || !bk.activeBookId || !bk.books?.[bk.activeBookId]) return all
+  const a = bk.assign ?? {}
+  return all.filter((q) => a[q.id] === bk.activeBookId)
+}
+function booksPayload(s) {
+  return { activeBookId: s.activeBookId, order: s.bookOrder, books: s.books, assign: s.assign }
+}
+/* 防回环：realtime 订阅了 settings 表，存一次就会触发一次 reload；
+   若 reload 又无条件再存，就会无限循环。所以内容没变就不写。 */
+let lastBooksJson = ''
+async function persistBooks(s) {
+  const payload = booksPayload(s)
+  const json = JSON.stringify(payload)
+  if (json === lastBooksJson) return
+  lastBooksJson = json
+  saveBooksLocal(payload)
+  if (DEMO) return
+  try { await repo.saveBooks(payload) } catch (e) {
+    console.error('[books] 云端保存失败，已降级本机', e)
+    useStore.setState({ syncError: '题库列表云端保存失败，已暂存本机' })
+  }
+}
 let unsubscribe = null
 let relearnKey = null
 let reloadTimer = null
@@ -64,7 +111,27 @@ async function reloadAll() {
       } else throw e
     }
     if (seq !== reloadSeq) return
-    useStore.setState({ questions: data.questions, cards: data.cards, records: data.records, settings: data.settings, syncError: null })
+    /* 书本映射：云端优先，其次本机，都没有就零损失迁移（现有题目全归默认书） */
+    const cloud = data.books
+    let bk = (cloud && cloud.books && cloud.order) ? cloud : loadBooksLocal()
+    let mutated = !(cloud && cloud.books && cloud.order)
+    if (!bk || !bk.books || !bk.order) { bk = migrateBooks(data.questions.map((q) => q.id)); mutated = true }
+    bk.assign = bk.assign ?? {}
+    const known = new Set(Object.keys(bk.assign))
+    for (const q of data.questions) if (!known.has(q.id)) { bk.assign[q.id] = bk.activeBookId; mutated = true }
+    const alive = new Set(data.questions.map((q) => q.id))
+    for (const k of Object.keys(bk.assign)) if (!alive.has(k)) { delete bk.assign[k]; mutated = true }
+    if (!bk.books[bk.activeBookId]) { bk.activeBookId = bk.order[0] ?? null; mutated = true }
+    // mutated 时先把哨兵置空，强制 persistBooks 写一次；写完它会记下新值，
+    // 下一次由 realtime 触发的 reload 就会因为内容相同而不再写 → 断开循环
+    lastBooksJson = mutated ? '' : JSON.stringify(bk)
+    useStore.setState({
+      allQuestions: data.questions,
+      questions: scopeQuestions(data.questions, bk),
+      cards: data.cards, records: data.records, settings: data.settings, syncError: null,
+      books: bk.books, bookOrder: bk.order, activeBookId: bk.activeBookId, assign: bk.assign
+    })
+    if (mutated) persistBooks(useStore.getState())
   } catch (e) {
     console.error('[reload] 云端拉取失败', e)
     useStore.setState({ syncError: '云端同步失败，请检查网络' })
@@ -135,15 +202,36 @@ export const useStore = create((set, get) => ({
   ready: false,
   syncError: null,
   questions: [],
+  allQuestions: [],
   cards: [],
   records: [],
   settings: { dailyGoal: 20 },
+  /* 多题库：books 是 id→书本的映射，assign 是 题目id→书本id */
+  books: {},
+  bookOrder: [],
+  activeBookId: null,
+  assign: {},
   ...emptySession,
 
   init: async () => {
     if (DEMO) {
       const d = demoData()
-      set({ authStatus: 'signed-in', userEmail: 'demo@arcane.local', ready: true, ...d })
+      /* 演示模式下也给两本书：一本有题、一本空的，方便直接看到空态与切换效果 */
+      const now = Date.now()
+      const bk = {
+        activeBookId: 'b_demo1', order: ['b_demo1', 'b_demo2'],
+        books: {
+          b_demo1: { id: 'b_demo1', name: '电气自动化（演示）', color: 'pink', icon: '📖', subject: '演示数据', createdAt: now, lastOpenedAt: now },
+          b_demo2: { id: 'b_demo2', name: '空白题库（演示）', color: 'mint', icon: '🧪', subject: '', createdAt: now, lastOpenedAt: now }
+        },
+        assign: Object.fromEntries(d.questions.map((q) => [q.id, 'b_demo1']))
+      }
+      lastBooksJson = JSON.stringify(bk)
+      set({
+        authStatus: 'signed-in', userEmail: 'demo@arcane.local', ready: true,
+        allQuestions: d.questions, questions: d.questions, cards: d.cards, records: d.records, settings: d.settings,
+        books: bk.books, bookOrder: bk.order, activeBookId: bk.activeBookId, assign: bk.assign
+      })
       return
     }
     client.auth.onAuthStateChange((event) => {
@@ -190,20 +278,116 @@ export const useStore = create((set, get) => ({
   },
   deleteQuestion: async (id) => {
     if (!DEMO) await repo.deleteQuestion(id)
-    set((s) => ({
-      questions: s.questions.filter((q) => q.id !== id),
-      cards: s.cards.filter((c) => c.questionId !== id),
-      records: s.records.filter((r) => r.questionId !== id)
-    }))
+    set((s) => {
+      const assign = { ...s.assign }
+      delete assign[id]
+      const allQuestions = s.allQuestions.filter((q) => q.id !== id)
+      return {
+        allQuestions,
+        questions: scopeQuestions(allQuestions, { ...s, assign }),
+        assign,
+        cards: s.cards.filter((c) => c.questionId !== id),
+        records: s.records.filter((r) => r.questionId !== id)
+      }
+    })
+    await persistBooks(get())
   },
   resetAll: async () => {
-    await repo.clearAll()
-    set({ questions: [], cards: [], records: [], ...emptySession })
+    if (!DEMO) await repo.clearAll()
+    const bk = migrateBooks([])
+    lastBooksJson = ''
+    set({
+      allQuestions: [], questions: [], cards: [], records: [], ...emptySession,
+      books: bk.books, bookOrder: bk.order, activeBookId: bk.activeBookId, assign: bk.assign
+    })
+    await persistBooks(get())
   },
   updateSettings: async (patch) => {
     const merged = { ...get().settings, ...patch }
     await repo.saveSettings(merged)
     set({ settings: merged })
+  },
+
+  /* ── 题库书架动作（方案 5.3 / 8.1）──
+     切书 = 改 activeBookId + 重算派生 questions + 中止当前练习（整个数据上下文换掉） */
+  createBook: async ({ name, color, icon, subject }) => {
+    const s = get()
+    const id = 'b_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6)
+    const now = Date.now()
+    const book = {
+      id, name: String(name || '未命名题库').slice(0, 20), color: color || 'pink',
+      icon: icon || '📖', subject: subject || '', createdAt: now, lastOpenedAt: now
+    }
+    const next = { ...s, books: { ...s.books, [id]: book }, bookOrder: [...s.bookOrder, id], activeBookId: id }
+    set({
+      books: next.books, bookOrder: next.bookOrder, activeBookId: id,
+      questions: scopeQuestions(s.allQuestions, next), ...emptySession
+    })
+    await persistBooks(get())
+    return id
+  },
+  switchBook: async (id) => {
+    const s = get()
+    if (!s.books[id] || id === s.activeBookId) return
+    const books = { ...s.books, [id]: { ...s.books[id], lastOpenedAt: Date.now() } }
+    const next = { ...s, books, activeBookId: id }
+    set({ books, activeBookId: id, questions: scopeQuestions(s.allQuestions, next), ...emptySession })
+    await persistBooks(get())
+  },
+  renameBook: async (id, name) => {
+    const s = get()
+    if (!s.books[id]) return
+    const books = { ...s.books, [id]: { ...s.books[id], name: String(name || '').slice(0, 20) || s.books[id].name } }
+    set({ books })
+    await persistBooks(get())
+  },
+  setBookCover: async (id, patch) => {
+    const s = get()
+    if (!s.books[id]) return
+    const books = { ...s.books, [id]: { ...s.books[id], ...patch } }
+    set({ books })
+    await persistBooks(get())
+  },
+  /* L1 危险操作：只清该书的学习记录（SRS 卡 + 做题记录），题目保留 */
+  clearBookProgress: async (id) => {
+    const s = get()
+    const ids = new Set(s.allQuestions.filter((q) => s.assign[q.id] === id).map((q) => q.id))
+    const cards = s.cards.filter((c) => !ids.has(c.questionId))
+    const records = s.records.filter((r) => !ids.has(r.questionId))
+    set({ cards, records, ...emptySession })
+    if (!DEMO) {
+      try { await repo.replaceProgress(cards, records) } catch (e) { console.error('[books] 清记录失败', e); set({ syncError: '清除学习记录失败' }) }
+    }
+  },
+  /* L2 危险操作：删整本题库（含题目）。调用方必须已做输入书名的二次确认 */
+  deleteBook: async (id) => {
+    const s = get()
+    if (!s.books[id]) return
+    if (s.bookOrder.length <= 1) { set({ syncError: '至少要保留一个题库' }); return }
+    const ids = s.allQuestions.filter((q) => s.assign[q.id] === id).map((q) => q.id)
+    const idSet = new Set(ids)
+    const books = { ...s.books }
+    delete books[id]
+    const bookOrder = s.bookOrder.filter((x) => x !== id)
+    const assign = { ...s.assign }
+    ids.forEach((q) => delete assign[q])
+    const activeBookId = s.activeBookId === id ? bookOrder[0] : s.activeBookId
+    const allQuestions = s.allQuestions.filter((q) => !idSet.has(q.id))
+    const next = { allQuestions, books, bookOrder, activeBookId, assign }
+    set({
+      ...next,
+      questions: scopeQuestions(allQuestions, next),
+      cards: s.cards.filter((c) => !idSet.has(c.questionId)),
+      records: s.records.filter((r) => !idSet.has(r.questionId)),
+      ...emptySession
+    })
+    if (!DEMO && ids.length > 0) {
+      try { await repo.deleteQuestions(ids) } catch (e) {
+        console.error('[books] 云端删除题目失败', e)
+        set({ syncError: '云端删除失败，本机已移除该题库' })
+      }
+    }
+    await persistBooks(get())
   },
 
   startSession: async (mode, opts = {}) => {

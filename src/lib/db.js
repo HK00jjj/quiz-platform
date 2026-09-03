@@ -48,21 +48,44 @@ const toRecord = (r) => ({
 export class CloudRepo {
   constructor(c) { this.client = c }
   async loadAll() {
-    const [q, c, r, s] = await Promise.all([
+    const [q, c, r, s, b] = await Promise.all([
       this.client.from('questions').select('*').order('seq'),
       this.client.from('review_cards').select('*'),
       this.client.from('answer_records').select('*').order('answered_at'),
-      this.client.from('settings').select('value').eq('key', 'app').maybeSingle()
+      this.client.from('settings').select('value').eq('key', 'app').maybeSingle(),
+      // 多题库（书本）映射存在 settings 的 key='books' 行里：
+      // 这样不需要改任何表结构（没有 DDL 权限），而且因为 cards/records 以 questionId 为键，
+      // 只要各书题目 ID 不重叠，间隔重复与做题记录就是天然隔离的。
+      this.client.from('settings').select('value').eq('key', 'books').maybeSingle()
     ])
     if (q.error) throw q.error
     if (c.error) throw c.error
     if (r.error) throw r.error
     if (s.error) throw s.error
+    if (b.error) throw b.error
     return {
       questions: q.data.map(toQuestion),
       cards: c.data.map(toCard),
       records: r.data.map(toRecord),
-      settings: { dailyGoal: 20, ...(s.data?.value ?? {}) }
+      settings: { dailyGoal: 20, ...(s.data?.value ?? {}) },
+      books: b.data?.value ?? null
+    }
+  }
+  /* 书本映射入库；失败不抛——调用方会降级到 localStorage（方案 10.5 崩溃兜底） */
+  async saveBooks(value) {
+    const { error } = await this.client.from('settings').upsert({ key: 'books', value })
+    if (error) throw error
+  }
+  /* 删整本题库：分批删，避免 .in() 列表过长；题目、SRS 卡、做题记录一起清 */
+  async deleteQuestions(ids) {
+    for (let i = 0; i < ids.length; i += 100) {
+      const chunk = ids.slice(i, i + 100)
+      const { error } = await this.client.from('questions').delete().in('id', chunk)
+      if (error) throw error
+      const e2 = await this.client.from('review_cards').delete().in('question_id', chunk)
+      if (e2.error) throw e2.error
+      const e3 = await this.client.from('answer_records').delete().in('question_id', chunk)
+      if (e3.error) throw e3.error
     }
   }
   async upsertQuestions(list) {

@@ -168,6 +168,26 @@ Supabase 项目 `khtpnbzfjggezlmnnsgt`，表结构：
   答案以**墨迹显影**（`ink-write`：clip-path 自左向右）写在同一张纸上，左侧朱栏颜色分对/错。
   （牌面改成 0.72 比例后可用高度变大，封印条与答案都能直接落在可视区内，无需再钉到牌底。）
 
+## 多题库（书本）数据模型
+
+方案 5.3 / 8.1 的「题库书架」，**零表结构改动**实现：
+
+- 存储：书本映射存在 Supabase `settings` 表的 **`key='books'`** 行（该表本来就是 key-value），
+  结构为 `{ activeBookId, order:[id], books:{id:{name,color,icon,subject,createdAt,lastOpenedAt}}, assign:{题目id→书本id} }`。
+  同时镜像一份到 `localStorage['quiz-platform.books.v1']`，**云端写失败自动降级本机**并提示。
+- 隔离原理：`questions` / `review_cards` / `answer_records` 三表保持扁平不动；后两者以 `questionId` 为键，
+  所以**只要各书题目 ID 不重叠，SRS 与做题记录就是天然隔离的**，不需要加 book_id 列。
+- 关键设计：store 里 `questions` 是**派生值** = `allQuestions.filter(q => assign[q.id] === activeBookId)`。
+  因此 Learn 计数 / 题库页 / 组卷 / 答题全部自动变成书本作用域，**页面代码一行都不用改**。
+- 迁移：首次加载若无 books，`migrateBooks()` 建一本「默认题库」并把现有全部题目归进去（只新增、不删除）。
+  reload 时还会把「云端有但未归书」的题目自动归入当前书，并清掉已不存在题目的 assign 引用。
+- **防回环**：`repo.subscribe` 监听了 `settings` 表，存书本会触发 reload；若 reload 又无条件再存就无限循环。
+  所以用模块级 `lastBooksJson` 做幂等：内容未变就不写（`persistBooks` 里第一行就 return）。
+- 危险操作分级：`clearBookProgress` 只清该书 SRS 卡+做题记录（题目保留）；`deleteBook` 删整本书，
+  UI 侧要求**输入完整书名**才解锁按钮，且 `bookOrder.length <= 1` 时拒经（至少保留一本）。
+- 已真机验证（demo 模式，9 步全通）：列表/切换/学习页空态联动/题数恢复/新建/行内重命名/
+  删除二次确认/删后回退当前书/主题库不受误伤，控制台 0 error。
+
 ## 交互约定
 
 - 客观题（单选/多选/判断/填空）点「忘记/模糊/记得」后：立即评级（Again/Hard/Good）→
