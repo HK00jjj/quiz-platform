@@ -1197,3 +1197,33 @@ body, button, input, textarea, select {
    改成 .type-candy 文字胶囊放进签条行；这条 display:none 只是防编辑器缓冲区把 img 带回来 */
 .tarot-seal { display: none !important; }
 .tarot-tags .type-candy { font-size: clamp(8px, 4.6cqw, 11px); padding: 1px 7px; }
+
+/* ══════════════════════════════════════════════════════════
+   导入页反馈框 + 设置页数字/危险区：四处仍在吃哥特层的暗底配色
+   pages.css 把 .rework-box 定成 background: rgba(42,10,24,.55) 深栗色盒子、
+   .success-box 定成深青洗，在糖果页里像两块突兀的暗斑；文字用 #d98ba0 / #d9c26a
+   是为暗底挑的浅色（拿到浅底上只有 1.8~2.6:1）。改成与判分双通道同源的浅洗 + 深色字。
+
+   ⚠ 这两组故意不加 !important：Import.jsx 的告警框是 className="success-box" 再叠
+   内联 style 实现的柠檬变体，一旦加 !important 就会把内联样式压掉。
+   pages.css 原规则也没用 !important，同特异性靠后置层叠就能赢，而内联仍然能赢我。
+   只有 .furnace-zone 的 border-color 需要 !important（pages.css L603 那条带了）。
+   ══════════════════════════════════════════════════════════ */
+.rework-box {
+  border: 1.5px solid var(--bad-dk); background: var(--bad-wash); border-radius: var(--r-xs);
+}
+.rework-box h4 { color: var(--bad-ink); }
+.rework-box li.err-i { color: var(--bad-ink); }
+.rework-box li.warn-i { color: #8A6D00; }
+.success-box {
+  border: 1.5px solid var(--mint-dk); background: rgba(127, 232, 200, .16); border-radius: var(--r-xs);
+}
+/* 设置页每日目标的数字：原来是 Cinzel（woff2 是 404，实际回落到衬线）+ --teal-lt + 青色辉光，
+   30px 数字在浅底上只有约 2.2:1。全站扫 Cinzel 时发现的最后一个可达页落点。 */
+.stepper .val {
+  font-family: 'Nunito', 'Noto Sans SC', sans-serif !important;
+  color: #D14767 !important; text-shadow: none !important;
+}
+/* 危险区：哥特暗红边框与 #d98ba0 标题换成草莓红通道，与上面那段说明文字同色 */
+.furnace-zone { border-color: rgba(242, 86, 74, .55) !important; }
+.furnace-zone .panel-title { color: var(--bad-ink) !important; }

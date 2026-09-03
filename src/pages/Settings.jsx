@@ -1,6 +1,5 @@
 import React, { useState } from 'react'
 import { useStore } from '../store'
-import { A } from '../assets'
 import { GiltBtn } from '../components'
 import Bookshelf from '../components/Bookshelf'
 
@@ -27,7 +26,7 @@ export default function Settings() {
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `典籍馆甜蜜值备份_${new Date().toISOString().slice(0, 10)}.json`
+    a.download = `糖果题库备份_${new Date().toISOString().slice(0, 10)}.json`
     a.click()
     URL.revokeObjectURL(url)
     setExported(true)
@@ -45,8 +44,10 @@ export default function Settings() {
 
   return (
     <div className="page-wrap">
-      <div className="page-head" style={{ backgroundImage: `url(${A.titleDecor})` }}>
-        <h1 className="font-gothic"><span className="rune">🧁</span> 糖 果 抽 屉</h1>
+      {/* p45 哥特标题装饰条早被 candy.css 的 background-image:none !important 掐掉了（不发请求），
+          那行内联样式与 font-gothic 类都是死代码，一并清掉 */}
+      <div className="page-head">
+        <h1><span className="rune">🧁</span> 糖 果 抽 屉</h1>
         <p>题库设置 · 整理你的糖果抽屉</p>
       </div>
 
@@ -79,7 +80,7 @@ export default function Settings() {
             <span className="cj-body"><i /><i /><i /><i /><i /></span>
           </div>
           <div style={{ flex: 1 }}>
-            <div className="panel-title">🔮 甜蜜值备份</div>
+            <div className="panel-title">💾 数据备份</div>
             <p style={{ fontSize: 12.5, lineHeight: 1.9, color: 'var(--muted)' }}>
               数据存于云端，多设备登录同一账号实时同步。导出备份为可选保险，
               备份 JSON 可在任意设备的导入页（备份恢复）导入恢复。
@@ -97,9 +98,10 @@ export default function Settings() {
           <div className="tool candy-badge" role="img" aria-label="尝味人徽章" />
           <div style={{ flex: 1 }}>
             <div className="panel-title">🏅 尝味师凭证</div>
-            <p style={{ fontSize: 14, color: '#d6c79b', letterSpacing: 1 }}>{userEmail ?? '未登录'}</p>
+            {/* 原来是硬编码的哥特暗金 #d6c79b，在白色果冻面板上只有约 1.9:1，邮箱几乎读不出来 */}
+            <p style={{ fontSize: 14, color: 'var(--ink)', letterSpacing: 1 }}>{userEmail ?? '未登录'}</p>
             <div style={{ marginTop: 12 }}>
-              <GiltBtn tone="ghost" onClick={signOut}>解除契约 · 退出登录</GiltBtn>
+              <GiltBtn tone="ghost" onClick={signOut}>退出登录</GiltBtn>
             </div>
           </div>
         </div>
@@ -113,7 +115,9 @@ export default function Settings() {
           </div>
           <div style={{ flex: 1 }}>
             <div className="panel-title">🔥 危险区 · 糖果熔炉</div>
-            <p style={{ fontSize: 12.5, lineHeight: 1.9, color: '#d98ba0' }}>
+            {/* 危险区说明改用草莓红（--bad-ink，5.3:1）：既是警告语义、又与全站「错」通道同一色系。
+                原来的 #d98ba0 在浅底上只有约 2.6:1 */}
+            <p style={{ fontSize: 12.5, lineHeight: 1.9, color: 'var(--bad-ink)' }}>
               清空当前题库的题目、复习卡片与全部做题记录。此操作不可撤销，请先封装记忆（导出备份）。
             </p>
             {melted ? (
@@ -131,7 +135,8 @@ export default function Settings() {
         </div>
       </div>
 
-      <p style={{ textAlign: 'center', fontSize: 11, letterSpacing: 2, color: 'rgba(156,132,82,.55)', marginTop: 26 }}>
+      {/* 页脚原来是 rgba(156,132,82,.55) 哥特青铜色再叠 55% 透明，约 1.6:1，基本看不见 */}
+      <p style={{ textAlign: 'center', fontSize: 11, letterSpacing: 2, color: 'var(--ink-3)', marginTop: 26 }}>
         ✦ 糖果题库 v1.0 · 尝味师专用 · 纯网页端 · 云端甜蜜值同步 ✦
       </p>
     </div>

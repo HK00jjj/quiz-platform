@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react'
 import { useStore } from '../store'
-import { A } from '../assets'
 import { burstParticles } from '../components'
 
 /* 登录页 · 糖果之门 */
@@ -27,7 +26,7 @@ export default function Login() {
     setError(null)
     const err = await signIn(email.trim(), password)
     if (err) {
-      setError('✗ 密文错了，这颗糖有点酸～再试试？')
+      setError('✗ 密码不对，再试一次？')
       setBusy(false)
       const box = document.querySelector('.login-gate-inner')
       if (box) {
@@ -43,33 +42,33 @@ export default function Login() {
 
   return (
     <div className="login-stage">
-      <div className={'login-bg' + (bgOn ? ' on' : '')} style={{ backgroundImage: `url(${A.starryBg})` }} />
-      <img className="login-vortex" src={A.vortex} alt="" />
+      {/* 五个哥特位图从 JSX 删净（p11 星空 / p12 漩涡 / p7 青铜门 / p13 魔法球 / p44 分隔条）。
+          candy.css 早就把它们 display:none 或 background-image:none 掉了，但 §6 那条规矩还在：
+          display:none 的 <img> 照样发请求——登录页每次都在白下 p12.png 与 p13.webp。
+          .login-bg 这个 div 要留：它的糖果渐变底就是 candy.css 挂在这个选择器上的。 */}
+      <div className={'login-bg' + (bgOn ? ' on' : '')} />
       <div className="login-gate-wrap">
         <div className={'login-gate' + (burst ? ' gate-success' : '')}>
-          <div className="login-gate-frame" style={{ backgroundImage: `url(${A.loginGate})` }} />
           <div className="login-gate-inner">
-            <img className="login-orb" src={A.magicOrb} alt="" />
-            <h1 className="login-title gold-title font-gothic">糖果之门</h1>
-            <p className="login-sub">尝 味 师 登 入</p>
-            <div className="login-divider" style={{ backgroundImage: `url(${A.divider})` }} />
+            <h1 className="login-title">糖果之门</h1>
+            <p className="login-sub">尝 味 师 登 录</p>
             <form onSubmit={submit}>
               <div className="login-input">
                 <span className="icon" aria-hidden="true">✉️</span>
                 <input type="email" required autoComplete="username" value={email}
-                  onChange={(e) => setEmail(e.target.value)} placeholder="邮箱 / 窥秘名" />
+                  onChange={(e) => setEmail(e.target.value)} placeholder="邮箱" />
               </div>
               <div className="login-input">
                 <span className="icon" aria-hidden="true">🔒</span>
                 <input type={showPwd ? 'text' : 'password'} required autoComplete="current-password"
-                  value={password} onChange={(e) => setPassword(e.target.value)} placeholder="甜蜜值密文" />
+                  value={password} onChange={(e) => setPassword(e.target.value)} placeholder="密码" />
                 <button type="button" className="eye" onClick={() => setShowPwd(!showPwd)}
-                  aria-label={showPwd ? '隐藏密文' : '显示密文'}>👁</button>
+                  aria-label={showPwd ? '隐藏密码' : '显示密码'}>👁</button>
               </div>
               {error && <p className="login-error">{error}</p>}
               {!error && syncError && <p className="login-error">{syncError}</p>}
               <button className="btn lg block" style={{ marginTop: 20 }} disabled={busy}>
-                {busy ? '甜蜜值凝聚中…' : '🔮 开启糖果之门'}
+                {busy ? '正在登录…' : '🍬 进入糖果题库'}
               </button>
             </form>
             <p className="login-foot">✦ 糖果题库 v1.0 · 尝味师专用 · 纯网页端 · 云端甜蜜值同步 ✦</p>

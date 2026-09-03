@@ -503,3 +503,108 @@ candy.css 的 `select` 规则带 `!important`，那行内联早就是死代码�
 - 注：**「甜蜜值」本身是糖果语汇、不是哥特**，所以我没批量清它；只把 Bank 那个 kv 标签改成「掌握度」，因为它表达的是 SRS 掌握程度而不是什么"值"。要不要全站把「甜蜜值」换成「学习进度/熟练度」之类，是个口味问题，等你说。
 - **答题页仍在用的哥特位图**（§7.3 主战场，未动）：`A.cardBack`(p6 牌背)、`A.waxSeal`(wax-1~3)、`A.cracks`、`A.markRadio/markCheck`、`A.judgeCard`、`A.roseWindow`（结算页那处已删，`card-flip-cover` 里还有一张）、`A.emptyShelf`/`A.emptyTable`/`A.emptyCandle`（三个空状态插图）、`A.titleDecor`(p45，被 `.page-head` 的 `background-image:none !important` 掐掉、不发请求)。
 - `Practice.jsx` 第 4 行 `import { A, TYPE_SEAL_INDEX }`，`TYPE_SEAL_INDEX` 现在**没人用了**（Bank 那处已删），是个死导入，会被 tree-shake，无害。
+
+---
+
+## 13. 第三轮（2026-09-04）· 全站去哥特收尾 + dist 瘦身 35%
+
+**gh-pages HEAD：`b91f8cb`。本轮两个提交：`989d66d`（四页文案与位图清理 + 删 25 个死键）→ `b91f8cb`（四处暗底配色）。**
+**dist：82 文件 / 7.59 MB → 46 文件 / 4.90 MB（-36 文件 / -2.69 MB / -35%）；img：76 个 7.00 MB → 40 个 4.32 MB。**
+
+### 13.1 用户拍板并实施
+
+- **对=绿、错=红 保留**（§11 的双通道不动）
+- **三档自评：忘记=红 `rgb(196,55,46)` / 模糊=黄 `rgb(138,109,0)`+柠檬边 / 记得=绿 `rgb(27,127,99)`**。
+  「忘记」的红与「答错了」的红**完全同值**，语义打通。文字对比度顺带从 3.0~3.3:1 提到 4.9:1 过 AA。
+- 三档副标题改大白话（`被答错了`→`完全想不起来`、`正确率游离`→`犹豫了一下才对`、`正确率铭刻`→`一眼就答出来了`）。
+  **这三个选项直接驱动 FSRS 间隔算法**，原文案语义含糊、「被答错了」是病句，选错会影响复习排期。用户没点名要这条，不满意可单独还原三行。
+
+### 13.2 系统扫描：不再靠用户当探针
+
+前两轮的去哥特都是**用户报障才发现**的（`.diff-pill`、`.settle-*`）。这轮改用三个可复跑的扫描口径，把可达页面一次扫干净：
+
+| 扫描口径 | 抓什么 | 本轮战果 |
+| --- | --- | --- |
+| 逐键统计 `A\.<key>` 在 src 的出现次数 | assets.js 里的死键 | **25 个键零引用**，删掉后 purge-dist 清出 56 个孤儿文件 |
+| grep `color: '#` / `'rgba` 的内联样式 | JSX 里硬编码的哥特色 | Settings 3 处（`#d6c79b` 1.9:1、`#d98ba0` 2.6:1、`rgba(156,132,82,.55)` 1.6:1）、Import 4 处（`#d9c26a` 1.8:1、深棕底、深金洗） |
+| grep `Cinzel` 在 pages/global.css | 还在吃 404 字体 + 暗底配色的选择器 | 可达页只剩 **`.stepper .val`**（设置页每日目标 30px 数字，约 2.2:1）；其余 6 处全在孤儿页 Stats.jsx |
+| grep 某个哥特色值（如 `d98ba0`）反查全部落点 | candy.css 从没覆盖过的规则 | `.rework-box h4`、`.rework-box li.err-i`、`.furnace-zone .panel-title` |
+
+**统计 `A.<key>` 时必须排掉注释里的字面量假阳性**：我自己写的注释里有 `A.seals`/`A.gems`/`A.hallVision`，
+一度让 `seals=1`、`gems=2` 看起来"还在用"。逐个看落点行才确认是注释。
+另外要确认全站没有 `A[key]` 动态取值或解构 —— 注意 **PowerShell `-match` 默认不区分大小写**，
+`A\[` 会把 `RARITY_META[` 里的 `A[` 匹配上，必须用 `-cmatch`。
+
+### 13.3 四页文案与位图清理
+
+- **Login**：`🔮 开启糖果之门`→`🍬 进入糖果题库`、`邮箱 / 窥秘名`→`邮箱`、`甜蜜值密文`→`密码`、
+  `隐藏/显示密文`→`隐藏/显示密码`、`✗ 密文错了，这颗糖有点酸～再试试？`→`✗ 密码不对，再试一次？`、`尝 味 师 登 入`→`登 录`。
+  **五个哥特位图从 JSX 删净**（p11 星空 / p12 漩涡 / p7 青铜门 / p13 魔法球 / p44 分隔条）。
+  ⚠️ 其中 `.login-vortex`(p12) 与 `.login-orb`(p13) 是 candy.css `display:none !important` 的 `<img>` ——
+  正是 §6 那条「隐藏不等于不加载」，**登录页每次都在白下这两张图**。`.login-bg` 那个 div 要留（糖果渐变底挂在它上面）。
+  §7.3 声称这四个"JSX 已移除，只剩 assets.js 里的键"是**错的**，实测全在 JSX 里活着。
+- **Import**：`检测 & 封印`→`检 测 & 入 库`、`题库导入仪式`→`题库导入`、`甜蜜值凝聚`→`粘贴题库`、`封印入库`→`收进书架`、
+  `已封印入库`→`已入库`、`检测并封印`→`检测并入库`、`记忆回溯完成`→`备份恢复完成`、`做题记录一并回溯`→`一并恢复`、
+  `甜蜜值回流受阻`→`云端写入受阻`、`已导入 N 题`→`检测到 N 题`、`发回给 AI 净化`→`修正`。
+  **修好 §7.4 记的那句被「卷」正则改坏的说明**：`21 卷批执行完整规则…超过 21 卷按大秘库逐题检测`
+  → `21 题及以内按整批规则校验（题型配比 / 难度层段 / 元数据映射等 9 类）；超过 21 题只逐题检测`
+  （与 `validate.js` 的 `batchMode = items.length <= 21` 实际行为对齐）。
+  **删掉两个 `A.roseWindow` 哥特玫瑰窗**（过场动画那个还挂着 `spin-slow 10s linear infinite` 永久旋转，违反 §5）与 `A.warnRune` 警告符文。
+  告警框从哥特暗金（`#d9c26a` 浅金字，约 1.8:1，等于看不见）改成糖果柠檬通道（`#8A6D00`，约 4.9:1）。
+- **Settings**：导出文件名 **`典籍馆甜蜜值备份_`→`糖果题库备份_`**（「典籍馆」是哥特品牌名，漏网最久的一处）、
+  `🔮 甜蜜值备份`→`💾 数据备份`、`解除契约 · 退出登录`→`退出登录`；三处硬编码哥特内联色改 token（见 13.2）。
+- **Bank**：见 §12.2（上一轮已做）。
+
+### 13.4 assets.js 删掉 25 个死键
+
+删：`cardFrame parchment bgTexture loginGate hallVision starryBg vortex magicOrb magicBook sealedDeck cardPile cardTower
+warnRune stepDone stepActive stepWait balance memoryFlask sigilBadge furnace navBar seals gems navIcons abyss`
+留：`cardBack idCardFrame avatar portraitFrame roseWindow astrolabe trophy badgeFrame emptyShelf emptyTable emptyCandle
+milestone achIcons divider titleDecor markRadio markCheck judgeCard waxSeal cracks`
+
+§6 那条「改 assets.js 时保留全部键名与数据结构」的**前提是有代码在读**（`A.gems[x]` 取 undefined 会崩）。
+这 25 个已逐个 grep 确认零引用、且全站无 `A[key]` 动态取值，所以删键安全。
+`divider` 虽然只被 `components.jsx` 里那个**没人 import 的死 `Divider` 组件**用着，仍保守保留（归 §7.7）。
+`p2`/`p4` 的键删了但**文件保留** —— 它们被 CSS 直接 `url()` 引用，文件级清理由 purge-dist 判定，它扫全部源码含 CSS。
+
+purge-dist 实际清掉 56 个孤儿，**在用的变体一个没误删**：`p19-soft`（`p19` 被清）、`crack-1s/2s/3s`（`crack-1/2/3` 被清）、
+`mark-*-n`（`mark-*` 被清）、`wax-1/2/3`、`judge-true/false`、`p44/p45`。
+`p11` 因为 index.html 的 preload 仍算被引用而保留（符合 §3.3 用户要求）。
+
+### 13.5 冒烟实测（demo 模式，Playwright）
+
+| 页面 | `<img>` 数 | 裂图 | 实际发出的图片请求 |
+| --- | --- | --- | --- |
+| 学习页 | 0 | 0 | `p11.webp`（只有 index.html 那条 preload） |
+| 导入页 | 0 | 0 | **空** |
+| 设置页 | 0 | 0 | **空** |
+| 题库页（28 张卡） | 0 | 0 | **空**（原先是 28 个印章 + 28 颗宝石） |
+| 答题页 | 4 | 0 | `wax-1/2/3.webp`、`p20.webp`（牌背中心玫瑰窗） |
+
+`page.on('console'/'response'/'requestfailed')` 全程监听：**errors 数组为空**，零 console error、零 HTTP≥400、零请求失败。
+返工框实测：`bg rgba(242,86,74,0.12)`、`border rgb(242,86,74)`、标题与错误行 `rgb(196,55,46)`、16 条 li 全部渲染。
+设置页实测：stepper 数字 `Nunito` + `rgb(209,71,103)` + `text-shadow:none`；危险区边框/标题/说明三处同为 `rgb(196,55,46)`；
+邮箱 `rgb(74,74,74)`、页脚 `rgb(153,153,153)`；面板标题 `📚 题库书架 / ⚖️ 每日目标 / 💾 数据备份 / 🏅 尝味师凭证 / 🔥 危险区 · 糖果熔炉`。
+
+### 13.6 新增陷阱
+
+| 症状 | 原因 | 做法 |
+| --- | --- | --- |
+| `IndexOf` 查产物里某选择器，读到的是哥特原版色值 | 三层 CSS 打包后同一选择器会出现多次（pages.css 原版 + candy.css 覆盖版），`IndexOf` 取到**第一个** | 用 **`LastIndexOf`**，或直接读运行时 `getComputedStyle`。**§12.4 刚记下这条，同一轮里我自己又踩了一次** |
+| 给 `.success-box` 加 `!important` 会把告警框改坏 | Import 的告警框是 `className="success-box"` **再叠内联 style** 实现的柠檬变体；`!important` 会压掉内联 | 覆盖 pages.css 的普通规则**不需要** `!important`（同特异性靠后置层叠就赢，内联仍能赢我）。只有原规则自带 `!important` 时才需要（如 `.furnace-zone` 的 border-color） |
+| 拿 demo 假数据的文案做产物闸门断言永远 False | `if (DEMO) {...}` 在 production 构建里被整块 tree-shake | 见 §12.4 |
+
+### 13.7 剩余残留（都在孤儿页或已确认保留）
+
+- **Stats.jsx（入口已按用户要求摘掉、`#/stats` 仍可直达）**：`星 界 观 测 台`、`🕯 周做题量`、`🃏 分题型契合度`、
+  `🔮 星象命运之盘`、`已品尝 N 卷`、`甜蜜值契合度`、`观星台尚无记录`，内联 `#d98ba0`×2，
+  以及 `A.idCardFrame/avatar/portraitFrame/badgeFrame×2/astrolabe/trophy/milestone×3/achIcons×8/emptyCandle` ≈ 16 个位图。
+  **它一个人占了剩余 40 张图里的一大半。** §7.5 那两个选项（糖果化后给新入口 / 整页下线）仍未拍板；
+  若下线，dist 还能再瘦一大截。
+- **`甜蜜值` 全站保留**（App.jsx 加载态、Learn 横幅与按钮、Login/Settings 页脚、Import）—— 它是糖果语汇不是哥特，用户未要求改。
+- **答题页仍在用的哥特位图**：`A.cardBack`(p6 牌背)、`A.roseWindow`(p20，牌背中心)、`A.waxSeal`(wax-1~3 蜡封)、
+  `A.cracks`(crack-1s~3s 裂纹)、`A.markRadio/markCheck`(选项符文框)、`A.judgeCard`(判断题尖拱铜牌)。
+  §7.3 说的"答题页那批要不要整体糖果化（卡背→糖纸、蜡封→糖封、裂纹→糖霜裂）"**用户仍未拍板**，问过再动。
+- **`components.jsx` 里没人 import 的死 `Divider` 组件**（连带 `A.divider` / p44.png）、`Practice.jsx` 第 4 行的死导入 `TYPE_SEAL_INDEX`。归 §7.7。
+- **`global.css` 两个 Cinzel `@font-face`** 仍指向不存在的 `public/fonts/cinzel-*.woff2`，每次加载白拿 2 个 404（§3.1 记过，仍在）。
+- `Login.jsx` 在 demo 模式下进不去（`init` 直接置 signed-in），**本轮对它的改动只有构建与代码审查覆盖，没有浏览器实测**。
