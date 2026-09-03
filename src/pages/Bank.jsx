@@ -6,7 +6,7 @@ import { TYPES, DIFFICULTIES, domainLabel, lastResultMap } from '../lib/stats'
 
 const PAGE_SIZE = 50
 
-/* 题库页 · 禁书库 */
+/* 题库页 · 糖果书架 */
 export default function Bank() {
   const questions = useStore((s) => s.questions)
   const records = useStore((s) => s.records)
@@ -45,7 +45,7 @@ export default function Bank() {
     return (
       <div className="page-wrap">
         <div className="panel">
-          <EmptyState img={A.emptyTable} title="禁书库空空如也" hint="先去誊写厅誊写秘典，封印入库后此处方能陈列。" />
+          <EmptyState img={A.emptyTable} title="糖果书架空空如也" hint="先去导入厅导入题库，封印入库后此处方能陈列。" />
         </div>
       </div>
     )
@@ -55,12 +55,12 @@ export default function Bank() {
     <div className="page-wrap wide">
       <div className="page-head" style={{ backgroundImage: `url(${A.titleDecor})` }}>
         <h1 className="font-gothic"><span className="rune">🃏</span> 禁 书 库</h1>
-        <p>封印的秘典在此陈列，窥视需谨慎</p>
+        <p>封印的题库在此陈列，窥视需谨慎</p>
       </div>
 
       <div className="bank-search">
         <input value={search} onChange={(e) => { setSearch(e.target.value); setPage(0) }}
-          placeholder="🔮 以水晶球搜寻题干 / 知识点…" />
+          placeholder="🔮 找找想品的糖 / 知识点…" />
       </div>
 
       <div className="deck-row">
@@ -79,8 +79,8 @@ export default function Bank() {
       </div>
 
       <div className="bank-meta">
-        <span>共 {questions.length} 卷秘典 · 筛选后 {filtered.length} 卷</span>
-        <span>按誊写时间自新至旧陈列</span>
+        <span>共 {questions.length} 题题库 · 筛选后 {filtered.length} 题</span>
+        <span>按导入时间自新至旧陈列</span>
       </div>
 
       {/* 竖版塔罗牌墙：正面封印谜面，轻触 3D 翻面看此卷全部秘辛 */}
@@ -104,13 +104,13 @@ export default function Bank() {
                     <p className="tarot-stem">{q.stem}</p>
                     <div className="tarot-tags">
                       <span className={'tarot-orb' + (mastered ? ' full' : touched ? ' half' : '') + (last === false ? ' polluted' : '')}
-                        title={mastered ? '已掌握' : touched ? '复习中' : '未参悟'} />
+                        title={mastered ? '已品尝' : touched ? '复习中' : '未参悟'} />
                       {q.difficulty && A.gems[q.difficulty] && (
                         <img className="tarot-gem" src={A.gems[q.difficulty]} alt="" title={q.difficulty} loading="lazy" decoding="async" />)}
                       {q.knowledgeDomain && <span className="tag">{domainLabel(q.knowledgeDomain)}</span>}
-                      {last === false && <span className="tag red">被污染</span>}
+                      {last === false && <span className="tag red">酸了</span>}
                     </div>
-                    <span className="tarot-hint">✦ 轻触翻面 ✦</span>
+                    <span className="tarot-hint">✦ 轻触拆开 ✦</span>
                   </div>
                 </div>
 
@@ -118,20 +118,20 @@ export default function Bank() {
                 <div className="tarot-face back">
                   <div className="face-in">
                     <div className="tarot-scroll" onClick={(e) => e.stopPropagation()}>
-                      <h6>◆ 卷宗全录</h6>
-                      <div className="tarot-kv"><b>编号</b><span>第 {q.seq ?? '—'} 卷</span></div>
+                      <h6>◆ 题目全录</h6>
+                      <div className="tarot-kv"><b>编号</b><span>第 {q.seq ?? '—'} 题</span></div>
                       <div className="tarot-kv"><b>题型</b><span>{q.type}</span></div>
                       {q.knowledgeDomain && <div className="tarot-kv"><b>知识域</b><span>{domainLabel(q.knowledgeDomain)} · {q.knowledgeDomain}</span></div>}
                       {q.knowledgePoint && <div className="tarot-kv"><b>知识点</b><span>{q.knowledgePoint}</span></div>}
                       {q.difficulty && <div className="tarot-kv"><b>难度</b><span>{q.difficulty}</span></div>}
                       {q.cognitiveLevel && <div className="tarot-kv"><b>认知层</b><span>{q.cognitiveLevel}</span></div>}
-                      <div className="tarot-kv"><b>灵知</b><span>{mastered ? `已掌握 · 间隔 ${rc?.intervalDays ?? 0} 日` : touched ? `复习中 · 间隔 ${rc?.intervalDays ?? 0} 日` : '尚未参悟'}</span></div>
-                      <h6>◆ 符文谜面</h6>
+                      <div className="tarot-kv"><b>甜蜜值</b><span>{mastered ? `已品尝 · 间隔 ${rc?.intervalDays ?? 0} 日` : touched ? `复习中 · 间隔 ${rc?.intervalDays ?? 0} 日` : '尚未参悟'}</span></div>
+                      <h6>◆ 题面</h6>
                       <p>{q.stem}</p>
                       {(q.options ?? []).map((o, k) => <p key={k} className="tarot-opt">{o}</p>)}
-                      <h6>◆ 真理原文</h6>
+                      <h6>◆ 甜蜜答案</h6>
                       <p className="tarot-ans">{q.answer}</p>
-                      {q.explanation && <><h6>◆ 秘典解析</h6><p>{q.explanation}</p></>}
+                      {q.explanation && <><h6>◆ 题库解析</h6><p>{q.explanation}</p></>}
                       {qRecords.length > 0 && (
                         <>
                           <h6>◆ 参悟记录（近 {qRecords.length} 次）</h6>
@@ -154,8 +154,8 @@ export default function Bank() {
                         </>
                       ) : (
                         <>
-                          <button className="danger" onClick={() => setConfirmId(q.id)}>🗑 销毁此卷</button>
-                          <button onClick={() => setOpenId(null)}>合上牌面</button>
+                          <button className="danger" onClick={() => setConfirmId(q.id)}>🗑 删除此题</button>
+                          <button onClick={() => setOpenId(null)}>合上糖纸</button>
                         </>
                       )}
                     </div>

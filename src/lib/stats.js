@@ -34,7 +34,7 @@ export function titleFor(total) {
 }
 export const nextTitleFor = (total) => TITLES.find((t) => t.at > total) ?? null
 
-// ── 成就（奥术成就殿 8 枚）──
+// ── 成就（糖果成就 8 枚）──
 export function achievementsOf({ streak, total, days, accuracy }) {
   return [
     { id: 'streak7', title: '初燃', desc: '连续参悟 7 天', done: streak >= 7, cat: '修行', rarity: 'common', points: 10, progress: `${Math.min(streak, 7)}/7 天` },

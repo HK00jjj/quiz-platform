@@ -69,7 +69,7 @@ export default function Stats() {
     <div className="page-wrap wide">
       <div className="page-head" style={{ backgroundImage: `url(${A.titleDecor})` }}>
         <h1 className="font-gothic"><span className="rune">📊</span> 星 界 观 测 台</h1>
-        <p>窥秘人的成长档案 · 深渊见证每一次参悟</p>
+        <p>尝味师的成长档案 · 酸糖见证每一次参悟</p>
       </div>
 
       {/* ── 身份塔罗牌 ── */}
@@ -78,21 +78,21 @@ export default function Stats() {
         <div className="inner">
           <div className="id-top">
             <div className="portrait">
-              <img className="avatar" src={A.avatar} alt="窥秘人画像" />
+              <img className="avatar" src={A.avatar} alt="尝味师画像" />
               <img className="frame-r" src={A.portraitFrame} alt="" />
             </div>
             <div className="id-info">
               <div className="id-title gold-title font-gothic">{titleFor(total)} · 序列{level}</div>
-              <div className="id-seq">奥术典籍馆 · 在籍窥秘人</div>
+              <div className="id-seq">糖果题库 · 在籍尝味师</div>
               <div className="id-crystal">
-                <div className="cap"><span>灵知 <b>{lp.into}</b> / {lp.span}</span><span>{Math.round(lp.into / lp.span * 100)}%</span></div>
+                <div className="cap"><span>甜蜜值 <b>{lp.into}</b> / {lp.span}</span><span>{Math.round(lp.into / lp.span * 100)}%</span></div>
                 <div className="crystal-track"><div className="crystal-fill" style={{ width: `${lp.into / lp.span * 100}%` }} /></div>
                 {nextTitle
-                  ? <p style={{ fontSize: 11, color: 'var(--muted)', marginTop: 5 }}>距「{nextTitle.title}」还需 {nextTitle.at - total} 次秘典翻阅</p>
+                  ? <p style={{ fontSize: 11, color: 'var(--muted)', marginTop: 5 }}>距「{nextTitle.title}」还需 {nextTitle.at - total} 次题库翻阅</p>
                   : <p style={{ fontSize: 11, color: 'var(--muted)', marginTop: 5 }}>已抵达穹顶之巅</p>}
               </div>
               <p className="id-mini">
-                累计翻阅 <b>{total}</b> 次 ◆ 已掌握 <b>{mastered}</b> 卷 ◆ 秘典 <b>{questions.length}</b> 卷
+                累计翻阅 <b>{total}</b> 次 ◆ 已品尝 <b>{mastered}</b> 卷 ◆ 题库 <b>{questions.length}</b> 卷
               </p>
             </div>
           </div>
@@ -126,7 +126,7 @@ export default function Stats() {
             <img className="base" src={A.astrolabe} alt="" />
             <div className="astrolabe-center">
               <span className="pct">{accuracy === null ? '—' : Math.round(accuracy * 100) + '%'}</span>
-              <small>灵知契合度</small>
+              <small>甜蜜值契合度</small>
             </div>
           </div>
           <div className="domain-bars">
@@ -143,9 +143,9 @@ export default function Stats() {
         </div>
       </div>
 
-      {/* ── 奥术修习日历 ── */}
+      {/* ── 奥术学习日历 ── */}
       <div className="stat-section">
-        <h3>📅 奥术修习日历</h3>
+        <h3>📅 奥术学习日历</h3>
         <div className="cal-book">
           <div className="cal-head">
             <button className="cal-nav" onClick={() => setMonthOffset(monthOffset + 1)} aria-label="上月">←</button>
@@ -254,9 +254,9 @@ export default function Stats() {
         </div>
       </div>
 
-      {/* ── 奥术成就殿 ── */}
+      {/* ── 糖果成就 ── */}
       <div className="stat-section">
-        <h3><img src={A.trophy} alt="" style={{ width: 26, height: 26, objectFit: 'contain' }} /> 奥术成就殿</h3>
+        <h3><img src={A.trophy} alt="" style={{ width: 26, height: 26, objectFit: 'contain' }} /> 糖果成就</h3>
         <div className="panel deep">
           <div className="ach-summary">
             <div style={{ flex: 1, minWidth: 200 }}>
@@ -313,7 +313,7 @@ export default function Stats() {
       )}
 
       {records.length === 0 && (
-        <div className="panel"><EmptyState img={A.emptyCandle} title="观星台尚无记录" hint="完成一次修习后，星象将开始为你记录灵知的轨迹。" /></div>
+        <div className="panel"><EmptyState img={A.emptyCandle} title="观星台尚无记录" hint="完成一次学习后，星象将开始为你记录甜蜜值的轨迹。" /></div>
       )}
     </div>
   )

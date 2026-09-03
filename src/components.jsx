@@ -1,50 +1,40 @@
 import { useEffect, useMemo, useState } from 'react'
 import { A } from './assets'
 
-/* 深渊轮廓（极淡闪现，不可名状）：三张真实剪影素材，各自方位与周期不同，几乎不会同时出现 */
-function AbyssSilhouettes() {
-  return (
-    <>
-      {A.abyss.map((src, i) => (
-        <img key={i} className={'abyss-silhouette s' + (i + 1)} src={src} alt="" aria-hidden="true" decoding="async" />
-      ))}
-    </>
-  )
-}
-
-/* ── 全局动态背景：纹理 + 彩窗光斑 + 烟雾 + 深渊星空 + 凝视 + 暗角 ── */
+/* ── 气泡氛围层（取代哥特酸糖星空）：12 颗半透明彩色气泡从底部缓慢上升，到顶消散。
+   intensity 由页面传入（答题页 1.6），只用来调气泡密度。
+   'abyss-pulse'（答错时 Practice 派发）在这里接住，让整层短暂“变酸”（色相偏移）——
+   对应方案 7.5「做错时气泡短暂变多变快，仿佛空气都酸了一下」。 ── */
 export function Background({ intensity = 1 }) {
-  const stars = useMemo(() => Array.from({ length: 26 }, (_, i) => ({
+  const bubbles = useMemo(() => Array.from({ length: 12 }, (_, i) => ({
     id: i,
-    left: Math.random() * 100,
-    top: Math.random() * 100,
-    delay: Math.random() * 5,
-    wander: i < 4
+    left: 4 + Math.random() * 92,
+    size: 18 + Math.random() * 46,
+    dur: 16 + Math.random() * 10,
+    /* 负延迟：进页时气泡已经分布在全程各个高度，不用等第一轮 */
+    delay: -Math.random() * 24,
+    tone: ['pink', 'mint', 'lemon', 'lav'][i % 4]
   })), [])
-  const [abyssOn, setAbyssOn] = useState(false)
+  const [sour, setSour] = useState(false)
   useEffect(() => {
     let t = null
     const on = () => {
-      setAbyssOn(true)
+      setSour(true)
       if (t) clearTimeout(t)
-      t = setTimeout(() => setAbyssOn(false), 1300)
+      t = setTimeout(() => setSour(false), 1100)
     }
     window.addEventListener('abyss-pulse', on)
     return () => { window.removeEventListener('abyss-pulse', on); if (t) clearTimeout(t) }
   }, [])
+  const shown = intensity > 1 ? bubbles : bubbles.slice(0, 9)
   return (
-    <div className={'bg-stage' + (abyssOn ? ' abyss-on' : '')} aria-hidden="true">
-      <div className="bg-texture" style={{ backgroundImage: `url(${A.bgTexture})` }} />
-      <div className="bg-smoke" />
-      <div className="bg-stained" />
-      <div className="abyss-flash" style={{ position: 'absolute', inset: 0, opacity: 0.05 * intensity }}>
-        {stars.map((s) => (
-          <span key={s.id} className={'abyss-star' + (s.wander ? ' wander' : '')}
-            style={{ left: `${s.left}%`, top: `${s.top}%`, animationDelay: `${s.delay}s` }} />
+    <div className="bg-stage" aria-hidden="true">
+      <div className={'bubble-layer' + (sour ? ' sour' : '')}>
+        {shown.map((b) => (
+          <span key={b.id} className={'bubble ' + b.tone}
+            style={{ left: `${b.left}%`, width: b.size, height: b.size, animationDuration: `${b.dur}s`, animationDelay: `${b.delay}s` }} />
         ))}
       </div>
-      <AbyssSilhouettes />
-      <div className="bg-vignette" />
     </div>
   )
 }
@@ -62,17 +52,17 @@ export function TouchRitual() {
   return null
 }
 
-/* 灵知火焰（连胜实体） */
+/* 甜蜜值火焰（连胜实体） */
 export function FlameIcon() {
   return <span className="flame-icon" aria-hidden="true" />
 }
 
-/* ── 粒子爆发（暗金星尘 / 墨绿青魔法 / 暗红烟雾） ── */
+/* ── 粒子爆发（糖豆配色：粉桃/薄荷/柠檬/薊衣草；“红”已改成酸橙绿，方案 6.1） ── */
 export function burstParticles(x, y, tone = 'gold', count = 18) {
-  const colors = tone === 'gold' ? ['#b8963a', '#c9a84c']
-    : tone === 'teal' ? ['#3a8a7e', '#5aa89c']
-    : tone === 'red' ? ['#6b1a3a', '#8b2a4a']
-    : ['#b8963a', '#5aa89c', '#6b3a8b']
+  const colors = tone === 'gold' ? ['#FFB6C1', '#FF8FA3']
+    : tone === 'teal' ? ['#7FE8C8', '#5FD4B0']
+    : tone === 'red' ? ['#A8E063', '#8BC34A']
+    : ['#FFB6C1', '#7FE8C8', '#FFE066', '#D4B8FF']
   for (let i = 0; i < count; i++) {
     const p = document.createElement('span')
     p.className = 'particle'
@@ -110,33 +100,27 @@ export function BootRitual({ onDone }) {
         <circle cx="65" cy="30" r="4.5" fill="#5aa89c" />
       </svg>
       <img className="boot-rose" src={A.roseWindow} alt="" />
-      <div className="boot-title font-gothic">奥术典籍馆</div>
-      <div className="boot-sub">窥秘人的修行之地 · 深渊在凝视</div>
+      <div className="boot-title font-gothic">糖果题库</div>
+      <div className="boot-sub">尝味师的甜蜜修行地</div>
     </div>
   )
 }
 
-/* ── 底部导航：穹顶五柱 ── */
+/* ── 底部导航：糖霜托盘三格（学习/导入/设置，方案 1.1）
+   图标用 emoji 而不是素材图：方案 6.5 要求圆润糖果元素，且不再依赖哥特图标素材。
+   错题提示（跳动的酸橙糖）挂在「学习」上，因为错题重练现在是学习页的一个入口。 ── */
 const NAV_ITEMS = [
-  { key: 'learn', label: '修习', img: A.navIcons.learn, to: '/' },
-  { key: 'bank', label: '秘典', img: A.navIcons.bank, to: '/bank' },
-  { key: 'import', label: '誊写', img: A.navIcons.import, to: '/import', center: true },
-  { key: 'stats', label: '星象', img: A.navIcons.stats, to: '/stats' },
-  { key: 'settings', label: '工坊', img: A.navIcons.settings, to: '/settings' }
+  { key: 'learn', label: '学习', icon: '🍬', to: '/', tone: 'pink' },
+  { key: 'import', label: '导入', icon: '📦', to: '/import', tone: 'mint' },
+  { key: 'settings', label: '设置', icon: '⚙️', to: '/settings', tone: 'lav' }
 ]
 export function BottomNav({ active, wrongCount, onNav }) {
   return (
-    <nav className="bottom-nav" style={{ backgroundImage: undefined }}>
-      <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${A.navBar})`, backgroundSize: 'cover', backgroundPosition: 'center', opacity: .35, pointerEvents: 'none' }} />
-      {NAV_ITEMS.map((it) => it.center ? (
-        <button key={it.key} className={'nav-item nav-center' + (active === it.key ? ' active' : '')} onClick={() => onNav(it.to)}>
-          <span className="nav-icon-wrap"><img src={it.img} alt="" decoding="async" /></span>
-          <span>{it.label}</span>
-        </button>
-      ) : (
-        <button key={it.key} className={'nav-item' + (active === it.key ? ' active' : '')} onClick={() => onNav(it.to)}>
-          {it.key === 'bank' && wrongCount > 0 && <span className="dot" />}
-          <img className="nav-icon" src={it.img} alt="" decoding="async" />
+    <nav className="bottom-nav">
+      {NAV_ITEMS.map((it) => (
+        <button key={it.key} className={'nav-item tone-' + it.tone + (active === it.key ? ' active' : '')} onClick={() => onNav(it.to)}>
+          {it.key === 'learn' && wrongCount > 0 && <span className="dot" />}
+          <span className="nav-emoji" aria-hidden="true">{it.icon}</span>
           <span>{it.label}</span>
         </button>
       ))}

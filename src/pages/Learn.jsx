@@ -37,7 +37,7 @@ function FilterModal({ title, filters, onToggle, onClose, onStart, count, startL
         </div>
         <div style={{ display: 'flex', gap: 10, marginTop: 18, flexWrap: 'wrap' }}>
           <GiltBtn size="lg" onClick={onStart} disabled={count === 0}>
-            {startLabel}（{count} 卷）
+            {startLabel}（{count} 题）
           </GiltBtn>
           <GiltBtn tone="ghost" onClick={onClose}>返回阅览厅</GiltBtn>
         </div>
@@ -80,12 +80,12 @@ export default function Learn() {
   }
   // 「开始今日练习」优先链：到期复习 → 错题 → 新题 → 随机（按交接要求保留）
   const hero = dueCount > 0
-    ? { sub: `${dueCount} 卷到期符文等待参悟`, run: () => run('review', { size: 20 }) }
+    ? { sub: `${dueCount} 题到期符文等待参悟`, run: () => run('review', { size: 20 }) }
     : wrongCount > 0
-      ? { sub: `${wrongCount} 卷被污染符文待净化`, run: () => run('wrong', { size: 20 }) }
+      ? { sub: `${wrongCount} 题酸了符文待净化`, run: () => run('wrong', { size: 20 }) }
       : newCount > 0
-        ? { sub: `${newCount} 卷新秘典待翻阅`, run: () => run('learn') }
-        : { sub: '今天也来保持灵知手感', run: () => run('random') }
+        ? { sub: `${newCount} 题新题库待翻阅`, run: () => run('learn') }
+        : { sub: '今天也来保持甜蜜值手感', run: () => run('random') }
 
   function toggleFilter(scope, dim, value) {
     const key = scope === 'relearn' ? 'relearnFilters' : 'learnFilters'
@@ -101,9 +101,9 @@ export default function Learn() {
         <div className="panel">
           <EmptyState
             img={A.emptyShelf}
-            title="典籍馆尚无秘典"
-            hint="把「命题流水线」产出的题库 JSON 誊写到誊写厅，即可开始翻阅秘典、间隔参悟与污染净化。"
-            action={<GiltBtn size="lg" onClick={() => navigate('/import')}>🔮 前往誊写厅</GiltBtn>}
+            title="典籍馆尚无题库"
+            hint="把「命题流水线」产出的题库 JSON 导入到导入厅，即可开始翻阅题库、间隔参悟与污染净化。"
+            action={<GiltBtn size="lg" onClick={() => navigate('/import')}>🔮 前往导入厅</GiltBtn>}
           />
         </div>
       </div>
@@ -113,22 +113,22 @@ export default function Learn() {
   return (
     <div className="page-wrap">
       <div className="learn-banner">
-        <div className="brand gold-title font-gothic">✦ 奥术典籍馆 ✦</div>
+        <div className="brand gold-title font-gothic">✦ 糖果题库 ✦</div>
         {doneToday > 0 ? (
           <span className="tag teal" style={{ fontSize: 13, padding: '6px 14px' }}>
-            ✦ 今日已参悟，灵知延续中 <FlameIcon />
+            ✦ 今日已参悟，甜蜜值延续中 <FlameIcon />
           </span>
         ) : (
           <GiltBtn size="sm" onClick={(e) => {
             burstParticles(e.clientX, e.clientY, 'gold', 14)
             hero.run()
-          }}>🔄 延续灵知</GiltBtn>
+          }}>🔄 延续甜蜜值</GiltBtn>
         )}
       </div>
 
       <div className="learn-vision rise">
         <img src={A.hallVision} alt="" />
-        <span className="cap">穹顶阅览厅 · 选择你的修习之道</span>
+        <span className="cap">穹顶阅览厅 · 选择你的学习之道</span>
       </div>
 
       <div className="panel deep" style={{ textAlign: 'center' }}>
@@ -143,7 +143,7 @@ export default function Learn() {
         <p style={{ marginTop: 10, fontSize: 12.5, color: 'var(--muted)', letterSpacing: 1 }}>{hero.sub}</p>
         {streak > 0 && (
           <p style={{ marginTop: 6, fontSize: 12, color: 'var(--gold-text)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-            <FlameIcon /> 灵知已稳定燃烧 {streak} 天
+            <FlameIcon /> 甜蜜值已稳定燃烧 {streak} 天
           </p>
         )}
       </div>
@@ -154,25 +154,25 @@ export default function Learn() {
           <span className="count-gem">{wrongCount}</span>
           <div className="art"><img src={A.sealedDeck} alt="封印牌叠" /></div>
           <h3>污染重阅</h3>
-          <p>被深渊低语侵蚀的符文，等待重新解读净化</p>
+          <p>被酸糖低语侵蚀的符文，等待重新解读净化</p>
         </div>
         <div className="entry-card rise" style={{ animationDelay: '.16s' }} onClick={() => run('random', { size: 20 })}>
           <span className="count-gem">{randomCount}</span>
           <div className="art"><img src={A.cardPile} alt="塔罗牌堆" /></div>
           <h3>随机翻阅</h3>
-          <p>全库无放回抽取 20 卷 · 模拟考试手感 · 共 {questions.length} 卷</p>
+          <p>全库无放回抽取 20 卷 · 模拟考试手感 · 共 {questions.length} 题</p>
         </div>
         <div className="entry-card rise" style={{ animationDelay: '.24s' }} onClick={() => newCount > 0 && run('learn')}>
           <span className="count-gem">{newCount}</span>
           <div className="art"><img src={A.magicBook} alt="魔法书" /></div>
-          <h3>修习新篇</h3>
-          <p>{newCount} 卷未翻阅秘典 · 首次解读建立灵知印记</p>
+          <h3>学习新篇</h3>
+          <p>{newCount} 题未翻阅题库 · 首次解读建立甜蜜值印记</p>
         </div>
         <div className="entry-card rise" style={{ animationDelay: '.32s' }} onClick={() => setOpenFilter('relearn')}>
           <span className="count-gem">{relearnCount}</span>
           <div className="art"><img src={A.cardTower} alt="卡牌螺旋塔" /></div>
-          <h3>全部秘典</h3>
-          <p>可按题型 / 知识域 / 难度切牌筛选后修习</p>
+          <h3>全部题库</h3>
+          <p>可按题型 / 知识域 / 难度切牌筛选后学习</p>
         </div>
       </div>
 
@@ -182,7 +182,7 @@ export default function Learn() {
 
       {openFilter === 'relearn' && (
         <FilterModal
-          title="🃏 全部秘典 · 切牌筛选"
+          title="🃏 全部题库 · 切牌筛选"
           filters={relearnFilters}
           onToggle={(dim, v) => toggleFilter('relearn', dim, v)}
           onClose={() => setOpenFilter(null)}

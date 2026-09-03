@@ -3,7 +3,7 @@ import { useStore } from '../store'
 import { A } from '../assets'
 import { burstParticles } from '../components'
 
-/* 登录页 · 穹顶之门 */
+/* 登录页 · 糖果之门 */
 export default function Login() {
   const signIn = useStore((s) => s.signIn)
   const syncError = useStore((s) => s.syncError)
@@ -27,7 +27,7 @@ export default function Login() {
     setError(null)
     const err = await signIn(email.trim(), password)
     if (err) {
-      setError('✗ 密文错误，深渊低语干扰了你的灵知')
+      setError('✗ 密文错了，这颗糖有点酸～再试试？')
       setBusy(false)
       const box = document.querySelector('.login-gate-inner')
       if (box) {
@@ -50,8 +50,8 @@ export default function Login() {
           <div className="login-gate-frame" style={{ backgroundImage: `url(${A.loginGate})` }} />
           <div className="login-gate-inner">
             <img className="login-orb" src={A.magicOrb} alt="" />
-            <h1 className="login-title gold-title font-gothic">穹顶之门</h1>
-            <p className="login-sub">窥 秘 人 登 入</p>
+            <h1 className="login-title gold-title font-gothic">糖果之门</h1>
+            <p className="login-sub">尝 味 师 登 入</p>
             <div className="login-divider" style={{ backgroundImage: `url(${A.divider})` }} />
             <form onSubmit={submit}>
               <div className="login-input">
@@ -62,17 +62,17 @@ export default function Login() {
               <div className="login-input">
                 <span className="icon" aria-hidden="true">🔒</span>
                 <input type={showPwd ? 'text' : 'password'} required autoComplete="current-password"
-                  value={password} onChange={(e) => setPassword(e.target.value)} placeholder="灵知密文" />
+                  value={password} onChange={(e) => setPassword(e.target.value)} placeholder="甜蜜值密文" />
                 <button type="button" className="eye" onClick={() => setShowPwd(!showPwd)}
                   aria-label={showPwd ? '隐藏密文' : '显示密文'}>👁</button>
               </div>
               {error && <p className="login-error">{error}</p>}
               {!error && syncError && <p className="login-error">{syncError}</p>}
               <button className="btn lg block" style={{ marginTop: 20 }} disabled={busy}>
-                {busy ? '灵知凝聚中…' : '🔮 开启穹顶之门'}
+                {busy ? '甜蜜值凝聚中…' : '🔮 开启糖果之门'}
               </button>
             </form>
-            <p className="login-foot">✦ 奥术典籍馆 v1.0 · 窥秘人专用 · 纯网页端 · 云端灵知同步 ✦</p>
+            <p className="login-foot">✦ 糖果题库 v1.0 · 尝味师专用 · 纯网页端 · 云端甜蜜值同步 ✦</p>
           </div>
         </div>
       </div>

@@ -6,7 +6,7 @@ import { reworkTalk } from '../lib/validate'
 import { A } from '../assets'
 import { GiltBtn, burstParticles } from '../components'
 
-/* 导入页 · 秘典誊写仪式 */
+/* 导入页 · 题库导入仪式 */
 export default function Import() {
   const navigate = useNavigate()
   const importBank = useStore((s) => s.importBank)
@@ -28,7 +28,7 @@ export default function Import() {
     } else if (errs.length > 0) {
       setResult({ tone: 'red', title: `检测失败：${errs.length} 项错误、${warns.length} 项告警，未入库`, issues, rework: true })
     } else if (importRes) {
-      setResult({ tone: 'green', title: `检测通过，已封印入库 新增 ${importRes.added} 卷`, warnings: warns, added: importRes.added })
+      setResult({ tone: 'green', title: `检测通过，已封印入库 新增 ${importRes.added} 题`, warnings: warns, added: importRes.added })
     } else {
       setResult({ tone: 'warn', title: `检测完成：${warns.length} 项告警（可入库）`, warnings: warns, issues })
     }
@@ -43,12 +43,12 @@ export default function Import() {
         setSealing(true)
         try {
           const res = await importBank(text)
-          setResult({ tone: 'green', title: `✦ 记忆回溯完成，已恢复 ${res.added} 卷秘典 ✦`, added: res.added, backup: true })
+          setResult({ tone: 'green', title: `✦ 记忆回溯完成，已恢复 ${res.added} 题题库 ✦`, added: res.added, backup: true })
         } catch {
-          setResult({ tone: 'red', title: '云端写入失败', issues: [{ where: '云端', level: '错误', message: '灵知回流受阻，请重试' }], rework: false })
+          setResult({ tone: 'red', title: '云端写入失败', issues: [{ where: '云端', level: '错误', message: '甜蜜值回流受阻，请重试' }], rework: false })
         }
       } else if (cls.kind === 'parse-error') {
-        setResult({ tone: 'red', title: '誊写内容无法解析', issues: cls.errors.map((m) => ({ where: '顶层', level: '错误', message: m })), rework: false })
+        setResult({ tone: 'red', title: '导入内容无法解析', issues: cls.errors.map((m) => ({ where: '顶层', level: '错误', message: m })), rework: false })
       } else if (cls.issues.filter((i) => i.level === '错误').length === 0) {
         setSealing(true)
         try {
@@ -89,19 +89,19 @@ export default function Import() {
     <div className="page-wrap wide">
       <div className="page-head" style={{ backgroundImage: `url(${A.titleDecor})` }}>
         <h1 className="font-gothic"><span className="rune">🔮</span> 检测 &amp; 封印</h1>
-        <p>秘典誊写仪式 · 当前秘典 {total} 卷</p>
+        <p>题库导入仪式 · 当前题库 {total} 题</p>
       </div>
 
       <div className="panel deep">
         <div className="step-bar">
           <div className={'step-node' + (stepState >= 1 ? (stepState === 1 ? ' active' : ' done') : '')}>
             <img src={stepState > 1 ? A.stepDone : A.stepActive} alt="" />
-            <span>灵知凝聚{stepState > 1 ? ' ✓' : ''}</span>
+            <span>甜蜜值凝聚{stepState > 1 ? ' ✓' : ''}</span>
           </div>
           <div className={'step-line' + (stepState > 1 ? ' on' : '')} />
           <div className={'step-node' + (stepState === 2 ? ' active' : stepState > 2 ? ' done' : '')}>
             <img src={stepState > 2 ? A.stepDone : stepState === 2 ? A.stepActive : A.stepWait} alt="" />
-            <span>誊写检测{busy ? '中…' : stepState > 2 ? ' ✓' : ''}</span>
+            <span>导入检测{busy ? '中…' : stepState > 2 ? ' ✓' : ''}</span>
           </div>
           <div className={'step-line' + (stepState > 2 ? ' on' : '')} />
           <div className={'step-node' + (stepState === 3 ? ' active' : '')}>
@@ -111,9 +111,9 @@ export default function Import() {
         </div>
 
         <div className="panel" style={{ background: 'rgba(30,24,16,.6)', marginBottom: 16 }}>
-          <div className="panel-title">📖 誊写说明</div>
+          <div className="panel-title">📖 导入说明</div>
           <p style={{ fontSize: 13, lineHeight: 1.9, color: 'var(--muted)' }}>
-            将外部 AI 生成的题目 JSON 誊写到下方卷轴，或拖入 JSON 文件，自动校验结构与规范。
+            将外部 AI 生成的题目 JSON 导入到下方卷轴，或拖入 JSON 文件，自动校验结构与规范。
             21 卷批执行完整规则（配比 / 难度层段 / 元数据映射等 9 类）；超过 21 卷按大秘库逐题检测；备份 JSON 走回溯通道。
           </p>
         </div>
@@ -123,17 +123,17 @@ export default function Import() {
           onDragLeave={() => setDragOn(false)}
           onDrop={(e) => { e.preventDefault(); setDragOn(false); onFile(e.dataTransfer.files?.[0]) }}>
           <textarea className="rune-textarea" value={text} onChange={(e) => setText(e.target.value)}
-            placeholder={'将 AI 生成的题目 JSON 数组誊写到这里，如 [{"序号":1,"题型":"单选题",…}]，也可直接拖入 JSON 文件'}
+            placeholder={'将 AI 生成的题目 JSON 数组导入到这里，如 [{"序号":1,"题型":"单选题",…}]，也可直接拖入 JSON 文件'}
             rows={12} />
         </div>
 
         <div className="scroll-meta">
           <span style={{ fontSize: 12.5, color: 'var(--muted)' }}>
-            已誊写 {volumes || '—'} 卷 · 约 {chars} 字
+            已导入 {volumes || '—'} 题 · 约 {chars} 字
           </span>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             <GiltBtn onClick={detect} disabled={!text.trim() || busy}>
-              {busy ? '誊写校验中…' : '🔍 检测并封印'}
+              {busy ? '导入校验中…' : '🔍 检测并封印'}
             </GiltBtn>
             <GiltBtn tone="ghost" onClick={() => fileRef.current?.click()}>📎 选择 JSON 文件</GiltBtn>
             <input ref={fileRef} type="file" accept=".json,application/json" hidden
@@ -156,8 +156,8 @@ export default function Import() {
             <p className="gold-glow-text" style={{ fontSize: 17, letterSpacing: 3 }}>{result.title}</p>
             {result.backup && <p style={{ marginTop: 8, fontSize: 12, color: 'var(--muted)' }}>参悟记录一并回溯</p>}
             <div style={{ display: 'flex', gap: 10, justifyContent: 'center', marginTop: 14, flexWrap: 'wrap' }}>
-              <GiltBtn onClick={(e) => { burstParticles(e.clientX, e.clientY, 'gold', 14); navigate('/bank') }}>前往禁书库</GiltBtn>
-              <GiltBtn tone="ghost" onClick={() => { setText(''); setResult(null) }}>继续誊写</GiltBtn>
+              <GiltBtn onClick={(e) => { burstParticles(e.clientX, e.clientY, 'gold', 14); navigate('/bank') }}>前往糖果书架</GiltBtn>
+              <GiltBtn tone="ghost" onClick={() => { setText(''); setResult(null) }}>继续导入</GiltBtn>
             </div>
           </div>
         )}
@@ -184,7 +184,7 @@ export default function Import() {
             {result.rework && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 12, flexWrap: 'wrap' }}>
                 <GiltBtn tone="danger" onClick={copyRework}>{copied ? '✓ 已复制，发回给 AI 净化' : '📋 一键复制返工话术'}</GiltBtn>
-                <span style={{ fontSize: 12, color: 'var(--muted)' }}>话术含全部报错行与修正要求，AI 净化后重新誊写再检测。</span>
+                <span style={{ fontSize: 12, color: 'var(--muted)' }}>话术含全部报错行与修正要求，AI 净化后重新导入再检测。</span>
               </div>
             )}
           </div>

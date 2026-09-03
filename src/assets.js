@@ -15,10 +15,10 @@ export const A = {
   vortex: img('p12.png'),          // 墨绿青魔法漩涡
   magicOrb: img('p13.webp'),        // 旋转魔法球
   portraitFrame: img('p14.webp'),   // 圆形法师画框
-  magicBook: img('p15.webp'),       // 魔法书（今日修习）
+  magicBook: img('p15.webp'),       // 魔法书（今日学习）
   sealedDeck: img('p16.webp'),      // 封印牌叠（污染重阅）
   cardPile: img('p17.webp'),        // 塔罗牌堆（随机翻阅）
-  cardTower: img('p18.webp'),       // 卡牌螺旋塔（全部秘典）
+  cardTower: img('p18.webp'),       // 卡牌螺旋塔（全部题库）
   roseWindow: img('p20.webp'),      // 玫瑰窗魔法阵
   warnRune: img('p22.webp'),        // 警告符文
   stepDone: img('p23-1.webp'),      // 流程节点：完成
@@ -28,7 +28,7 @@ export const A = {
   trophy: img('p28.webp'),          // 奖杯
   balance: img('p29.webp'),         // 炼金天平
   memoryFlask: img('p30.webp'),     // 记忆水晶瓶
-  sigilBadge: img('p31.webp'),      // 窥秘人徽章
+  sigilBadge: img('p31.webp'),      // 尝味师徽章
   furnace: img('p32.webp'),         // 炼金熔炉
   navBar: img('p33.webp'),          // 底部导航横栏
   seals: [1, 2, 3, 4, 5, 6, 7].map((i) => img(`p34-${i}.webp`)), // 七种题型印章（模板字面量，改扩展名时易漏）
@@ -52,7 +52,7 @@ export const A = {
   judgeCard: { ok: img('judge-true.webp'), no: img('judge-false.webp') },              // 判断题尖拱铜牌
   waxSeal: [img('wax-1.webp'), img('wax-2.webp'), img('wax-3.webp')],                 // 蜡封：完整/半碎/碎裂
   cracks: [img('crack-1s.webp'), img('crack-2s.webp'), img('crack-3s.webp')],             // 牌面裂纹蔓延三帧
-  abyss: [img('abyss-1-n.webp'), img('abyss-2-n.webp'), img('abyss-3-n.webp')]         // 深渊不可名状剑影
+  abyss: [img('abyss-1-n.webp'), img('abyss-2-n.webp'), img('abyss-3-n.webp')]         // 酸糖不可名状剑影
 }
 
 export const TYPE_SEAL_INDEX = {

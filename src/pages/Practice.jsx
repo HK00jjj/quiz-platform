@@ -109,7 +109,7 @@ export default function Practice() {
   if (phase === 'idle' || questions.length === 0) {
     return (
       <div className="practice-stage" style={{ textAlign: 'center', paddingTop: '24vh' }}>
-        <p style={{ color: 'var(--muted)', letterSpacing: 3, marginBottom: 20 }}>没有可翻阅的秘典</p>
+        <p style={{ color: 'var(--muted)', letterSpacing: 3, marginBottom: 20 }}>没有可翻阅的题库</p>
         <GiltBtn onClick={() => navigate('/')}>返回阅览厅</GiltBtn>
       </div>
     )
@@ -132,7 +132,7 @@ export default function Practice() {
     setFlash(ok ? 'ok-flash' : 'bad-flash')
     const r = e.currentTarget.getBoundingClientRect()
     burstParticles(r.left + r.width / 2, r.top, ok ? 'teal' : 'red', 16)
-    if (!ok) window.dispatchEvent(new Event('abyss-pulse')) // 做错：深渊凝视加深，短暂愉悦地骚动
+    if (!ok) window.dispatchEvent(new Event('abyss-pulse')) // 做错：酸糖凝视加深，短暂愉悦地骚动
   }
   function lastGradeAfter(input) {
     // 预判（与 store 同口径）以便立刻播放特效
@@ -180,7 +180,7 @@ export default function Practice() {
             <div className={'settle-pct ' + (pct >= 60 ? 'teal-glow-text' : 'red-glow-text')}>{pct}%</div>
             <p style={{ fontSize: 12, letterSpacing: 4, color: 'var(--muted)' }}>灵 知 契 合 度</p>
             {pct === 100 && <p className="gold-glow-text" style={{ marginTop: 10, letterSpacing: 3 }}>✦✦✦ 完美一役 ✦✦✦</p>}
-            {pct >= 80 && pct < 100 && <p className="gold-glow-text" style={{ marginTop: 10, letterSpacing: 3 }}>✦ 灵知精进 ✦</p>}
+            {pct >= 80 && pct < 100 && <p className="gold-glow-text" style={{ marginTop: 10, letterSpacing: 3 }}>✦ 甜蜜值精进 ✦</p>}
             <div className="settle-grid">
               <span><b className="teal-glow-text">{correct}</b>✦ 窥见</span>
               <span><b className="red-glow-text">{wrongN}</b>✗ 侵蚀</span>
@@ -193,7 +193,7 @@ export default function Practice() {
                   const n = await startSession('wrong', { size: 0 })
                   if (n > 0) startAt.current = Date.now()
                   else navigate('/')
-                }}>🕯 净化污染（{wrongN}）</GiltBtn>
+                }}>🕯 再品酸糖（{wrongN}）</GiltBtn>
               )}
               <GiltBtn onClick={() => { abortSession(); navigate('/') }}>返回阅览厅</GiltBtn>
             </div>
@@ -213,15 +213,15 @@ export default function Practice() {
             <span key={i} className={'gem-dot' + (i === index ? ' cur' : i < results.length ? (results[i] ? ' ok' : ' bad') : '')} />
           ))}
         </div>
-        <span className="practice-count">第 {index + 1} 卷 / 共 {questions.length} 卷</span>
-        <button className="chip" style={{ fontSize: 11 }} onClick={() => { abortSession(); navigate('/') }}>✕ 离场</button>
+        <span className="practice-count">第 {index + 1} 题 / 共 {questions.length} 题</span>
+        <button className="chip" style={{ fontSize: 11 }} onClick={() => { abortSession(); navigate('/') }}>✕ 退出</button>
       </div>
 
       <div className={'pile-counter okp'}>
-        <span className="pile">🗂</span> 已掌握 <b className="teal-glow-text">{results.filter(Boolean).length}</b>
+        <span className="pile">🗂</span> 已品尝 <b className="teal-glow-text">{results.filter(Boolean).length}</b>
       </div>
       <div className={'pile-counter badp'}>
-        <span className="pile">🕯</span> 污染封印 <b className="red-glow-text">{results.filter((v) => !v).length}</b>
+        <span className="pile">🕯</span> 酸糖罐 <b className="red-glow-text">{results.filter((v) => !v).length}</b>
       </div>
 
       <div className="q-card-wrap" key={q.id + '-' + index}>
@@ -229,7 +229,7 @@ export default function Practice() {
         <div className={'q-flipper' + (flipped ? ' is-front' : '')}>
         <div className={'q-card ' + flash}>
           {combo >= 3 && !answered && <span className="combo-pop" style={{ zIndex: 8 }}>✦ {combo} 连击！</span>}
-          {/* 深渊侵蚀：真实裂纹素材三帧自四角向中心蔓延（与牌面同 2:3 比例，零变形） */}
+          {/* 有点酸哦：真实裂纹素材三帧自四角向中心蔓延（与牌面同 2:3 比例，零变形） */}
           {flash === 'bad-flash' && (
             <div className="crack-veil" aria-hidden="true">
               {A.cracks.map((s, k) => <img key={k} className={'c' + (k + 1)} src={s} alt="" decoding="async" />)}
@@ -241,7 +241,7 @@ export default function Practice() {
             {/* ── 分区一 · 题目区：视觉层级最高，底色最干净 ── */}
             <section className="zone zone-q">
             <div className="q-tags">
-              <img className="stamp" src={A.seals[TYPE_SEAL_INDEX[q.type] ?? 0]} alt={q.type} title={q.type} />
+              <span className="type-candy">{(q.type || '').replace(/题$/, '')}</span>
               {q.knowledgeDomain && <span className="q-domain-tag">{domainLabel(q.knowledgeDomain)}</span>}
               {q.difficulty && A.gems[q.difficulty] && (
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
@@ -250,7 +250,7 @@ export default function Practice() {
                 </span>
               )}
             </div>
-            {/* 符文谜面：直接写在卷轴上 */}
+            {/* 题面：直接写在卷轴上 */}
             <div className="parch-layer"><Stem q={q} /></div>
             </section>
 
@@ -258,7 +258,7 @@ export default function Practice() {
 
             {/* ── 分区二 · 作答区 ── */}
             <section className="zone zone-a">
-            <h5 className="zone-label">{objective ? '◇ 择 符 作 答' : '◇ 誊 写 作 答'}</h5>
+            <h5 className="zone-label">{objective ? '◇ 选 一 颗 糖' : '◇ 誊 写 作 答'}</h5>
             <div className="q-answer-zone">
               {(q.type === '单选题' || q.type === '多选题') && (q.options ?? []).map((opt, i) => {
                 const letter = opt.match(/^([A-E])[.、]/)?.[1] ?? 'ABCDE'[i]
@@ -318,7 +318,7 @@ export default function Practice() {
                         <div style={{ flex: 1 }}>
                           <input className="rune-input" value={v} disabled={answered}
                             onChange={(e) => setFills((f) => f.map((x, j) => j === i ? e.target.value : x))}
-                            placeholder="誊写答案…" />
+                            placeholder="导入答案…" />
                           {bad && <p className="fill-expected">正确答案：{expParts[i]}</p>}
                         </div>
                       </div>
@@ -331,8 +331,8 @@ export default function Practice() {
                 <div className="subjective-area">
                   <textarea className="rune-textarea" value={text} disabled={answered}
                     onChange={(e) => setText(e.target.value)}
-                    placeholder={q.type === '计算分析题' ? '誊写关键数值与推演过程…' : '在此誊写你的解读…'} />
-                  <p className="char-count">已誊写 {text.length} 字</p>
+                    placeholder={q.type === '计算分析题' ? '导入关键数值与推演过程…' : '在此导入你的解读…'} />
+                  <p className="char-count">已导入 {text.length} 字</p>
                 </div>
               )}
             </div>
@@ -348,7 +348,7 @@ export default function Practice() {
                 <span className="seal-wax" aria-hidden="true">
                   {A.waxSeal.map((s, k) => <img key={k} className={'f' + (k + 1)} src={s} alt="" decoding="async" />)}
                 </span>
-                <span>{objective ? '答案已封印 · 解读符文后启封' : '参考答案已封印 · 展开卷轴后启封'}</span>
+                <span>{objective ? '答案已封印 · 品尝答案后启封' : '参考答案已封在糖纸里 · 展开后拆开'}</span>
               </div>
             )}
 
@@ -358,14 +358,14 @@ export default function Practice() {
                 {(objective || committed) && (
                   <div className={'verdict-banner ' + ((objective ? grade?.correct : lastRating === '记得') ? 'ok' : 'bad')}>
                     {combo >= 3 && (objective ? grade?.correct : lastRating === '记得') && <span className="combo-pop">✦ {combo} 连击！</span>}
-                    {(objective ? grade?.correct : lastRating === '记得') ? '✦ 窥见真理 ✦' : '✗ 深渊侵蚀 ✗'}
+                    {(objective ? grade?.correct : lastRating === '记得') ? '✦ 甜蜜正确 ✦' : '✗ 有点酸哦 ✗'}
                   </div>
                 )}
                 <div className={'answer-scroll-box ' + ((objective ? grade?.correct : lastRating === '记得') ? 'ok' : 'bad')}>
                   <h5>{(objective ? grade?.correct : lastRating === '记得') ? '◆ 正解' : '◆ 被掩盖的正解'}</h5>
                   <p>{objective ? (grade?.expected ?? q.answer) : q.answer}</p>
                   {q.explanation && <>
-                    <p className="lab">【秘典解析】</p>
+                    <p className="lab">【题库解析】</p>
                     <p>{q.explanation}</p>
                   </>}
                 </div>
@@ -379,7 +379,7 @@ export default function Practice() {
                   <h5>◆ 参考答案</h5>
                   <p>{q.answer}</p>
                   {q.explanation && <>
-                    <p className="lab">【秘典解析】</p>
+                    <p className="lab">【题库解析】</p>
                     <p>{q.explanation}</p>
                   </>}
                 </div>
@@ -393,7 +393,7 @@ export default function Practice() {
             <div className="q-face-rule" aria-hidden="true" />
             {!answered && (objective ? (
               <GiltBtn size="lg" block className="reveal-btn" disabled={!canSubmit} onClick={doCheck}>
-                🔍 解读符文
+                🔍 品尝答案
               </GiltBtn>
             ) : showAnswer ? (
               <div className="self-judge-row">
@@ -403,7 +403,7 @@ export default function Practice() {
             ) : (
               <GiltBtn size="lg" block className="reveal-btn" disabled={text.trim() === ''}
                 onClick={() => { breakSeal(); setShowAnswer(true) }}>
-                📜 展开参考答案卷轴
+                📜 展开参考答案
               </GiltBtn>
             ))}
 
@@ -411,15 +411,15 @@ export default function Practice() {
               <>
                 <h4>你的记忆状态？</h4>
                 <div className="rate-row">
-                  <button className="rate-btn r-forget" onClick={() => rate('忘记')}>忘记<small>被深渊侵蚀</small></button>
-                  <button className="rate-btn r-hazy" onClick={() => rate('模糊')}>模糊<small>灵知游离</small></button>
-                  <button className="rate-btn r-remember" onClick={() => rate('记得')}>记得<small>灵知铭刻</small></button>
+                  <button className="rate-btn r-forget" onClick={() => rate('忘记')}>忘记<small>被有点酸哦</small></button>
+                  <button className="rate-btn r-hazy" onClick={() => rate('模糊')}>模糊<small>甜蜜值游离</small></button>
+                  <button className="rate-btn r-remember" onClick={() => rate('记得')}>记得<small>甜蜜值铭刻</small></button>
                 </div>
               </>
             )}
 
             {/* 评分即翻牌：已删除「下一卷」按钮，翻牌期间只给一行轻提示，避免牌底突然空掉 */}
-            {committed && <p className="flip-hint">✦ 此卷已归档 · 正在发下一张牌 ✦</p>}
+            {committed && <p className="flip-hint">✦ 这颗已归档 · 正在发下一颗糖 ✦</p>}
           </div>
           </div>
         </div>

@@ -3,7 +3,7 @@ import { useStore } from '../store'
 import { A } from '../assets'
 import { GiltBtn } from '../components'
 
-/* 设置页 · 守秘人的炼金工坊 */
+/* 设置页 · 守秘人的糖果抽屉 */
 export default function Settings() {
   const settings = useStore((s) => s.settings)
   const updateSettings = useStore((s) => s.updateSettings)
@@ -26,7 +26,7 @@ export default function Settings() {
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `典籍馆灵知备份_${new Date().toISOString().slice(0, 10)}.json`
+    a.download = `典籍馆甜蜜值备份_${new Date().toISOString().slice(0, 10)}.json`
     a.click()
     URL.revokeObjectURL(url)
     setExported(true)
@@ -68,10 +68,10 @@ export default function Settings() {
         <div className="setting-row">
           <div className="tool"><img src={A.memoryFlask} alt="记忆水晶瓶" /></div>
           <div style={{ flex: 1 }}>
-            <div className="panel-title">🔮 灵知备份</div>
+            <div className="panel-title">🔮 甜蜜值备份</div>
             <p style={{ fontSize: 12.5, lineHeight: 1.9, color: 'var(--muted)' }}>
               数据存于云端，多设备登录同一账号实时同步。导出备份为可选保险，
-              备份 JSON 可在任意设备的誊写厅（回溯通道）誊写恢复。
+              备份 JSON 可在任意设备的导入厅（回溯通道）导入恢复。
             </p>
             <div style={{ marginTop: 12 }}>
               <GiltBtn onClick={exportBackup}>{exported ? '✓ 已封印导出' : '封印记忆 · 导出全量备份 JSON'}</GiltBtn>
@@ -82,9 +82,9 @@ export default function Settings() {
 
       <div className="panel">
         <div className="setting-row">
-          <div className="tool"><img src={A.sigilBadge} alt="窥秘人徽章" /></div>
+          <div className="tool"><img src={A.sigilBadge} alt="尝味师徽章" /></div>
           <div style={{ flex: 1 }}>
-            <div className="panel-title">🏅 窥秘人凭证</div>
+            <div className="panel-title">🏅 尝味师凭证</div>
             <p style={{ fontSize: 14, color: '#d6c79b', letterSpacing: 1 }}>{userEmail ?? '未登录'}</p>
             <div style={{ marginTop: 12 }}>
               <GiltBtn tone="ghost" onClick={signOut}>解除契约 · 退出登录</GiltBtn>
@@ -99,7 +99,7 @@ export default function Settings() {
           <div style={{ flex: 1 }}>
             <div className="panel-title">🔥 危险区 · 炼金熔炉</div>
             <p style={{ fontSize: 12.5, lineHeight: 1.9, color: '#d98ba0' }}>
-              清空秘典、复习卡片与全部参悟记录。此操作不可撤销，请先封印记忆（导出备份）。
+              清空题库、复习卡片与全部参悟记录。此操作不可撤销，请先封印记忆（导出备份）。
             </p>
             {melted ? (
               <p className="red-glow-text" style={{ marginTop: 12, letterSpacing: 2 }}>✗ 全部数据已熔毁</p>
@@ -117,7 +117,7 @@ export default function Settings() {
       </div>
 
       <p style={{ textAlign: 'center', fontSize: 11, letterSpacing: 2, color: 'rgba(156,132,82,.55)', marginTop: 26 }}>
-        ✦ 奥术典籍馆 v1.0 · 窥秘人专用 · 纯网页端 · 云端灵知同步 ✦
+        ✦ 糖果题库 v1.0 · 尝味师专用 · 纯网页端 · 云端甜蜜值同步 ✦
       </p>
     </div>
   )

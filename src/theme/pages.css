@@ -1,6 +1,6 @@
 /* ═══ 页面专属样式 ═══ */
 
-/* ── 登录：穹顶之门 ── */
+/* ── 登录：糖果之门 ── */
 .login-stage { position: fixed; inset: 0; overflow: hidden; background: var(--abyss); }
 .login-bg { position: absolute; inset: 0; background-size: cover; background-position: center; opacity: 0; transition: opacity 2s ease; }
 .login-bg.on { opacity: 1; }
@@ -294,7 +294,7 @@
 /* 评分后翻牌期间的轻提示（取代已删除的「下一卷」按钮） */
 .flip-hint { text-align: center; padding: 14px 0 6px; letter-spacing: 3px; color: rgba(44,24,16,.68);
   font-size: clamp(10.5px, 2.5cqw, 13px); animation: rise-in .3s ease both; }
-/* 真理原文：不再套第二张卷轴（整张牌面已是羊皮纸，再套一层就又是“糊上去”），
+/* 甜蜜答案：不再套第二张题轴（整张牌面已是羊皮纸，再套一层就又是“糊上去”），
    改为同一张纸上“墨迹显影”：左侧一条对/错色调的朱栏，答案自左向右写出来 */
 .answer-scroll-box {
   position: relative; margin-top: 8px; overflow: hidden; color: var(--ink-parch);
@@ -337,7 +337,7 @@
 /* 显影动画：墨迹自左向右写出（clip-path 是合成器友好属性），接在蜡封碎裂之后 */
 .answer-scroll-box { animation: ink-write .5s .34s cubic-bezier(.2,.7,.3,1) both; }
 @keyframes ink-write { from { clip-path: inset(0 100% 0 0); opacity: .35 } to { clip-path: inset(0 0 0 0); opacity: 1 } }
-/* 深渊侵蚀：真实裂纹素材三帧自四角向中心蔓延（素材 682×1024 与牌面同 2:3，零变形） */
+/* 有点酸哦：真实裂纹素材三帧自四角向中心蔓延（素材 682×1024 与牌面同 2:3，零变形） */
 .crack-veil { position: absolute; inset: 0; z-index: 4; pointer-events: none; }
 .crack-veil img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: fill; opacity: 0; }
 .crack-veil img.c1 { animation: crack-f1 .9s ease both; }
@@ -369,7 +369,7 @@
 .settle-grid b { display: block; font-size: 20px; color: var(--gold-text); font-family: 'Cinzel', serif; }
 .settle-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 8px; }
 
-/* ── 题库（禁书库） ── */
+/* ── 题库（糖果书架） ── */
 .bank-search { position: relative; margin-bottom: 14px; }
 .bank-search .crystal { position: absolute; inset: 0; background-size: 100% 100%; opacity: .55; pointer-events: none; }
 .bank-search input { position: relative; width: 100%; padding: 13px 18px; font-size: 15px; border: 1px solid rgba(58,138,126,.55); background: rgba(19,38,35,.55); color: #cfe6de; outline: none; letter-spacing: 1px; transition: all .2s; }
@@ -384,7 +384,7 @@
 .deck:hover { border-color: var(--teal); box-shadow: var(--glow-teal); transform: translateY(-2px); }
 .deck h5 { font-size: 11px; letter-spacing: 2px; color: var(--muted); margin-bottom: 4px; }
 .deck .val { font-size: 14px; color: var(--teal-lt); letter-spacing: 1px; }
-/* 禁书库 = 一面竖版塔罗牌墙：每张牌按牌体比例 768×1470 等比铺满（零变形），
+/* 糖果书架 = 一面竖版塔罗牌墙：每张牌按牌体比例 768×1470 等比铺满（零变形），
    正面封印谜面，轻触 3D 翻面看此卷全部秘辛 */
 .bank-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(214px, 1fr)); gap: 24px 18px; }
 @media (max-width: 520px) { .bank-list { grid-template-columns: repeat(auto-fill, minmax(156px, 1fr)); gap: 18px 12px; } }
@@ -465,7 +465,7 @@
 .tarot-foot button.danger:hover { box-shadow: var(--glow-red); color: #e0a8b8; }
 .pager { display: flex; align-items: center; justify-content: center; gap: 16px; margin-top: 22px; color: var(--muted); font-size: 13px; }
 
-/* ── 导入（誊写仪式） ── */
+/* ── 导入（导入仪式） ── */
 .step-bar { display: flex; align-items: center; justify-content: center; gap: 0; margin: 6px 0 20px; }
 .step-node { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 110px; }
 .step-node img { width: 52px; height: 52px; object-fit: contain; filter: drop-shadow(0 0 8px rgba(58,138,126,.3)); }
@@ -493,7 +493,7 @@
 .sealing-anim .fall-card { position: absolute; width: 34px; height: 50px; border: 1px solid var(--copper); background: linear-gradient(135deg, #1d2a33, #10171d); animation: card-fall .8s ease-in forwards; }
 @keyframes card-fall { from { transform: translateY(-70px) rotate(-8deg); opacity: 0 } 60% { opacity: 1 } to { transform: translateY(24px) rotate(4deg); opacity: 0 } }
 
-/* ── 统计（星界观测台） ── */
+/* ── 统计（甜蜜小结） ── */
 .id-card { position: relative; padding: 16px; margin-bottom: 20px; animation: rise-in .6s ease both; }
 .id-card .frame { position: absolute; inset: 0; background-size: 100% 100%; pointer-events: none; z-index: 0; filter: drop-shadow(0 14px 34px rgba(0,0,0,.55)); }
 .id-card .inner { position: relative; z-index: 1; margin: 26px 22px; padding: 18px; background: rgba(17,23,30,.88); border: 1px solid rgba(201,168,76,.25); }
@@ -590,7 +590,7 @@
 .r-legend { color: var(--gilt); }
 .ach-tabs { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
 
-/* ── 设置（炼金工坊） ── */
+/* ── 设置（糖果抽屉） ── */
 .setting-row { display: flex; gap: 16px; align-items: flex-start; }
 .setting-row .tool { width: 84px; flex-shrink: 0; }
 .setting-row .tool img { width: 100%; object-fit: contain; filter: drop-shadow(0 8px 14px rgba(0,0,0,.5)); animation: float-y 6s ease-in-out infinite; }
