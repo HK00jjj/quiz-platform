@@ -764,3 +764,78 @@ console 全程 0 errors。
 `#D14767` 粉色并实测到 `rgb(209,71,103)`。本轮 dev 上复测仍是 `rgb(209,71,103)`。
 所以截图又是缓存 / Pages 传播延迟。**连续两轮都出现这个现象**，下次收到"某处没改"的截图，
 第一件事是比对截图里的文案与自己的提交记录，或直接跑 `verify-live.mjs` 看线上三哈希。
+
+---
+
+## 16. 第六轮（2026-09-04）· 收藏题集整体撤除
+
+**gh-pages HEAD：`01dd0f4`（父 `471e385`），46 文件 / 4.9 MB，verify-deploy 缺失0/不一致0/多余0。**
+**CSS 107.47 → 105.68 kB，JS 477.79 → 475.81 kB。**
+
+用户一句话：「去掉收藏题集，用不上」。按 §9 的规矩 **完全还原、不留残余、不争辩** —— 不是藏起来，是整条链路删干净。
+
+### 16.1 撤除清单（§7.1 / §11.1 那套实现全撤）
+
+| 文件 | 撤掉的东西 |
+| --- | --- |
+| `lib/stats.js` | `buildSession` 的 `case 'fav'` |
+| `store.js` | `toggleFavorite` 动作；`migrateBooks` 里的 `favorites: []`；demo 两本书的 `favorites` 数组；`reloadAll` 里的收藏死引用裁剪循环；`deleteQuestion` 里各书收藏的同步摘除；`startSession` 的 `favIds` 传参与 `books/activeBookId` 解构 |
+| `pages/Learn.jsx` | 第五张 `.entry-card.wide` 入口卡；`favArr` / `favCount` 及其 `useMemo`；`books` / `activeBookId` 两个 selector |
+| `pages/Practice.jsx` | 解析区的 `.zone-head` 包裹层与 `.fav-star` 星标按钮；`favList` / `isFav` / `onFav`；`books` / `activeBookId` / `toggleFavorite` 三个 selector |
+| `theme/candy.css` | `.entry-card.wide` 及其 `::before` / `.wide-txt` / `h3` / `p` / `.count-gem` / `.fav-on` / `:not(.fav-on)` / 560px 断点；`.zone-head`；`.fav-star` 全族；为它们加的那个 `prefers-reduced-motion` 块 |
+
+**完整实现留在 gh-pages 提交 `13c2057`**（含真机验证数据），哪天想要直接从那里取回，不用重写。
+
+### 16.2 故意保留的三样（都不属于收藏功能）
+
+1. **`.entry-card .art { display: none }`** 与 **`.entry-card { display:flex; flex-direction:column; justify-content:center }`**
+   —— 这两条是用户单独提的第 2 项「四个图标整体偏上」的修复（卡高 335→185，-45%），只是碰巧和收藏同一轮写的。删掉会让 150px 空洞复活。
+2. **`.entry-card:nth-child(5)::before { content: '🔖' }`**（candy.css L575）
+   —— 这是**本轮之前就存在**的旧规则（§7.1 当时就记着"已有 🔖"），不是我加的。现在无元素命中，无害，保留原状。
+3. **`Practice.jsx` 解析区那行 `<h5 className="zone-label">◇ 解析</h5>`**
+   —— 原来是 `answered || showAnswer ? '◇ 解析' : '◇ 解析'`（两个分支完全相同的遗留三元）。撤星标时顺手保留了收成一行后的版本，只留注释说明。
+
+### 16.3 数据残留（无害，但要知道）
+
+如果撤除前已经在**真实账号**下点过星标，云端 `settings` 表 `key='books'` 那行的 JSON 里会留着
+`books[id].favorites: [...]` 字段。现在**没有代码读它、也没有代码清它**，就是一段死数据：
+
+- 不影响任何功能（`scopeQuestions` / `assign` / SRS 全都不看这个字段）
+- 不会让 payload 变大到有意义的程度（几个题目 id）
+- `reloadAll` 的裁剪循环已随功能撤除，所以里头的死 id 也不会被清 —— 但既然没人读，无所谓
+- 真要清的话：设置页「危险区」清空数据会重建 books；或手动导出备份、删掉字段、再导入
+
+demo 模式下从来没写过云端，`localStorage['quiz-platform.books.v1']` 里可能还留着上一次演示写的
+`favorites`，同样无害（清浏览器存储即消失）。
+
+### 16.4 验证（撤除后逐项复测，确认没伤到别的功能）
+
+| 检查 | 实测 |
+| --- | --- |
+| 产物里收藏相关文案 | `收藏题集` / `还没有收藏` / `只练这` / `已收藏` / `收藏这题` **全 False** |
+| 产物里收藏相关类名 | `fav-star` / `entry-card.wide` / `zone-head` / `wide-txt` **全 False** |
+| 该留的还在 | `entry-card .art`=True、`justify-content:center`=True、`错题重练`=True、`挑题练习`=True、`🔖`=True |
+| 学习页 | `.entry-card` **4 张**、`.entry-card.wide` **0 个**、标题 `错题重练/随机练习/新题上手/挑题练习`、高度 `[185,185,185,185]` 齐平、2×2 无空洞、`justify-content:center` |
+| 答题页解析区 | `.fav-star` **0**、`.zone-head` **0**、`◇ 解析` 的父元素回到 `zone zone-s`（包裹层已撤）、蜡封正常 |
+| **答题主流程回归** | 选项洗成 `[A.说法二, B.说法一, C.说法三, D.说法四]` → 点「说法一」→ `rowCls` 正确标在 **B**、`答对了` `rgb(27,127,99)`、**揭晓答案 `B`**（原始 A→显示 B 的映射未被撤坏） |
+| 三档自评 | `忘记完全想不起来 / 模糊犹豫了一下才对 / 记得一眼就答出来了` 仍在（§13 的改动未受影响） |
+| console | 全程 **0 errors** |
+
+即：#1 配色、#3 难度胶囊、#4 首字、#6 选项随机化与答案字母映射、#7 结算页、#8 知识域、以及 §13/§14/§15 的各项，**撤除收藏后全部复测通过**。
+
+### 16.5 又一次：Read 工具给的是陈旧缓冲区
+
+撤 CSS 时要拿准确锚点，`Read candy.css` 报「total 987 行」，而磁盘实测 **1304 行**
+（`.stepper .val` 在 L1223）。**Read 返回的是我这轮所有 candy.css 改动之前的版本。**
+改用 `[IO.File]::ReadAllLines` 打印行号 + 内容才拿到真文本。
+
+这是 §11.3 那条陷阱的**第二次发作**，而且这次更狠：上次是内容不同、字节数恰好相同（容易误判成"文件被污染"），
+这次是**行数直接差了 317 行**。结论加强：
+
+> **这个项目里，凡是要拿精确文本做 SearchReplace 锚点，一律用 `[IO.File]::ReadAllLines` / Grep 从磁盘取，
+> 不要用 Read 工具。** Read 只适合看那些本轮没改过、且 IDE 里没打开的文件。
+
+顺带：本轮又出现一次中文形近字替换（把「捞回来」写成了另一个字），在 diff 里当场发现并修掉了。
+累计已观测到六例，全是形近字替换。**不在这里列具体字，因为连「举例说明这件事」的那一行本身也会被同样损坏**
+（写的时候想举 A→B，落盘变成 B→C，反而成了误导）。六例全部落在注释或文档里，未影响代码语义。
+结论：**写中文注释/文档后必须回读校验（用 `$t.Contains('预期词')` 硬断言），别只看 diff 就过。**

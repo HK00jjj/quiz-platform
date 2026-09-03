@@ -988,62 +988,19 @@ body, button, input, textarea, select {
 }
 
 /* ══════════════════════════════════════════════════════════
-   7.1 收藏题集：学习页第五个入口 + 答题页解析区星标
+   学习页入口卡：收掉 .art 的 150px 空占位
+   （这一条原本属于「7.1 收藏题集」那批改动。收藏功能已按用户要求整体撤除，
+     但 .art 的高度修复属于用户单独提的第 2 项「四个图标整体偏上」，所以保留。）
    ══════════════════════════════════════════════════════════ */
 
 /* 哥特插图早已从 JSX 删掉，pages.css 给 .art 留的 150px 高成了纯空白（实测入口卡
    335px 高里有 150px 是空的，占 45%）。这里收掉，卡片降到内容实高。 */
 .entry-card .art { display: none; }
 
-/* 五张卡在两列网格里会剩一个空洞，所以第五张横跨整行、改横排 */
-.entry-card.wide {
-  grid-column: 1 / -1;
-  display: flex; flex-direction: row; align-items: center; gap: 16px;
-  text-align: left; padding: 14px 20px;
-}
-.entry-card.wide::before {
-  flex: 0 0 auto; margin: 0; font-size: 40px; line-height: 1.15;
-}
-.entry-card.wide .wide-txt { flex: 1 1 auto; min-width: 0; padding-right: 54px; }
-.entry-card.wide h3 { margin-top: 0; }
-.entry-card.wide p { margin-top: 3px; }
-/* 用独立的 translate 属性而不是 transform：.count-gem 的 breathe 关键帧里带 transform，
-   动画会盖掉声明里的 transform（实测徽章比中线高 15px = 徽章高的一半）。
-   translate 与 transform 分开合成，所以既保住呼吸动画又能真正垂直居中。 */
-.entry-card.wide .count-gem { top: 50%; right: 16px; translate: 0 -50%; }
-/* 有收藏时图标换柠檬投影添一点温度；空态保持中性且不假装可点 */
-.entry-card.wide.fav-on::before { filter: drop-shadow(0 6px 14px rgba(255, 212, 59, .45)); }
-.entry-card.wide:not(.fav-on) { cursor: default; }
-.entry-card.wide:not(.fav-on):hover { transform: none; box-shadow: none; border-color: var(--candy-pink-lt); }
-@media (max-width: 560px) {
-  .entry-card.wide { gap: 12px; padding: 12px 16px; }
-  .entry-card.wide::before { font-size: 34px; }
-  .entry-card.wide .wide-txt { padding-right: 48px; }
-}
-
-/* 答题页解析区标题行：标题左、星标右（小面积元素，transition 只跑颜色与 transform） */
-.zone-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.fav-star {
-  appearance: none; font-family: inherit; flex: 0 0 auto;
-  display: inline-flex; align-items: center; gap: 5px;
-  padding: 4px 12px; border-radius: 999px; cursor: pointer;
-  border: 2px solid var(--candy-pink-lt); background: rgba(255, 255, 255, .72);
-  color: #C9899A; font-size: 12px; font-weight: 800; letter-spacing: 1px;
-  transition: transform .18s var(--ease-pop), border-color .18s ease, background-color .18s ease, color .18s ease;
-}
-.fav-star .fav-glyph { font-size: 14px; line-height: 1; }
-.fav-star:hover { border-color: var(--candy-pink-dk); transform: translateY(-1px); }
-.fav-star:active { transform: scale(.94); }
-.fav-star.on {
-  border-color: var(--lemon-dk); background: #FFF7DC; color: #A8791A;
-  box-shadow: 0 0 10px rgba(255, 212, 59, .35);
-}
-.fav-star.on .fav-glyph { color: var(--lemon-dk); }
-@media (prefers-reduced-motion: reduce) {
-  .fav-star { transition: none; }
-  .fav-star:hover, .fav-star:active { transform: none; }
-  .entry-card.wide::before { animation: none !important; }
-}
+/* 收藏题集的 .entry-card.wide / .wide-txt / .fav-on / .zone-head / .fav-star 规则
+   已随功能一起撤除（用户：用不上）。完整实现见 gh-pages 提交 13c2057，需要时从那里取回。
+   注意：.entry-card:nth-child(5)::before { content: '🔖' } 是本轮之前就存在的旧规则，
+   不属于收藏功能，保留不动（现在无元素命中，无害）。 */
 
 /* ══════════════════════════════════════════════════════════
    #1 判分双通道：对 = 薄荷绿，错 = 草莓红

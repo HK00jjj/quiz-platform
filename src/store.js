@@ -27,7 +27,7 @@ function migrateBooks(questionIds) {
   const now = Date.now()
   return {
     activeBookId: id, order: [id],
-    books: { [id]: { id, name: '默认题库', color: 'pink', icon: '📖', subject: '', createdAt: now, lastOpenedAt: now, favorites: [] } },
+    books: { [id]: { id, name: '默认题库', color: 'pink', icon: '📖', subject: '', createdAt: now, lastOpenedAt: now } },
     assign: Object.fromEntries((questionIds ?? []).map((q) => [q, id]))
   }
 }
@@ -121,14 +121,6 @@ async function reloadAll() {
     for (const q of data.questions) if (!known.has(q.id)) { bk.assign[q.id] = bk.activeBookId; mutated = true }
     const alive = new Set(data.questions.map((q) => q.id))
     for (const k of Object.keys(bk.assign)) if (!alive.has(k)) { delete bk.assign[k]; mutated = true }
-    /* 收藏也要清死引用：题目被删后 favorites 里残留的 id 会让入口卡计数虚高、组卷时命中空牌。
-       只在确有数组且确需裁剪时才改写，不给老数据凭空补 favorites 字段而触发一次多余的云端写。 */
-    for (const bid of Object.keys(bk.books)) {
-      const f = bk.books[bid]?.favorites
-      if (!Array.isArray(f)) continue
-      const kept = f.filter((x) => alive.has(x))
-      if (kept.length !== f.length) { bk.books[bid] = { ...bk.books[bid], favorites: kept }; mutated = true }
-    }
     if (!bk.books[bk.activeBookId]) { bk.activeBookId = bk.order[0] ?? null; mutated = true }
     // mutated 时先把哨兵置空，强制 persistBooks 写一次；写完它会记下新值，
     // 下一次由 realtime 触发的 reload 就会因为内容相同而不再写 → 断开循环
@@ -229,8 +221,8 @@ export const useStore = create((set, get) => ({
       const bk = {
         activeBookId: 'b_demo1', order: ['b_demo1', 'b_demo2'],
         books: {
-          b_demo1: { id: 'b_demo1', name: '电气自动化（演示）', color: 'pink', icon: '📖', subject: '演示数据', createdAt: now, lastOpenedAt: now, favorites: ['demo_2', 'demo_5', 'demo_9', 'demo_14'] },
-          b_demo2: { id: 'b_demo2', name: '空白题库（演示）', color: 'mint', icon: '🧪', subject: '', createdAt: now, lastOpenedAt: now, favorites: [] }
+          b_demo1: { id: 'b_demo1', name: '电气自动化（演示）', color: 'pink', icon: '📖', subject: '演示数据', createdAt: now, lastOpenedAt: now },
+          b_demo2: { id: 'b_demo2', name: '空白题库（演示）', color: 'mint', icon: '🧪', subject: '', createdAt: now, lastOpenedAt: now }
         },
         assign: Object.fromEntries(d.questions.map((q) => [q.id, 'b_demo1']))
       }
@@ -290,14 +282,8 @@ export const useStore = create((set, get) => ({
       const assign = { ...s.assign }
       delete assign[id]
       const allQuestions = s.allQuestions.filter((q) => q.id !== id)
-      /* 题目没了，各书的收藏也要跟着摘掉（不只当前书：题目可能被归到别的书里收藏过） */
-      const books = { ...s.books }
-      for (const bid of Object.keys(books)) {
-        const f = books[bid].favorites
-        if (Array.isArray(f) && f.includes(id)) books[bid] = { ...books[bid], favorites: f.filter((x) => x !== id) }
-      }
       return {
-        allQuestions, books,
+        allQuestions,
         questions: scopeQuestions(allQuestions, { ...s, assign }),
         assign,
         cards: s.cards.filter((c) => c.questionId !== id),
@@ -371,20 +357,6 @@ export const useStore = create((set, get) => ({
     set({ books })
     await persistBooks(get())
   },
-  /* 收藏题集：favorites 直接挂在书本对象上，随 books payload 一起存（云端 settings 表 key='books'
-     + localStorage 镜像），所以它天然按书本隔离、天然复用已有的幂等防回环，不需新增任何存储通道。
-     返回切换后的状态供 UI 微交互用。注意 clearBookProgress 故意不清收藏——收藏是选题意图，不是学习进度。 */
-  toggleFavorite: async (qid) => {
-    const s = get()
-    const id = s.activeBookId
-    if (!id || !s.books[id] || !qid) return false
-    const cur = s.books[id].favorites ?? []
-    const on = !cur.includes(qid)
-    const books = { ...s.books, [id]: { ...s.books[id], favorites: on ? [...cur, qid] : cur.filter((x) => x !== qid) } }
-    set({ books })
-    await persistBooks(get())
-    return on
-  },
   /* L1 危险操作：只清该书的学习记录（SRS 卡 + 做题记录），题目保留 */
   clearBookProgress: async (id) => {
     const s = get()
@@ -428,7 +400,7 @@ export const useStore = create((set, get) => ({
   },
 
   startSession: async (mode, opts = {}) => {
-    const { questions, cards, records, books, activeBookId } = get()
+    const { questions, cards, records } = get()
     if (mode === 'relearn') {
       const saved = loadResume()
       if (saved && saved.filtersKey === filtersKey(opts)) {
@@ -450,8 +422,7 @@ export const useStore = create((set, get) => ({
     }
     const list = buildSession(questions, cards, records, {
       mode, size: opts.size ?? 0, now: Date.now(),
-      domains: opts.domains, types: opts.types, difficulties: opts.difficulties,
-      favIds: books[activeBookId]?.favorites ?? []
+      domains: opts.domains, types: opts.types, difficulties: opts.difficulties
     })
     set({
       sessionMode: mode, sessionQuestions: list, sessionIndex: 0,

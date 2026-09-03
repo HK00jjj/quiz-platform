@@ -47,9 +47,6 @@ export default function Practice() {
   const next = useStore((s) => s.next)
   const abortSession = useStore((s) => s.abortSession)
   const startSession = useStore((s) => s.startSession)
-  const books = useStore((s) => s.books)
-  const activeBookId = useStore((s) => s.activeBookId)
-  const toggleFavorite = useStore((s) => s.toggleFavorite)
 
   const q = questions[index]
   const objective = q && isObjective(q.type)
@@ -138,15 +135,6 @@ export default function Practice() {
 
   const answered = phase === 'feedback'
   const committed = lastRating !== null
-  /* 收藏态：直接读书本上的 favorites，与题库作用域同源，切书自动换一批 */
-  const favList = books[activeBookId]?.favorites
-  const isFav = Array.isArray(favList) && favList.includes(q.id)
-  async function onFav(e) {
-    const r = e.currentTarget.getBoundingClientRect()
-    const on = await toggleFavorite(q.id)
-    // 只在「收进来」时发糖豆，取消收藏是安静的。一次性效果，不加循环动画（§5 动效纪律）
-    if (on) burstParticles(r.left + r.width / 2, r.top + r.height / 2, 'gold', 10)
-  }
   /* 选项随机化（#6）：内部一律用「原始字母」跑判分与对错高亮，只有显示出来的字母跟着洗牌走。
      于是 gradeObjective 与 opt-row 的 right/wronged/missed 判定链路一行都不用改，
      而给用户看的答案字母会同步换算，不会出现「答案是 D、洗牌后那项显示在 A 位置」的错位。 */
@@ -399,16 +387,8 @@ export default function Practice() {
 
             {/* ── 分区三 · 答案区：未答=蜡封遮挡，答后=墨迹显影 ── */}
             <section className={'zone zone-s' + (answered || showAnswer ? ' revealed' : '')}>
-            {/* 星标钉在解析区标题行右侧：蜡封未启时也一直在手边，不必先答题才能收藏。
-                顺带收掉原来那个两个分支完全相同的 answered/showAnswer 三元（遗留物）。 */}
-            <div className="zone-head">
-              <h5 className="zone-label">◇ 解析</h5>
-              <button type="button" className={'fav-star' + (isFav ? ' on' : '')}
-                onClick={onFav} aria-pressed={isFav} title={isFav ? '取消收藏' : '收藏这题'}>
-                <span className="fav-glyph" aria-hidden="true">{isFav ? '★' : '☆'}</span>
-                <span>{isFav ? '已收藏' : '收藏'}</span>
-              </button>
-            </div>
+            {/* 这里原来是 `answered || showAnswer ? '◇ 解析' : '◇ 解析'`——两个分支完全相同的遗留三元，已收成一行 */}
+            <h5 className="zone-label">◇ 解析</h5>
             {seal !== 'broken' && (
               <div className={'seal-lock ' + seal}>
                 <span className="seal-wax" aria-hidden="true">

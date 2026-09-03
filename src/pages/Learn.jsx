@@ -57,8 +57,6 @@ export default function Learn() {
   const questions = useStore((s) => s.questions)
   const cards = useStore((s) => s.cards)
   const records = useStore((s) => s.records)
-  const books = useStore((s) => s.books)
-  const activeBookId = useStore((s) => s.activeBookId)
   const settings = useStore((s) => s.settings)
   const updateSettings = useStore((s) => s.updateSettings)
   const startSession = useStore((s) => s.startSession)
@@ -73,15 +71,6 @@ export default function Learn() {
   const newCount = questions.length - cards.length
   const lastMap = useMemo(() => lastResultMap(records), [records])
   const wrongCount = questions.filter((q) => lastMap.get(q.id) === false).length
-  /* 收藏题集：favorites 挂在当前书本上，切书即换一批。这里再用 questions（已是书本作用域）过一遍，
-     即使云端还没裁掉死引用，计数也不会虚高。favArr 保持原引用：别写 ?? []，否则每次渲染都新建数组，
-     useMemo 的依赖每帧都变。 */
-  const favArr = books[activeBookId]?.favorites
-  const favCount = useMemo(() => {
-    if (!Array.isArray(favArr) || favArr.length === 0) return 0
-    const ids = new Set(favArr)
-    return questions.filter((q) => ids.has(q.id)).length
-  }, [favArr, questions])
 
   const relearnFilters = settings.relearnFilters ?? {}
   const learnFilters = settings.learnFilters ?? {}
@@ -193,17 +182,6 @@ export default function Learn() {
           <span className="count-gem">{relearnCount}</span>
           <h3>挑题练习</h3>
           <p>按题型、知识域、难度筛出想练的题 · 共 {relearnCount} 道</p>
-        </div>
-        {/* 第五个入口 · 收藏题集：nth-child(5) 的 🔖 已在 candy.css 备好。
-            五张卡在两列网格里会剩一个空洞，所以这张横跨整行并改横排（图标左 / 文案中 / 计数右）。
-            不放 .art：哥特插图早已从 JSX 删除，空 div 只会白占高度。 */}
-        <div className={'entry-card wide rise' + (favCount > 0 ? ' fav-on' : '')} style={{ animationDelay: '.4s' }}
-          onClick={() => favCount > 0 && run('fav', { size: 0 })}>
-          <span className="count-gem">{favCount}</span>
-          <div className="wide-txt">
-            <h3>收藏题集</h3>
-            <p>{favCount > 0 ? `只练这 ${favCount} 道你标过 ★ 的题` : '还没有收藏 · 在答题页解析区点 ☆ 就能收进来'}</p>
-          </div>
         </div>
       </div>
 

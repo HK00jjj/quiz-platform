@@ -155,12 +155,6 @@ export function buildSession(questions, cards, records, opts) {
       const last = lastResultMap(records)
       return take(filtered.filter((q) => last.get(q.id) === false).sort((a, b) => a.seq - b.seq), opts.size)
     }
-    /* 收藏题集：favIds 由 store 从当前书本的 books[activeBookId].favorites 传入。
-       questions 本身已是书本作用域的派生值，所以这里天然只可能命中本书的收藏。 */
-    case 'fav': {
-      const ids = new Set(opts.favIds ?? [])
-      return take(filtered.filter((q) => ids.has(q.id)).sort((a, b) => a.seq - b.seq), opts.size)
-    }
     case 'random':
       return take(shuffle(filtered, rng), opts.size)
     case 'relearn':
