@@ -1,9 +1,10 @@
 // 用 GitHub Git Data API 把源码工程推送为独立分支 src（不依赖 git 直连，支持断点续传）
-// 用法: node push-src.mjs <token> <appDir> <toolsDir> <readmePath>
+// 用法: node push-src.mjs <token> <appDir> <toolsDir> <readmePath> [额外文件...]
+// 额外文件按文件名放到分支根（用来备份工作区根目录的 verify-*.mjs、HANDOFF.md 等）
 import { readFileSync, readdirSync, statSync } from 'fs'
 import { createHash } from 'crypto'
 
-const [, , token, appDir, toolsDir, readmePath] = process.argv
+const [, , token, appDir, toolsDir, readmePath, ...extras] = process.argv
 const repo = 'HK00jjj/quiz-platform'
 const BRANCH = 'src'
 const H = {
@@ -53,13 +54,17 @@ function blobSha(buf) {
 
 // ---------- 1. 组装待推送清单 ----------
 const files = walk(appDir, '', [])
-for (const t of ['deploy-api.mjs', 'deploy-ghpages.ps1', 'compress-sharp.mjs', 'compress-assets.ps1',
-  'optimize-assets.mjs', 'fix-assets.mjs', 'check-refs.mjs', 'ingest-assets.mjs']) {
-  const p = toolsDir + '/' + t
-  if (statSync(p).isFile()) files.push({ rel: 'scripts/' + t, p })
-}
+// 整个 scripts/ 目录都备份。原来这里是一份 8 个文件的硬编码白名单，
+// 导致 pull-src.mjs / purge-dist.mjs / candy-copy.mjs / 素材脚本从未进过 src 分支，
+// 而它们正是断点续传与回滚时最需要的工具。
+walk(toolsDir, 'scripts', files)
 files.push({ rel: 'README.md', p: readmePath })
-// 把本脚本自己也备份进分支，下次续传无需重写
+// 额外文件（仓库根目录的 verify-*.mjs、HANDOFF.md 等）：按文件名放到分支根
+for (const e of extras) {
+  try { if (statSync(e).isFile()) files.push({ rel: e.split(/[\\/]/).pop(), p: e }) }
+  catch { console.log(`  [skip] 额外文件不存在: ${e}`) }
+}
+// 把本脚本自己也备份进分支，下次续传无需重写（rel 重复时下面的 Map 会自然去重）
 files.push({ rel: 'scripts/push-src.mjs', p: process.argv[1] })
 
 const local = new Map()
