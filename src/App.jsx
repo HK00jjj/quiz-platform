@@ -24,12 +24,14 @@ function Shell() {
   const wrongN = [...wrongCount.values()].filter((v) => v === false).length
   const inPractice = location.pathname === '/practice'
   const activeKey = { '/': 'learn', '/bank': 'bank', '/import': 'import', '/stats': 'stats', '/settings': 'settings' }[location.pathname]
-  // 法阵转移：页面切换先被烟雾吞没，再凝聚浮现
-  const [veil, setVeil] = useState(false)
+  /* 页面切换：直接跳转。
+     原来的「法阵转移」有两个问题：① 它铺的 .nav-veil 用的是 A.roseWindow（哥特玫瑰彩窗），
+     在糖果主题里就是切页时一闪而过的不符图案；② 它先 setTimeout 300ms 才 navigate，
+     属于导航输入路径上的无谓延迟（点一下要等半秒才有反应）。
+     导航切换属于一天几十次的高频操作，动效门控上只能“几乎察觉不到或干脆没有”。 */
   function navTo(to) {
     if (to === location.pathname) return
-    setVeil(true)
-    setTimeout(() => { navigate(to); setTimeout(() => setVeil(false), 260) }, 300)
+    navigate(to)
   }
   // 离开答题页就中止会话：否则 phase 会永远停在 answering/feedback/done，
   // 下次再进答题页会拿到残留会话，且任何依赖 phase 的 UI 都回不到初始态
@@ -39,7 +41,6 @@ function Shell() {
   return (
     <div className="app-shell">
       <Background intensity={inPractice ? 1.6 : 1} />
-      {veil && <div className="nav-veil" style={{ '--rose-img': `url(${A.roseWindow})` }} aria-hidden="true" />}
       <Routes>
         <Route path="/" element={<Learn />} />
         <Route path="/bank" element={<Bank />} />

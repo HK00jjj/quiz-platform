@@ -181,9 +181,8 @@ export default function Learn() {
         </div>
       </div>
 
-      <button className="fab-stats" onClick={() => navigate('/stats')} aria-label="星象观测">
-        📊<small>星象</small>
-      </button>
+      {/* 星象悬浮入口已删：📊「星象观测」属于哥特世界观，与糖果主题不符。
+          /stats 路由保留，仍可直接访问 #/stats；以后想要统计页就重新给一个糖果入口 */}
 
       {openFilter === 'relearn' && (
         <FilterModal
