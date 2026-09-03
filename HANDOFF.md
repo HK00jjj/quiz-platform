@@ -839,3 +839,103 @@ demo 模式下从来没写过云端，`localStorage['quiz-platform.books.v1']` �
 累计已观测到六例，全是形近字替换。**不在这里列具体字，因为连「举例说明这件事」的那一行本身也会被同样损坏**
 （写的时候想举 A→B，落盘变成 B→C，反而成了误导）。六例全部落在注释或文档里，未影响代码语义。
 结论：**写中文注释/文档后必须回读校验（用 `$t.Contains('预期词')` 硬断言），别只看 diff 就过。**
+
+---
+
+## 17. 第七轮（2026-09-04）· 对/错配色两层同步 + 纠正 §4.1 的 Playwright 用法
+
+**gh-pages HEAD：`39833c7`（父 `01dd0f4`），46 文件 / 4.9 MB，verify-deploy 缺失0/不一致0/多余0。**
+
+### 17.1 用户要求与根因
+
+用户：「答对的颜色配置好看一些，答错改成图二那种，只是绿色换成红色」。
+图二是答对态（通体一致的绿），图一是答错态。对比后根因很清楚：
+
+**`candy.css` L399 的 `.zone-s.revealed` 是无条件薄荷绿**：
+
+```css
+.zone-s.revealed { border-style: solid !important; border-color: var(--mint) !important;
+                   background: rgba(127, 232, 200, .1) !important; }
+```
+
+答错时里面的判定横幅、答案框、选项全被 §11 的规则改红了，**外层解析区却还是绿的** → 红绿混装。
+所以"答错改成图二那种只是绿换红"= 让外层跟着判定结果走，答错成为答对那套处理的红色镜像。
+
+### 17.2 改动
+
+- `Practice.jsx`：新增 `verdictOk = objective ? !!lastGrade?.correct : lastRating === '记得'`，
+  给 `<section className="zone zone-s …">` 按判定补挂 `ok` / `bad`。
+  **主观题仅展开参考答案、尚未自判时（`showAnswer` 但 `!answered`）不挂**，保持中性。
+  仍用 `lastGrade` 而不是下面才声明的 `grade`（const 有 TDZ，会整页崩溃）。
+- `candy.css` 末尾：`.zone-s.revealed.ok` / `.bad`；`.answer-scroll-box` 与 `.bad` 改成同结构只差色相的极浅渐变洗底；
+  `.opt-row.right` / `.wronged` / `.missed` 各加一圈 `0 0 0 3px` 同色柔光环（box-shadow 不参与布局，不会撑动牌面）。
+- **答对的绿顺带调饱和**：描边从 `--mint`(#7FE8C8，压在浅底上偏粉气发灰) 换成 `--mint-dk`(#5FD4B0)，
+  洗底 `.10`→`.14`，答案框从纯白改成极浅薄荷渐变。
+- `.missed`（多选漏选的正确项）**继续用薄荷不用红** —— 它是"你没选但它是对的"，属于正向信号。
+
+### 17.3 实测（同一轮里对/错各答一题）
+
+| 层 | 答对 | 答错 |
+| --- | --- | --- |
+| `.zone-s` class | `zone zone-s revealed ok` | `zone zone-s revealed **bad**` |
+| 解析区边框 | `rgb(95,212,176)` | `rgb(242,86,74)` |
+| 解析区底色 | `rgba(127,232,200,.14)` | `rgba(242,86,74,.1)` |
+| 判定横幅 | `答对了` `rgb(27,127,99)` | `答错了` `rgb(196,55,46)` |
+| 答案框左栏 | `rgb(95,212,176)` | `rgb(242,86,74)` |
+| 答案框底 | `linear-gradient(rgba(127,232,200,.12), #fff…)` | `linear-gradient(rgba(242,86,74,.13), #fff…)` |
+| 答案框 h5 | — | `rgb(196,55,46)` |
+| 选项柔光环 | `.right` `rgba(127,232,200,.24) 0 0 0 3px` | `.wronged` `rgba(242,86,74,.22) 0 0 0 3px` |
+| 揭晓答案 | `D`（说法一洗到 D 位） | `C`（说法一洗到 C 位） |
+
+两态都是**整屏一个色系**，`✓ 答对` 绿 / `✗ 答错` 红、三档自评 红/黄/绿 全部对齐。console 全程 0 errors。
+（单选题答错时正确项不带 `.right` 类，是既有行为：`.missed` 只对多选题生效，不是本轮回归。）
+
+### 17.4 ⚠ 纠正 §4.1：Playwright CLI 有原生命令，别再手搓
+
+本轮验证脚本连续失败 2 次后调了 **`playwright-cli` skill**，发现 §4.1 记的那套做法绕了远路。
+**以下才是正确用法，覆盖 §4.1 里"run-code 不回传所以要写 window.__p 再 eval 读回"那一段：**
+
+```powershell
+# 状态清理：原生命令，不用 page.evaluate 手搓
+npx playwright cli localstorage-clear          # 还有 localstorage-list/get/set/delete
+npx playwright cli reload                       # 真重载（hash-only goto 不会重建文档！）
+npx playwright cli sessionstorage-clear / cookie-clear / state-save / state-load
+
+# 交互：click 直接吃 CSS 选择器或 Playwright 定位器，不用 run-code 包一层
+npx playwright cli click '.entry-card:nth-child(4)'
+npx playwright cli click "getByText('说法一')"
+npx playwright cli click "getByRole('button', { name: '开始练习（4 题）' })"
+npx playwright cli fill e5 "文本" --submit      # e5 是 snapshot 里的 ref
+npx playwright cli select e9 "option-value"
+npx playwright cli find "开始练习"               # 在 snapshot 里搜文本/正则，比整份 snapshot 省得多
+npx playwright cli snapshot --depth=4           # 限制深度
+npx playwright cli console warning              # 按级别过滤
+
+# 读数：--raw eval 一直是可靠的，这个没变
+npx playwright cli --raw eval "JSON.stringify({...})"
+```
+
+**四个关键坑（本轮全踩过）**：
+
+1. **`click` 是 strict 模式**：`.modal-box .btn` 命中 2 个元素会**直接报错并把两个精确定位器都列出来**
+   （`getByRole('button', { name: '开始练习（4 题）' })` / `{ name: '返回' }`）。
+   这比 `document.querySelector` 静默取第一个安全得多 —— 报错信息本身就是答案，照着改选择器即可。
+2. **`run-code` 里 `console.log` 和 `return` 都不回传**。以前我因此发明了"写 `window.__p` 再 `--raw eval` 读回"的中转，
+   **其实完全没必要**：用原生 `click` + `--raw eval` 分步走就行，可读性和可调试性都好得多。
+   `run-code` 只在真的需要 `page.on(...)` 监听或帧采样时才用（§4.2 那个探针仍是照抄别改）。
+3. **自己写 `page.evaluate` 包装器极易丢参数**：`const ev = (fn) => page.evaluate(fn)` 之后再 `ev(fn, arg)`，
+   第二个参数被静默吞掉 → 页内 `arg === undefined` → `findIndex` 恒返回 -1 → `r[-1].click()` 崩。
+   **不要包 `page.evaluate`**，直接用 CLI 的 `click`/`eval`。
+4. **`page.goto` / `cli goto` 到只有 hash 不同的地址不重建文档**（HashRouter SPA），
+   zustand 内存态与 localStorage 里的旧 resume / 旧筛选全部留着，
+   上一次选中的筛选 chip 会被这次点击**反向关掉**（实测 `开始练习（4 题）` 变成 `共 28 题`）。
+   要干净首屏必须 `localstorage-clear` + `reload`。
+
+### 17.5 用户新增的长期工作准则（已存记忆）
+
+> 在确保质量的前提下减少调用次数；**完成不了的任务、或同一任务失败 2 次以上（完成了但效果不理想也算），
+> 马上调用合适的 skill，没有就安装一个，不要蛮干。**
+
+本轮就是照这条办的：验证脚本第 2 次失败后立刻调 `playwright-cli` skill，
+一次就拿到 `localstorage-clear` / `reload` / strict `click` / 定位器语法，比继续自己试省得多。
+**下个会话遇到连续失败，第一反应是查 skill 列表，不是第三次重试。**

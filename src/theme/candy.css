@@ -1259,3 +1259,37 @@ body, button, input, textarea, select {
 .tarot-foot button:hover { color: #C2385A; border-color: var(--candy-pink-dk); box-shadow: 0 3px 12px rgba(255, 143, 163, .35); }
 .tarot-foot button.danger { color: var(--bad-ink); border-color: var(--bad); }
 .tarot-foot button.danger:hover { color: #fff; background: var(--bad-dk); border-color: var(--bad-dk); }
+
+/* ══════════════════════════════════════════════════════════
+   解析区整体跟着判定结果走：答对 = 通体薄荷，答错 = 通体草莓红
+   原来 L399 的 .zone-s.revealed 是无条件薄荷绿（border-color: var(--mint)
+   + background: rgba(127,232,200,.1)），于是答错时里面的判定横幅、答案框、选项全是红的，
+   外层解析区却还是绿的——红绿混装。现在 JSX 会按判定结果补挂 .ok / .bad，
+   两层同步，答错成了答对那套处理的红色镜像。
+
+   顺带把答对的绿调得更饱和有层次：原来用 --mint(#7FE8C8) 描边，压在浅底上偏粉气、发灰；
+   换成 --mint-dk(#5FD4B0)，洗底从 .10 提到 .14，答案框加一层极浅的薄荷渐变而不是纯白，
+   对的选项再加一圈同色柔光环——四个胶囊里哪个对一眼就跳出来。
+   L399 那条自带 !important，所以这里也必须带。 */
+.zone-s.revealed.ok {
+  border-color: var(--mint-dk) !important;
+  background: rgba(127, 232, 200, .14) !important;
+}
+.zone-s.revealed.bad {
+  border-color: var(--bad-dk) !important;
+  background: rgba(242, 86, 74, .1) !important;
+}
+/* 答案框：对 / 错 做成同一套结构，只差色相——4px 左侧色条 + 同色极浅渐变洗底 + 同色柔光 */
+.answer-scroll-box {
+  background: linear-gradient(180deg, rgba(127, 232, 200, .12), rgba(255, 255, 255, .94)) !important;
+  box-shadow: 0 2px 14px rgba(95, 212, 176, .24) !important;
+}
+.answer-scroll-box.bad {
+  background: linear-gradient(180deg, rgba(242, 86, 74, .13), rgba(255, 255, 255, .94)) !important;
+  box-shadow: 0 2px 14px rgba(242, 86, 74, .22) !important;
+}
+/* 选项对 / 错 / 多选漏选：各加一圈同色柔光环（box-shadow 不参与布局，不会影响牌面尺寸）。
+   .missed 是「你没选但它是对的」，属于正向信号，所以继续用薄荷而不是红。 */
+.opt-row.right { box-shadow: 0 0 0 3px rgba(127, 232, 200, .24) !important; }
+.opt-row.wronged { box-shadow: 0 0 0 3px rgba(242, 86, 74, .22) !important; }
+.opt-row.missed { box-shadow: 0 0 0 3px rgba(127, 232, 200, .16) !important; }

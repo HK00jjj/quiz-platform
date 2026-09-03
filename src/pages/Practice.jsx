@@ -157,6 +157,10 @@ export default function Practice() {
   /* 展示给用户的答案：选择题把原始字母换算成洗牌后的字母；填空题多空时逐空列出，
      比原来一串逗号好读。注意这里用 lastGrade 而不是下面才声明的 grade（const 有 TDZ，会整页崩溃）。 */
   const mapLetters = (s) => String(s ?? '').split('').map((c) => origToDisp[c] ?? c).join('')
+  /* 判定结果：客观题看 grade.correct，主观题看自评是否「记得」。
+     解析区整体配色要用它，否则答错时外层 .zone-s.revealed 还是无条件薄荷绿，红绿混装。
+     同样用 lastGrade 而不是下面才声明的 grade（const 有 TDZ）。 */
+  const verdictOk = objective ? !!lastGrade?.correct : lastRating === '记得'
   const shownAnswer = !objective ? q.answer
     : isChoice ? mapLetters(lastGrade ? lastGrade.expected : q.answer)
       : q.type === '填空题' && lastGrade?.expectedParts
@@ -386,7 +390,11 @@ export default function Practice() {
             <div className="zone-rule" aria-hidden="true" />
 
             {/* ── 分区三 · 答案区：未答=蜡封遮挡，答后=墨迹显影 ── */}
-            <section className={'zone zone-s' + (answered || showAnswer ? ' revealed' : '')}>
+            {/* revealed 之外再按判定结果挂 ok / bad：原来 .zone-s.revealed 无条件是薄荷绿，
+                答错时里面的横幅 / 答案框 / 选项全红了、外层解析区还是绿的。
+                现在整个分区跟着判定走同一色系，答错就是答对那套处理的红色镜像。
+                主观题仅展开参考答案、尚未自判时（showAnswer 但 !answered）不挂，保持中性。 */}
+            <section className={'zone zone-s' + (answered || showAnswer ? ' revealed' : '') + (answered ? (verdictOk ? ' ok' : ' bad') : '')}>
             {/* 这里原来是 `answered || showAnswer ? '◇ 解析' : '◇ 解析'`——两个分支完全相同的遗留三元，已收成一行 */}
             <h5 className="zone-label">◇ 解析</h5>
             {seal !== 'broken' && (
