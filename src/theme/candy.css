@@ -860,6 +860,15 @@ body, button, input, textarea, select {
   box-shadow: 0 12px 34px rgba(255, 143, 163, .22), inset 0 1px 0 rgba(255, 255, 255, .95);
 }
 .learn-vision.candy-hero img { display: none !important; }
+/* 哥特层给 .learn-vision::after 铺了一层 rgba(13,17,23,.85) 的近黑遮罩（原本是为了压住巫师图、
+   让左下角金字说明可读）。在糖果横幅上它会把粉→薄荷→薰衣草渐变压成“暗色横幅”
+   （实测截图就被读成 dark gradient banner）。换成极淡的顶部高光 + 底部暖光，
+   读起来像果冻表面的一层光。特异性 0,2,1 > 哥特的 0,1,1，不需要 !important。 */
+.learn-vision.candy-hero::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(180deg,
+    rgba(255, 255, 255, .38) 0%, rgba(255, 255, 255, 0) 42%, rgba(255, 182, 193, .16) 100%);
+}
 .candy-hero .cap {
   position: relative; z-index: 2; padding: 10px 22px; border-radius: 22px;
   background: rgba(255, 255, 255, .62); border: 1px solid rgba(255, 255, 255, .9);
