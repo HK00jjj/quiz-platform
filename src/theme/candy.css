@@ -811,6 +811,21 @@ body, button, input, textarea, select {
 .rework-box h4 img { display: none !important; }
 .rework-box h4::before { content: '⚠️'; margin-right: 6px; }
 
+/* ══ 糖豆爆裂（方案 6.4）══
+   --bx/--by 是每颗粒子的静态目标位移（由 JS 内联写入），真正被动画的只有 transform；
+   不动画 CSS 变量本身（那会让子级每帧重算样式）。一次性、不循环，1.2s 后 host 自行移除。 */
+.burst-host { position: fixed; inset: 0; z-index: 90; pointer-events: none; }
+.burst-bean {
+  position: absolute; border-radius: 50%; opacity: 0;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .7), 0 2px 6px rgba(255, 143, 163, .35);
+  animation: burst-fly .95s cubic-bezier(.22, .7, .3, 1) both;
+}
+@keyframes burst-fly {
+  0% { transform: translate(0, 0) scale(.45); opacity: 0 }
+  18% { opacity: 1 }
+  100% { transform: translate(var(--bx), var(--by)) scale(1); opacity: 0 }
+}
+
 /* 新增动效的 reduced-motion 降级：开机仪式直接终态，循环动效全停 */
 @media (prefers-reduced-motion: reduce) {
   .boot-half, .boot-center, .boot-foil, .boot-bean, .boot-title, .boot-sub { transition: none !important; animation: none !important; }
@@ -824,4 +839,5 @@ body, button, input, textarea, select {
   .bottom-nav { animation: none !important; }
   .candy-balance::after, .candy-balance .cb-pan, .candy-jar .cj-body i,
   .candy-badge, .candy-furnace .cf-flame, .step-node.active::after, .step-line.on::after { animation: none !important; }
+  .burst-bean { animation: none !important; opacity: 0 !important; }
 }

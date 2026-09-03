@@ -68,6 +68,38 @@ export function BottomNav({ active, wrongCount, onNav }) {
   )
 }
 
+/* ── 糖豆爆裂（方案 6.4）：答题后从点击处弹出 14 颗糖豆，抛物线飞出并淡出。
+   对：粉桃/薄荷/柠檬三色；错：酸橙绿（方案 2.2 “错了用酸橙绿而不是红色”）。
+   一次性动画，不循环；只动 transform/opacity，1.1s 后自行从 DOM 移除。
+   附带一次轻振动（支持的设备），与变色/shake 同一帧。 ── */
+const CANDY_OK = ['#FF8FA3', '#7FE8C8', '#FFE066', '#D4B8FF']
+const CANDY_BAD = ['#A8E063', '#8BC34A', '#C6E86A']
+export function burstParticles(x, y, tone = 'gold', count = 14) {
+  if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
+    navigator.vibrate(tone === 'red' ? [10, 40, 10] : 10)
+  }
+  if (typeof document === 'undefined') return
+  const bad = tone === 'red'
+  const palette = bad ? CANDY_BAD : CANDY_OK
+  const host = document.createElement('div')
+  host.className = 'burst-host'
+  host.setAttribute('aria-hidden', 'true')
+  for (let i = 0; i < count; i++) {
+    const p = document.createElement('i')
+    const ang = (Math.PI * 2 * i) / count + Math.random() * 0.4
+    const dist = 46 + Math.random() * 54
+    const size = 6 + Math.random() * 6
+    p.className = 'burst-bean'
+    p.style.cssText = `left:${x}px;top:${y}px;width:${size}px;height:${size}px;` +
+      `background:${palette[i % palette.length]};` +
+      `--bx:${Math.cos(ang) * dist}px;--by:${Math.sin(ang) * dist - 26}px;` +
+      `animation-delay:${(Math.random() * 60) | 0}ms`
+    host.appendChild(p)
+  }
+  document.body.appendChild(host)
+  setTimeout(() => host.remove(), 1200)
+}
+
 /* ── 开机仪式（方案 1.2）：2 秒四段分镜，全由 CSS 驱动，JS 只负责推进 stage 类名。
    0–0.5s   糖豆从下方弹入（bounce）
    0.5–1.5s 糖豆旋转化开、糖纸螺旋展开，中央浮现标题与副标题
