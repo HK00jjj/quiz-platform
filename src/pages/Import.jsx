@@ -88,7 +88,7 @@ export default function Import() {
   return (
     <div className="page-wrap wide">
       <div className="page-head" style={{ backgroundImage: `url(${A.titleDecor})` }}>
-        <h1 className="font-gothic"><span className="rune">🔮</span> 检测 &amp; 封印</h1>
+        <h1 className="font-gothic"><span className="rune">🍬</span> 检测 &amp; 封印</h1>
         <p>题库导入仪式 · 当前题库 {total} 题</p>
       </div>
 

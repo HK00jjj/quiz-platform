@@ -46,7 +46,7 @@ export default function Settings() {
   return (
     <div className="page-wrap">
       <div className="page-head" style={{ backgroundImage: `url(${A.titleDecor})` }}>
-        <h1 className="font-gothic"><span className="rune">⚗️</span> 糖 果 抽 屉</h1>
+        <h1 className="font-gothic"><span className="rune">🧁</span> 糖 果 抽 屉</h1>
         <p>题库设置 · 整理你的糖果抽屉</p>
       </div>
 

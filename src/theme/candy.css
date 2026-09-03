@@ -916,3 +916,41 @@ body, button, input, textarea, select {
 @media (prefers-reduced-motion: reduce) {
   .ch-candy, .ch-lolli::before { animation: none !important; }
 }
+
+/* ══ 导入页过场的哥特残留（实测：两页静止态零位图，所以只可能在过场里）══
+   「检测并封印 → 入库成功 → 跳转书架」这一瞬间会飞过一张 110px 无限自转的玫瑰彩窗
+   加 5 张深色掉落卡牌，成功框里还有第二张彩窗。全部换成糖果：
+   只改形状与配色，沿用原有下落动画（不新写关键帧，也不动布局属性）。 */
+.sealing-anim { position: relative !important; }
+.sealing-anim img, .success-box img.rose { display: none !important; }
+/* 中心改成旋转的糖果漩涡（repeating-conic-gradient），尺寸与原彩窗相当 */
+.sealing-anim::before {
+  content: ''; position: absolute; left: 50%; top: 50%; width: 96px; height: 96px;
+  margin: -48px 0 0 -48px; border-radius: 50%;
+  background: repeating-conic-gradient(#FF8FA3 0 18deg, #FFF6F8 18deg 36deg);
+  box-shadow: 0 10px 26px rgba(255, 143, 163, .35), inset 0 0 0 4px rgba(255, 255, 255, .8);
+  animation: lolli-spin 6s linear infinite;
+}
+/* 掉落的不再是卡牌而是糖豆：nth-of-type 在 span 之间计数（那个 img 不参与） */
+.fall-card {
+  width: 14px !important; height: 14px !important;
+  border: none !important; border-radius: 50% !important;
+  background: radial-gradient(circle at 32% 28%, #FFF0F4, #FF8FA3 72%) !important;
+  box-shadow: 0 3px 10px rgba(255, 143, 163, .35), inset 0 1px 0 rgba(255, 255, 255, .8) !important;
+}
+.fall-card:nth-of-type(even) { background: radial-gradient(circle at 32% 28%, #EAFFF8, #5FD4B0 72%) !important; }
+.fall-card:nth-of-type(3n) { background: radial-gradient(circle at 32% 28%, #FFFBEB, #FFE066 72%) !important; }
+/* 成功框：金色辉光标题改糖果粉，顶部加一枚糖 */
+.success-box .gold-glow-text {
+  color: #C2385A !important;
+  text-shadow: 0 2px 0 rgba(255, 255, 255, .95), 0 6px 16px rgba(255, 143, 163, .28) !important;
+}
+.success-box::before { content: '🍬'; display: block; margin-bottom: 6px; font-size: 40px; }
+
+/* 页标题的 rune 图标：哥特风的水晶球/蒸馏器换成糖果（它们在糖果页里是最显眼的异类） */
+.page-head h1 .rune { font-size: 22px; vertical-align: -1px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .sealing-anim::before { animation: none !important; }
+  .fall-card { animation-duration: .01s !important; }
+}
