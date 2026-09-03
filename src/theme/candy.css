@@ -984,3 +984,184 @@ body, button, input, textarea, select {
   -webkit-backdrop-filter: none !important;
   background: rgba(255, 255, 255, .84) !important;
 }
+
+/* ══════════════════════════════════════════════════════════
+   7.1 收藏题集：学习页第五个入口 + 答题页解析区星标
+   ══════════════════════════════════════════════════════════ */
+
+/* 哥特插图早已从 JSX 删掉，pages.css 给 .art 留的 150px 高成了纯空白（实测入口卡
+   335px 高里有 150px 是空的，占 45%）。这里收掉，卡片降到内容实高。 */
+.entry-card .art { display: none; }
+
+/* 五张卡在两列网格里会剩一个空洞，所以第五张横跨整行、改横排 */
+.entry-card.wide {
+  grid-column: 1 / -1;
+  display: flex; flex-direction: row; align-items: center; gap: 16px;
+  text-align: left; padding: 14px 20px;
+}
+.entry-card.wide::before {
+  flex: 0 0 auto; margin: 0; font-size: 40px; line-height: 1.15;
+}
+.entry-card.wide .wide-txt { flex: 1 1 auto; min-width: 0; padding-right: 54px; }
+.entry-card.wide h3 { margin-top: 0; }
+.entry-card.wide p { margin-top: 3px; }
+/* 用独立的 translate 属性而不是 transform：.count-gem 的 breathe 关键帧里带 transform，
+   动画会盖掉声明里的 transform（实测徽章比中线高 15px = 徽章高的一半）。
+   translate 与 transform 分开合成，所以既保住呼吸动画又能真正垂直居中。 */
+.entry-card.wide .count-gem { top: 50%; right: 16px; translate: 0 -50%; }
+/* 有收藏时图标换柠檬投影添一点温度；空态保持中性且不假装可点 */
+.entry-card.wide.fav-on::before { filter: drop-shadow(0 6px 14px rgba(255, 212, 59, .45)); }
+.entry-card.wide:not(.fav-on) { cursor: default; }
+.entry-card.wide:not(.fav-on):hover { transform: none; box-shadow: none; border-color: var(--candy-pink-lt); }
+@media (max-width: 560px) {
+  .entry-card.wide { gap: 12px; padding: 12px 16px; }
+  .entry-card.wide::before { font-size: 34px; }
+  .entry-card.wide .wide-txt { padding-right: 48px; }
+}
+
+/* 答题页解析区标题行：标题左、星标右（小面积元素，transition 只跑颜色与 transform） */
+.zone-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.fav-star {
+  appearance: none; font-family: inherit; flex: 0 0 auto;
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 12px; border-radius: 999px; cursor: pointer;
+  border: 2px solid var(--candy-pink-lt); background: rgba(255, 255, 255, .72);
+  color: #C9899A; font-size: 12px; font-weight: 800; letter-spacing: 1px;
+  transition: transform .18s var(--ease-pop), border-color .18s ease, background-color .18s ease, color .18s ease;
+}
+.fav-star .fav-glyph { font-size: 14px; line-height: 1; }
+.fav-star:hover { border-color: var(--candy-pink-dk); transform: translateY(-1px); }
+.fav-star:active { transform: scale(.94); }
+.fav-star.on {
+  border-color: var(--lemon-dk); background: #FFF7DC; color: #A8791A;
+  box-shadow: 0 0 10px rgba(255, 212, 59, .35);
+}
+.fav-star.on .fav-glyph { color: var(--lemon-dk); }
+@media (prefers-reduced-motion: reduce) {
+  .fav-star { transition: none; }
+  .fav-star:hover, .fav-star:active { transform: none; }
+  .entry-card.wide::before { animation: none !important; }
+}
+
+/* ══════════════════════════════════════════════════════════
+   #1 判分双通道：对 = 薄荷绿，错 = 草莓红
+   旧版错也用绿（--sour / --fault / --glow-red 全是酸橙绿 #A8E063），
+   与对的 #2FA98A 同属绿系（hue 85° vs 157°），实测用户分不清对错；
+   而「✗ 我答错了」按钮用的又是暖橙 --danger，同一个「错」语义跳了两个色系。
+   现在统一到绿 vs 红（hue 157° vs 5°），不依赖明度差就能区分，
+   且两个文字色在白底上都过 WCAG AA（--ok-ink 4.9:1、--bad-ink 5.3:1）。
+   注意不动 --sour / --sour-dk 本体：.nav-item .dot 那个装饰绿点还在用它。
+   ══════════════════════════════════════════════════════════ */
+:root {
+  --bad: #FF8A7A;
+  --bad-dk: #F2564A;
+  --bad-ink: #C4372E;
+  --bad-wash: rgba(242, 86, 74, .12);
+  --glow-bad: 0 0 12px rgba(242, 86, 74, .45), 0 0 24px rgba(242, 86, 74, .18);
+  --ok-ink: #1B7F63;
+  /* 高杠杆手法（同 §3.1）：直接重定义哥特层的错误 token，
+     让 pages.css / global.css 里几百条用 var(--fault) / var(--glow-red) 的旧规则自动变色 */
+  --fault: #F2564A;
+  --fault-lt: #FF8A7A;
+  --glow-red: 0 0 12px rgba(242, 86, 74, .5), 0 0 24px rgba(242, 86, 74, .2);
+}
+.verdict-banner.ok { color: var(--ok-ink) !important; }
+.verdict-banner.bad { color: var(--bad-ink) !important; }
+.teal-glow-text { color: var(--ok-ink) !important; }
+.red-glow-text { color: var(--bad-ink) !important; }
+.answer-scroll-box h5 { color: var(--ok-ink) !important; }
+.answer-scroll-box.bad { border-left-color: var(--bad-dk) !important; background: var(--bad-wash) !important; box-shadow: 0 2px 12px rgba(242, 86, 74, .22) !important; }
+.answer-scroll-box.bad h5 { color: var(--bad-ink) !important; }
+.opt-row.wronged { border-color: var(--bad-dk) !important; background: rgba(242, 86, 74, .14) !important; color: var(--bad-ink) !important; }
+.opt-row.wronged::before { background: radial-gradient(circle at 32% 28%, #FFD9D2, #F2564A) !important; border-color: #F2564A !important; }
+.fill-item.wronged .rune-input { border-color: var(--bad-dk) !important; box-shadow: var(--glow-bad) !important; }
+.fill-item.right .rune-input { border-color: var(--mint-dk) !important; box-shadow: var(--glow-mint) !important; }
+.judge-card.j-false { border-color: #FFD9D2 !important; }
+.judge-card.j-false::before {
+  background: radial-gradient(circle at 32% 28%, #FFD9D2, #F2564A) !important;
+  box-shadow: 0 0 12px rgba(242, 86, 74, .45), inset 0 1px 0 rgba(255, 255, 255, .7) !important;
+}
+.judge-card.j-false:hover, .judge-card.j-false.selected {
+  border-color: var(--bad-dk) !important;
+  box-shadow: 0 0 0 4px rgba(242, 86, 74, .22), 0 8px 24px rgba(242, 86, 74, .3) !important;
+}
+.judge-card.j-false.selected .judge-label { color: var(--bad-ink) !important; }
+.crack-veil { background: radial-gradient(circle at 50% 50%, transparent 38%, rgba(242, 86, 74, .28) 100%) !important; }
+.pile-counter.okp { color: var(--ok-ink) !important; border-color: rgba(127, 232, 200, .75) !important; }
+.pile-counter.badp { color: var(--bad-ink) !important; border-color: rgba(242, 86, 74, .6) !important; }
+.gem-dot.bad { background: var(--bad-dk) !important; box-shadow: 0 0 8px rgba(242, 86, 74, .6) !important; }
+.entry-card.hot .count-gem {
+  border-color: var(--bad) !important; color: var(--bad-ink) !important;
+  background: #fff !important; box-shadow: 0 0 10px rgba(242, 86, 74, .45) !important;
+}
+.tag.red { color: var(--bad-ink) !important; border-color: rgba(242, 86, 74, .55) !important; }
+
+/* ══════════════════════════════════════════════════════════
+   #2 学习页入口卡：内容垂直居中
+   实测原本卡高 335px 里有 150px 是 .art 空 div（哥特插图删了但高度没人收），
+   四个图标因此全挤在顶部。JSX 里已删 .art，这里再给 flex 居中做保险。
+   ══════════════════════════════════════════════════════════ */
+.entry-card { display: flex; flex-direction: column; justify-content: center; }
+
+/* ══════════════════════════════════════════════════════════
+   #3 难度小标（基础 / 应用 / 综合）
+   原来是哥特宝石位图 A.gems（p40-1/2/3.webp）+ 一行 11px 灰字，
+   而且三层 CSS 里根本没有 .diff-pill 的任何规则，等于裸奔。
+   现在：纯 CSS 糖果胶囊 + 三档配色（薄荷 / 柠檬 / 葡萄），零位图。
+   类名用 DIFF_CLS 映射出的 ASCII（d-base / d-apply / d-adv）。
+   ══════════════════════════════════════════════════════════ */
+.diff-pill {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 2px 10px; border-radius: 999px; border: 2px solid transparent;
+  font-size: clamp(10.5px, 2.4cqw, 12px); font-weight: 800; letter-spacing: .5px; white-space: nowrap;
+}
+.diff-pill::before {
+  content: ''; flex: 0 0 auto; width: 7px; height: 7px; border-radius: 50%;
+  background: currentColor; box-shadow: inset 0 1px 0 rgba(255, 255, 255, .75);
+}
+.diff-pill.d-base { color: #1B7F63; border-color: var(--mint); background: rgba(127, 232, 200, .18); }
+.diff-pill.d-apply { color: #96690F; border-color: var(--lemon-dk); background: rgba(255, 224, 102, .24); }
+.diff-pill.d-adv { color: #6C46C9; border-color: var(--lav-dk); background: rgba(184, 148, 255, .2); }
+.diff-pill.tiny { font-size: clamp(8px, 4.4cqw, 10.5px); padding: 1px 6px; gap: 3px; }
+.diff-pill.tiny::before { width: 5px; height: 5px; }
+
+/* ══════════════════════════════════════════════════════════
+   #4 首字下沉彻底关掉
+   global.css 给 .drop-cap::first-letter 挂了 float:left + font-size:2.1em + Cinzel，
+   第一个字比正文大一倍还浮动，读起来累。JSX 里已经不再挂 drop-cap 类，
+   这条留着当保险：万一类名被编辑器缓冲区带回来也不会复活。
+   ══════════════════════════════════════════════════════════ */
+.drop-cap::first-letter {
+  float: none !important; font-size: inherit !important; line-height: inherit !important;
+  padding: 0 !important; font-family: inherit !important;
+  color: inherit !important; text-shadow: none !important;
+}
+
+/* ══════════════════════════════════════════════════════════
+   #7 结算页糖果化
+   pages.css 那套是哥特的：近黑卡底 + 铜质 border-image + 内描金线 +
+   110px 旋转玫瑰窗（spin-slow 24s infinite）+ Cinzel 数字。
+   candy.css 之前只覆盖了 border，其余全在裸奔。玫瑰窗位图已从 JSX 删掉，
+   换成纯 CSS 糖果奖章（.settle-medal，零位图零请求，也不再有永久旋转动画）。
+   ══════════════════════════════════════════════════════════ */
+.settle-rose { display: none !important; }
+.settle-card { border-radius: 24px !important; }
+.settle-card::before { display: none !important; }
+.settle-medal {
+  width: 76px; height: 76px; margin: 0 auto 10px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; font-size: 38px;
+  background: radial-gradient(circle at 34% 28%, #FFF3F6, var(--candy-pink-lt));
+  border: 2px solid var(--candy-pink-lt);
+  box-shadow: 0 6px 18px rgba(255, 143, 163, .3), inset 0 1px 0 rgba(255, 255, 255, .9);
+}
+.settle-title {
+  margin: 0; font-size: 19px; font-weight: 900; letter-spacing: 6px; color: #D14767;
+  font-family: 'Nunito', 'Noto Sans SC', sans-serif !important;
+}
+.settle-sub { margin: 2px 0 0; font-size: 12px; letter-spacing: 4px; color: var(--muted); }
+.settle-praise { margin: 10px 0 0; font-size: 13px; font-weight: 800; letter-spacing: 2px; color: #D14767; }
+.settle-pct { font-family: 'Nunito', 'Noto Sans SC', sans-serif !important; }
+.settle-grid b { font-family: 'Nunito', 'Noto Sans SC', sans-serif !important; }
+/* 只改没挂类的那两个（用时 / 最高连对）：挂了的靠 .teal-glow-text / .red-glow-text 上色，
+   而那两个类特异性更低，这里不能用 .settle-grid b 直接定 color，否则会把对/错颜色盖掉 */
+.settle-grid b:not([class]) { color: var(--ink) !important; }

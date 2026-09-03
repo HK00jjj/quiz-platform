@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store'
 import { A } from '../assets'
 import { GiltBtn, EmptyState, burstParticles, FlameIcon } from '../components'
-import { buildSession, lastResultMap, TYPES, DIFFICULTIES } from '../lib/stats'
+import { buildSession, lastResultMap, TYPES, DIFFICULTIES, domainLabel } from '../lib/stats'
 import { isDue } from '../lib/fsrs'
 import { todayStr, streakLength } from '../lib/dates'
 
@@ -13,9 +13,12 @@ function FilterModal({ title, filters, onToggle, onClose, onStart, count, startL
   const [dim, setDim] = useState('types')
   const dims = [
     { key: 'types', label: '题型', options: TYPES },
-    { key: 'domains', label: '知识域', options: DOMAINS_ALL },
+    { key: 'domains', label: '知识域', options: DOMAINS_ALL, text: domainLabel },
     { key: 'difficulties', label: '难度', options: DIFFICULTIES }
   ]
+  /* 知识域 chip 的值仍是 K1~K27（筛选逻辑与 settings 里存的过滤器都认它），
+     但显示走 text 换成中文域名——光看 K17 谁也不知道是什么（#8）。 */
+  const cur = dims.find((d) => d.key === dim)
   return (
     <div className="modal-veil" onClick={onClose}>
       <div className="modal-box" onClick={(e) => e.stopPropagation()}>
@@ -30,8 +33,10 @@ function FilterModal({ title, filters, onToggle, onClose, onStart, count, startL
         </div>
         <div className="filter-group">
           <div className="chip-row">
-            {dims.find((d) => d.key === dim).options.map((o) => (
-              <button key={o} className={'chip' + (filters[dim]?.includes(o) ? ' on' : '')} onClick={() => onToggle(dim, o)}>{o}</button>
+            {cur.options.map((o) => (
+              <button key={o} className={'chip' + (filters[dim]?.includes(o) ? ' on' : '')} onClick={() => onToggle(dim, o)}>
+                {cur.text ? cur.text(o) : o}
+              </button>
             ))}
           </div>
         </div>
@@ -39,7 +44,7 @@ function FilterModal({ title, filters, onToggle, onClose, onStart, count, startL
           <GiltBtn size="lg" onClick={onStart} disabled={count === 0}>
             {startLabel}（{count} 题）
           </GiltBtn>
-          <GiltBtn tone="ghost" onClick={onClose}>返回阅览厅</GiltBtn>
+          <GiltBtn tone="ghost" onClick={onClose}>返回</GiltBtn>
         </div>
       </div>
     </div>
@@ -52,6 +57,8 @@ export default function Learn() {
   const questions = useStore((s) => s.questions)
   const cards = useStore((s) => s.cards)
   const records = useStore((s) => s.records)
+  const books = useStore((s) => s.books)
+  const activeBookId = useStore((s) => s.activeBookId)
   const settings = useStore((s) => s.settings)
   const updateSettings = useStore((s) => s.updateSettings)
   const startSession = useStore((s) => s.startSession)
@@ -66,6 +73,15 @@ export default function Learn() {
   const newCount = questions.length - cards.length
   const lastMap = useMemo(() => lastResultMap(records), [records])
   const wrongCount = questions.filter((q) => lastMap.get(q.id) === false).length
+  /* 收藏题集：favorites 挂在当前书本上，切书即换一批。这里再用 questions（已是书本作用域）过一遍，
+     即使云端还没裁掉死引用，计数也不会虚高。favArr 保持原引用：别写 ?? []，否则每次渲染都新建数组，
+     useMemo 的依赖每帧都变。 */
+  const favArr = books[activeBookId]?.favorites
+  const favCount = useMemo(() => {
+    if (!Array.isArray(favArr) || favArr.length === 0) return 0
+    const ids = new Set(favArr)
+    return questions.filter((q) => ids.has(q.id)).length
+  }, [favArr, questions])
 
   const relearnFilters = settings.relearnFilters ?? {}
   const learnFilters = settings.learnFilters ?? {}
@@ -80,12 +96,12 @@ export default function Learn() {
   }
   // 「开始今日练习」优先链：到期复习 → 错题 → 新题 → 随机（按交接要求保留）
   const hero = dueCount > 0
-    ? { sub: `${dueCount} 道题到期等待复习`, run: () => run('review', { size: 20 }) }
+    ? { sub: `${dueCount} 道题到期，该复习了`, run: () => run('review', { size: 20 }) }
     : wrongCount > 0
-      ? { sub: `${wrongCount} 题酸了符文待净化`, run: () => run('wrong', { size: 20 }) }
+      ? { sub: `${wrongCount} 道错题等着重练`, run: () => run('wrong', { size: 20 }) }
       : newCount > 0
-        ? { sub: `${newCount} 题新题库待翻阅`, run: () => run('learn') }
-        : { sub: '今天也来保持甜蜜值手感', run: () => run('random') }
+        ? { sub: `${newCount} 道新题还没做过`, run: () => run('learn') }
+        : { sub: '今天也来练几道，保持手感', run: () => run('random') }
 
   function toggleFilter(scope, dim, value) {
     const key = scope === 'relearn' ? 'relearnFilters' : 'learnFilters'
@@ -154,30 +170,40 @@ export default function Learn() {
       </div>
 
       <div className="entry-grid">
+        {/* 四段文案改成糖果主题的直白说法（#2）：原来的「污染重阅 / 被酸糖低语侵蚀的符文 /
+            无放回抽取 20 卷 / 切牌筛选」是哥特卡牌词汇，看不出到底在干什么。
+            .art 空 div 一并删掉——哥特插图早没了，留着只白占 150px 高度。 */}
         <div className={'entry-card rise' + (wrongCount > 0 ? ' hot' : '')} style={{ animationDelay: '.08s' }}
           onClick={() => wrongCount > 0 && run('wrong', { size: 0 })}>
           <span className="count-gem">{wrongCount}</span>
-          <div className="art" aria-hidden="true" />
-          <h3>污染重阅</h3>
-          <p>被酸糖低语侵蚀的符文，等待重新解读净化</p>
+          <h3>错题重练</h3>
+          <p>{wrongCount > 0 ? `答错过的 ${wrongCount} 道 · 再练一遍就记牢了` : '暂时没有错题，保持住'}</p>
         </div>
         <div className="entry-card rise" style={{ animationDelay: '.16s' }} onClick={() => run('random', { size: 20 })}>
           <span className="count-gem">{randomCount}</span>
-          <div className="art" aria-hidden="true" />
-          <h3>随机翻阅</h3>
-          <p>全库无放回抽取 20 卷 · 模拟考试手感 · 共 {questions.length} 题</p>
+          <h3>随机练习</h3>
+          <p>从全部 {questions.length} 题里随机抽 {randomCount} 道 · 练考场手感</p>
         </div>
         <div className="entry-card rise" style={{ animationDelay: '.24s' }} onClick={() => newCount > 0 && run('learn')}>
           <span className="count-gem">{newCount}</span>
-          <div className="art" aria-hidden="true" />
-          <h3>学习新篇</h3>
-          <p>{newCount} 题未做题 · 首次解读建立甜蜜值印记</p>
+          <h3>新题上手</h3>
+          <p>{newCount > 0 ? `${newCount} 道还没做过 · 做完自动排进复习计划` : '全部题目都做过了'}</p>
         </div>
         <div className="entry-card rise" style={{ animationDelay: '.32s' }} onClick={() => setOpenFilter('relearn')}>
           <span className="count-gem">{relearnCount}</span>
-          <div className="art" aria-hidden="true" />
-          <h3>全部题库</h3>
-          <p>可按题型 / 知识域 / 难度切牌筛选后学习</p>
+          <h3>挑题练习</h3>
+          <p>按题型、知识域、难度筛出想练的题 · 共 {relearnCount} 道</p>
+        </div>
+        {/* 第五个入口 · 收藏题集：nth-child(5) 的 🔖 已在 candy.css 备好。
+            五张卡在两列网格里会剩一个空洞，所以这张横跨整行并改横排（图标左 / 文案中 / 计数右）。
+            不放 .art：哥特插图早已从 JSX 删除，空 div 只会白占高度。 */}
+        <div className={'entry-card wide rise' + (favCount > 0 ? ' fav-on' : '')} style={{ animationDelay: '.4s' }}
+          onClick={() => favCount > 0 && run('fav', { size: 0 })}>
+          <span className="count-gem">{favCount}</span>
+          <div className="wide-txt">
+            <h3>收藏题集</h3>
+            <p>{favCount > 0 ? `只练这 ${favCount} 道你标过 ★ 的题` : '还没有收藏 · 在答题页解析区点 ☆ 就能收进来'}</p>
+          </div>
         </div>
       </div>
 
@@ -186,12 +212,12 @@ export default function Learn() {
 
       {openFilter === 'relearn' && (
         <FilterModal
-          title="🃏 全部题库 · 切牌筛选"
+          title="🍬 挑题练习 · 按条件筛选"
           filters={relearnFilters}
           onToggle={(dim, v) => toggleFilter('relearn', dim, v)}
           onClose={() => setOpenFilter(null)}
           count={relearnCount}
-          startLabel="开始解读"
+          startLabel="开始练习"
           onStart={() => { setOpenFilter(null); run('relearn', { size: 0, ...relearnFilters }) }}
         />
       )}

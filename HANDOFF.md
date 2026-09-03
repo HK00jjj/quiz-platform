@@ -351,3 +351,82 @@ npx --yes playwright cli --raw eval "document.querySelectorAll('.book-card').len
 ```
 
 四项都正常，就可以直接接 §7 的待办往下做。
+
+---
+
+## 11. 本轮更新（2026-09-03 第二轮会话）· 覆盖 §8 快照
+
+**gh-pages HEAD：`13c2057`（父提交 `61687bb`，82 文件 / 7.59 MB，verify-deploy 缺失 0 / 不一致 0 / 多余 0 = IDENTICAL）**
+
+> 新会话的工作区变成了 `2026-09-03\chat-1`（空目录），而工程在 `2026-09-02\chat-1`。
+> **编辑类工具不能修改工作区外的文件**（读可以、写会报 `can not edit the file outside the projects`）。
+> 解法：在新工作区里建两个目录联接，改的仍是原文件本体，不用搬 7.6MB 工程、不用重装依赖、不丢会话上下文：
+> ```powershell
+> New-Item -ItemType Junction -Path "<新工作区>\app"     -Target "<旧工作区>\app"
+> New-Item -ItemType Junction -Path "<新工作区>\scripts" -Target "<旧工作区>\scripts"
+> ```
+> 之后所有 SearchReplace 走 `<新工作区>\app\src\...` 路径即可。根级文件（HANDOFF.md 等）没被联接覆盖，
+> 要改就用「Write 到新工作区 + `[IO.File]::AppendAllText` 追加」，别在 PowerShell 里写长中文串。
+
+### 11.1 做完的事
+
+**§7.1 收藏题集（第五个入口）已上线**，全部按待办里的设计落地：
+- `favorites` 挂在 `books[id].favorites`，随既有 books payload 一起存 → 零新增存储通道、天然按书隔离、复用 `lastBooksJson` 幂等防回环
+- `store.js`：`toggleFavorite(qid)`（返回切换后状态）、`reloadAll` 里裁掉已删题目的死收藏、`deleteQuestion` 同步摘掉各书收藏、`startSession` 把 `favIds` 传给 `buildSession`
+- `stats.js`：`buildSession` 加 `case 'fav'`
+- `Practice.jsx`：解析区标题行右侧 ☆/★ 胶囊（蜡封未启时也能点，不必先答题）；只在「收进来」时发糖豆
+- `Learn.jsx`：第五张入口卡 `🔖 收藏题集`（`nth-child(5)` 的 emoji 早就备好了）
+- `clearBookProgress` **故意不清收藏**——收藏是选题意图，不是学习进度
+- demo 数据给了 `b_demo1.favorites = ['demo_2','demo_5','demo_9','demo_14']`，一进 demo 就能看到非空态
+
+**用户提的 8 项，全部真机验证过：**
+
+| # | 问题 | 根因 | 修法 | 实测 |
+| --- | --- | --- | --- | --- |
+| 1 | 答对答错分不清 | 对 `#2FA98A`(hue157) vs 错 `#6E9B2E`(hue85)，**两个都是绿的**；`--glow-red` 竟是酸橙绿；而「✗我答错了」按钮用暖橙 `--danger`，同一语义跨两个色系 | 新增 `--ok-ink:#1B7F63` / `--bad:#FF8A7A` / `--bad-dk:#F2564A` / `--bad-ink:#C4372E` / `--bad-wash` / `--glow-bad`，并**重定义 `--fault`/`--fault-lt`/`--glow-red`** 让哥特层旧规则自动变色；逐条覆盖 verdict-banner / answer-scroll-box / opt-row.wronged / fill-item / judge-card.j-false / crack-veil / pile-counter / gem-dot.bad / entry-card.hot / tag.red | 对 `rgb(27,127,99)` vs 错 `rgb(196,55,46)`，色相 157° vs 5°；两个文字色白底 **4.9:1 / 5.3:1** 都过 AA |
+| 2 | 四个图标整体偏上 + 文案还是哥特 | `pages.css` 给 `.entry-card .art` 定了 150px 高，哥特插图按 §6 从 JSX 删了但**高度没人收** → 卡高 335px 里 150px 是纯空白，图标全挤顶部 | `.art` 从 JSX 删净 + candy.css `display:none` 双保险 + `.entry-card` 改 flex column `justify-content:center` | 卡高 **335→185**（-45%），上下留白 18/17 对称；文案改成 错题重练 / 随机练习 / 新题上手 / 挑题练习 |
+| 3 | 基础·应用·综合小标是哥特版 | `.diff-pill` 在**三层 CSS 里没有任何规则**，裸奔成「哥特宝石位图 `A.gems`(p40-1/2/3) + 11px 灰字」 | 删 `<img class="gem">`，改纯 CSS 糖果胶囊；难度→ASCII 类名走 `stats.js` 新导出的 `DIFF_CLS`（基础=薄荷/应用=柠檬/综合=葡萄）；Bank.jsx 的 `.tarot-gem` 同步换成 `.diff-pill.tiny` | `diff-pill d-base`，`pillImgs:0`，页面内 `img.gem/.tarot-gem` 计数 **0** |
+| 4 | 题干首字放大看着累 | `global.css` 的 `.drop-cap::first-letter{float:left;font-size:2.1em;font-family:Cinzel}` | JSX 去掉 `drop-cap` 类 + candy.css 把该伪元素全属性打成 `inherit/none` 当保险 | `.drop-cap` 计数 **0**，题干 18px |
+| 5 | 填空 `I/O` 输入正确却判错 | **`SPLIT=/[、，,;；|/\s]+/` 把 `/` 和空格当分隔符切用户输入，而切标准答案用的是 `/[，,、;；|]/` 不切它们** → `I/O` 被切成 2 段、答案仍 1 段，`got.length===blankCount` 恒假 | 分隔符去掉 `/` 与空白；新增 `loose()`（全角→半角、删全部空白、转小写）；新增 `splitExpected()` 用题干空数当裁判优先按 `\|` 切；UI 各空改用 `\n` 拼接（单行 input 不可能出现换行，无歧义哨兵）；grade 返回 `expectedParts` 数组 | 自建 13 例回归测试 **5/13 → 13/13**（见 `scripts/t-fill.mjs`） |
+| 6 | 单选多选选项不随机，用户记位置 | 无洗牌逻辑 | `shuffledOrder()` + 按「题目id#序号」存进 `shuffleRef`（**绝不在渲染里现算**，否则任何 setState 都会重排、用户点到的选项会跳位）；**内部一律用原始字母跑判分与对错高亮，只有显示字母跟着洗牌走**，所以 `gradeObjective` 与 `.right/.wronged/.missed` 判定链路一行没改；揭晓答案用 `mapLetters()` 换算 | q1 `[一,二,四,三]`、q2 `[四,一,三,二]` 每题独立洗牌；q2 正确项「说法一」落在 **B**，揭晓答案就是 **`B`** —— 不再出现「答案是D、位置在A」 |
+| 7 | 做完后用时还在走 + 图标哥特 | 计时 `useEffect` 的 deps 是 `[]`，组件活着就一直 tick；`.settle-rose` 是 110px 旋转玫瑰窗（`spin-slow 24s infinite`），`.settle-card::before` 是内描金线，`.settle-pct/.settle-grid b` 是 Cinzel，candy.css 只覆盖过 border | deps 改挂 `[phase]`（`done` 直接 return 停表，点「再练错题」回 answering 重新起表 + `setElapsed(0)`）；玫瑰窗 `<img>` 从 JSX 删掉换纯 CSS `.settle-medal`；文案 参悟总结→本轮成绩、灵知契合度→正确率、窥见/侵蚀→答对/答错、最高连击→最高连对、🕯复习错题→🍓再练错题、返回阅览厅→返回学习页；答题中两个计数器 🗂/🕯 → ✓/✗ | 相隔 2800ms 两次读 `.settle-grid` 完全相同（`17秒` 不动）= `timerFrozen:true`；`.settle-card img` 计数 **0**；内描金线 `display:none` |
+| 8 | 知识域显示 K1-K27 看不懂 | `Learn.jsx` 的 `DOMAINS_ALL` 与 `Bank.jsx` 的 domains 直接把 `K#` 当文案渲染（`domainLabel` 早就有，只是这两处没用） | 两处都加 `text: domainLabel`，**chip/option 的 value 仍是 K#**（筛选逻辑与 settings 里存的过滤器都认它），只有显示换成中文 | 27 个 chip 全是中文域名，`/^K\d+$/` 命中数 **0** |
+
+### 11.2 顺手修掉的两个既有缺陷（不在用户清单里，但会咬人）
+
+1. **`store.js` 的 `updateSettings` 是唯一没有 `!DEMO` 卫兵的云端写动作**（`deleteQuestion`/`resetAll`/`clearBookProgress`/`submitAnswer`/`persistBooks` 都有）。旧写法 `await repo.saveSettings(merged)` 无卫兵无 try：demo 没有 auth session → 吃 401 抛出 → 下面 `set({settings})` 永远跑不到。**表现就是「挑题练习」里点题型/知识域/难度 chip 完全没反应、题数不变，还往 console 丢 2 个 error。** 生产环境网络抖动也会让整个设置静默失效。已改成「先乐观更新本机 → DEMO 直接 return → try/catch 写云端并置 syncError」，与 `persistBooks` 同套路。修后筛选生效（`开始练习（28 题）` → `（4 题）`），console 零新增 error。
+2. **`.entry-card.wide .count-gem` 用 `transform: translateY(-50%)` 居中失败**：`.count-gem` 的 `breathe` 关键帧里带 `transform`，**动画优先于声明**，实测徽章比中线高 15px（正好是徽章高的一半）。改用**独立的 `translate: 0 -50%` 属性**（与 transform 分开合成）→ 偏移归 0，且呼吸动画保住。以后要在带关键帧动画的元素上做位移，一律用 `translate`/`rotate`/`scale` 独立属性。
+
+### 11.3 新增陷阱（都真踩过，补进 §6 的表格用）
+
+| 症状 | 原因 | 做法 |
+| --- | --- | --- |
+| **Read 工具读到的文件内容和磁盘不一致** | Read 可能返回 **IDE 的陈旧缓冲区**。实测 `app/src/assets.js` 被 Read 成苹果明净版（`const img = () => undefined`、注释写「明净版已归零/Lucide」），而磁盘上是好版本（`const img = (name) => ...`），两者**恰好都是 3924 字节** | 判断文件真伪一律用磁盘读：`[IO.File]::ReadAllText` 或 Grep。**别只凭 Read 的结果就断言"文件被污染了"**——我这轮就误报了一次，还差点因此推翻一份好产物 |
+| 编辑类工具报 `can not edit the file outside the projects` | 工作区换了目录，工程还在旧目录 | 建目录联接（见本节开头）。硬链接不行：SearchReplace 可能「写新文件+改名」，会把链接打断而原文件没更新 |
+| PowerShell 中文输出全是乱码 | 控制台代码页不是 UTF-8 | 命令开头加 `[Console]::OutputEncoding=[Text.Encoding]::UTF8`（比 §6 说的「改用 ReadAllText」更彻底：ReadAllText 只管读进来对不对，这条管打印出去对不对） |
+| PowerShell 变量莫名失效、`Test-Path` 全 False | **PS 变量名不区分大小写**：`$R` 存路径、`$r` 存 URL，后者把前者覆盖了 | 别用只差大小写的变量名。我这轮因此误报过 5 个「文件不存在」 |
+| `run-code` 里 `console.log` / `return` 看不到输出 | playwright cli 的 `run-code` 不回传 | 把结果 `page.evaluate` 写到 `window.__p`，再用 `--raw eval "JSON.stringify(window.__p)"` 读回；多步流程整段写进文件用 `run-code --filename=<绝对路径>`，顺便绕开 PowerShell 引号地狱 |
+| 改了 `store.js` 之后答题会话凭空消失 | Vite 对 store 这类无 HMR 边界的模块会**整页重载**，zustand 内存态全丢 | 改完 store 后重新走一遍进入答题页的流程，别指望原状态还在 |
+| 生成中文时个别字被写成同形近字 | 实测 `绝`→`绠`、`徽`→`徐` 真的落到了文件里 | 写完中文注释后回读校验：`$t.Contains('绝')` 之类逐个断言，别只看 diff |
+| `page.goto` 到只有 hash 不同的地址 | HashRouter 下**不触发整页重载**，store 状态会留着 | 想测「干净首屏」得真刷新；本轮就因此把已选中的筛选 chip 又点了一次、反而关掉了 |
+
+### 11.4 新增工具（已随 push-src 进 src 分支）
+
+- **`scripts/audit-src.mjs <TOKEN>`**：把本地 `app/**` + `scripts/**` 跟 src 分支逐文件比 **git blob SHA1**，输出「一致 / 不一致 / 本地缺失」。这是**接手后第一件事该跑的检查**，比 §10 那几条特征串断言彻底得多——一次就能确认有没有文件被编辑器缓冲区换成别的版本。本轮实测：一致 143 / 不一致 5（正好是我改的 5 个）/ 缺失 1（`verify-books.ps1` 是路径映射没覆盖，不是真缺）。
+- **`scripts/t-fill.mjs`**：填空题判分回归测试，直接 `import` 真实源码（不复制逻辑，免得测了自己写的假实现），13 例覆盖斜杠 / 空格 / 大小写 / 全角 / 多空 / 答案本体含逗号 / 该判错就判错。`node scripts/t-fill.mjs` 即可，不需要浏览器。
+
+### 11.5 范围外发现（用户没提，我没动，等拍板）
+
+- **Bank.jsx（题库页，可达）哥特文案成片**：`🃏 禁 书 库` / `封印的题库在此陈列，窥视需谨慎` / `🔮 找找想品的糖` / `题型·切牌` `知识域·切牌` `难度·切牌` / `✦ 轻触拆开 ✦` / `◆ 题目全录` `◆ 题面` `◆ 甜蜜答案` / `确认销毁` `收回成命` `合上糖纸` / `酸了`。归 §7.4。
+- **Stats.jsx（孤儿页，入口已摘、`#/stats` 仍可直达）**：`🕯 周做题量`、`🃏 分题型契合度`、`🔮 星象命运之盘`、`星 界 观 测 台`。闸门断言里 `🕯` 仍为 True 就是它。归 §7.5。
+- **Login.jsx / Settings.jsx** 各有一处 `🔮`（`开启糖果之门`、`甜蜜值备份`）。
+- **答题页 `.rate-btn` 三档自评的边框色是 绿/黄/蓝绿**（忘记=绿框），与「错=红」并排看仍有点乱。属于 #1 的邻居但用户指的是对错反馈，没敢一并改。
+- **第五张入口卡在 1280×900 下位于折叠线以下**（页面总高略超 900）。想让它进首屏就得压 `learn-vision` 糖果橱窗的高度，用户没提，没动。
+
+### 11.6 待办清单变化
+
+- **§7.1 收藏题集 → 已完成**（本轮）
+- §7.4 哥特文案残留 → 学习页四张入口卡 + 筛选弹窗 + hero 副标题**已清**；导入页说明、Stats 页整页、Bank 页整页**仍在**
+- §7.5 Stats 页 / §7.3 清 7MB 素材 / §7.2 音效 / §7.6 设置页实体造型 / §7.7 死代码 → **未动**
+- §7.7 里「工作区根那份重复源码树」仍在（`2026-09-02\chat-1\src`、`public`、`index.html` 等），删目录要 `Remove-Item`，会被只读沙箱拦，仍需用户明确许可
+- **新增待办**：`.diff-pill` / `.settle-*` 这类「candy.css 从没覆盖过、一直在吃哥特层样式」的选择器可能还有别的，值得系统扫一遍（本轮是靠用户报障才发现的）

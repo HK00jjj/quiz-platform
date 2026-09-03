@@ -285,10 +285,36 @@ export function parseBackup(text) {
 }
 
 // ── 客观题作答归一化与判分 ──
-const SPLIT = /[、，,;；|/\s]+/
+/* 多空分隔符：只切「空与空之间」的分隔，不包含 / 与空白。
+   旧版 SPLIT = /[、，,;；|/\s]+/ 把 / 和空格也当分隔符，而切标准答案时又不切它们，
+   两边规则不对称 → 用户输 I/O 被切成 ["I","O"] 两段、答案仍是 ["I/O"] 一段 → 恒判错。
+   受害的是所有含 / 或空格的答案：I/O、AC/DC、MOV DF、输入/输出。 */
+const BLANK_SEP = /[、，,;；|\n]+/
 export const blanksOf = (stem) => [...stem.matchAll(/\{([^{}]*)\}/g)].map((m) => m[1].trim())
+
+/* 宽松比对用的归一：全角→半角、删全部空白、转小写。
+   技术术语里大小写与空格不承载语义：plc = PLC、I O = I/O = Ｉ／Ｏ。 */
+function loose(s) {
+  return String(s ?? '')
+    .replace(/[\uFF01-\uFF5E]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xFEE0))
+    .replace(/\u3000/g, ' ')
+    .replace(/\s+/g, '')
+    .toLowerCase()
+}
+/* 把标准答案按空数切开：优先用 |（导入规则里的多空分隔符，见 checkFillBlank），
+   切不出正确空数时再退回其它分隔符，都不行就整串当一空。
+   用题干空数做裁判，所以「答案本体含逗号/斜杠」也不会被误切。 */
+function splitExpected(q) {
+  const n = Math.max(blanksOf(q.stem).length, 1)
+  const raw = String(q.answer ?? '')
+  const byPipe = raw.split('|').map((p) => p.trim()).filter(Boolean)
+  if (byPipe.length === n) return byPipe
+  const byAny = raw.split(BLANK_SEP).map((p) => p.trim()).filter(Boolean)
+  if (byAny.length === n) return byAny
+  return byPipe.length > 0 ? byPipe : [raw.trim()]
+}
 export function normalizeAnswer(type, input) {
-  const t = input.trim()
+  const t = String(input ?? '').trim()
   if (!t) return null
   switch (type) {
     case '单选题': {
@@ -306,7 +332,7 @@ export function normalizeAnswer(type, input) {
       if (/^(错误|错|×|非|否|F|FALSE|NO)$/i.test(t)) return '错误'
       return null
     case '填空题':
-      return t.split(SPLIT).map((p) => p.trim()).filter(Boolean).join(',')
+      return t.split(BLANK_SEP).map((p) => p.trim()).filter(Boolean).join(',')
     default:
       return null
   }
@@ -315,17 +341,21 @@ export function gradeObjective(q, input) {
   if (!isObjType(q.type)) throw new Error(`题型「${q.type}」为主观题，不参与自动判分`)
   const normalized = normalizeAnswer(q.type, input)
   if (q.type === '填空题') {
-    const blankCount = Math.max(blanksOf(q.stem).length, 1)
-    const expected = q.answer.split(/[，,、;；|]/).map((p) => p.trim()).filter(Boolean).join(',')
-    const got = normalized ? normalized.split(',') : []
-    const expParts = expected.split(',')
+    const expParts = splitExpected(q)
+    /* 输入按空数切：UI 用 \n 拼接各空（单行 input 里不可能出现换行，是无歧义哨兵）；
+       没有 \n 时兼容旧的手打分隔。若切完段数对不上空数，说明答案本体含分隔符，退回整串比。 */
+    const raw = String(input ?? '').trim()
+    let got = raw.includes('\n')
+      ? raw.split('\n').map((p) => p.trim())
+      : raw.split(BLANK_SEP).map((p) => p.trim()).filter(Boolean)
+    if (got.length !== expParts.length && got.length > 1) got = [raw]
     return {
-      correct: got.length === blankCount && got.length === expParts.length && got.every((g, i) => g === expParts[i]),
-      normalized, expected
+      correct: got.length === expParts.length && got.every((g, i) => loose(g) === loose(expParts[i])),
+      normalized: got.join(','), expected: expParts.join(','), expectedParts: expParts
     }
   }
   const expected = q.answer.trim().toUpperCase()
-  return { correct: normalized !== null && normalized === expected, normalized, expected }
+  return { correct: normalized !== null && normalized === expected, normalized, expected, expectedParts: [expected] }
 }
 const isObjType = (t) => ['单选题', '多选题', '判断题', '填空题'].includes(t)
 

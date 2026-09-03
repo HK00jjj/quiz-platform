@@ -5,12 +5,22 @@ import { A, TYPE_SEAL_INDEX } from '../assets'
 import { GiltBtn } from '../components'
 // burstParticles 改从 CandyBoot 引：components.jsx 正被编辑器陈旧缓冲区回写成 Apple 版（只发振动、不发糖豆）
 import { burstParticles } from '../components/CandyBoot'
-import { isObjective, domainLabel } from '../lib/stats'
+import { isObjective, domainLabel, DIFF_CLS } from '../lib/stats'
 import { gradeObjective, blanksOf } from '../lib/validate'
+
+/* Fisher-Yates 洗牌，返回 0..n-1 的一个排列（#6 选项随机化用） */
+function shuffledOrder(n) {
+  const a = Array.from({ length: n }, (_, i) => i)
+  for (let i = n - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));[a[i], a[j]] = [a[j], a[i]]
+  }
+  return a
+}
 
 /* 题干渲染：填空题把 {空} 显示为下划线占位 */
 function Stem({ q }) {
-  if (q.type !== '填空题' || !q.stem.includes('{')) return <p className="q-stem drop-cap">{q.stem}</p>
+  // 首字下沉已去掉（#4）：drop-cap 把第一个字放到 2.1em 还浮动，读起来累，与正文同号更舒服
+  if (q.type !== '填空题' || !q.stem.includes('{')) return <p className="q-stem">{q.stem}</p>
   const parts = q.stem.split(/(\{[^{}]*\})/g)
   return (
     <p className="q-stem">
@@ -37,6 +47,9 @@ export default function Practice() {
   const next = useStore((s) => s.next)
   const abortSession = useStore((s) => s.abortSession)
   const startSession = useStore((s) => s.startSession)
+  const books = useStore((s) => s.books)
+  const activeBookId = useStore((s) => s.activeBookId)
+  const toggleFavorite = useStore((s) => s.toggleFavorite)
 
   const q = questions[index]
   const objective = q && isObjective(q.type)
@@ -52,6 +65,8 @@ export default function Practice() {
   const sealTimer = useRef(null)
   const flying = useRef(false)
   const startAt = useRef(Date.now())
+  /* 选项洗牌排列按「题目 id#序号」缓存：同题重渲染复用，切题才重排（#6） */
+  const shuffleRef = useRef({ key: null, order: [] })
   const [elapsed, setElapsed] = useState(0)
 
   useEffect(() => {
@@ -97,10 +112,14 @@ export default function Practice() {
     return () => { cancelAnimationFrame(raf1); cancelAnimationFrame(raf2) }
   }, [phase, showAnswer, seal])
 
+  /* 用时计时（#7）：结算后必须停表，否则结算页那个「用时」会一直往上跳
+     （原来 deps 是 []，组件活着就永远 tick）。挂 phase：进结算就清 interval，
+     点「再练错题」回到 answering 时重新起表，配合 startAt.current 的重置。 */
   useEffect(() => {
+    if (phase === 'done') return
     const t = setInterval(() => setElapsed(Math.floor((Date.now() - startAt.current) / 1000)), 1000)
     return () => clearInterval(t)
-  }, [])
+  }, [phase])
 
   const combo = useMemo(() => {
     let n = 0
@@ -111,18 +130,54 @@ export default function Practice() {
   if (phase === 'idle' || questions.length === 0) {
     return (
       <div className="practice-stage" style={{ textAlign: 'center', paddingTop: '24vh' }}>
-        <p style={{ color: 'var(--muted)', letterSpacing: 3, marginBottom: 20 }}>没有可翻阅的题库</p>
-        <GiltBtn onClick={() => navigate('/')}>返回阅览厅</GiltBtn>
+        <p style={{ color: 'var(--muted)', letterSpacing: 3, marginBottom: 20 }}>还没有可练的题</p>
+        <GiltBtn onClick={() => navigate('/')}>返回学习页</GiltBtn>
       </div>
     )
   }
 
   const answered = phase === 'feedback'
   const committed = lastRating !== null
+  /* 收藏态：直接读书本上的 favorites，与题库作用域同源，切书自动换一批 */
+  const favList = books[activeBookId]?.favorites
+  const isFav = Array.isArray(favList) && favList.includes(q.id)
+  async function onFav(e) {
+    const r = e.currentTarget.getBoundingClientRect()
+    const on = await toggleFavorite(q.id)
+    // 只在「收进来」时发糖豆，取消收藏是安静的。一次性效果，不加循环动画（§5 动效纪律）
+    if (on) burstParticles(r.left + r.width / 2, r.top + r.height / 2, 'gold', 10)
+  }
+  /* 选项随机化（#6）：内部一律用「原始字母」跑判分与对错高亮，只有显示出来的字母跟着洗牌走。
+     于是 gradeObjective 与 opt-row 的 right/wronged/missed 判定链路一行都不用改，
+     而给用户看的答案字母会同步换算，不会出现「答案是 D、洗牌后那项显示在 A 位置」的错位。 */
+  const isChoice = q.type === '单选题' || q.type === '多选题'
+  const orderKey = q.id + '#' + index
+  if (shuffleRef.current.key !== orderKey) {
+    shuffleRef.current = { key: orderKey, order: shuffledOrder((q.options ?? []).length) }
+  }
+  const optItems = isChoice ? shuffleRef.current.order.map((oi, pos) => {
+    const raw = q.options[oi] ?? ''
+    return {
+      oi, raw,
+      orig: raw.match(/^([A-E])[.、]/)?.[1] ?? 'ABCDE'[oi],
+      disp: 'ABCDE'[pos],
+      text: raw.replace(/^[A-E]\s*[.、]\s*/, '')
+    }
+  }) : []
+  const origToDisp = {}
+  optItems.forEach((o) => { origToDisp[o.orig] = o.disp })
+  /* 展示给用户的答案：选择题把原始字母换算成洗牌后的字母；填空题多空时逐空列出，
+     比原来一串逗号好读。注意这里用 lastGrade 而不是下面才声明的 grade（const 有 TDZ，会整页崩溃）。 */
+  const mapLetters = (s) => String(s ?? '').split('').map((c) => origToDisp[c] ?? c).join('')
+  const shownAnswer = !objective ? q.answer
+    : isChoice ? mapLetters(lastGrade ? lastGrade.expected : q.answer)
+      : q.type === '填空题' && lastGrade?.expectedParts
+        ? lastGrade.expectedParts.map((p, i) => lastGrade.expectedParts.length > 1 ? `第${i + 1}空：${p}` : p).join('　')
+        : (lastGrade?.expected ?? q.answer)
   const inputText = q.type === '单选题' ? (choice ?? '')
     : q.type === '多选题' ? multi.join('')
     : q.type === '判断题' ? (judge ?? '')
-    : q.type === '填空题' ? fills.join('，')
+    : q.type === '填空题' ? fills.join('\n')
     : text
   const canSubmit = objective ? inputText.trim().length > 0 : true
 
@@ -177,27 +232,29 @@ export default function Practice() {
       <div className="practice-stage">
         <div className="settle-wrap">
           <div className="settle-card">
-            <img className="settle-rose" src={A.roseWindow} alt="" />
-            <h2 className="gold-title font-gothic" style={{ fontSize: 22, letterSpacing: 8 }}>◆ 参 悟 总 结 ◆</h2>
+            {/* 哥特玫瑰窗位图下线（#7）：换成纯 CSS 糖果奖章，零位图零请求；
+                图标随正确率变，给一点成绩反馈 */}
+            <div className="settle-medal" aria-hidden="true">{pct === 100 ? '🏆' : pct >= 60 ? '🍬' : '🍓'}</div>
+            <h2 className="settle-title">本 轮 成 绩</h2>
             <div className={'settle-pct ' + (pct >= 60 ? 'teal-glow-text' : 'red-glow-text')}>{pct}%</div>
-            <p style={{ fontSize: 12, letterSpacing: 4, color: 'var(--muted)' }}>灵 知 契 合 度</p>
-            {pct === 100 && <p className="gold-glow-text" style={{ marginTop: 10, letterSpacing: 3 }}>✦✦✦ 完美一役 ✦✦✦</p>}
-            {pct >= 80 && pct < 100 && <p className="gold-glow-text" style={{ marginTop: 10, letterSpacing: 3 }}>✦ 正确率精进 ✦</p>}
+            <p className="settle-sub">正 确 率</p>
+            {pct === 100 && <p className="settle-praise">全对！满分收工</p>}
+            {pct >= 80 && pct < 100 && <p className="settle-praise">正确率不错，继续保持</p>}
             <div className="settle-grid">
-              <span><b className="teal-glow-text">{correct}</b>✦ 窥见</span>
-              <span><b className="red-glow-text">{wrongN}</b>✗ 侵蚀</span>
-              <span><b>{mm > 0 ? `${mm}分${ss}秒` : `${ss}秒`}</b>⏱ 用时</span>
-              <span><b>{combo}</b>✦ 最高连击</span>
+              <span><b className="teal-glow-text">{correct}</b>答对</span>
+              <span><b className="red-glow-text">{wrongN}</b>答错</span>
+              <span><b>{mm > 0 ? `${mm}分${ss}秒` : `${ss}秒`}</b>用时</span>
+              <span><b>{combo}</b>最高连对</span>
             </div>
             <div className="settle-actions">
               {wrongN > 0 && (
                 <GiltBtn tone="danger" onClick={async () => {
                   const n = await startSession('wrong', { size: 0 })
-                  if (n > 0) startAt.current = Date.now()
+                  if (n > 0) { startAt.current = Date.now(); setElapsed(0) }
                   else navigate('/')
-                }}>🕯 复习错题（{wrongN}）</GiltBtn>
+                }}>🍓 再练错题（{wrongN}）</GiltBtn>
               )}
-              <GiltBtn onClick={() => { abortSession(); navigate('/') }}>返回阅览厅</GiltBtn>
+              <GiltBtn onClick={() => { abortSession(); navigate('/') }}>返回学习页</GiltBtn>
             </div>
           </div>
         </div>
@@ -220,10 +277,10 @@ export default function Practice() {
       </div>
 
       <div className={'pile-counter okp'}>
-        <span className="pile">🗂</span> 答对 <b className="teal-glow-text">{results.filter(Boolean).length}</b>
+        <span className="pile">✓</span> 答对 <b className="teal-glow-text">{results.filter(Boolean).length}</b>
       </div>
       <div className={'pile-counter badp'}>
-        <span className="pile">🕯</span> 错题 <b className="red-glow-text">{results.filter((v) => !v).length}</b>
+        <span className="pile">✗</span> 答错 <b className="red-glow-text">{results.filter((v) => !v).length}</b>
       </div>
 
       <div className="q-card-wrap" key={q.id + '-' + index}>
@@ -245,11 +302,9 @@ export default function Practice() {
             <div className="q-tags">
               <span className="type-candy">{(q.type || '').replace(/题$/, '')}</span>
               {q.knowledgeDomain && <span className="q-domain-tag">{domainLabel(q.knowledgeDomain)}</span>}
+              {/* 难度小标（#3）：去掉哥特宝石位图 A.gems，改成纯 CSS 糖果胶囊（配色见 candy.css .diff-pill） */}
               {q.difficulty && (
-                <span className={'diff-pill d-' + q.difficulty} style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                  <img className="gem" src={A.gems[q.difficulty]} alt="" />
-                  <span style={{ fontSize: 11, color: 'var(--muted)' }}>{q.difficulty}</span>
-                </span>
+                <span className={'diff-pill d-' + (DIFF_CLS[q.difficulty] ?? 'base')}>{q.difficulty}</span>
               )}
             </div>
             {/* 题面：直接写在卷轴上 */}
@@ -262,26 +317,26 @@ export default function Practice() {
             <section className="zone zone-a">
             <h5 className="zone-label">{objective ? '◇ 作答' : '◇ 誊 写 作 答'}</h5>
             <div className="q-answer-zone">
-              {(q.type === '单选题' || q.type === '多选题') && (q.options ?? []).map((opt, i) => {
-                const letter = opt.match(/^([A-E])[.、]/)?.[1] ?? 'ABCDE'[i]
-                const selected = q.type === '单选题' ? choice === letter : multi.includes(letter)
+              {isChoice && optItems.map((o) => {
+                /* selected / cls / 点击全用原始字母 o.orig，只有渲染出来的前缀用 o.disp */
+                const selected = q.type === '单选题' ? choice === o.orig : multi.includes(o.orig)
                 let cls = ''
                 if (answered && grade) {
                   const exp = grade.expected ?? ''
-                  const inAns = exp.includes(letter)
+                  const inAns = exp.includes(o.orig)
                   if (selected && inAns) cls = 'right'
                   else if (selected && !inAns) cls = 'wronged'
                   else if (!selected && inAns && q.type === '多选题') cls = 'missed'
                 } else if (selected) cls = 'selected'
                 return (
-                  <button key={i} disabled={answered}
+                  <button key={o.oi} disabled={answered}
                     className={`opt-row ${q.type === '多选题' ? 'square' : ''} ${cls}`}
                     onClick={() => q.type === '单选题'
-                      ? setChoice(letter)
-                      : setMulti((m) => m.includes(letter) ? m.filter((x) => x !== letter) : [...m, letter].sort())}>
+                      ? setChoice(o.orig)
+                      : setMulti((m) => m.includes(o.orig) ? m.filter((x) => x !== o.orig) : [...m, o.orig].sort())}>
                     <img className="mark" decoding="async" alt="" aria-hidden="true"
                       src={(q.type === '单选题' ? A.markRadio : A.markCheck)[selected ? 'on' : 'off']} />
-                    <span>{opt}</span>
+                    <span>{o.disp}. {o.text}</span>
                   </button>
                 )
               })}
@@ -311,7 +366,7 @@ export default function Practice() {
               {q.type === '填空题' && (
                 <div className="fill-grid">
                   {fills.map((v, i) => {
-                    const expParts = answered && grade ? (grade.expected ?? '').split(',') : []
+                    const expParts = answered && grade ? (grade.expectedParts ?? (grade.expected ?? '').split(',')) : []
                     const ok = answered && grade && expParts[i] !== undefined && v.trim() === expParts[i]
                     const bad = answered && grade && !ok
                     return (
@@ -344,7 +399,16 @@ export default function Practice() {
 
             {/* ── 分区三 · 答案区：未答=蜡封遮挡，答后=墨迹显影 ── */}
             <section className={'zone zone-s' + (answered || showAnswer ? ' revealed' : '')}>
-            <h5 className="zone-label">{answered || showAnswer ? '◇ 解析' : '◇ 解析'}</h5>
+            {/* 星标钉在解析区标题行右侧：蜡封未启时也一直在手边，不必先答题才能收藏。
+                顺带收掉原来那个两个分支完全相同的 answered/showAnswer 三元（遗留物）。 */}
+            <div className="zone-head">
+              <h5 className="zone-label">◇ 解析</h5>
+              <button type="button" className={'fav-star' + (isFav ? ' on' : '')}
+                onClick={onFav} aria-pressed={isFav} title={isFav ? '取消收藏' : '收藏这题'}>
+                <span className="fav-glyph" aria-hidden="true">{isFav ? '★' : '☆'}</span>
+                <span>{isFav ? '已收藏' : '收藏'}</span>
+              </button>
+            </div>
             {seal !== 'broken' && (
               <div className={'seal-lock ' + seal}>
                 <span className="seal-wax" aria-hidden="true">
@@ -365,7 +429,7 @@ export default function Practice() {
                 )}
                 <div className={'answer-scroll-box ' + ((objective ? grade?.correct : lastRating === '记得') ? 'ok' : 'bad')}>
                   <h5>{(objective ? grade?.correct : lastRating === '记得') ? '参考答案' : '正确答案'}</h5>
-                  <p>{objective ? (grade?.expected ?? q.answer) : q.answer}</p>
+                  <p>{shownAnswer}</p>
                   {q.explanation && <>
                     <p className="lab">【题库解析】</p>
                     <p>{q.explanation}</p>

@@ -5,6 +5,9 @@ import { daysAgoStr } from './dates'
 export const TYPES = ['单选题', '多选题', '判断题', '填空题', '简答题', '计算分析题', '综合设计/故障诊断题']
 export const OBJECTIVE_TYPES = ['单选题', '多选题', '判断题', '填空题']
 export const DIFFICULTIES = ['基础', '应用', '综合']
+/* 难度 → 糖果胶囊配色的 ASCII 类名键（.diff-pill.d-base / .d-apply / .d-adv）。
+   不直接拿中文难度名当类名，免得中文类名过压缩器出岔子。 */
+export const DIFF_CLS = { 基础: 'base', 应用: 'apply', 综合: 'adv' }
 export const DOMAIN_NAMES = {
   K1: '电路与电工基础', K2: '模拟与数字电子技术', K3: '电机与拖动', K4: '电力电子技术',
   K5: '自动控制理论', K6: 'PLC与工业控制', K7: '传感器与检测技术', K8: '供配电与低压电器',
@@ -151,6 +154,12 @@ export function buildSession(questions, cards, records, opts) {
     case 'wrong': {
       const last = lastResultMap(records)
       return take(filtered.filter((q) => last.get(q.id) === false).sort((a, b) => a.seq - b.seq), opts.size)
+    }
+    /* 收藏题集：favIds 由 store 从当前书本的 books[activeBookId].favorites 传入。
+       questions 本身已是书本作用域的派生值，所以这里天然只可能命中本书的收藏。 */
+    case 'fav': {
+      const ids = new Set(opts.favIds ?? [])
+      return take(filtered.filter((q) => ids.has(q.id)).sort((a, b) => a.seq - b.seq), opts.size)
     }
     case 'random':
       return take(shuffle(filtered, rng), opts.size)

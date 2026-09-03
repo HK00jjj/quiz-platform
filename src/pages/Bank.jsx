@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react'
 import { useStore } from '../store'
 import { A, TYPE_SEAL_INDEX } from '../assets'
 import { EmptyState } from '../components'
-import { TYPES, DIFFICULTIES, domainLabel, lastResultMap } from '../lib/stats'
+import { TYPES, DIFFICULTIES, DIFF_CLS, domainLabel, lastResultMap } from '../lib/stats'
 
 const PAGE_SIZE = 50
 
@@ -66,14 +66,15 @@ export default function Bank() {
       <div className="deck-row">
         {[
           { label: '题型 · 切牌', val: type, opts: ['全部', ...TYPES], set: setType },
-          { label: '知识域 · 切牌', val: domain, opts: domains, set: setDomain },
+          /* 知识域下拉的 value 仍是 K1~K27（筛选逻辑认它），显示走 text 换成中文域名（#8） */
+          { label: '知识域 · 切牌', val: domain, opts: domains, set: setDomain, text: domainLabel },
           { label: '难度 · 切牌', val: difficulty, opts: ['全部', ...DIFFICULTIES], set: setDifficulty }
         ].map((d) => (
           <select key={d.label} className="deck" value={d.val}
             onChange={(e) => { d.set(e.target.value); setPage(0) }}
             style={{ appearance: 'auto', color: 'var(--teal-lt)', background: 'rgba(21,29,36,.9)' }}
             aria-label={d.label}>
-            {d.opts.map((o) => <option key={o} value={o}>{d.label.split(' ')[0]}：{o}</option>)}
+            {d.opts.map((o) => <option key={o} value={o}>{d.label.split(' ')[0]}：{d.text ? d.text(o) : o}</option>)}
           </select>
         ))}
       </div>
@@ -105,8 +106,9 @@ export default function Bank() {
                     <div className="tarot-tags">
                       <span className={'tarot-orb' + (mastered ? ' full' : touched ? ' half' : '') + (last === false ? ' polluted' : '')}
                         title={mastered ? '已品尝' : touched ? '复习中' : '未做题'} />
-                      {q.difficulty && A.gems[q.difficulty] && (
-                        <img className="tarot-gem" src={A.gems[q.difficulty]} alt="" title={q.difficulty} loading="lazy" decoding="async" />)}
+                      {/* 难度：哥特宝石位图 A.gems 换成糖果胶囊（#3），配色与答题页同一套 */}
+                      {q.difficulty && (
+                        <span className={'diff-pill tiny d-' + (DIFF_CLS[q.difficulty] ?? 'base')}>{q.difficulty}</span>)}
                       {q.knowledgeDomain && <span className="tag">{domainLabel(q.knowledgeDomain)}</span>}
                       {last === false && <span className="tag red">酸了</span>}
                     </div>
