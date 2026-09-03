@@ -965,3 +965,22 @@ body, button, input, textarea, select {
   .sealing-anim::before { animation: none !important; }
   .fall-card { animation-duration: .01s !important; }
 }
+
+/* ══ 切页卡顿的真因：卡片类元素上的大面积 backdrop-filter ══
+   实测（干净探针，循环内不读样式）：
+     学习页空闲 120 帧  avg 6.0ms / max 6.5ms / 慢帧 0   → 气泡层与模糊不是持续成本
+     学习→导入       max 18.1ms  / 慢帧 0
+     导入→设置       max 224.3ms / 慢帧 3   ← 卡在这里
+     设置→学习       max 48.5ms  / 慢帧 1
+   设置页一次挂载 5 个 .panel + 3~4 个 .book-card，每个都是一层 20px 实时背景模糊，
+   创建成本全压在同一帧 → 224ms。模糊掉的背景本来就是柔和粉彩渐变 + 慢速气泡，
+   与“更不透明的奶白”几乎无视觉差别，所以按“降级技术而不是删掉效果”的原则：
+   去掉 backdrop-filter，底色提到 .84 保证文字对比度。
+   保留：底部导航（1 层常驻、iOS 标准材质）与答题页 .pile-counter（两个小元素）。
+   追加在文件末尾以同特异性后来居上，不需要去改前面那条分组规则。 */
+.panel, .entry-card, .settle-card, .empty-state, .filter-group,
+.stat-card, .ach-card, .book-card, .modal-card, .import-panel, .setting-card {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background: rgba(255, 255, 255, .84) !important;
+}
