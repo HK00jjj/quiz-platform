@@ -157,25 +157,25 @@ export default function Learn() {
         <div className={'entry-card rise' + (wrongCount > 0 ? ' hot' : '')} style={{ animationDelay: '.08s' }}
           onClick={() => wrongCount > 0 && run('wrong', { size: 0 })}>
           <span className="count-gem">{wrongCount}</span>
-          <div className="art"><img src={A.sealedDeck} alt="封印牌叠" /></div>
+          <div className="art" aria-hidden="true" />
           <h3>污染重阅</h3>
           <p>被酸糖低语侵蚀的符文，等待重新解读净化</p>
         </div>
         <div className="entry-card rise" style={{ animationDelay: '.16s' }} onClick={() => run('random', { size: 20 })}>
           <span className="count-gem">{randomCount}</span>
-          <div className="art"><img src={A.cardPile} alt="塔罗牌堆" /></div>
+          <div className="art" aria-hidden="true" />
           <h3>随机翻阅</h3>
           <p>全库无放回抽取 20 卷 · 模拟考试手感 · 共 {questions.length} 题</p>
         </div>
         <div className="entry-card rise" style={{ animationDelay: '.24s' }} onClick={() => newCount > 0 && run('learn')}>
           <span className="count-gem">{newCount}</span>
-          <div className="art"><img src={A.magicBook} alt="魔法书" /></div>
+          <div className="art" aria-hidden="true" />
           <h3>学习新篇</h3>
           <p>{newCount} 题未做题 · 首次解读建立甜蜜值印记</p>
         </div>
         <div className="entry-card rise" style={{ animationDelay: '.32s' }} onClick={() => setOpenFilter('relearn')}>
           <span className="count-gem">{relearnCount}</span>
-          <div className="art"><img src={A.cardTower} alt="卡牌螺旋塔" /></div>
+          <div className="art" aria-hidden="true" />
           <h3>全部题库</h3>
           <p>可按题型 / 知识域 / 难度切牌筛选后学习</p>
         </div>

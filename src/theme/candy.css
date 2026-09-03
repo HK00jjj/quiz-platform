@@ -812,6 +812,17 @@ body, button, input, textarea, select {
 /* translateX 的百分比是相对 shine 自身（=线长的 25%），所以 400% 正好走完整条线 */
 @keyframes energy-run { from { transform: translateX(-100%) } to { transform: translateX(400%) } }
 
+/* ══ 切页稳定化：杀掉整页模糊与入场级联 ══
+   global.css 给 .page-wrap 挂了 page-in：from { opacity:0; filter:blur(6px); transform:translateY(10px) }，
+   每次切页让整个页面动画 450ms 的模糊半径。模糊每帧变化会迫使整页重新光栅化，
+   而页面上还同时跑着气泡层 → 实测就是不稳定、频闪。
+   两条硬规则：① 切页属于一天几十次的高频操作，只能“几乎察觉不到或干脆没有”；
+   ② 绝不能在大面积上动画 filter/blur。iOS 的 Tab Bar 切页就是瞬时的，这里照做。
+   注意：答题卡入场（.q-card-wrap 的 rise-in）保留——它只动 opacity/transform，
+   而且进答题页不是高频操作，那张牌“到位”的感觉是有意义的。 */
+.page-wrap { animation: none !important; }
+.rise { animation: none !important; }
+
 /* 返工面板的警告图标也去位图 */
 .rework-box h4 img { display: none !important; }
 .rework-box h4::before { content: '⚠️'; margin-right: 6px; }
