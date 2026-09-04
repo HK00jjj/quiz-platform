@@ -4,7 +4,7 @@ const DIFFS = ['基础', '应用', '综合']
 const COG = ['记忆', '理解', '应用', '分析', '评价', '创造']
 const DOMAINS = Array.from({ length: 27 }, (_, i) => `K${i + 1}`)
 const META_MAP = { 基础: ['记忆', '理解'], 应用: ['应用', '分析'], 综合: ['评价', '创造'] }
-const ANALYSIS_LIMIT = { '综合设计/故障诊断题': 500, 计算分析题: 375 }
+const ANALYSIS_LIMIT = { '综合设计/故障诊断题': 500, 计算分析题: 400 }
 const COMPREHENSIVE_ELEMENTS = ['方案', '选型计算', '控制逻辑', '保护与安全']
 
 const str = (v) => (v == null ? '' : String(v))
@@ -95,11 +95,18 @@ export class Validator {
   checkAnalysis(it) {
     const w = whereOf(it)
     const a = str(it.解析)
-    if (a.includes('\n') || a.includes('\r')) this.err(w, '“解析”含换行符，须为单行字符串')
-    const p1 = a.indexOf('【推导】'), p2 = a.indexOf('【记忆点】')
-    if (p1 < 0 || p2 < 0 || p1 > p2) this.err(w, '“解析”须依次包含【推导】【记忆点】标记')
-    const limit = ANALYSIS_LIMIT[str(it.题型)] ?? 250
-    if (a.length > limit) this.warn(w, `“解析”${a.length}字，超出建议上限${limit}字`)
+    if (a.includes('\n') || a.includes('\r')) this.err(w, '"解析"含换行符，须为单行字符串')
+    const p1 = a.indexOf('【推导】'), p3 = a.indexOf('【记忆点】')
+    if (p1 < 0 || p3 < 0 || p1 > p3) this.err(w, '"解析"须依次包含【推导】【记忆点】标记')
+    // 单选/多选题须含【误诊】段（2026-09-04 新增）
+    const type = str(it.题型)
+    if (type === '单选题' || type === '多选题') {
+      const p2 = a.indexOf('【误诊】')
+      if (p2 < 0) this.warn(w, '单选/多选题解析缺少【误诊】段（建议逐项归因）')
+      else if (p2 < p1 || p2 > p3) this.err(w, '【误诊】标记须位于【推导】与【记忆点】之间')
+    }
+    const limit = ANALYSIS_LIMIT[type] ?? 300
+    if (a.length > limit) this.warn(w, `"解析"${a.length}字，超出建议上限${limit}字`)
   }
   checkChoice(it) {
     const w = whereOf(it)
