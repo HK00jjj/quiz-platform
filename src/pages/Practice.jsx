@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store'
-import { A, TYPE_SEAL_INDEX } from '../assets'
+import { A } from '../assets'
 import { GiltBtn } from '../components'
 // burstParticles 改从 CandyBoot 引：components.jsx 正被编辑器陈旧缓冲区回写成 Apple 版（只发振动、不发糖豆）
 import { burstParticles } from '../components/CandyBoot'

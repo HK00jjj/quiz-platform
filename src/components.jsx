@@ -135,11 +135,6 @@ export function GiltBtn({ tone, size, block, className = '', children, ...rest }
   return <button className={cls} {...rest}>{children}</button>
 }
 
-/* ── 分隔装饰 ── */
-export function RuneDivider() {
-  return <div className="divider" style={{ backgroundImage: `url(${A.divider})` }} aria-hidden="true" />
-}
-
 /* ── 空状态 ── */
 export function EmptyState({ img, title, hint, action }) {
   return (

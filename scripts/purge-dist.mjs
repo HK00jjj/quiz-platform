@@ -32,9 +32,12 @@ for (const f of walk(srcDir)) {
 // index.html: <link rel="preload" href="./img/p11.webp">
 for (const m of readFileSync(path.join(appDir, 'index.html'), 'utf8').matchAll(/img\/([\w.-]+\.(?:webp|png|jpe?g|svg))/g)) refs.add(m[1])
 
-// 保险：引用集异常小就拒绝清理（曾经因正则只匹配 bundle 而误删 86 个文件）
-if (refs.size < 25) {
-  console.log(`RESULT: ABORT —— 只解析到 ${refs.size} 个引用，明显异常，拒绝清理`); process.exit(1)
+/* 保险一：引用集为空说明 walk 或正则整体失效（当年误删 86 个文件的成因是正则去匹配了 bundle，
+   那里只剩裸文件名）。原来这里写的是 `refs.size < 25` 这种魔数阈值——它会随着资产被合法清理而失效：
+   本轮删掉 10 个死资源键后真实引用数降到 21，闸门就把一次正确的清理拦下来了。
+   魔数换成下面的语义不变式，资产怎么变都不会烂。 */
+if (refs.size === 0) {
+  console.log('RESULT: ABORT —— 一个引用都没解析到，walk 或正则失效，拒绝清理'); process.exit(1)
 }
 
 const files = readdirSync(distImg)
@@ -42,6 +45,21 @@ const missing = [...refs].filter(f => !files.includes(f))
 if (missing.length) { console.log(`RESULT: ABORT —— 引用了但 dist 里没有（会 404）: ${missing.join(', ')}`); process.exit(1) }
 
 const orphans = files.filter(f => !refs.has(f))
+
+/* 保险二（真正防误删的那道）：用另一种方法独立复核每个「孤儿」。
+   把全部源码与 index.html 剔掉注释后拼成一大块，孤儿文件名若仍出现在里面，
+   说明上面的引用正则漏了它——立即中止并列出漏掉的文件名。
+   剔注释是必须的：Login.jsx 的注释里写着「A.divider(p44.png)」字样，
+   不剔就会把已经死掉的 p44.png 误判成还在用（审计脚本已经在这个坑上栽过一次）。 */
+const stripped = walk(srcDir).map((f) => readFileSync(f, 'utf8')).join('\n')
+  .replace(/\/\*[\s\S]*?\*\//g, ' ')
+  .replace(/\/\/[^\n]*/g, ' ')
+  + readFileSync(path.join(appDir, 'index.html'), 'utf8').replace(/<!--[\s\S]*?-->/g, ' ')
+const missed = orphans.filter((o) => stripped.includes(o))
+if (missed.length) {
+  console.log(`RESULT: ABORT —— 引用正则漏了 ${missed.length} 个仍在源码里出现的文件，拒绝清理: ${missed.join(', ')}`)
+  process.exit(1)
+}
 let saved = 0
 for (const f of orphans) { const p = path.join(distImg, f); saved += statSync(p).size; unlinkSync(p) }
 

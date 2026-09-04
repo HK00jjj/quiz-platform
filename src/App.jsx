@@ -12,7 +12,6 @@ import Learn from './pages/Learn'
 import Practice from './pages/Practice'
 import Bank from './pages/Bank'
 import Import from './pages/Import'
-import Stats from './pages/Stats'
 import Settings from './pages/Settings'
 
 function Shell() {
@@ -23,7 +22,10 @@ function Shell() {
   const wrongCount = useStore((s) => lastResultMap(s.records))
   const wrongN = [...wrongCount.values()].filter((v) => v === false).length
   const inPractice = location.pathname === '/practice'
-  const activeKey = { '/': 'learn', '/bank': 'bank', '/import': 'import', '/stats': 'stats', '/settings': 'settings' }[location.pathname]
+  /* /stats 已整页下线：它的入口（📊 星象）早就按用户要求摘掉了，页面成了只能手打 URL 到达的孤儿，
+     而它一个人占着剩余哥特位图（身份证卡/头像框/星盘/奖杯/徽章框）的一大半。
+     Route 删除后 #/stats 会被下面的 path="*" 兼到重定向回首页，不会 404。 */
+  const activeKey = { '/': 'learn', '/bank': 'bank', '/import': 'import', '/settings': 'settings' }[location.pathname]
   /* 页面切换：直接跳转。
      原来的「法阵转移」有两个问题：① 它铺的 .nav-veil 用的是 A.roseWindow（哥特玫瑰彩窗），
      在糖果主题里就是切页时一闪而过的不符图案；② 它先 setTimeout 300ms 才 navigate，
@@ -45,7 +47,6 @@ function Shell() {
         <Route path="/" element={<Learn />} />
         <Route path="/bank" element={<Bank />} />
         <Route path="/import" element={<Import />} />
-        <Route path="/stats" element={<Stats />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/practice" element={<Practice />} />
         <Route path="*" element={<Navigate to="/" replace />} />

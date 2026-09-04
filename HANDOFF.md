@@ -1509,3 +1509,136 @@ console.log('最早:',new Date(+b[0]).toLocaleString(),'最晚:',new Date(+b[b.l
 
 拿到批次数与覆盖率后再决定要不要做写入。**写入必须在应用内做**（需要已登录的 Supabase 会话），
 且要先备份、先出预览、再确认 —— 不要在 Console 里手搓写操作。
+
+---
+
+## 23. 第十三轮（2026-09-04）· 出题→入库全链路死代码审查与清理
+
+**gh-pages HEAD：`640621b`（父 `8487391`）。dist 45 文件/4.61 MB → `verify-deploy` 27/27 缺失0/不一致0/多余0。**
+
+### 23.0 总量账（本会话累计）
+
+| | 会话初 | 现在 |
+| --- | --- | --- |
+| dist 文件数 | 82 | **27** |
+| dist 体积 | 7.59 MB | **3.14 MB** |
+| JS bundle | ~490 kB | **462.17 kB** |
+| `public/img` | 96 个 / 8806 KB | **21 个 / 2627 KB** |
+| `assets.js` 键 | 45 | **10（零引用 0）** |
+
+审查用了 `code-review-and-quality` skill（五轴 + 严重度分级 + Dead Code Hygiene「先列清再问后删」）。
+机械部分写成两个可复跑脚本，判断部分人工读，**不靠印象下结论**。
+
+### 23.1 新增两个审计脚本（已入 src 分支）
+
+- **`scripts/audit-pipeline.mjs`** —— 死导出 / 多余 export / 未用 import / 幽灵选择器候选 / 零引用资源键 / 孤儿图片 / 文件规模
+- **`scripts/audit-adjudicate.mjs`** —— 幽灵裁决（**剥注释但保留行号** + 识别动态拼接类名）/ 死 state / 三方规则常量并排
+
+**两个必须记住的方法论坑（都当场栽过）：**
+
+1. **语料必须 walk 全部 src 文件，不能硬编码清单。** 第一版漏了 `components/Bookshelf.jsx`，
+   差点把 `.book-*` 一族 **25 个选择器全误判为死代码**（实际 `Settings.jsx` L4 import、L55 渲染 `<Bookshelf />`）。
+2. **必须剥注释再比对，否则注释里的字面量会假装成引用。** 两个方向都栽过：
+   - 假阳性：candy.css 注释里写着 `.ans-line`、`.ch-*`、`fonts.googleapis.com`，被当成选择器匹配出 `ans-line`/`ch-`/`googleapis`/`com`
+   - **假阴性（更危险）**：`A.divider` 唯一的"引用"是 `Login.jsx` L65 注释里的「A.divider(p44.png)」字样，
+     审计因此报告 assets.js「零引用 0 个」，把已经死掉的 `divider` 漏了过去
+3. **动态拼接的类名要单独识别**：`'nav-item tone-' + it.tone` → `.tone-mint`/`.tone-lav`；
+   `'diff-pill tiny d-' + cls` → `.d-base`/`.d-apply`/`.d-adv`；`'f' + (k+1)` → `.f1`/`.f2`/`.f3`（`Practice.jsx` L399 蜡封三帧）；
+   `.boot-veil.s1/.s2/.s3` 是开机仪式三段状态类。**这些全是活的，第一版正则不含空格所以全误报了。**
+
+### 23.2 已删（可安全删除档，全部执行）
+
+| 项 | 规模 | 依据 |
+| --- | --- | --- |
+| **`app/src/theme/apple.css` 整个文件** | 587 行 / 35450 B | `main.jsx` 只 import `global.css`(L4)/`pages.css`(L5)/`candy.css`(L7)，**apple.css 无人 import** —— 不进打包、不参与层叠。它里面那 20 个"幽灵"是因为整个文件都死 |
+| **`app/src/pages/Stats.jsx` 整页** | 320 行 | 入口（📊 星象）§7.5 已按用户要求摘掉，页面成了只能手打 URL 的孤儿，且独占剩余哥特位图一大半。`App.jsx` 同步删 import(L15)、Route(L48)、activeKey 的 `'/stats'` 映射。**`#/stats` 现由 `path="*"` 重定向回首页，实测 hash 变 `#/`，不 404** |
+| `stats.js` 12 个死导出 | **172 → 88 行** | `titleFor`/`achievementsOf`/`dailyCounts`/`weekBars`/`byType`/`domainMastery`/`levelOf`/`levelProgress`/`nextTitleFor`/`RARITY_META`/`accuracyOf`/`uniqueDays`，以及内部专用的 `LEVEL_SPAN`/`TITLES`。全部只被 Stats.jsx 用。**只留 `lastResultMap`**（App.jsx 错题角标 + store.js + `buildSession('wrong')` 在用）。`daysAgoStr` import 随之删除（只有 weekBars 用） |
+| `dates.js` `streakSet` | 7 行 | Stats.jsx 专用 |
+| `assets.js` **10 个死键** | 20 → 10 键 | `idCardFrame`/`avatar`/`portraitFrame`/`astrolabe`/`trophy`/`badgeFrame`/`emptyCandle`/`milestone`/`achIcons`（九个随 Stats 下线）+ `divider`（随 RuneDivider 删） |
+| `components.jsx` `RuneDivider` | 死组件 | 外部 0 引用、文件内 0 使用 |
+| `Practice.jsx` L4 `TYPE_SEAL_INDEX` | 死 import | 全文件未使用；assets.js 里那个导出也一并删 |
+| **`public/img` 75 个孤儿图** | **8806 → 2627 KB** | 大头：`p12.png 765K`、`p19.webp 433K`、`p5.webp 399K`、`crack-1/2/3.webp 767K`（assets.js 用的是 `crack-*s.webp` 小图版）、`p11.webp 300K`、`p34-1~7.webp 294K`（七个内容完全相同的哥特题型印章）、`p42-*`/`p43-*`（Stats 的里程碑与成就图标）、`nav-*.webp`（导航早改 emoji）、`abyss-*`/`seal-*`/`mark-*-off/on.webp` |
+
+**`p44.png`（divider）故意没删** —— 它仍被某个 CSS 的 `url(.../img/p44.png)` 引着（`.divider` 幽灵规则），
+purge-dist 的复核闸也因此正确地保留了它。**等幽灵选择器那轮清完 CSS 才能删。**
+
+### 23.3 ⚠ `purge-dist.mjs` 的魔数闸门被合法清理绊倒，已换成语义不变式
+
+删掉 10 个死资源键后真实引用数降到 **21**，而脚本里写着 `if (refs.size < 25) ABORT`，
+于是它把一次**完全正确**的清理拦了下来（`RESULT: ABORT —— 只解析到 21 个引用，明显异常`）。
+
+那个阈值是当年"正则去匹配了 bundle、误删 86 个文件"事故后加的，但**用固定数字守这件事本身就会烂** ——
+资产每被合法清理一次，它就离误报近一步。换成两条不依赖数字的闸：
+
+1. `refs.size === 0` → 中止（walk 或正则整体失效）
+2. **真正的防误删闸**：把全部源码与 index.html **剥掉注释**后拼成一大块，
+   任何"孤儿"文件名若仍出现在里面，说明引用正则漏了它 → 中止并列出漏掉的文件名。
+   原有的 `missing`（引用了但 dist 里没有 → 会 404）检查保留。
+
+改后：`源码引用 21 个素材，清除孤儿 75 个（省 6178KB），剩余 21 个 / 2.57 MB，RESULT: DIST CLEAN`；
+二次跑「清除孤儿 0 个」= 已收敛。
+
+### 23.4 #12 ps1 退役 + #13 改协议：**协议你自己已经改好了，我做的是同步与退役**
+
+查的时候发现 **`question-protocol.md` 已经是 483→484 行的区间弹性版**（我早先读的是 458 行固定版）：
+第三章第2条有完整配比表 + 三条硬约束 + 四种知识点类型推荐配比，
+**第三章第3条认知阶梯也重写成"层内题型随全局配比联动"的弹性版**（L237-241），
+**A类② (L412) 与 附录C Q9 (L476) 都已同步**，修订说明第 9 条也写了。改得比我建议的彻底。
+
+**但同步方向反了**：SKILL.md L14 规定「修订 `规则体系.md` 后必须同步本文件」，
+实际是 **skill 副本被改、上游 `规则体系.md` 还停在固定配比旧版**（459 行 vs 484 行）。
+**这个风险是实的：下次谁按纪律"从上游同步"，就会把区间版覆盖回固定版。**
+
+已做三件事：
+
+1. **重写附录D**（两份都改）：
+   - 第1条改成「唯一现役校验器（网页端）」，**并修正了错误路径** —— 原写 `app\src\core\validator.ts`，实际是 `app\src\lib\validate.js`（`Validator` 类）
+   - 第2条改成「离线 PowerShell 校验器已于 2026-09-04 退役」，写明退役原因是它实现的是修订前的固定配比、会拒掉网站端放行的合规批次
+   - 第4条补上「**它也不校验层段内的题型构成**（第三章第3条的层内弹性分配），该项属生成方自律」
+   - L58 术语表的「外部校验器」条目同步改写
+2. **`validator\` 整个目录移入 `命题流水线\_已废弃_20260904_validator\`**（沿用已有的 `_已废弃_20260822\` 命名惯例），
+   含 `validate_questions.ps1`(14668B)、`question-batch.schema.json`(2882B)、`sample-valid.json`(12036B)、`sample-invalid.json`(11801B)、`README.md`(4885B)。**是移动不是删除**，需要时还能取回。
+3. **`规则体系.md` 从 `question-protocol.md` 整体重建** = 后者全文 + 末尾那句 57 字交互句，
+   并保留它原有的 **UTF-8 BOM**。校验：`规则体系.md 去掉尾句 -ceq question-protocol.md` → **一致 ✓**（大小写敏感逐字符比较），行数 484 vs 486（差 2 = 空行 + 尾句）。
+
+**遗留给用户拍板的一件事**：现在两份文件内容一致了，但**"哪份是上游"仍含糊** ——
+SKILL.md L14 说上游是 `规则体系.md`，而这次实际是反方向同步的。建议明确一下，否则还会再漂。
+
+### 23.5 三方规则实现的现状（审查①的最终结论）
+
+| 载体 | 配比口径 | 状态 |
+| --- | --- | --- |
+| `question-protocol.md` | 区间弹性 | ✅ 用户已改 |
+| `规则体系.md` | 区间弹性 | ✅ 本轮同步 |
+| `app/src/lib/validate.js` | 区间弹性 + 计算+简答≤5 | ✅ |
+| `validate_questions.ps1` | ~~固定~~ | **已退役移走** |
+| `question-batch.schema.json` | 不含配比 | 随 ps1 一起退役 |
+
+**四份实现收敛成一份事实源（validate.js）+ 两份同源文档。** 剩下已知的宽严差只有 schema 那 3 处，已随退役作废。
+
+仍未修的规则差异（上一轮已报、用户说不动，本轮维持）：
+层段内题型分布不校验、简答分点下限 2 不校验、填空「空位不居句首」两个校验器都只约束拓展题（口径其实一致）、解析 375 字按题型而非"含计算"判定。
+
+### 23.6 明确没做的（按 skill 的严重度分级，都是 Nit/Optional 或需分批）
+
+1. **幽灵选择器没动** —— 删掉 Stats.jsx 后 `pages.css` 的幽灵从 16 涨到 **67**（新增 `id-card`/`portrait`/`ring-wrap`/`ach-grid`/`cal-*`/`week-bars`/`domain-bars`/`type-bars`/`sigil-*`/`rarity-tag`/`oath-badge` 等），
+   `candy.css` 23 个、`global.css` 26 个。**这是本轮最大的遗留项，但必须单独一轮做**：
+   三层 CSS 是"末尾追加、同特异性后来居上"结构，§18.2 与 §20.3 已经两次证明
+   **删掉一条覆盖规则会放出更老的规则**（酸橙绿 background、橄榄绿 h5）。
+   要一批一批删、每批真机 `getComputedStyle` 验证，不能当纯删除做。
+2. **12 个多余 `export` 关键字没摘**（`fsrs.js DAY`、`stats.js filterQuestions/OBJECTIVE_TYPES/DOMAIN_NAMES`、
+   `supabase.js SUPA_URL/SUPA_KEY`、`validate.js hashId/parseItems/normalizeAnswer/TYPE_LIST/validateItems`、`store.js DEMO`）——
+   纯 Nit、零功能影响，逐个改动只增加风险。其中 `DAY` 与 `filterQuestions` 建议**保留** export（测试可直接 import，
+   `t-session.mjs` 现在自己重定义了 `const DAY = 86400000`，改成 import 更好）。
+3. **`importBank` 两条分支的重复没抽**（备份恢复 / 21题批，各 6 行相似的 persist→existing→added→upsert→reload）——
+   skill 的原则是"第三次出现才抽象"，现在两处，抽出来省不了多少。
+4. **`Bank.jsx` L26 `importedAt` 的 useMemo 依赖是 `[]`** —— 实际路径 Import→Bank 会重新挂载，碰不到。Nit。
+
+### 23.7 验证
+
+- 三套回归 **t-session 18/18、t-seq 16/16、t-fill 13/13** 全过（stats.js 被大幅删改后重跑，组卷逻辑完好）
+- 构建 ✓，purge-dist 二次跑孤儿 0 = 收敛
+- **真机五路由冒烟**：Learn / Bank / Import / Settings / Practice 全部 `badImg: 0`、`fail: []`（资源级 404 为零）；
+  答题页 `imgs: 8, broken: []`、`.crack-veil` 正常、判定横幅「答错了」正常；
+  **`#/stats` 实测重定向到 `#/`**；console 全程 0 errors
+- 上线：gh-pages `640621b`、verify-deploy **27/27** 全零差异

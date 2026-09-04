@@ -3,7 +3,6 @@
    但 Node 直接 import 本文件时缺扩展名会 ERR_MODULE_NOT_FOUND——
    scripts/t-session.mjs 的组卷回归测试就是这么挂的。lib/validate.js 零依赖所以不受影响。 */
 import { isDue } from './fsrs.js'
-import { daysAgoStr } from './dates.js'
 
 export const TYPES = ['单选题', '多选题', '判断题', '填空题', '简答题', '计算分析题', '综合设计/故障诊断题']
 export const OBJECTIVE_TYPES = ['单选题', '多选题', '判断题', '填空题']
@@ -23,101 +22,17 @@ export const DOMAIN_NAMES = {
 export const domainLabel = (k) => (k ? DOMAIN_NAMES[k] ?? k : '')
 export const isObjective = (type) => OBJECTIVE_TYPES.includes(type)
 
-// ── 等级 ──
-const LEVEL_SPAN = 50
-export const levelOf = (total) => Math.floor(total / LEVEL_SPAN) + 1
-export const levelProgress = (total) => ({ into: total % LEVEL_SPAN, span: LEVEL_SPAN })
-const TITLES = [
-  { at: 2000, title: '穹顶守望者' },
-  { at: 800, title: '大秘法师' },
-  { at: 300, title: '秘法师' },
-  { at: 100, title: '符文抄录员' },
-  { at: 0, title: '抄录学徒' }
-]
-export function titleFor(total) {
-  for (const t of TITLES) if (total >= t.at) return t.title
-  return TITLES[TITLES.length - 1].title
-}
-export const nextTitleFor = (total) => TITLES.find((t) => t.at > total) ?? null
-
-// ── 成就（糖果成就 8 枚）──
-export function achievementsOf({ streak, total, days, accuracy }) {
-  return [
-    { id: 'streak7', title: '初燃', desc: '连续做题 7 天', done: streak >= 7, cat: '修行', rarity: 'common', points: 10, progress: `${Math.min(streak, 7)}/7 天` },
-    { id: 'days7', title: '全勤七曜', desc: '做题覆盖 7 个不同日期', done: days >= 7, cat: '修行', rarity: 'rare', points: 25, progress: `${Math.min(days, 7)}/7 天` },
-    { id: 'streak30', title: '三十日长明', desc: '连续做题 30 天', done: streak >= 30, cat: '修行', rarity: 'epic', points: 50, progress: `${Math.min(streak, 30)}/30 天` },
-    { id: 'streak100', title: '百日长明', desc: '连续做题 100 天', done: streak >= 100, cat: '修行', rarity: 'legend', points: 100, progress: `${Math.min(streak, 100)}/100 天` },
-    { id: 'q100', title: '百卷通读', desc: '累计翻阅 100 题', done: total >= 100, cat: '探索', rarity: 'common', points: 10, progress: `${Math.min(total, 100)}/100 题` },
-    { id: 'q1000', title: '千卷行者', desc: '累计翻阅 1000 题', done: total >= 1000, cat: '探索', rarity: 'epic', points: 50, progress: `${Math.min(total, 1000)}/1000 题` },
-    { id: 'acc90', title: '神准九成', desc: '正确率达到 90%', done: accuracy !== null && accuracy >= 0.9, cat: '特殊', rarity: 'rare', points: 25, progress: accuracy === null ? '未达成' : `${Math.round(accuracy * 100)}%` },
-    { id: 'perfect-session', title: '完美一役', desc: '单场练习全部答对', done: accuracy !== null && accuracy >= 1, cat: '特殊', rarity: 'rare', points: 25, progress: accuracy === null ? '未达成' : `${Math.round(accuracy * 100)}%` }
-  ]
-}
-export const RARITY_META = {
-  common: { label: '普通', cls: 'r-common' },
-  rare: { label: '稀有', cls: 'r-rare' },
-  epic: { label: '史诗', cls: 'r-epic' },
-  legend: { label: '传说', cls: 'r-legend' }
-}
-
 // ── 统计口径 ──
-export const accuracyOf = (records) => records.length === 0 ? null : records.filter((r) => r.correct).length / records.length
+/* 这里原来还有两节加六个统计函数：等级（LEVEL_SPAN/levelOf/levelProgress/TITLES/titleFor/nextTitleFor）、
+   成就（achievementsOf/RARITY_META）、以及 accuracyOf/dailyCounts/uniqueDays/weekBars/byType/domainMastery。
+   它们全部只被 Stats.jsx（星界观测台）使用，该页已整页下线，所以一并删除，只留 lastResultMap——
+   它被 App.jsx 的错题角标、store.js 与下面 buildSession 的 wrong 分支用着。
+   要恢复统计页请从提交历史取回，不要在这里留死代码。 */
 export function lastResultMap(records) {
   const map = new Map()
   const sorted = [...records].sort((a, b) => a.timestamp - b.timestamp)
   for (const r of sorted) map.set(r.questionId, r.correct)
   return map
-}
-export function dailyCounts(records) {
-  const map = new Map()
-  for (const r of records) map.set(r.date, (map.get(r.date) ?? 0) + 1)
-  return map
-}
-export const uniqueDays = (records) => new Set(records.map((r) => r.date)).size
-export const uniqueQuestions = (records) => new Set(records.map((r) => r.questionId)).size
-export function weekBars(records, today) {
-  const firstSeen = new Map()
-  const sorted = [...records].sort((a, b) => a.timestamp - b.timestamp)
-  for (const r of sorted) if (!firstSeen.has(r.questionId)) firstSeen.set(r.questionId, r.timestamp)
-  // 近7天：今天往前6天~今天
-  const days = Array.from({ length: 7 }, (_, i) => daysAgoStr(today, 6 - i))
-  const out = days.map((date) => ({ date, newCount: 0, reviewCount: 0 }))
-  const idx = new Map(out.map((d, i) => [d.date, i]))
-  for (const r of records) {
-    const i = idx.get(r.date)
-    if (i !== undefined) {
-      if (firstSeen.get(r.questionId) === r.timestamp) out[i].newCount++
-      else out[i].reviewCount++
-    }
-  }
-  return out
-}
-// 分题型正确率
-export function byType(records, questions) {
-  const typeOf = new Map(questions.map((q) => [q.id, q.type]))
-  const acc = new Map()
-  for (const t of TYPES) acc.set(t, { total: 0, correct: 0 })
-  for (const r of records) {
-    const t = typeOf.get(r.questionId)
-    if (!t || !acc.has(t)) continue
-    const o = acc.get(t)
-    o.total++; if (r.correct) o.correct++
-  }
-  return acc
-}
-// 知识域掌握度（间隔≥3天视为掌握）
-export function domainMastery(questions, cards) {
-  const iv = new Map(cards.map((c) => [c.questionId, c.intervalDays]))
-  const total = new Map(), mastered = new Map()
-  for (const q of questions) {
-    const d = q.knowledgeDomain ?? '未分类'
-    total.set(d, (total.get(d) ?? 0) + 1)
-    const i = iv.get(q.id)
-    if (i !== undefined && i >= 3) mastered.set(d, (mastered.get(d) ?? 0) + 1)
-  }
-  const out = new Map()
-  for (const [d, n] of total) out.set(d, (mastered.get(d) ?? 0) / n)
-  return out
 }
 
 // ── 筛选 + 会话构建 ──

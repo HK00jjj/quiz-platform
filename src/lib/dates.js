@@ -20,10 +20,3 @@ export function streakLength(dates, today) {
   while (set.has(cur)) { n++; cur = daysAgoStr(cur, 1) }
   return n
 }
-export function streakSet(dates, today) {
-  const set = new Set(dates)
-  let cur = set.has(today) ? today : daysAgoStr(today, 1)
-  const out = new Set()
-  while (set.has(cur)) { out.add(cur); cur = daysAgoStr(cur, 1) }
-  return out
-}
