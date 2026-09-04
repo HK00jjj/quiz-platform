@@ -48,15 +48,39 @@ export function Background({ intensity = 1 }) {
 /* ── 底部导航：糖霜托盘三格（学习/导入/设置，方案 1.1）。
    图标用 emoji（方案 6.5 要求圆润糖果元素）；错题提示挂在「学习」上，
    因为错题重练是学习页的一个入口。 ── */
+/* 导航图标从 emoji 换成自绘 SVG（CandyIcons.jsx）。emoji 不能充当图标系统（craft-floor），
+   且各平台渲染不一致、无法跟主题色走；自绘细线图标能继承 tone 色。 */
+import { IconLearn, IconImport, IconBank, IconSettings } from './CandyIcons'
+
 const NAV_ITEMS = [
-  { key: 'learn', label: '学习', icon: '🍬', to: '/', tone: 'pink' },
-  { key: 'import', label: '导入', icon: '📦', to: '/import', tone: 'mint' },
+  { key: 'learn', label: '学习', icon: <IconLearn />, to: '/', tone: 'pink' },
+  { key: 'import', label: '导入', icon: <IconImport />, to: '/import', tone: 'mint' },
   /* 书库原来只能从「检测入库成功后那个按钮」或手打 #/bank 到达（底部导航早先被摘掉了），
      而它是全站唯一能删单题的地方，藏得太深。按用户要求插回导入与设置之间。
      tone 用 lemon：pink/mint/lav 已被前三项占掉，柠檬是糖果四色里唯一还没上导航的。 */
-  { key: 'bank', label: '书库', icon: '📚', to: '/bank', tone: 'lemon' },
-  { key: 'settings', label: '设置', icon: '⚙️', to: '/settings', tone: 'lav' }
+  { key: 'bank', label: '书库', icon: <IconBank />, to: '/bank', tone: 'lemon' },
+  { key: 'settings', label: '设置', icon: <IconSettings />, to: '/settings', tone: 'lav' }
 ]
+
+/* 滚动插值入场（high-end-visual-design §5C）：元素进入视口时执行一次
+   translateY + blur + opacity 的「重」淡入。用 IntersectionObserver 而不是 scroll 监听
+   （scroll 监听持续 reflow，移动端掉帧）；进入后 unobserve，只跑一次。
+   SPA 路由切换后新节点才挂载，用 MutationObserver 兜底扫描。
+   动画本身写在 CSS 的 .reveal / .reveal.is-in 里，这里只管加类。 */
+export function useScrollReveal() {
+  useEffect(() => {
+    const pending = () => [...document.querySelectorAll('.reveal:not(.is-in)')]
+    if (!('IntersectionObserver' in window)) { pending().forEach((e) => e.classList.add('is-in')); return }
+    const io = new IntersectionObserver((es) => {
+      es.forEach((en) => { if (en.isIntersecting) { en.target.classList.add('is-in'); io.unobserve(en.target) } })
+    }, { rootMargin: '0px 0px -6% 0px', threshold: 0.06 })
+    const scan = () => pending().forEach((e) => io.observe(e))
+    scan()
+    const mo = new MutationObserver(scan)
+    mo.observe(document.body, { childList: true, subtree: true })
+    return () => { io.disconnect(); mo.disconnect() }
+  }, [])
+}
 export function BottomNav({ active, wrongCount, onNav }) {
   return (
     <nav className="bottom-nav" aria-label="主导航">

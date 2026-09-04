@@ -1448,3 +1448,77 @@ body, button, input, textarea, select {
   border-radius: var(--r-sm) !important;
   box-shadow: 0 6px 20px rgba(255, 143, 163, .2), inset 0 1px 0 var(--jelly-hi) !important;
 }
+
+/* ══════════════════════════════════════════════════════════
+   全站视觉升级（high-end-visual-design 技法移植到糖果主题）
+   纪律：只动 transform/opacity（§5）；不叠 feTurbulence 噪点（impeccable craft-floor
+   判它业余）；景深靠径向渐变光斑而不是 filter:blur（大面积 blur 正是当年 224ms 频闪的来源）；
+   infinite 动画只跑 fixed 的小面积光斑。
+   ══════════════════════════════════════════════════════════ */
+
+/* 1. 背景景深：三枚 fixed 径向光斑，在气泡层之下极慢漂移。
+   渐变自身已经足够柔，不需要 filter:blur；只动 transform，GPU 合成。 */
+.candy-orbs { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+.candy-orbs i { position: absolute; border-radius: 50%; will-change: transform; }
+.candy-orbs i:nth-child(1) {
+  width: 46vmax; height: 46vmax; left: -14vmax; top: -16vmax;
+  background: radial-gradient(circle at 40% 40%, rgba(255, 143, 163, .3), rgba(255, 143, 163, 0) 68%);
+  animation: orb-drift-a 26s var(--smooth-ease) infinite alternate;
+}
+.candy-orbs i:nth-child(2) {
+  width: 40vmax; height: 40vmax; right: -12vmax; bottom: -14vmax;
+  background: radial-gradient(circle at 55% 45%, rgba(127, 232, 200, .26), rgba(127, 232, 200, 0) 68%);
+  animation: orb-drift-b 32s var(--smooth-ease) infinite alternate;
+}
+.candy-orbs i:nth-child(3) {
+  width: 26vmax; height: 26vmax; right: 6vmax; top: -9vmax;
+  background: radial-gradient(circle at 50% 50%, rgba(212, 184, 255, .22), rgba(212, 184, 255, 0) 70%);
+  animation: orb-drift-a 38s var(--smooth-ease) infinite alternate-reverse;
+}
+@keyframes orb-drift-a { from { transform: translate3d(0, 0, 0) scale(1) } to { transform: translate3d(6vmax, 4vmax, 0) scale(1.1) } }
+@keyframes orb-drift-b { from { transform: translate3d(0, 0, 0) scale(1.08) } to { transform: translate3d(-5vmax, -4vmax, 0) scale(1) } }
+
+/* 2. Double-Bezel（同心双环）：用 box-shadow 叠出「外壳 + 发丝线 + 内芯」的机器感，
+   不需要额外 DOM 包裹。外环半透奶白壳，中间一道奶粉发丝线，再是环境阴影。 */
+.entry-card {
+  box-shadow:
+    0 0 0 5px rgba(255, 255, 255, .55),
+    0 0 0 6.5px rgba(255, 182, 193, .34),
+    0 16px 38px rgba(255, 143, 163, .18),
+    inset 0 1px 0 var(--jelly-hi) !important;
+  transition: transform .5s var(--jelly-ease), box-shadow .5s var(--smooth-ease);
+}
+.entry-card:hover { transform: translateY(-5px) !important; }
+
+/* 3. 磁吸按压物理：按下整体缩 0.965 模拟物理按压，回弹交给果冻缓动。只动 transform。 */
+.btn:active, .chip:active, .nav-item:active, .entry-card:active,
+.rate-btn:active, .deck-candy:active, .tarot-foot button:active {
+  transform: scale(.965) !important;
+  transition-duration: .09s !important;
+}
+
+/* 4. 滚动插值入场（IntersectionObserver 加 .is-in，见 CandyBoot 的 useScrollReveal）。
+   按 §5 纪律不用 blur 做入场（当年大面积 blur 导致 224ms 频闪），
+   「重」感靠 24px 位移 + 0.75s + cubic-bezier(.32,.72,0,1) 的减速曲线。 */
+.reveal { opacity: 0; transform: translateY(24px);
+  transition: opacity .6s var(--smooth-ease), transform .75s cubic-bezier(.32, .72, 0, 1); }
+.reveal.is-in { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) {
+  .reveal, .reveal.is-in { opacity: 1; transform: none; transition: none; }
+  .candy-orbs i { animation: none !important; }
+}
+
+/* 5. 自绘图标尺寸：导航继承 tone 色（不活跃时 L215 的 grayscale 滤镜仍然生效，
+   对 currentColor 的 SVG 同样成立）；入口卡图标放进右上角的糖霜小方块。 */
+.nav-emoji svg { width: 22px; height: 22px; display: block; }
+.entry-ico {
+  position: absolute; top: 13px; right: 13px; width: 34px; height: 34px;
+  display: grid; place-items: center; border-radius: 11px;
+  background: rgba(255, 255, 255, .72); border: 1px solid var(--line);
+  box-shadow: inset 0 1px 0 var(--jelly-hi), 0 3px 10px rgba(255, 143, 163, .14);
+}
+.entry-ico svg { width: 19px; height: 19px; display: block; }
+.entry-ico.ico-red { color: var(--bad-ink); border-color: rgba(242, 86, 74, .42); }
+.entry-ico.ico-yellow { color: #8A6D00; border-color: rgba(255, 212, 59, .6); }
+.entry-ico.ico-mint { color: var(--ok-ink); border-color: rgba(95, 212, 176, .52); }
+.entry-ico.ico-lav { color: #8A63D9; border-color: rgba(184, 148, 255, .55); }

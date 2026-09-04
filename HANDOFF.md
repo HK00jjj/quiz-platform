@@ -1854,3 +1854,49 @@ p45.png 这个案例暴露了**引用式审计的盲区**：
   craft-floor 也要求卡片圆角留在 12~16px；底透明度 .82 vs .9 —— 刻意让外层渐变透上来当边框
 - 三套回归 **t-session 18/18、t-seq 16/16、t-fill 13/13**；审计复核 **0 DEAD / 0 UNUSED / assets.js 9 键零引用 0**
 - console 全程 0 errors
+
+---
+
+## 26. 第十六轮（2026-09-04）· 全站视觉升级：图标系统化 + 景深 + 按压物理 + 滚动入场
+
+**gh-pages HEAD：`0ef3882`（父 `2da8f37`）。dist 26 文件 / 3.05 MB，verify-deploy 26/26 缺失0/不一致0/多余0。**
+**CSS 109.02 → 111.40 kB，JS 463.82 → 467.35 kB。**
+
+用户反馈「特效、动画、图标、颜色、交互方式都不够惊艳」，要求加载视觉/设计/美术类 skill 一起改。
+加载了 `high-end-visual-design`（技法源）；`impeccable` 的 craft-floor 仍作为红线（本轮它否决了一项技法，见 26.3）。
+
+### 26.1 六项升级
+
+| # | 项 | 实现 | 文件 |
+| --- | --- | --- | --- |
+| 1 | **图标系统化** | 新建 `components/CandyIcons.jsx`：8 个自绘 SVG（24×24、1.7px 圆头细线、`currentColor` 主色 + 一条 opacity .55 辅色线做"糖霜高光"）。导航 4 个（棒棒糖/礼盒/糖罐/滑杆）+ 入口卡 4 个（循环/洗牌/四角星/漏斗）。**不用 Lucide/FontAwesome/Material（skill 禁用粗描边图标库），不用 emoji（craft-floor：emoji 不能充当图标系统）**。导航图标靠 `currentColor` 继承 tone 色，不活跃时 L215 的 grayscale 滤镜对 SVG 同样成立 | `CandyIcons.jsx`（新）、`CandyBoot.jsx`、`Learn.jsx` |
+| 2 | **背景景深** | `.candy-orbs`：三枚 fixed 径向渐变光斑（粉/薄荷/薰衣草），26/32/38s 极慢 alternate 漂移。**不用 `filter: blur`** —— 渐变自身已足够柔，而大面积 blur 正是当年 224ms 频闪的来源；只动 transform，GPU 合成 | `candy.css`、`App.jsx`（markup 放 Shell，在气泡层之前，同 z-index 下 DOM 顺序决定绘制顺序） |
+| 3 | **Double-Bezel 同心双环** | `.entry-card` 用 box-shadow 叠「5px 奶白外壳 + 1.5px 奶粉发丝线 + 环境阴影 + 内高光」，**不需要额外 DOM 包裹** | `candy.css` |
+| 4 | **磁吸按压物理** | `.btn/.chip/.nav-item/.entry-card/.rate-btn/.deck-candy/.tarot-foot button` 的 `:active { transform: scale(.965) }` + `transition-duration: .09s`，回弹交给果冻缓动 | `candy.css` |
+| 5 | **滚动插值入场** | `useScrollReveal()` hook（`CandyBoot.jsx`）：IntersectionObserver 加 `.is-in`，进入后 unobserve 只跑一次；SPA 路由切换后新节点才挂载，用 MutationObserver 兜底扫描。**按 §5 纪律不用 blur 做入场**，「重」感靠 24px 位移 + 0.75s + `cubic-bezier(.32,.72,0,1)`。书库卡从 `row-in` 挂载动画（50 张一次全播、stagger 上限 360ms）换成它 | `CandyBoot.jsx`、`App.jsx`、`Bank.jsx`、`candy.css` |
+| 6 | **入口卡图标位** | `.entry-ico` 右上角 34px 糖霜小方块，四色 `.ico-red/.ico-yellow/.ico-mint/.ico-lav` | `Learn.jsx`、`candy.css` |
+
+`prefers-reduced-motion` 下 `.reveal` 直接可见、光斑停摆。
+
+### 26.2 一次构建失败（JSX 根节点）
+
+把 `{/* 注释 */}` 放在 `Bank.jsx` map 回调的 `return (` **根位置**，与 `<div>` 成为两个并列子节点 → JSX return 只能有一个根 → 编译报错、dist 不更新。
+第一次修的时候又在新注释里**嵌套了 `{/* */}`**，`*/` 提前闭合注释、后面变成代码，二次报错。
+教训已写进 Bank.jsx 注释：**JSX 注释只能放在元素内部；return 的根位置要么单一元素、要么用 Fragment；普通说明放 return 之前当 JS 注释，且 JS 注释里不能再出现星号斜杠。**
+
+### 26.3 craft-floor 否决了一项技法
+
+`high-end-visual-design` 推荐固定层 feTurbulence 噪点纹理做"物理纸感"，但 `impeccable` 的 craft-floor 明确判它业余
+（"feTurbulence grain read as amateur"）。两个 skill 冲突时**取更严的红线**：本轮不加噪点，景深只靠径向光斑。
+
+### 26.4 刻意保留 / 遗留
+
+- 入口卡**中央的大 emoji**（🍮/🍋/🍭/🍡）是 CSS `::before` 的装饰插画而非功能图标，保留 —— 它们是糖果味的一部分，截图观感良好。
+- 「开始今日练习」按钮里还有一个小 emoji（Learn.jsx hero），未替换，属遗留。
+- 导航图标不活跃时是灰的（grayscale 滤镜），激活才上 tone 色 —— 这是既有行为，保留。
+
+### 26.5 验证
+
+- 构建 ✓、purge `DIST CLEAN`、产物标记全在（`candy-orbs`/`orb-drift-a`/`.reveal`/`.entry-ico`/SVG path/`is-in`）
+- 真机：学习页与书库页截图确认新导航图标、双环卡片、光斑背景、滚动入场；**console 0 errors**
+- 上线：gh-pages `0ef3882`、verify-deploy 26/26 全零差异

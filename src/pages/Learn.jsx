@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store'
 import { A } from '../assets'
 import { GiltBtn, EmptyState, burstParticles, FlameIcon } from '../components'
+import { IconRetry, IconShuffle, IconNew, IconFilter } from '../components/CandyIcons'
 import { buildSession, lastResultMap, TYPES, DIFFICULTIES, domainLabel } from '../lib/stats'
 import { isDue } from '../lib/fsrs'
 import { todayStr, streakLength } from '../lib/dates'
@@ -165,21 +166,25 @@ export default function Learn() {
         <div className={'entry-card rise' + (wrongCount > 0 ? ' hot' : '')} style={{ animationDelay: '.08s' }}
           onClick={() => wrongCount > 0 && run('wrong', { size: 0 })}>
           <span className="count-gem">{wrongCount}</span>
+          <span className="entry-ico ico-red" aria-hidden="true"><IconRetry /></span>
           <h3>错题重练</h3>
           <p>{wrongCount > 0 ? `答错过的 ${wrongCount} 道 · 再练一遍就记牢了` : '暂时没有错题，保持住'}</p>
         </div>
         <div className="entry-card rise" style={{ animationDelay: '.16s' }} onClick={() => run('random', { size: 20 })}>
           <span className="count-gem">{randomCount}</span>
+          <span className="entry-ico ico-yellow" aria-hidden="true"><IconShuffle /></span>
           <h3>随机练习</h3>
           <p>从全部 {questions.length} 题里随机抽 {randomCount} 道 · 练考场手感</p>
         </div>
         <div className="entry-card rise" style={{ animationDelay: '.24s' }} onClick={() => newCount > 0 && run('learn')}>
           <span className="count-gem">{newCount}</span>
+          <span className="entry-ico ico-mint" aria-hidden="true"><IconNew /></span>
           <h3>新题上手</h3>
           <p>{newCount > 0 ? `${newCount} 道还没做过 · 做完自动排进复习计划` : '全部题目都做过了'}</p>
         </div>
         <div className="entry-card rise" style={{ animationDelay: '.32s' }} onClick={() => setOpenFilter('relearn')}>
           <span className="count-gem">{relearnCount}</span>
+          <span className="entry-ico ico-lav" aria-hidden="true"><IconFilter /></span>
           <h3>挑题练习</h3>
           <p>按题型、知识域、难度筛出想练的题 · 共 {relearnCount} 道</p>
         </div>

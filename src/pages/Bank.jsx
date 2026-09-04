@@ -159,9 +159,14 @@ export default function Bank() {
           const touched = cardMap.has(q.id)
           const open = openId === q.id
           const qRecords = open ? records.filter((r) => r.questionId === q.id).slice(-6).reverse() : []
+          /* row-in 的挂载动画换成 .reveal 滚动插值入场：原来 50 张卡一次性全播、
+             stagger 上限还只有 360ms，长列表滚下去时下面的卡早就播完了。
+             现在用 IntersectionObserver，滚到哪张哪张才淡入（见 CandyBoot 的 useScrollReveal）。
+             注：这段注释必须放在 return 之前当普通 JS 注释——JSX 的 return 只能有一个根节点，
+             把 JSX 注释放在根位置会和下面的 div 成为两个并列子节点，直接编译报错。
+             （也不要在本注释里再嵌套星号斜杠，它会提前闭合注释。） */
           return (
-            <div key={q.id} className={'bank-item row-in' + (open ? ' flipped' : '')}
-              style={{ animationDelay: `${Math.min(i * 30, 360)}ms` }}
+            <div key={q.id} className={'bank-item reveal' + (open ? ' flipped' : '')}
               onClick={() => { setOpenId(open ? null : q.id); setConfirmId(null) }}>
               <div className="tarot-inner">
                 {/* 正面：题干摘要 + 签条行。

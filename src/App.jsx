@@ -5,7 +5,7 @@ import { A } from './assets'
 import { TouchRitual } from './components'
 /* 背景气泡 / 三格糖果导航 / 开机仪式改从 CandyBoot 引入：components.jsx 正被编辑器的
    陈旧缓冲区反复回写（实测同一轮内被覆盖两次），改动会被吞掉，所以拆到新文件里 */
-import { Background, BottomNav, BootRitual } from './components/CandyBoot'
+import { Background, BottomNav, BootRitual, useScrollReveal } from './components/CandyBoot'
 import { lastResultMap } from './lib/stats'
 import Login from './pages/Login'
 import Learn from './pages/Learn'
@@ -15,6 +15,7 @@ import Import from './pages/Import'
 import Settings from './pages/Settings'
 
 function Shell() {
+  useScrollReveal()
   const navigate = useNavigate()
   const location = useLocation()
   const phase = useStore((s) => s.phase)
@@ -42,6 +43,9 @@ function Shell() {
   }, [inPractice])
   return (
     <div className="app-shell">
+      {/* 背景景深光斑（fixed，z-index 与气泡层同为 0，DOM 在前所以画在气泡之下）。
+          放在 Shell 而不是 Background 组件里：Background 也被加载态复用，而登录分支不用 Background。 */}
+      <div className="candy-orbs" aria-hidden="true"><i /><i /><i /></div>
       <Background intensity={inPractice ? 1.6 : 1} />
       <Routes>
         <Route path="/" element={<Learn />} />
