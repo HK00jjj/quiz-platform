@@ -86,7 +86,7 @@ export class Validator {
     if (!COG.includes(cog)) this.err(w, `认知层级“${cog}”非法`)
     if (!str(it.知识点).trim()) this.err(w, '“知识点”为空')
     if (!str(it.题干).trim()) this.err(w, '“题干”为空')
-    if (it.image != null && !(typeof it.image === 'string' && DIAGRAM_IDS.includes(it.image))) this.err(w, `“image”须为已注册模板ID（${DIAGRAM_IDS.join('/')} ）或省略`)
+    if (it.image != null && !(typeof it.image === 'string' && DIAGRAM_IDS.includes(it.image.split('|')[0]))) this.err(w, `“image”须为已注册模板ID（${DIAGRAM_IDS.join('/')} ）或省略`)
   }
   checkMetaMapping(it) {
     const d = str(it.难度), cog = str(it.认知层级), seq = seqOf(it)
@@ -233,7 +233,7 @@ function toItem(raw) {
   if (!stem) return '缺少题干'
   if (!answer) return '缺少答案'
   const q = { id: hashId(stem, type, answer), seq, type, stem, answer }
-  if (typeof raw.image === 'string' && DIAGRAM_IDS.includes(raw.image)) q.image = raw.image
+  if (typeof raw.image === 'string' && DIAGRAM_IDS.includes(raw.image.split('|')[0])) q.image = raw.image
   if (typeof raw.难度 === 'string') q.difficulty = raw.难度
   if (typeof raw.知识点 === 'string') q.knowledgePoint = raw.知识点
   if (typeof raw.知识域 === 'string') q.knowledgeDomain = raw.知识域
