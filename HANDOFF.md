@@ -2022,3 +2022,29 @@ dev 直接 `ReferenceError: IconLearn is not defined` 崩掉整个 Learn 页。
 
 **若用户复测仍卡**，下一个杠杆按序：① 去掉光斑漂移（改静态，径向渐变只光栅一次）；
 ② 光斑减为两枚；③ 彻底移除 `.candy-orbs`。这三步都会牺牲一点"景深"特效，需用户拍板。
+---
+
+## 31. 第二十一轮（2026-09-04）· 清新活力批 P0+P1（去脏去雾）
+
+**gh-pages HEAD：`031fbb1`（父 `7ee4b28`）。dist 26 文件 / 3.05 MB，verify-deploy 26/26 全零差异。**
+
+用户问"颜色搭配还有需要改进的吗？想要清新活力、增强刷题沉浸感"。诊断四条：
+① 底色带粉雾（#FFF5F7 起笔、52% 才转薄荷）→ 不清；② 灰字中性灰偏脏且 #999 仅 2.8:1；
+③ 21 处 #D14767 里 15 处是白底粉字仅 4.0:1；④ 缺沉浸反馈（颜色不参与进度）。
+
+**本轮只做不争议的 P0+P1**（沉浸加法留待用户点头，见下）：
+- 15 处白底/浅底粉字 `#D14767` → `var(--pink-ink)`(#C2385A, AA)。
+  **保留**：L1396 data-URI SVG 描边（CSS 变量进不去 data URI）、4 处注释 prose。
+  用按行号的一次性脚本 `tmp-recolor.mjs` 替换（已删），避免全局 replace 误伤注释/SVG。
+- 灰字 token 改带冷色温 slate：`--ink #434A51`、`--ink-2/--muted #646C76`、`--ink-3 #757D87`（原 #999 不达标）。
+- 奶白提纯：`--cream/--parchment-0 #FFFCFD`、`--parchment-1 #FFFCFE`。
+- 页面底色去粉雾：`160deg, #FFFCFD 0%, #F1FFFA 42%, #F4F1FF 100%`（薄荷站 52%→42%，"清"上来；两处同改）。
+
+**沉浸感菜单（已给用户、待拍板，勿擅自做）**：
+A 路由级房间光（预置染色光斑层按路由 opacity 交叉淡入，合成器级）；
+B 糖浆进度带（视口顶 3px，scaleX 按 sessionIndex/sessionQuestions 填充，渐变粉→柠檬→薄荷→薰衣草）；
+C 知识域色环（K1–K27 mod 6 映射六色，标签/chip/卡边统一携带）；
+D tinted elevation 三级带色温的白；E 夜间可可模式（平行 token，中型重构）。
+另：柑橘 accent（#FF7A45 小面积点睛）属口味项，也待拍板。
+
+验证：真机截图确认清透度提升、糖果味未丢；console 0 errors；verify-deploy 26/26 全零差异。
