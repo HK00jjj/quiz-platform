@@ -1556,3 +1556,14 @@ body, button, input, textarea, select {
 /* 品牌行：去掉哥特金 / 哥特字体类与 ✦ 排版符，用糖果粉 + 自绘棒棒糖图标 */
 .brand { color: var(--gold-text) !important; }
 .brand svg { width: 20px; height: 20px; vertical-align: -3px; margin-right: 7px; color: var(--candy-pink-dk); }
+
+/* 进站「卡一下」的最佳努力修复（用户报：进去时棒棒糖旋转过程卡一下）。
+   主线程 Long Task 观测为 0，说明卡顿在 GPU 光栅/合成而非 JS 阻塞：
+   开机幕布掀开那一刻，旋转棒棒糖头与三枚大光斑才首次被光栅化，造成一次性掉帧。
+   ① 给旋转的棒棒糖头提前 will-change:transform，进站时就 promote 成合成层；
+   ② 缩小三枚光斑的光栅面积（46/40/26vmax → 34/30/20vmax），降首帧光栅成本。
+   光斑已有 will-change:transform（见 .candy-orbs i）。若仍卡，下一个杠杆是去掉光斑漂移或减为两枚。 */
+.ch-lolli::before { will-change: transform; }
+.candy-orbs i:nth-child(1) { width: 34vmax; height: 34vmax; }
+.candy-orbs i:nth-child(2) { width: 30vmax; height: 30vmax; }
+.candy-orbs i:nth-child(3) { width: 20vmax; height: 20vmax; }

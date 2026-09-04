@@ -1999,3 +1999,26 @@ dev 直接 `ReferenceError: IconLearn is not defined` 崩掉整个 Learn 页。
 ### 顺带修正 §26 的一处描述
 
 §26.1 第 5 条说"IntersectionObserver 加 .is-in"，现改为 data-in；§26 的其它结论不受影响。
+---
+
+## 30. 第二十轮（2026-09-04）· 进站"卡一下"（GPU 光栅掉帧，最佳努力修复）
+
+**gh-pages HEAD：`7ee4b28`（父 `d326530`）。dist 26 文件 / 3.05 MB，verify-deploy 26/26 全零差异。**
+
+用户报：进站时棒棒糖圆形旋转过程会卡一下。
+
+**取证**：用 `addInitScript` 在文档创建前注入 Long Task 观测器（`PerformanceObserver` + `longtask`），
+覆盖整个进站 7s —— **结果为 0 个长任务**。说明卡顿不在主线程 JS 阻塞，而在 **GPU 光栅/合成**：
+开机幕布掀开那一刻，旋转棒棒糖头（`.ch-lolli::before`，`lolli-spin` infinite）与三枚大光斑
+（`.candy-orbs i`，46/40/26vmax 径向渐变）才首次被光栅化，造成一次性掉帧。
+（Chrome 会跳过完全被遮挡内容的首次绘制，所以幕布后的页面直到掀幕才真正光栅化。）
+
+> 取证方法备忘：`playwright cli eval` 装的观测器会被 `reload` 销毁；`addInitScript` 只在**新 document**
+> 生效，同 URL 的 `goto` 是同文档导航不触发 —— 必须先 `goto about:blank` 再进目标页。
+
+**修复（最佳努力）**：
+1. `.ch-lolli::before { will-change: transform }` —— 进站时就把旋转头 promote 成合成层（光斑本来就有）。
+2. 三枚光斑 46/40/26vmax → **34/30/20vmax**，缩小首帧光栅面积。
+
+**若用户复测仍卡**，下一个杠杆按序：① 去掉光斑漂移（改静态，径向渐变只光栅一次）；
+② 光斑减为两枚；③ 彻底移除 `.candy-orbs`。这三步都会牺牲一点"景深"特效，需用户拍板。
