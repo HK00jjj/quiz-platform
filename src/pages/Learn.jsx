@@ -138,6 +138,7 @@ export default function Learn() {
         <span className="ch-candy c1" aria-hidden="true" />
         <span className="ch-candy c2" aria-hidden="true" />
         <span className="ch-candy c3" aria-hidden="true" />
+        <span className="ch-candy c4" aria-hidden="true" />
         <span className="ch-lolli" aria-hidden="true" />
         {/* 原来这里只有一个居中浮动的 caption 胶囊，整条 ~200px 渐变带大片留白显得没做完。
             改成左文右糖：左边真标题 + 副标，右边糖豆聚成一簇（位置在 candy.css 里重排）。 */}

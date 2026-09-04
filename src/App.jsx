@@ -46,6 +46,11 @@ function Shell() {
       {/* 背景景深光斑（fixed，z-index 与气泡层同为 0，DOM 在前所以画在气泡之下）。
           放在 Shell 而不是 Background 组件里：Background 也被加载态复用，而登录分支不用 Background。 */}
       <div className="candy-orbs" aria-hidden="true"><i /><i /><i /></div>
+      {/* 彩糖针点缀（糖果派对派）：12 根静态小棒、四色循环，fixed z-0 与光斑同层。
+          静态零动画，不占每帧合成成本；位置/配色全在 candy.css。 */}
+      <span className="candy-sprinkles" aria-hidden="true">
+        <i /><i /><i /><i /><i /><i /><i /><i /><i /><i /><i /><i />
+      </span>
       <Background intensity={inPractice ? 1.6 : 1} />
       <Routes>
         <Route path="/" element={<Learn />} />
