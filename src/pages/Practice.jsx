@@ -386,10 +386,11 @@ export default function Practice() {
             <div className="zone-rule" aria-hidden="true" />
 
             {/* ── 分区三 · 答案区：未答=蜡封遮挡，答后=墨迹显影 ── */}
-            {/* 解析区不跟着判定结果变色：用户明确要求「整个框框背景不要变」，
-                答错只让选错的那一栏选项与答案变红。所以这里只保留 revealed，
-                不挂 ok / bad（上一轮挂过，已连同 candy.css 里对应的规则一起撤回）。 */}
-            <section className={'zone zone-s' + (answered || showAnswer ? ' revealed' : '')}>
+            {/* 答错时给解析区补挂 bad：用户口径是「解析背景变红」，指的是这个 ◇解析 大区块，
+                而不是里面那个白色答案框（答案框要维持白底，只有左侧那条边框变红）。
+                只挂 bad、不挂 ok：答对态必须一行不碰，继续吃 candy.css L399 的薄荷绿。
+                用 lastGrade 而不是下面才声明的 grade（const 有 TDZ，会整页崩溃）。 */}
+            <section className={'zone zone-s' + (answered || showAnswer ? ' revealed' : '') + (answered && !(objective ? lastGrade?.correct : lastRating === '记得') ? ' bad' : '')}>
             {/* 这里原来是 `answered || showAnswer ? '◇ 解析' : '◇ 解析'`——两个分支完全相同的遗留三元，已收成一行 */}
             <h5 className="zone-label">◇ 解析</h5>
             {seal !== 'broken' && (
@@ -412,9 +413,7 @@ export default function Practice() {
                 )}
                 <div className={'answer-scroll-box ' + ((objective ? grade?.correct : lastRating === '记得') ? 'ok' : 'bad')}>
                   <h5>{(objective ? grade?.correct : lastRating === '记得') ? '参考答案' : '正确答案'}</h5>
-                  {/* ans-line 这个类是为了能单独染红答案字母：答案框里有三个 <p>
-                      （答案字母 / .lab 小标 / 解析正文），用 .bad p 会把整段解析正文也染红 */}
-                  <p className="ans-line">{shownAnswer}</p>
+                  <p>{shownAnswer}</p>
                   {q.explanation && <>
                     <p className="lab">【题库解析】</p>
                     <p>{q.explanation}</p>

@@ -1156,3 +1156,100 @@ motif 与站内 `.ch-lolli` 同源，不是新发明的词汇。
   **答错只红三处 + 容器背景一律不变**（防止下个会话又把 §17 那套做回来）；新增 playwright-cli 原生命令用法一条。
 - 用户新增主要行为准则（已存记忆）：*确保质量前提下减少调用；完成不了 / 失败 2 次以上 / 效果不理想 → 立即调 skill，没有就装一个，不要蛮干。*
   本轮与上一轮各触发一次（上轮 `playwright-cli`，本轮 `impeccable`），都一次解决问题。
+
+---
+
+## 20. 第十轮（2026-09-04）· 答错配色第四次收窄：钉死「框框」的歧义
+
+**gh-pages HEAD：`e14af9f`（父 `a01b100`），45 文件 / 4.61 MB，verify-deploy 缺失0/不一致0/多余0。**
+**CSS 105.76 → 106.68 kB。**
+
+### 20.1 连续两轮做反的根因：一个词指了两层
+
+答题页解析区是**两层嵌套**：
+
+```
+<section class="zone zone-s revealed">      ← 外层「◇解析」大区块（用户口中的「解析」）
+  <div class="answer-scroll-box ok|bad">    ← 内层白色答案框（用户口中的「框框」）
+    <h5>参考答案 / 正确答案</h5>
+    <p>{答案字母}</p>
+    <p class="lab">【题库解析】</p>
+    <p>{解析正文}</p>
+  </div>
+</section>
+```
+
+- §17 用户说「答错改成图二那种，只是绿色换成红色」→ 我把**两层全**改红了。
+- §18 用户说「整个框框背景不要变」→ 我以为「框框」是**外层大区块**，于是把外层改回不变、
+  反而去染红了内层的字体（`.ans-line`、`.lab`）。**两层都做反了。**
+- §20 用户给出四条精确口径，才明确：**「框框」= 内层白色答案框，「解析背景」= 外层大区块。**
+
+> **教训（已写进 candy.css 注释）：用户说「框」「盒子」「背景」这类词时，凡是该处存在嵌套容器，
+> 先确认指的是哪一层再动手。这个页面就是两层，我猜错了两次，代价是两轮完整的构建+部署+验证。**
+
+### 20.2 最终口径与实测（用户四条，逐一对应）
+
+| # | 用户原话 | 落点 | 实测（答错） | 实测（答对） |
+| --- | --- | --- | --- | --- |
+| ① | 选择那一栏需要变红 | `.opt-row.wronged`（§11 已有） | 底 `rgba(242,86,74,.14)`、边 `rgb(242,86,74)` | `.right` 底 `rgba(127,232,200,.22)`、边 `rgb(95,212,176)` |
+| ② | 解析背景变红 | **`.zone-s.revealed.bad`（本轮新增）** | class `zone zone-s revealed bad`、底 `rgba(242,86,74,.1)`、边 `rgb(255,138,122)` | class `zone zone-s revealed`（**无 bad**）、底 `rgba(127,232,200,.1)`、边 `rgb(127,232,200)` |
+| ③ | 参考答案字体不变色、背景还是白色、只变那条边框 | `.answer-scroll-box.bad` 只留 `border-left-color` | 底 `rgba(255,255,255,.72)`、`backgroundImage:none`、左栏 `rgb(242,86,74)`；h5 `rgb(27,127,99)`、答案字母 `rgb(74,74,74)`、`.lab` `rgb(110,110,110)`、解析正文 `rgb(74,74,74)` | 底同值、左栏 `rgb(95,212,176)`；h5 `rgb(27,127,99)`（**与答错态同值**，证明字体真的没随判定变色） |
+| ④ | 其他维持原来的颜色 | 不动 | `答错了` 横幅 `rgb(196,55,46)`、三档自评红/黄/绿、`.crack-veil` 裂纹 | `答对了` `rgb(27,127,99)` |
+
+本轮**撤销**的 §18 改动：`.answer-scroll-box.bad .ans-line`、`.answer-scroll-box.bad .lab` 两条红字规则，
+以及 `Practice.jsx` 里只为染红答案字母而加的 `className="ans-line"`（实测 `ansLineClassLeft: false`，死类已清）。
+`.zone-s` 的 `bad` 类**只挂 bad 不挂 ok** —— 答对态必须一行不碰。
+
+console 全程 0 errors。
+
+### 20.3 ⚠ 同一个陷阱第二次发作：删覆盖规则会放出更老的规则
+
+§18.2 记过一次（`.answer-scroll-box.bad` 的酸橙绿底）。本轮**同一模式再次出现**：
+
+要把「正确答案」标题改成"不变色"，最直觉的做法是**删掉** §11 那条
+
+```css
+.answer-scroll-box.bad h5 { color: var(--bad-ink) !important; }   /* L1041 */
+```
+
+但 **L522 还压着一条原始糖果版** `.answer-scroll-box.bad h5 { color: #6E9B2E !important; }`（橄榄绿）。
+一删 L1041，橄榄绿立刻回潮 → 答错时标题变橄榄绿。
+
+修法：**不删，改成显式与答对态同值** `color: var(--ok-ink) !important`（后面那条同特异性、位置更靠后，赢）。
+
+> 这次是**动手前先查**才发现的（§18.2 的教训生效了），没有再次上线后才暴露。
+> **规则：在 candy.css 里"撤销"任何一条末尾覆盖时，先 `Select-String` 同选择器在前面还有几条、
+> 它们对应属性的值是什么。删掉 ≠ 回到中性，往往 = 回到某个更老的糖果/哥特值。**
+
+已知同类风险点（§13 扫出的 7 处 `var(--sour)`）：`.opt-row.wronged`(L446)、`.judge-card.j-false`(L484)、
+`.fill-item.wronged`(L494)、`.answer-scroll-box.bad`(L519)、`.gem-dot.bad`(L560)、
+`.entry-card.hot .count-gem`(L584)、`.nav-item .dot`(L226)；本轮又加一处 `.answer-scroll-box.bad h5`(L522)。
+
+### 20.4 关于「解析区红底会不会太淡」
+
+`rgba(242,86,74,.1)` 是刻意与薄荷版 `rgba(127,232,200,.1)` **严格对称**（同透明度、同明度关系的浅色 token）。
+合成到卡片底色 `rgb(255,248,250)` 上约为：
+
+| | 合成结果 | 与底色的偏离 |
+| --- | --- | --- |
+| 薄荷 `.1`（答对） | `rgb(242,246,245)` | G−R = +4，很淡 |
+| 草莓 `.1`（答错） | `rgb(254,232,232)` | R−G = +22，比薄荷明显 |
+
+也就是说**红色版其实比绿色版更容易看出来**（因为底色本身偏粉，红同相叠加、绿是异相）。
+但两版都属于"极浅洗底"，主要靠 `.zone-s` 那圈 `var(--bad)` #FF8A7A 实色边框 + 内部红字/红栏来传达状态。
+**若用户觉得不够红，改一个数就行**：`.zone-s.revealed.bad` 的 `background` alpha 从 `.1` 提到 `.16`~`.2`。
+
+### 20.5 本轮中止的任务
+
+用户先要求「把出题的那个完整 skill 打包一下」，我调 `create-plugin` 建好了骨架
+（`.qoder-plugin/plugin.json` + `assets/` + `skills/electrical-question-gen/{SKILL.md,rules/,validator/}`，
+共拷入 7 个文件），随后用户改口「不要打包了」，**该目录已删除，未产出任何交付物**。
+
+顺带查实并**更正上一轮的一个错误结论**：`electrical-question-gen` 附录D 引用的离线校验器
+（`validate_questions.ps1` 14668 B、`question-batch.schema.json` 2882 B、`sample-valid.json` 12036 B、
+`sample-invalid.json` 11801 B、`README.md` 4885 B）**确实存在**，位于
+`C:\Users\青丘白浅\Documents\Qoder\命题流水线\validator\`，不在 skill 目录内 ——
+上一轮我只在 skill 目录下找，误报"四个文件全不存在"。
+附录D 第 1 条的网页校验器路径 `app\src\core\validator.ts` **仍然是错的**，实际是 `app/src/lib/validate.js`。
+
+上一轮已完成的 skill 规则 vs `validate.js` 比对结论（20 项一致、5 处差异）用户明确表示**不要修**，保持现状。

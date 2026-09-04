@@ -1038,7 +1038,10 @@ body, button, input, textarea, select {
   background: rgba(255, 255, 255, .72) !important;
   box-shadow: 0 2px 12px rgba(242, 86, 74, .22) !important;
 }
-.answer-scroll-box.bad h5 { color: var(--bad-ink) !important; }
+/* ⚠ 不能直接删这条：L522 还有一条原始糖果版的 .answer-scroll-box.bad h5 { color: #6E9B2E }（橄榄绿），
+   一直靠本条压着。用户口径是「参考答案字体不变色」，所以要显式写成与答对态同值的
+   var(--ok-ink)，而不是删掉让它回退——否则会变成橄榄绿（§18.2 同一个陷阱）。 */
+.answer-scroll-box.bad h5 { color: var(--ok-ink) !important; }
 .opt-row.wronged { border-color: var(--bad-dk) !important; background: rgba(242, 86, 74, .14) !important; color: var(--bad-ink) !important; }
 .opt-row.wronged::before { background: radial-gradient(circle at 32% 28%, #FFD9D2, #F2564A) !important; border-color: #F2564A !important; }
 .fill-item.wronged .rune-input { border-color: var(--bad-dk) !important; box-shadow: var(--glow-bad) !important; }
@@ -1289,14 +1292,23 @@ body, button, input, textarea, select {
    教训：用户说「好看一些」不等于「加更多装饰」。图二（答对）本来就干净，
    我却给它加了饱和度、渐变、柔光环三层装饰，反而脏了。下次先给最小改动。 */
 
-/* 用户用箭头精确圈定的三处——答错时只有这三处变红，其余一律不动：
-   ① 选错那一栏的选框圆圈 → .opt-row.wronged::before，§11 已经是草莓红，无需新增
-   ② 参考答案的字母 → 下面的 .ans-line（原本 color: var(--ink) 深灰）
-   ③【题库解析】小标 → 下面的 .lab（原本 color: var(--ink-2) 灰）
-   注意不要写成 .answer-scroll-box.bad p：答案框里有三个 <p>（答案字母 / .lab / 解析正文），
-   那样会把整段解析正文也染红，就不是「只改三处」了。所以给答案字母单独加了 .ans-line 类。 */
-.answer-scroll-box.bad .ans-line { color: var(--bad-ink) !important; }
-.answer-scroll-box.bad .lab { color: var(--bad-ink) !important; }
+/* 答错的红色落点——用户第四次收窄后的最终口径，四条逐一对应：
+   ① 选错那一栏整栏变红 → .opt-row.wronged（§11 已有：红边 + rgba(242,86,74,.14) 洗底 + 红字 + 红选框圆圈）
+   ② ◇解析 这个大区块的背景变红 → 下面的 .zone-s.revealed.bad（本次新增）
+   ③ 答案框：字体一律不变色、底色保持白，只有左侧那条 4px 边框变红
+      → .answer-scroll-box.bad 只留 border-left-color；上一轮加的 .ans-line / .lab 红字已全部撤掉
+   ④ 其余维持原色，答对态一行不碰（.zone-s.revealed 无修饰符时仍是 L399 的薄荷绿）
+
+   ⚠ 术语歧义记录：用户说的「框框」= 答案框那个白色小盒（.answer-scroll-box），
+   「解析背景」= 外层 ◇解析 大区块（.zone-s）。§18 我把两者搞反了，
+   结果该红的区块没红、不该染红的字体染了红。以后遇到「框」字先问清是哪一层。
+
+   颜色取与薄荷版严格对称：L399 用 var(--mint)(#7FE8C8) + rgba(127,232,200,.1)，
+   这里就用 var(--bad)(#FF8A7A) + rgba(242,86,74,.1)——同明度关系、同透明度。 */
+.zone-s.revealed.bad {
+  border-color: var(--bad) !important;
+  background: rgba(242, 86, 74, .1) !important;
+}
 
 /* ══════════════════════════════════════════════════════════
    登录页：把糖果系统自有、但这一页一直没用的手法补回来
