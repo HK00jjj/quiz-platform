@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store'
 import { A } from '../assets'
 import { GiltBtn, EmptyState, burstParticles, FlameIcon } from '../components'
-import { IconRetry, IconShuffle, IconNew, IconFilter } from '../components/CandyIcons'
+import { IconRetry, IconShuffle, IconNew, IconFilter, IconLearn, IconImport } from '../components/CandyIcons'
 import { buildSession, lastResultMap, TYPES, DIFFICULTIES, domainLabel } from '../lib/stats'
 import { isDue } from '../lib/fsrs'
 import { todayStr, streakLength } from '../lib/dates'
@@ -109,7 +109,7 @@ export default function Learn() {
             img={A.emptyShelf}
             title="题库还是空的"
             hint="把外部 AI 生成的题目 JSON 导入到导入页，就可以开始做题、间隔复习与错题重练。"
-            action={<GiltBtn size="lg" onClick={() => navigate('/import')}>🍬 去导入</GiltBtn>}
+            action={<GiltBtn size="lg" onClick={() => navigate('/import')}><IconImport /> 去导入</GiltBtn>}
           />
         </div>
       </div>
@@ -128,7 +128,7 @@ export default function Learn() {
           <GiltBtn size="sm" onClick={(e) => {
             burstParticles(e.clientX, e.clientY, 'gold', 14)
             hero.run()
-          }}>🔄 延续甜蜜值</GiltBtn>
+          }}><IconRetry /> 延续甜蜜值</GiltBtn>
         )}
       </div>
 
@@ -144,12 +144,12 @@ export default function Learn() {
 
       <div className="panel deep" style={{ textAlign: 'center' }}>
         <div style={{ display: 'flex', justifyContent: 'center', gap: 10, marginBottom: 10 }} aria-hidden="true">
-          <span className="tag teal">🍬</span>
+          <span className="tag teal"><IconNew /></span>
           <span className="tag">今 日 复 习</span>
-          <span className="tag teal">🍭</span>
+          <span className="tag teal"><IconNew /></span>
         </div>
         <GiltBtn size="lg" className="block" style={{ maxWidth: 420, margin: '0 auto' }} onClick={hero.run}>
-          📖 开始今日练习
+          <IconLearn /> 开始今日练习
         </GiltBtn>
         <p style={{ marginTop: 10, fontSize: 12.5, color: 'var(--muted)', letterSpacing: 1 }}>{hero.sub}</p>
         {streak > 0 && (
@@ -165,25 +165,21 @@ export default function Learn() {
             .art 空 div 一并删掉——哥特插图早没了，留着只白占 150px 高度。 */}
         <div className={'entry-card rise' + (wrongCount > 0 ? ' hot' : '')} style={{ animationDelay: '.08s' }}
           onClick={() => wrongCount > 0 && run('wrong', { size: 0 })}>
-          <span className="count-gem">{wrongCount}</span>
           <span className="entry-ico ico-red" aria-hidden="true"><IconRetry /></span>
           <h3>错题重练</h3>
           <p>{wrongCount > 0 ? `答错过的 ${wrongCount} 道 · 再练一遍就记牢了` : '暂时没有错题，保持住'}</p>
         </div>
         <div className="entry-card rise" style={{ animationDelay: '.16s' }} onClick={() => run('random', { size: 20 })}>
-          <span className="count-gem">{randomCount}</span>
           <span className="entry-ico ico-yellow" aria-hidden="true"><IconShuffle /></span>
           <h3>随机练习</h3>
           <p>从全部 {questions.length} 题里随机抽 {randomCount} 道 · 练考场手感</p>
         </div>
         <div className="entry-card rise" style={{ animationDelay: '.24s' }} onClick={() => newCount > 0 && run('learn')}>
-          <span className="count-gem">{newCount}</span>
           <span className="entry-ico ico-mint" aria-hidden="true"><IconNew /></span>
           <h3>新题上手</h3>
           <p>{newCount > 0 ? `${newCount} 道还没做过 · 做完自动排进复习计划` : '全部题目都做过了'}</p>
         </div>
         <div className="entry-card rise" style={{ animationDelay: '.32s' }} onClick={() => setOpenFilter('relearn')}>
-          <span className="count-gem">{relearnCount}</span>
           <span className="entry-ico ico-lav" aria-hidden="true"><IconFilter /></span>
           <h3>挑题练习</h3>
           <p>按题型、知识域、难度筛出想练的题 · 共 {relearnCount} 道</p>

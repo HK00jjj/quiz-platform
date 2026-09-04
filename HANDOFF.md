@@ -1900,3 +1900,58 @@ p45.png 这个案例暴露了**引用式审计的盲区**：
 - 构建 ✓、purge `DIST CLEAN`、产物标记全在（`candy-orbs`/`orb-drift-a`/`.reveal`/`.entry-ico`/SVG path/`is-in`）
 - 真机：学习页与书库页截图确认新导航图标、双环卡片、光斑背景、滚动入场；**console 0 errors**
 - 上线：gh-pages `0ef3882`、verify-deploy 26/26 全零差异
+
+---
+
+## 27. 第十七轮（2026-09-04）· 用户指认的三处视觉残留
+
+**gh-pages HEAD：`f888417`（父 `0ef3882`）。dist 26 文件 / 3.05 MB，verify-deploy 26/26 缺失0/不一致0/多余0。**
+
+用户给了三张截图说「修改这三个地方」。三处的根因各不相同：
+
+### 27.1 入口卡右上角的"探出的环" = count-gem 与 entry-ico 同角叠放
+
+`pages.css` L57：`.entry-card .count-gem { position: absolute; top: 10px; right: 10px; … }`，
+而 §26 新加的 `.entry-ico` 是 `top: 13px; right: 13px` —— **同一个角**。
+count-gem 的白底 + 薄荷边 + `breathe` 呼吸光晕从图标后面探出来，就是截图里那个错位彩色环。
+
+处理：**删掉 4 个 `<span className="count-gem">`**。理由：数字在描述文字里已经有了
+（"答错过的 6 道"、"抽 20 道"、"N 道还没做过"、"共 N 道"），纯属冗余；
+顺带去掉了 4 个 `infinite breathe` 动画（§5 纪律：infinite 只跑小面积，能少则少）。
+`.count-gem` 的 CSS 留着（变幽灵，归入 §23.6 那批待清）。
+
+### 27.2 书库卡正面的灰块 = `.front .face-in` 的哥特暗底，上轮漏修
+
+`pages.css` `.tarot-face .face-in` 给内面板设了 `rgba(8,13,17,.34)` 暗底（给哥特暗卡设计的）。
+§25 只修了 `.tarot-face.back .face-in`，**漏了 `.front`** —— 34% 黑叠在白色牌面上就是一块灰。
+浏览器 `elementFromPoint` 实测确认：命中链是 `tarot-stem → face-in(bg rgba(8,13,17,.34)) → tarot-face front(白)`。
+
+修法：`.bank-item .tarot-face.front .face-in { background/border-color/box-shadow: transparent/transparent/none !important }`。
+正面不需要内面板底色，深色文字压白底对比度才够。实测 `faceInBg = rgba(0,0,0,0)`。
+
+> 教训：**修「某层的覆盖」时要穷举该选择器的所有变体**（`.front` / `.back` / `:hover` / `.flipped`…）。
+> §18.2、§20.3、§25、§27.2 四次踩的都是同一类坑：candy.css 的覆盖只写了一半变体。
+
+### 27.3 学习页顶栏 / hero 的 emoji 换成自绘 SVG
+
+| 位置 | 原 | 现 |
+| --- | --- | --- |
+| 「延续甜蜜值」按钮 | 蓝色 `🔄`（与粉色主题撞色，截图里最刺眼） | `<IconRetry />` |
+| 「开始今日练习」CTA | `📖` | `<IconLearn />` |
+| 「今 日 复 习」两侧 | `🍬` / `🍭` | 两个 `<IconNew />` 薄荷小星形 |
+| 空态「去导入」 | `🍬` | `<IconImport />` |
+
+补了 `.btn svg { vertical-align: -.18em; margin-right: 6px }` 与 `.tag svg { 13px; vertical-align: -2px }` 做基线对齐。
+保留：`✦ 糖果题库 ✦` 与 `✦ 今日已做题…` 的 `✦` 是排版符号不是图标；`FlameIcon` 本就是组件。
+
+### 27.4 一次运行时抓到的漏 import
+
+第一版把 `<IconLearn />`/`<IconImport />` 用进了 JSX 但**没加进 import 行**，
+dev 直接 `ReferenceError: IconLearn is not defined` 崩掉整个 Learn 页。
+构建（esbuild）不报未定义变量（它只做打包），**只有运行时才暴露** —— 所以视觉改动必须真机过一遍，不能只信构建通过。
+
+### 27.5 验证
+
+- 三套回归未受影响（本轮只动 JSX 标记与 CSS，未碰逻辑）
+- 真机：学习页与书库页截图确认三处均修复；console **0 errors**
+- 上线：gh-pages `f888417`、verify-deploy 26/26 全零差异

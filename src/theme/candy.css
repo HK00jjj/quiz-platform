@@ -1522,3 +1522,15 @@ body, button, input, textarea, select {
 .entry-ico.ico-yellow { color: #8A6D00; border-color: rgba(255, 212, 59, .6); }
 .entry-ico.ico-mint { color: var(--ok-ink); border-color: rgba(95, 212, 176, .52); }
 .entry-ico.ico-lav { color: #8A63D9; border-color: rgba(184, 148, 255, .55); }
+/* 按钮 / 标签内的自绘图标对齐：SVG 已是 1em，只需基线对齐与间距 */
+.btn svg { vertical-align: -0.18em; margin-right: 6px; }
+.tag svg { width: 13px; height: 13px; vertical-align: -2px; }
+
+/* 书库卡正面的内面板原来是哥特暗底 rgba(8,13,17,.34)（pages.css .tarot-face .face-in），
+   叠在白色牌面上就是一块灰。上一轮只修了 .back .face-in，漏了 .front。
+   正面不需要内面板底色，直接透明让牌面白透出来；深色文字压白底对比度才够。 */
+.bank-item .tarot-face.front .face-in {
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
