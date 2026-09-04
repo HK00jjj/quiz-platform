@@ -20,6 +20,8 @@ function Shell() {
   const location = useLocation()
   const phase = useStore((s) => s.phase)
   const abortSession = useStore((s) => s.abortSession)
+  const syncError = useStore((s) => s.syncError)
+  const clearSyncError = useStore((s) => s.clearSyncError)
   const wrongCount = useStore((s) => lastResultMap(s.records))
   const wrongN = [...wrongCount.values()].filter((v) => v === false).length
   const inPractice = location.pathname === '/practice'
@@ -43,6 +45,14 @@ function Shell() {
   }, [inPractice])
   return (
     <div className="app-shell">
+      {/* 云端同步失败的唯一全局出口（§33）：答题时 persistAnswer 失败、设置/书架保存失败
+          都只 set syncError，此前唯一显示点在登录页，登录后用户完全无感。
+          role=status 让读屏器播报；点击即收，不阻塞任何操作。 */}
+      {syncError && (
+        <button type="button" className="sync-toast" role="status" onClick={clearSyncError}>
+          {syncError}（点击关闭）
+        </button>
+      )}
       {/* 背景景深光斑（fixed，z-index 与气泡层同为 0，DOM 在前所以画在气泡之下）。
           放在 Shell 而不是 Background 组件里：Background 也被加载态复用，而登录分支不用 Background。 */}
       <div className="candy-orbs" aria-hidden="true"><i /><i /><i /></div>

@@ -65,7 +65,9 @@ function walk(dir, base, out) {
   return out
 }
 
-const dist = process.argv[3] || 'c:/Users/' + decodeURI('%E9%9D%92%E4%B8%98%E7%99%BD%E6%B5%85') + '/Documents/QoderCN/2026-08-28/chat-2/app/dist'
+const dist = process.argv[3]
+if (!dist) { console.error('用法: node deploy-api.mjs <token> <dist目录> [提交信息]'); process.exit(1) }
+/* §33：原来的兜底默认值指向早已不存在的 2026-08-28/chat-2 旧工作区，纯误导；改为显式报错。 */
 const files = walk(dist, '', [])
 console.log('files to upload:', files.length)
 

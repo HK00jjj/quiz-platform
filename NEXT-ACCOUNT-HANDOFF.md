@@ -2,7 +2,7 @@
 
 > 本文是**自包含**的入门文档：不读本文之外的任何会话记录也能接手。
 > 逐轮详细历史见项目根 `HANDOFF.md`（2024 行，§1–§30）。本文只浓缩"必须知道"的部分。
-> 最后更新：2026-09-04，对应 gh-pages `7ee4b28`。
+> 最后更新：2026-09-05，对应 gh-pages `fadc51c`（§33）。
 
 ---
 
@@ -15,7 +15,9 @@
 - **仓库**：`github.com/HK00jjj/quiz-platform`，三个分支：`gh-pages`（站点产物）、`src`（源码备份）、`main`。
   站点地址 `https://hk00jjj.github.io/quiz-platform/`（`vite base = '/quiz-platform/'`）。
   **本地没有 git 工作区**，全部走 GitHub Git Data API 脚本推送。
-- **当前状态**：gh-pages HEAD `7ee4b28`；`verify-deploy` 26/26 全零差异；`verify-live` ALL OK；console 0 errors。
+- **当前状态**：gh-pages HEAD `fadc51c`；`verify-deploy` RESULT: IDENTICAL；console 0 errors。
+  ⚠ 教训（§33）：编辑器里的 `:root` 原位编辑曾被陈旧缓冲区回吐——§31 声称的 token 提纯整块丢失，
+  §33 已按原值补齐。凡"声称改过"的样式，接手时先 grep 磁盘实况再信文档。
 - **token**：**不在仓库任何文件里**。部署/推送需要 GitHub PAT，由用户当面提供。
   严禁把 token 写进任何会被 push 的文件（`HANDOFF.md`、本文、src 分支都会公开）。`push-src` 的忽略清单含 `.env`。
 
@@ -124,7 +126,9 @@ Start-Sleep 40 ; node verify-live.mjs "$PWD\app\dist"      # 期望 LIVE RESULT:
   - 入场用 IntersectionObserver（`useScrollReveal`），**不用 scroll 监听**、不用 blur 做入场。
   - 不用 feTurbulence 噪点（craft-floor 判业余）。
   - `prefers-reduced-motion` 必须降级（`.reveal` 直接可见、光斑停摆）。
-- **对比度**：所有正文/标签过 WCAG AA（4.5:1）。现存 12 处 `#D14767` 压白底 4.0:1 是已知债（§9）。
+- **对比度**：所有正文/标签过 WCAG AA（4.5:1）。`#D14767` 压白底家族已在 §31+§33 清零，
+  白/奶白底一律 `--pink-ink #C2385A`（5.2:1）；`.chip` 未选中态 `#A0526D`（5.25:1）；
+  小字不用 `--gold-text`（它=#E8607F 只有 3.3:1，仅限 large-text/品牌字）。
 
 ---
 
@@ -157,24 +161,26 @@ Start-Sleep 40 ; node verify-live.mjs "$PWD\app\dist"      # 期望 LIVE RESULT:
 
 ---
 
-## 8. 当前状态（2026-09-04）
+## 8. 当前状态（2026-09-05）
 
-- gh-pages HEAD **`7ee4b28`**（链：… `0ef3882` §26 → `f888417` §27 → `cd8f7a9` §28 → `d326530` §29 → `7ee4b28` §30）。
-- `verify-deploy` 26/26 全零差异；`verify-live` ALL OK；console 0 errors。
-- 最近六轮做的事：§25 牌背去哥特+对比度 / §26 全站视觉升级（图标系统+光斑+双环+按压+滚动入场）/
-  §27 三处残留（count-gem 叠角、`.front .face-in` 灰块、顶栏 emoji）/ §28 hero 重排（左文右糖）/
-  §29 翻牌消失（React 覆盖 className → 改 data-in）/ §30 进站卡顿（GPU 光栅，最佳努力）。
+- gh-pages HEAD **`fadc51c`**（链：… `7ee4b28` §30 → `031fbb1` §31 → `da658a2` §32 → `fadc51c` §33）。
+- `verify-deploy` RESULT: IDENTICAL；console 0 errors；RLS 探测安全（anon key 匿名读返回空集）。
+- §31 清新活力批（15 处粉字替换 + 去 fog；⚠ token 部分被缓冲区吞掉，§33 补齐）/
+  §32 糖果派对派（糖针+hero 第四色+渐变权重）/
+  §33 对比度收尾 12 处 + chips 基色 + token 补齐 + gold 小字三处 + 答题页接图标（IconReveal/IconScroll）
+  + 按压补齐（opt-row/judge/stepper/modal-close）+ syncToast 全局提示条 + 删题/回滚健壮性 + 书库卡键盘可达。
 
 ---
 
-## 9. 待办 backlog（按杠杆排序）
+## 9. 待办 backlog（按杠杆排序，§33 后更新）
 
-1. **12 处 `#D14767` 压白底 4.0:1** → 换 `--pink-ink #C2385A`（对比度债，影响可读性/合规）。
-2. **答题页 Practice / 结算页还没接新图标与按压物理**（§26 只覆盖了导航/入口卡/按钮通用 :active）。
-3. **约 72 个幽灵选择器**（candy/pages 里无匹配 DOM 的规则；§27/§28 又新增 `.count-gem`、`.cap` 几条）。清理前逐条确认无动态 class。
-4. **进站卡顿若复测仍卡**：下一杠杆按序 ① 光斑去漂移改静态 ② 光斑减为两枚 ③ 移除 `.candy-orbs`（都牺牲景深，需用户拍板）。
+1. **哥特位图 ~2.4MB 去留**（牌背 p6/玫瑰窗 p20/蜡封/裂纹/radio-check 符文框/尖拱铜牌）：删=dist 3.06MB 的最大体积杠杆 + 糖果主题彻底统一；但蜡封/裂纹翻牌仪式感是特色，**需用户看真机截图拍板**。
+2. **约 72+ 幽灵选择器**（新增：.rate-btn 基色被变体否决、.fab-stats、.cap、.count-gem、.drop-cap、L74/L239 旧渐变）。清理前逐条确认无动态 class，列清单等拍板。
+3. **两套 burstParticles 并存**（components.jsx 旧版供 Login/Import/Learn/TouchRitual，CandyBoot 新版供 Practice）——components.jsx 陈旧缓冲风险消失后归一。
+4. **进站卡顿若复测仍卡**：longtask 实测为 0（GPU 光栅掉帧，§30 已缓解）。下一杠杆按序 ① 光斑去漂移改静态 ② 光斑减为两枚 ③ 移除 `.candy-orbs`（都牺牲景深，需用户拍板）。
 5. **根目录重组前残留**（package.json/vite.config/index.html/public/src）与根目录 clutter（*-out.txt、verify-*.png）→ 确认后清理。
-6. 入口卡中央 emoji、导航不活跃灰图标 = **刻意保留**，不要"顺手"改。
+6. JS chunk 508KB（Vite 警告，supabase-js 大头）可代码分割；`importedAt` 只存本机、换设备丢失（可塞 settings 表）。
+7. 入口卡中央 emoji、导航不活跃灰图标、结算奖章 emoji = **刻意保留**，不要"顺手"改。
 
 ---
 
@@ -195,6 +201,8 @@ Start-Sleep 40 ; node verify-live.mjs "$PWD\app\dist"      # 期望 LIVE RESULT:
 - **§23** 全链路死代码审查（删 apple.css/Stats/12 死导出/75 孤儿图；ps1 退役；规则体系重同步）。
 - **§24** 书库回导航 + Bank 重做。**§25** 牌背去哥特 + 对比度事故修复。
 - **§26** 全站视觉升级六项。**§27** 三处残留。**§28** hero 重排。**§29** 翻牌消失（data-in）。**§30** 进站卡顿。
+- **§31** 清新活力批 P0+P1（⚠ 其 token 声明未落盘）。**§32** 糖果派对派（糖针/第四色/渐变权重）。
+- **§33** 全量复审（撤回 3 假阳性/抓 4 漏判）+ 对比度收尾 + 图标/按压 + syncToast/删题/回滚健壮性 + RLS 探测。
 
 ---
 

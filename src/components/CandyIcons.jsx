@@ -89,3 +89,22 @@ export const IconFilter = () => (
     <path d="M8 8.5h8" opacity=".55" />
   </svg>
 )
+
+/* 查看解析（答题页主操作）：放大镜 + 内部加号（揭示/检视） */
+export const IconReveal = () => (
+  <svg {...S}>
+    <circle cx="10.5" cy="10.5" r="5.75" />
+    <path d="M15 15l5.5 5.5" />
+    <path d="M8 10.5h5M10.5 8v5" opacity=".55" />
+  </svg>
+)
+
+/* 展开参考答案：卷起的答案卷轴（纸面 + 折角 + 两行墨迹） */
+export const IconScroll = () => (
+  <svg {...S}>
+    <path d="M6.5 4.5A1.5 1.5 0 0 1 8 3h7.5L19 6.5v12A1.5 1.5 0 0 1 17.5 20h-11A1.5 1.5 0 0 1 5 18.5v-12" />
+    <path d="M5 6.5A1.5 1.5 0 0 1 6.5 5H14" opacity=".55" />
+    <path d="M15 3.2V7h3.8" opacity=".55" />
+    <path d="M9 11.5h6M9 15h4" opacity=".55" />
+  </svg>
+)

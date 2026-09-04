@@ -252,6 +252,9 @@ export const useStore = create((set, get) => ({
     return null
   },
   signOut: async () => { await client.auth.signOut() },
+  /* syncToast 的关闭动作：错误提示是「点击即收」的轻反馈，收起不代表问题消失，
+     下一次失败仍会重新弹出。 */
+  clearSyncError: () => set({ syncError: null }),
 
   importBank: async (text) => {
     const backup = parseBackup(text)
@@ -285,7 +288,16 @@ export const useStore = create((set, get) => ({
     return { ...parsed, added: 0 }
   },
   deleteQuestion: async (id) => {
-    if (!DEMO) await repo.deleteQuestion(id)
+    /* 云端失败不再静默（§33）：此前 Bank 的空 catch 会把失败吞掉，用户点了删除、
+       面板关了、题目却还在且毫无解释。现在 store 统一接错进 syncError（全局提示条），
+       并提前返回保持本地态与云端一致（题目不删）。 */
+    if (!DEMO) {
+      try { await repo.deleteQuestion(id) } catch (e) {
+        console.error('[deleteQuestion] 云端删除失败', e)
+        useStore.setState({ syncError: '云端删除失败，题目暂时还在，可稍后重试' })
+        return
+      }
+    }
     set((s) => {
       const assign = { ...s.assign }
       delete assign[id]
@@ -470,10 +482,15 @@ export const useStore = create((set, get) => ({
     const card = reviewCard(existing ?? newCard(q.id, now), typeof ratingOrBool === 'string' ? ratingOrBool : '记得', now)
     if (!DEMO) repo.persistAnswer(record, card).catch((e) => {
       console.error('[persistAnswer] 云端写入失败', e)
+      /* 回滚必须对称（§33）：乐观写入动了 cards/records/summary/sessionResults 四处，
+         旧写法只回滚后两处，会出现「计数没算、SRS 卡却推进了」的半回滚。
+         按 questionId+时间戳精确摘除，避免快速连答时误伤后一题的记录。 */
       useStore.setState((s) => ({
         syncError: '云端写入失败，本次结果可能未同步',
         summary: { total: s.summary.total - 1, correct: s.summary.correct - (correct ? 1 : 0) },
-        sessionResults: s.sessionResults.slice(0, -1)
+        sessionResults: s.sessionResults.slice(0, -1),
+        cards: existing ? s.cards.map((c) => (c.questionId === q.id ? existing : c)) : s.cards.filter((c) => c.questionId !== q.id),
+        records: s.records.filter((r) => !(r.questionId === q.id && r.timestamp === now))
       }))
     })
     set((s) => ({

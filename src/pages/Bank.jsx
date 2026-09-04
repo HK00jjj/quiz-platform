@@ -167,7 +167,9 @@ export default function Bank() {
              （也不要在本注释里再嵌套星号斜杠，它会提前闭合注释。） */
           return (
             <div key={q.id} className={'bank-item reveal' + (open ? ' flipped' : '')}
-              onClick={() => { setOpenId(open ? null : q.id); setConfirmId(null) }}>
+              role="button" tabIndex={0} aria-expanded={open}
+              onClick={() => { setOpenId(open ? null : q.id); setConfirmId(null) }}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpenId(open ? null : q.id); setConfirmId(null) } }}>
               <div className="tarot-inner">
                 {/* 正面：题干摘要 + 签条行。
                     哥特题型印章位图 A.seals 去掉了——p34-1~7 七个文件内容完全相同，
@@ -225,7 +227,8 @@ export default function Bank() {
                       {confirmId === q.id ? (
                         <>
                           <button className="danger" onClick={async () => {
-                            try { await deleteQuestion(q.id) } catch { /* demo 模式无云端 */ }
+                            /* store 内部已接错（失败→syncError 提示条+本地不删），这里不再需要 try/catch */
+                            await deleteQuestion(q.id)
                             setOpenId(null); setConfirmId(null)
                           }}>确认删除</button>
                           <button onClick={() => setConfirmId(null)}>取消</button>

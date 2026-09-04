@@ -24,7 +24,7 @@ function FilterModal({ title, filters, onToggle, onClose, onStart, count, startL
     <div className="modal-veil" onClick={onClose}>
       <div className="modal-box" onClick={(e) => e.stopPropagation()}>
         <button className="modal-close" onClick={onClose} aria-label="收起">✕</button>
-        <h3 style={{ letterSpacing: 4, color: 'var(--gold-text)', marginBottom: 14, fontSize: 18 }}>{title}</h3>
+        <h3 style={{ letterSpacing: 4, color: 'var(--pink-ink)', marginBottom: 14, fontSize: 18 }}>{title}</h3>
         <div className="ach-tabs">
           {dims.map((d) => (
             <button key={d.key} className={'chip' + (dim === d.key ? ' on' : '')} onClick={() => setDim(d.key)}>
@@ -159,7 +159,7 @@ export default function Learn() {
         </GiltBtn>
         <p style={{ marginTop: 10, fontSize: 12.5, color: 'var(--muted)', letterSpacing: 1 }}>{hero.sub}</p>
         {streak > 0 && (
-          <p style={{ marginTop: 6, fontSize: 12, color: 'var(--gold-text)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+          <p style={{ marginTop: 6, fontSize: 12, color: 'var(--pink-ink)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
             <FlameIcon /> 已连续学习 {streak} 天
           </p>
         )}

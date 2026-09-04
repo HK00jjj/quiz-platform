@@ -2071,3 +2071,55 @@ D tinted elevation 三级带色温的白；E 夜间可可模式（平行 token�
 既有的多色点缀（入口卡四色 icon chip、书库概览五色 cell、导航 tone）面积本就小，符合"点缀"定位，未动。
 
 验证：真机截图确认粉底占主、糖针若隐若现、四色同框不花；console 0 errors；verify-deploy 26/26 全零差异。
+
+---
+
+## 33. 第二十三轮（2026-09-05）· 对比度收尾 + 健壮性修复——附一次纠正了三处误判的全量复审
+
+**gh-pages HEAD：`fadc51c`（父 `da658a2`）。dist 26 文件 / ~3.06 MB，verify-deploy RESULT: IDENTICAL。console 0 errors。**
+
+本轮由新账户（ZCode）执行：先加载 9 门技能，再按陷阱 #4（下结论前算计算样式）对既有判断做**全量复审**，
+产出确认/修正/撤回/新发现四类裁决。核心教训：**静态审计必须跑完三层级联再下结论，单次 grep 会造出假阳性。**
+
+### 撤回（复审抓出的假阳性）
+- `.rate-btn` 粉字：基类 `color:#D14767` 永不渲染——r-forget/r-hazy/r-remember 三个变体各带 `!important` 颜色。死样式，归幽灵清单。
+- 「焦点可见性缺口」：candy 层 `input:focus` 已有薄荷环（!important），按钮未摘默认 outline，`.book-card:focus-visible` 是现成范本。
+- 「字体是大头」：fonts/ 只 2 个 woff2 共 23KB（swap + unicode-range，范本级）。真正大头是 img/ 约 2.4MB 哥特位图。
+
+### 新发现（漏判）
+- **§31 的 token 提纯整块未落盘**：--ink/--ink-2/--ink-3/--cream/--parchment-0/1 在磁盘上全是 §31 之前的旧值
+  （脚本做的 15 处替换活了，编辑器里做的 :root 原位编辑被陈旧缓冲区吞掉——与 §7 同一事故模式；§31 的 commit message
+  声称已改，但 §32 构建用的本地文件已回退）。唯一真实违规：--ink-3 #999（placeholder 与 .tarot-hint 7.5-10px 小字，2.79:1）。
+- `.chip` 基色 #B0707F 3.77:1；`.zone-label`/`.panel-title`/`.filter-group h4` 吃 --gold-text #E8607F 3.28:1
+  （16px/900 够不到 large-text 线）；Learn 12px「连续学习」内联与 FilterModal h3 18px/700 同病。本轮全修。
+
+### 本轮改动
+- **对比度**（candy.css 原位改，穷举变体）：白/奶白底 `#D14767` → `var(--pink-ink)` 共 12 处
+  （.btn.ghost/.nav-item.active/.zone-label/.type-candy/.seal-lock/.chip:hover/.settle-title/.settle-praise/
+  .stepper .val/.modal-close/.modal-box h3/.stepper button/.tarot-foot button；L1029 豁免注释同步改写）。
+  `.chip` 基色 → #A0526D（5.25:1，保住「未选=弱化」层级）。token 按 §31 原值补齐：
+  --ink #434A51 / --ink-2·--muted #646C76 / --ink-3 #757D87 / --cream #FFFCFD / --parchment-0/1 #FFFCFD/E。
+  --gold-text 小字三处 → --pink-ink（hero 大标题 19-25px/900 与 .brand 走 large-text/logotype 豁免保留）。
+  index.html theme-color → #FFF8FA（对齐 §32 渐变起点）。
+- **图标**：CandyIcons 新增 IconReveal（放大镜）/IconScroll（卷轴）；Practice 的查看解析/展开参考答案/
+  再练错题（🍓→IconRetry）全换 SVG。结算奖章 emoji 属庆祝内容，保留。
+- **按压物理**：.opt-row/.judge-card/.stepper button/.modal-close 追加进既有磁吸按压规则（不新建体系）。
+- **健壮性**：① Shell 顶部 .sync-toast（role=status，点击即收）——syncError 此前唯一显示点在登录页，
+  答题/切书/设置里 10 处 set 全部无感；② deleteQuestion 云端失败 → syncError + 提前返回，Bank 空 catch 删除；
+  ③ submitAnswer 云端失败补齐 cards/records 回滚（按 questionId+timestamp 精确摘除，防快速连答误伤）；
+  ④ judge 卡冗余同值分支合并；⑤ deploy-api.mjs 指向 2026-08-28 旧工作区的默认路径改为显式报错。
+- **a11y**：Bank 翻牌卡 role=button + tabIndex + Enter/Space（照抄 Bookshelf 范本）。
+
+### 验证
+- 回归：validate.regression 16/16、t-session 18/18。build+purge RESULT: DIST CLEAN（素材 20 个 / 2.47MB）。
+- 真机：计算样式抽查 .nav-item.active/.type-candy/.zone-label=rgb(194,56,90)、.chip=rgb(160,82,109)、
+  .brand=rgb(232,96,127)（豁免项原样）全中；改前/改后三页截图对比无回归；console 0 errors。
+- **RLS 探测（只读）**：anon key 直查 questions/answer_records 返回 `[]`（RLS 过滤匿名请求的 PostgREST 行为），
+  云端读取未裸奔、登录墙是真的；写路径未测（不动生产数据）。
+- 进站 longtask=0（dev 模式），与 §30 commit message 的观测一致：卡顿属 GPU 光栅而非长任务。
+
+### 待拍板（只列未动）
+- 哥特位图 ~2.4MB（牌背 p6/玫瑰窗 p20/蜡封/裂纹/radio-check 符文框/尖拱铜牌）：删=最大体积杠杆+主题统一，需用户拍板。
+- 死样式/幽灵：.rate-btn 基色、.fab-stats、.cap、.count-gem、.drop-cap、L74/L239 旧渐变（被 L1575 否决）。
+- 两套 burstParticles 并存（components.jsx 旧版供 Login/Import/Learn/TouchRitual，CandyBoot 版供 Practice）。
+- JS chunk 508.78 kB 触发 Vite >500KB 警告（supabase-js 是大头），可考虑代码分割。

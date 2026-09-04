@@ -5,6 +5,7 @@ import { A } from '../assets'
 import { GiltBtn } from '../components'
 // burstParticles 改从 CandyBoot 引：components.jsx 正被编辑器陈旧缓冲区回写成 Apple 版（只发振动、不发糖豆）
 import { burstParticles } from '../components/CandyBoot'
+import { IconReveal, IconScroll, IconRetry } from '../components/CandyIcons'
 import { isObjective, domainLabel, DIFF_CLS } from '../lib/stats'
 import { gradeObjective, blanksOf } from '../lib/validate'
 import { imageFor, diagramDataUri, diagramTitle } from '../lib/diagrams'
@@ -249,7 +250,7 @@ export default function Practice() {
                   const n = await startSession('wrong', { size: 0 })
                   if (n > 0) { startAt.current = Date.now(); setElapsed(0) }
                   else navigate('/')
-                }}>🍓 再练错题（{wrongN}）</GiltBtn>
+                }}><IconRetry /> 再练错题（{wrongN}）</GiltBtn>
               )}
               <GiltBtn onClick={() => { abortSession(); navigate('/') }}>返回学习页</GiltBtn>
             </div>
@@ -344,9 +345,7 @@ export default function Practice() {
                   {[['正确', '✓', 'j-true'], ['错误', '✗', 'j-false']].map(([label, rune, cls]) => {
                     let extra = ''
                     if (answered && grade) {
-                      if (grade.expected === label) extra = 'selected'
-                      else if (judge === label) extra = 'dimmed'
-                      else extra = 'dimmed'
+                      extra = grade.expected === label ? 'selected' : 'dimmed'
                     } else {
                       extra = judge === label ? 'selected' : (judge ? 'dimmed' : '')
                     }
@@ -454,7 +453,7 @@ export default function Practice() {
             <div className="q-face-rule" aria-hidden="true" />
             {!answered && (objective ? (
               <GiltBtn size="lg" block className="reveal-btn" disabled={!canSubmit} onClick={doCheck}>
-                🔍 查看解析
+                <IconReveal /> 查看解析
               </GiltBtn>
             ) : showAnswer ? (
               <div className="self-judge-row">
@@ -464,7 +463,7 @@ export default function Practice() {
             ) : (
               <GiltBtn size="lg" block className="reveal-btn" disabled={text.trim() === ''}
                 onClick={() => { breakSeal(); setShowAnswer(true) }}>
-                📜 展开参考答案
+                <IconScroll /> 展开参考答案
               </GiltBtn>
             ))}
 
