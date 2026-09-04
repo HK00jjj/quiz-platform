@@ -7,7 +7,7 @@ import { GiltBtn } from '../components'
 import { burstParticles } from '../components/CandyBoot'
 import { isObjective, domainLabel, DIFF_CLS } from '../lib/stats'
 import { gradeObjective, blanksOf } from '../lib/validate'
-import { imageFor, diagramDataUri } from '../lib/diagrams'
+import { imageFor, diagramDataUri, diagramTitle } from '../lib/diagrams'
 
 /* Fisher-Yates 洗牌，返回 0..n-1 的一个排列（#6 选项随机化用） */
 function shuffledOrder(n) {
@@ -24,7 +24,7 @@ function Stem({ q }) {
   const imgId = imageFor(q.id)
   const imgUri = imgId ? diagramDataUri(imgId) : null
   const diagram = imgUri
-    ? <img src={imgUri} alt="示意图" style={{ display: 'block', maxWidth: '100%', margin: '0 auto 10px', background: '#fff', border: '1px solid #e5d9c3', borderRadius: 8 }} />
+    ? <img src={imgUri} alt={diagramTitle(imgId)} style={{ display: 'block', maxWidth: '100%', margin: '0 auto 10px', background: '#fff', border: '1px solid #e5d9c3', borderRadius: 8 }} />
     : null
   if (q.type !== '填空题' || !q.stem.includes('{')) return <>{diagram}<p className="q-stem">{q.stem}</p></>
   const parts = q.stem.split(/(\{[^{}]*\})/g)
@@ -261,6 +261,7 @@ export default function Practice() {
 
   /* ── 答题 ── */
   const grade = lastGrade
+  const fbImgUri = q ? diagramDataUri(imageFor(q.id)) : null
   return (
     <div className="practice-stage">
       <div className="practice-top">
@@ -402,6 +403,7 @@ export default function Practice() {
             <section className={'zone zone-s' + (answered || showAnswer ? ' revealed' : '') + (answered && !(objective ? lastGrade?.correct : lastRating === '记得') ? ' bad' : '')}>
             {/* 这里原来是 `answered || showAnswer ? '◇ 解析' : '◇ 解析'`——两个分支完全相同的遗留三元，已收成一行 */}
             <h5 className="zone-label">◇ 解析</h5>
+            {fbImgUri && <img src={fbImgUri} alt={diagramTitle(imageFor(q.id))} style={{ display: 'block', maxWidth: '100%', margin: '0 auto 10px', background: '#fff', border: '1px solid #e5d9c3', borderRadius: 8 }} />}
             {seal !== 'broken' && (
               <div className={'seal-lock ' + seal}>
                 <span className="seal-wax" aria-hidden="true">

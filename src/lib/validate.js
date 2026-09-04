@@ -1,5 +1,5 @@
 // 导入校验与解析（与线上规则 1:1，含 21 题批九类规则与返工话术）
-import { DIAGRAM_IDS } from './diagrams'
+import { DIAGRAM_IDS } from './diagrams.js'
 export const TYPE_LIST = ['单选题', '多选题', '判断题', '填空题', '简答题', '计算分析题', '综合设计/故障诊断题']
 const DIFFS = ['基础', '应用', '综合']
 const COG = ['记忆', '理解', '应用', '分析', '评价', '创造']
@@ -324,7 +324,8 @@ export function parseBackup(text) {
   const records = Array.isArray(parsed.records)
     ? parsed.records.filter((r) => validRecord(r, ids)).map(({ id, ...rest }) => rest)
     : []
-  return { questions, cards, records }
+  const imageMap = (parsed.imageMap && typeof parsed.imageMap === 'object' && !Array.isArray(parsed.imageMap)) ? parsed.imageMap : undefined
+  return { questions, cards, records, imageMap }
 }
 
 // ── 客观题作答归一化与判分 ──

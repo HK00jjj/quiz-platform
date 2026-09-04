@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { useStore } from '../store'
 import { GiltBtn } from '../components'
 import Bookshelf from '../components/Bookshelf'
+import { readImageMap } from '../lib/diagrams'
 
 /* 设置页 · 尝味师的糖果抽屉 */
 export default function Settings() {
@@ -21,7 +22,7 @@ export default function Settings() {
   const goal = settings.dailyGoal ?? 20
 
   function exportBackup() {
-    const payload = { exportedAt: new Date().toISOString(), questions, cards, records }
+    const payload = { exportedAt: new Date().toISOString(), questions, cards, records, imageMap: readImageMap() }
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')

@@ -500,8 +500,43 @@ export function imageFor(qid) {
   try { const map = JSON.parse(localStorage.getItem(IMG_MAP_KEY) || '{}'); return map[qid] || null } catch { return null }
 }
 
-export function diagramDataUri(id) {
-  const svg = DIAGRAMS[id]
+export const DIAGRAM_TITLES = {"tpl_din_wiring":"DIN插头接线","tpl_plc_sinking":"PLC漏型输出","tpl_relay_diode":"继电器隔离+续流","tpl_sensor_3wire_plc":"3线传感器接PLC","tpl_sensor_2wire_plc":"2线磁感接PLC","tpl_npn_pnp_relay":"NPN/PNP继电器转换","tpl_wire_color_legend":"导线颜色图例","tpl_plc_io_common":"PLC公共端源漏型","tpl_stepper_driver":"步进驱动接线","tpl_servo_driver":"伺服驱动接线","tpl_vfd_wiring":"变频器接线","tpl_motor_fwd_rev":"正反转互锁","tpl_motor_stardelta":"星三角启动","tpl_socket_wiring":"插座接线","tpl_crystal_head":"RJ45线序"}
+
+export function parseImageSpec(spec) {
+  if (typeof spec !== 'string' || !spec) return null
+  const parts = spec.split('|')
+  if (!DIAGRAMS[parts[0]]) return null
+  return { id: parts[0], params: parts.slice(1) }
+}
+
+export function diagramSvg(spec) {
+  const p = parseImageSpec(spec)
+  if (!p) return null
+  let svg = DIAGRAMS[p.id]
+  p.params.forEach((v, i) => { svg = svg.split('{{' + (i + 1) + '}}').join(v) })
+  return svg
+}
+
+export function diagramDataUri(spec) {
+  const svg = diagramSvg(spec)
   if (!svg) return null
   return 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)))
+}
+
+export function diagramTitle(spec) {
+  const p = parseImageSpec(spec)
+  return p ? (DIAGRAM_TITLES[p.id] || p.id) : ''
+}
+
+export function readImageMap() {
+  try { return JSON.parse(localStorage.getItem(IMG_MAP_KEY) || '{}') } catch { return {} }
+}
+
+export function mergeImageMap(extra) {
+  if (!extra || typeof extra !== 'object') return
+  try {
+    const map = readImageMap()
+    for (const [k, v] of Object.entries(extra)) { if (DIAGRAMS[String(v).split('|')[0]]) map[k] = v }
+    localStorage.setItem(IMG_MAP_KEY, JSON.stringify(map))
+  } catch { /* ignore */ }
 }

@@ -6,7 +6,7 @@ import { newCard, reviewCard } from './lib/fsrs'
 import { fmtDate } from './lib/dates'
 import { buildSession, filtersKey, isObjective } from './lib/stats'
 import { classifyImport, parseBackup, parseBank, gradeObjective, assignGlobalSeq } from './lib/validate'
-import { saveImageMap } from './lib/diagrams'
+import { saveImageMap, mergeImageMap } from './lib/diagrams'
 
 const RESUME_KEY = 'quiz-platform.resume.v1'
 const IMPORTED_AT_KEY = 'qp.importedAt.v1'
@@ -258,6 +258,7 @@ export const useStore = create((set, get) => ({
     if (backup) {
       persistAfterImport(backup.questions)
       saveImageMap(backup.questions)
+      mergeImageMap(backup.imageMap)
       const existing = new Set(get().questions.map((q) => q.id))
       const added = backup.questions.filter((q) => !existing.has(q.id)).length
       await repo.upsertQuestions(backup.questions)
