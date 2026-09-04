@@ -1029,7 +1029,15 @@ body, button, input, textarea, select {
 .teal-glow-text { color: var(--ok-ink) !important; }
 .red-glow-text { color: var(--bad-ink) !important; }
 .answer-scroll-box h5 { color: var(--ok-ink) !important; }
-.answer-scroll-box.bad { border-left-color: var(--bad-dk) !important; background: var(--bad-wash) !important; box-shadow: 0 2px 12px rgba(242, 86, 74, .22) !important; }
+/* ⚠ background 必须显式写白：L519 有一条旧设计的 .answer-scroll-box.bad 把底色定成
+   酸橙绿 rgba(168,224,99,.12)，以前被本条末尾规则盖着；一旦本条不写 background，
+   那条绿色就会重新露出来（实测 boxBg = rgba(168,224,99,0.12)），变成红字配绿底。
+   值取与答对态 L513 完全相同的 rgba(255,255,255,.72)，保证「框框背景不变」。 */
+.answer-scroll-box.bad {
+  border-left-color: var(--bad-dk) !important;
+  background: rgba(255, 255, 255, .72) !important;
+  box-shadow: 0 2px 12px rgba(242, 86, 74, .22) !important;
+}
 .answer-scroll-box.bad h5 { color: var(--bad-ink) !important; }
 .opt-row.wronged { border-color: var(--bad-dk) !important; background: rgba(242, 86, 74, .14) !important; color: var(--bad-ink) !important; }
 .opt-row.wronged::before { background: radial-gradient(circle at 32% 28%, #FFD9D2, #F2564A) !important; border-color: #F2564A !important; }
@@ -1261,35 +1269,27 @@ body, button, input, textarea, select {
 .tarot-foot button.danger:hover { color: #fff; background: var(--bad-dk); border-color: var(--bad-dk); }
 
 /* ══════════════════════════════════════════════════════════
-   解析区整体跟着判定结果走：答对 = 通体薄荷，答错 = 通体草莓红
-   原来 L399 的 .zone-s.revealed 是无条件薄荷绿（border-color: var(--mint)
-   + background: rgba(127,232,200,.1)），于是答错时里面的判定横幅、答案框、选项全是红的，
-   外层解析区却还是绿的——红绿混装。现在 JSX 会按判定结果补挂 .ok / .bad，
-   两层同步，答错成了答对那套处理的红色镜像。
+   答错只让「选错的那一栏选项」与「答案」变红，解析区大框的背景不动
+   ── 上一轮我在这里加过三样东西，现已按用户要求全部撤回：
+     ① .zone-s.revealed.ok / .bad（整个解析区跟着判定变色）
+     ② .answer-scroll-box 的渐变洗底（对=薄荷渐变、错=草莓渐变）
+     ③ .opt-row.right / .wronged / .missed 的 0 0 0 3px 同色柔光环
+   用户原话：「答错只要题目选项选错那一栏变红和答案变红就行了，
+   整个框框背景不要变，答对的那张图片上显示的就很干净。」
 
-   顺带把答对的绿调得更饱和有层次：原来用 --mint(#7FE8C8) 描边，压在浅底上偏粉气、发灰；
-   换成 --mint-dk(#5FD4B0)，洗底从 .10 提到 .14，答案框加一层极浅的薄荷渐变而不是纯白，
-   对的选项再加一圈同色柔光环——四个胶囊里哪个对一眼就跳出来。
-   L399 那条自带 !important，所以这里也必须带。 */
-.zone-s.revealed.ok {
-  border-color: var(--mint-dk) !important;
-  background: rgba(127, 232, 200, .14) !important;
-}
-.zone-s.revealed.bad {
-  border-color: var(--bad-dk) !important;
-  background: rgba(242, 86, 74, .1) !important;
-}
-/* 答案框：对 / 错 做成同一套结构，只差色相——4px 左侧色条 + 同色极浅渐变洗底 + 同色柔光 */
-.answer-scroll-box {
-  background: linear-gradient(180deg, rgba(127, 232, 200, .12), rgba(255, 255, 255, .94)) !important;
-  box-shadow: 0 2px 14px rgba(95, 212, 176, .24) !important;
-}
-.answer-scroll-box.bad {
-  background: linear-gradient(180deg, rgba(242, 86, 74, .13), rgba(255, 255, 255, .94)) !important;
-  box-shadow: 0 2px 14px rgba(242, 86, 74, .22) !important;
-}
-/* 选项对 / 错 / 多选漏选：各加一圈同色柔光环（box-shadow 不参与布局，不会影响牌面尺寸）。
-   .missed 是「你没选但它是对的」，属于正向信号，所以继续用薄荷而不是红。 */
-.opt-row.right { box-shadow: 0 0 0 3px rgba(127, 232, 200, .24) !important; }
-.opt-row.wronged { box-shadow: 0 0 0 3px rgba(242, 86, 74, .22) !important; }
-.opt-row.missed { box-shadow: 0 0 0 3px rgba(127, 232, 200, .16) !important; }
+   所以现在：.zone-s.revealed 回到 L399 的无条件薄荷绿（对错一样，不变），
+   .answer-scroll-box 回到 L513 的纯白底，.opt-row 三态回到 L444-448 的原样。
+   答错的红只保留三处：选错那一栏（.opt-row.wronged）、答案框左侧 4px 色条与
+   「正确答案」标题（.answer-scroll-box.bad，已去掉它的红色洗底）、以及「答错了」横幅文字。
+
+   教训：用户说「好看一些」不等于「加更多装饰」。图二（答对）本来就干净，
+   我却给它加了饱和度、渐变、柔光环三层装饰，反而脏了。下次先给最小改动。 */
+
+/* 用户用箭头精确圈定的三处——答错时只有这三处变红，其余一律不动：
+   ① 选错那一栏的选框圆圈 → .opt-row.wronged::before，§11 已经是草莓红，无需新增
+   ② 参考答案的字母 → 下面的 .ans-line（原本 color: var(--ink) 深灰）
+   ③【题库解析】小标 → 下面的 .lab（原本 color: var(--ink-2) 灰）
+   注意不要写成 .answer-scroll-box.bad p：答案框里有三个 <p>（答案字母 / .lab / 解析正文），
+   那样会把整段解析正文也染红，就不是「只改三处」了。所以给答案字母单独加了 .ans-line 类。 */
+.answer-scroll-box.bad .ans-line { color: var(--bad-ink) !important; }
+.answer-scroll-box.bad .lab { color: var(--bad-ink) !important; }

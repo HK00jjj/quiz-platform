@@ -939,3 +939,105 @@ npx playwright cli --raw eval "JSON.stringify({...})"
 本轮就是照这条办的：验证脚本第 2 次失败后立刻调 `playwright-cli` skill，
 一次就拿到 `localstorage-clear` / `reload` / strict `click` / 定位器语法，比继续自己试省得多。
 **下个会话遇到连续失败，第一反应是查 skill 列表，不是第三次重试。**
+
+---
+
+## 18. 第八轮（2026-09-04）· 撤回 §17 的过度装饰 + 答错只红三处
+
+**gh-pages HEAD：`a8994ab`（父 `39833c7`），46 文件 / 4.9 MB，verify-deploy 缺失0/不一致0/多余0。**
+**CSS 106.28 → 105.76 kB。**
+
+### 18.1 用户两次收窄需求，最终形态
+
+- 第一次：「答对的颜色配置好看一些，答错改成图二那种，只是绿色换成红色」
+  → 我理解成"整个解析区跟着判定变色 + 给答对加饱和度/渐变/柔光环"（§17），**做过头了**。
+- 第二次：「答错只要题目选项选错那一栏变红和答案变红就行了，**整个框框背景不要变**，
+  答对的那张图片上显示的就很干净」→ 撤回 §17 全部三样装饰。
+- 第三次（附截图三支箭头）：「答错只改我在图片中标记的箭头这三处变成红色，其余不动」
+
+**最终形态：答错时只有三处红，其余与答对态完全一致。**
+
+| 箭头 | 元素 | 实现 | 实测（答错） | 实测（答对） |
+| --- | --- | --- | --- | --- |
+| ① | 选错那一栏的选框圆圈 + 整栏 | `.opt-row.wronged` / `::before`（§11 已有，无需新增） | 底 `rgba(242,86,74,.14)`、边 `rgb(242,86,74)` | `.right` 底 `rgba(127,232,200,.22)`、边 `rgb(95,212,176)` |
+| ② | 参考答案的字母 | **新增 `.ans-line` 类** + `.answer-scroll-box.bad .ans-line` | `rgb(196,55,46)` 红 | `rgb(74,74,74)` 深灰 |
+| ③ | 【题库解析】小标 | `.answer-scroll-box.bad .lab` | `rgb(196,55,46)` 红 | `rgb(110,110,110)` 灰 |
+
+**两态完全相同、不随判定变化的部分**（这就是"框框背景不要变"）：
+
+| 元素 | 答对 | 答错 |
+| --- | --- | --- |
+| `.zone-s` class | `zone zone-s revealed` | `zone zone-s revealed`（**不挂 ok/bad**） |
+| 解析区底色 | `rgba(127,232,200,.1)` | 同值 |
+| 解析区边框 | `rgb(127,232,200)` | 同值 |
+| 答案框底色 | `rgba(255,255,255,.72)` | 同值 |
+| 答案框渐变 | `none` | `none` |
+| 解析正文 `<p>` | `rgb(74,74,74)` | 同值（**没被染红**） |
+| 选项柔光环 | 无（只剩基础阴影 `rgba(255,182,193,.18) 0 2px 10px`） | 无 |
+
+只有这些随判定变：判定横幅文字色、答案框 4px 左栏、答案框 h5、`.ans-line`、`.lab`、选项栏配色。
+
+### 18.2 ⚠ 撤回覆盖规则时会把更老的规则放出来（本轮最重要的坑）
+
+我把 §11 那条
+
+```css
+.answer-scroll-box.bad { border-left-color: var(--bad-dk) !important; background: var(--bad-wash) !important; … }
+```
+
+里的 `background` 删掉（因为用户说"框框背景不要变"），结果实测 **`boxBg = rgba(168, 224, 99, 0.12)`——酸橙绿**！
+
+原因：candy.css **L519 还有一条更早的** `.answer-scroll-box.bad { background: rgba(168,224,99,.12) !important }`
+（那是 §1 之前"错误用酸橙绿"旧设计的遗留），一直以来都被我末尾那条同特异性规则压着。
+**我一删末尾的 `background`，它就重新生效了** → 红字配绿底，正是用户最初报的"红绿混装"。
+
+修法：末尾那条**必须显式写回中性白** `background: rgba(255,255,255,.72) !important`
+（与答对态 L513 完全同值），不能靠"不写就等于没有"。
+
+> **教训：这个项目的 candy.css 是"末尾追加、同特异性后来居上"的层叠结构（§3.1），
+> 所以任何一条末尾规则都是它下面同选择器旧规则的"盖子"。撤回盖子上的某个属性时，
+> 必须去查同选择器在前面还有几条规则、它们的那个属性是什么值——不能假设"删掉=回到中性"。
+> 而且这类回归静态断言查不出来（产物里两个色值都在），只能靠运行时 `getComputedStyle`。**
+
+同类风险点（§13 扫出来的 7 处 `var(--sour)`）：`.opt-row.wronged`(L446)、`.judge-card.j-false`(L484)、
+`.fill-item.wronged`(L494)、`.answer-scroll-box.bad`(L519)、`.gem-dot.bad`(L560)、
+`.entry-card.hot .count-gem`(L584)、`.nav-item .dot`(L226)。
+**以后要撤回其中任何一条的某个属性，都得先确认 L 号那条旧规则的对应值。**
+
+### 18.3 ⚠ 开发服务器端口变了，§4.1 的「127.0.0.1:5179」已失效
+
+本轮验证时 `127.0.0.1:5179` 直接 `ERR_CONNECTION_REFUSED`——上一轮会话那个带 `--port` 起的进程早没了。
+重新 `npm.cmd run dev -- --mode demo` 后 Vite 落在**默认 5173**，而且：
+
+```
+netstat -ano | Select-String ':5173'
+  TCP    [::1]:5173    [::]:0    LISTENING    6636
+127.0.0.1:5173 = False      ← IPv4 被拒
+localhost:5173 = True       ← 走 IPv6 ::1
+```
+
+**`vite.config.js` 里没有 `server` 段**，所以 Vite 只绑 IPv6 回环 `::1`。
+→ **Playwright 的 URL 必须写 `http://localhost:5173/quiz-platform/`，写 `127.0.0.1` 会 `ERR_CONNECTION_REFUSED`。**
+（要固定成 IPv4 + 指定端口就 `npm run dev -- --mode demo --port 5179 --host 127.0.0.1`。）
+
+排查手法记一下：`goto` 报 CONNECTION_REFUSED 后，后面所有 `click` 会连锁报 "does not match any elements"，
+**别去怀疑选择器**，先 `netstat -ano | Select-String ':<port>'` 看它到底绑在哪个地址上。
+
+### 18.4 撤回清单（§17 加的三样全删）
+
+- `.zone-s.revealed.ok` / `.zone-s.revealed.bad` —— 删；`Practice.jsx` 里的 `verdictOk` 与
+  section 上的 `ok`/`bad` 类也一并删（不留残余）
+- `.answer-scroll-box` / `.answer-scroll-box.bad` 的 `linear-gradient` 洗底 —— 删，回到纯白
+- `.opt-row.right` / `.wronged` / `.missed` 的 `0 0 0 3px` 柔光环 —— 删，回到基础阴影
+
+**教训（已写进 candy.css 注释）：用户说「好看一些」不等于「加更多装饰」。**
+图二（答对）本来就干净，我却给它叠了饱和度、渐变、柔光环三层，反而脏了。
+下次遇到审美类要求，先给最小改动让用户看，别一次堆三层。
+
+### 18.5 本轮按用户新准则的执行情况
+
+用户本轮新增长期准则（已存主要记忆）：*确保质量的前提下减少调用；完成不了或失败 2 次以上（含效果不理想）立即调 skill*。
+
+- 效果不理想 → 用户连续两次收窄需求，第三次直接画箭头。已按最小改动落地。
+- 失败 2 次 → dev 服务器连不上连续失败 2 次后，没有第三次重试，而是按 `systematic-debugging` Phase 1
+  取证（`netstat` + `Test-NetConnection` 双地址对比 + 读 `vite.config.js`），一次定位到 IPv6-only 绑定。
