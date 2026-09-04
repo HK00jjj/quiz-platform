@@ -6,6 +6,7 @@ import { newCard, reviewCard } from './lib/fsrs'
 import { fmtDate } from './lib/dates'
 import { buildSession, filtersKey, isObjective } from './lib/stats'
 import { classifyImport, parseBackup, parseBank, gradeObjective, assignGlobalSeq } from './lib/validate'
+import { saveImageMap } from './lib/diagrams'
 
 const RESUME_KEY = 'quiz-platform.resume.v1'
 const IMPORTED_AT_KEY = 'qp.importedAt.v1'
@@ -256,6 +257,7 @@ export const useStore = create((set, get) => ({
     const backup = parseBackup(text)
     if (backup) {
       persistAfterImport(backup.questions)
+      saveImageMap(backup.questions)
       const existing = new Set(get().questions.map((q) => q.id))
       const added = backup.questions.filter((q) => !existing.has(q.id)).length
       await repo.upsertQuestions(backup.questions)
@@ -273,6 +275,7 @@ export const useStore = create((set, get) => ({
          上面备份恢复那条分支故意不做这件事——备份里带的本来就是存好的全局序，重排会毁掉它。 */
       const questions = assignGlobalSeq(parsed.questions, existing)
       persistAfterImport(questions)
+      saveImageMap(questions)
       const added = questions.filter((q) => !existing.has(q.id)).length
       await repo.upsertQuestions(questions)
       await reloadAll()

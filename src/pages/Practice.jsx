@@ -7,6 +7,7 @@ import { GiltBtn } from '../components'
 import { burstParticles } from '../components/CandyBoot'
 import { isObjective, domainLabel, DIFF_CLS } from '../lib/stats'
 import { gradeObjective, blanksOf } from '../lib/validate'
+import { imageFor, diagramDataUri } from '../lib/diagrams'
 
 /* Fisher-Yates 洗牌，返回 0..n-1 的一个排列（#6 选项随机化用） */
 function shuffledOrder(n) {
@@ -20,14 +21,22 @@ function shuffledOrder(n) {
 /* 题干渲染：填空题把 {空} 显示为下划线占位 */
 function Stem({ q }) {
   // 首字下沉已去掉（#4）：drop-cap 把第一个字放到 2.1em 还浮动，读起来累，与正文同号更舒服
-  if (q.type !== '填空题' || !q.stem.includes('{')) return <p className="q-stem">{q.stem}</p>
+  const imgId = imageFor(q.id)
+  const imgUri = imgId ? diagramDataUri(imgId) : null
+  const diagram = imgUri
+    ? <img src={imgUri} alt="示意图" style={{ display: 'block', maxWidth: '100%', margin: '0 auto 10px', background: '#fff', border: '1px solid #e5d9c3', borderRadius: 8 }} />
+    : null
+  if (q.type !== '填空题' || !q.stem.includes('{')) return <>{diagram}<p className="q-stem">{q.stem}</p></>
   const parts = q.stem.split(/(\{[^{}]*\})/g)
   return (
-    <p className="q-stem">
-      {parts.map((p, i) => p.startsWith('{') && p.endsWith('}')
-        ? <span key={i} style={{ display: 'inline-block', minWidth: 70, borderBottom: '1.5px solid #5a4a2a', margin: '0 3px' }}>&nbsp;</span>
-        : <React.Fragment key={i}>{p}</React.Fragment>)}
-    </p>
+    <>
+      {diagram}
+      <p className="q-stem">
+        {parts.map((p, i) => p.startsWith('{') && p.endsWith('}')
+          ? <span key={i} style={{ display: 'inline-block', minWidth: 70, borderBottom: '1.5px solid #5a4a2a', margin: '0 3px' }}>&nbsp;</span>
+          : <React.Fragment key={i}>{p}</React.Fragment>)}
+      </p>
+    </>
   )
 }
 
