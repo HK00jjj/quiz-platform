@@ -1620,6 +1620,49 @@ body { background: linear-gradient(160deg, #FFF8FA 0%, #FFF0F4 58%, #F0FFFA 82%,
 }
 @keyframes toast-in { from { opacity: 0; transform: translate(-50%, -8px); } to { opacity: 1; transform: translate(-50%, 0); } }
 @media (prefers-reduced-motion: reduce) { .sync-toast { animation: none; } }
+
+/* ════════ §34（2026-09-05）导航托盘的派对装点 ════════
+   用户反馈：四个板块的背景太空，缺节日派对般的热闹童趣。
+   在「糖霜托盘」的既有隐喻里做加法，三件套全部静态零动画（不占每帧合成成本，
+   遵守 §5 纪律），不动不活跃灰图标（用户刻意保留项）：
+   ① 托盘上沿一条四色糖霜裱花边——radial 半圆连排，生日蛋糕裱花的样子；
+   ② 每个槽位铺自己 tone 色的糖霜软垫（13~16% 色砖），托盘内部不再空；
+      激活态本身已有同 tone 粉底，激活时软垫退场避免双层叠色；
+   ③ 激活项右上角三粒彩糖针（静态 confetti 小点），与既有上浮一起构成「派对进行中」信号。
+/* 层序技巧：.nav-item 设 z-index:0 自建层叠上下文，软垫用 z-index:-1 落在
+   按钮底色之上、文字之下——既不被果冻底吃掉，也不压脏文字。
+   ⚠ 不要给 .bottom-nav 重设 position：global 层是 fixed（钉在视口底），
+   fixed 本身就是定位元素，::before 直接锚它；§34 初稿写 relative 把 fixed 覆盖了，
+   导航掉到文档流末尾，真机整页截图当场抓回。 */
+.bottom-nav::before {
+  content: '';
+  position: absolute; left: 16px; right: 16px; top: 0; height: 6px;
+  pointer-events: none;
+  /* 每层在 112px 瓦片里画一枚 r=12px 的半圆，四层圆心错位 28px → 粉/薄荷/柠檬/薰衣草循环 */
+  background:
+    radial-gradient(circle 13px at 14px 0,  var(--candy-pink-lt) 0 12px, transparent 13px) 0 0 / 112px 6px repeat-x,
+    radial-gradient(circle 13px at 42px 0,  var(--mint-lt)       0 12px, transparent 13px) 0 0 / 112px 6px repeat-x,
+    radial-gradient(circle 13px at 70px 0,  #FFF3C4              0 12px, transparent 13px) 0 0 / 112px 6px repeat-x,
+    radial-gradient(circle 13px at 98px 0,  #E9DDFF              0 12px, transparent 13px) 0 0 / 112px 6px repeat-x;
+}
+.nav-item { position: relative; z-index: 0; }
+.nav-item::before {
+  content: '';
+  position: absolute; inset: 3px 5px; z-index: -1;
+  border-radius: 14px; pointer-events: none;
+}
+.nav-item.tone-pink::before  { background: rgba(255, 182, 193, .13); }
+.nav-item.tone-mint::before  { background: rgba(127, 232, 200, .14); }
+.nav-item.tone-lemon::before { background: rgba(255, 224, 102, .16); }
+.nav-item.tone-lav::before   { background: rgba(212, 184, 255, .16); }
+.nav-item.active::before { background: transparent; }
+.nav-item.active::after {
+  content: '';
+  position: absolute; top: 7px; right: 12px; width: 6px; height: 6px;
+  border-radius: 50%; background: var(--mint-dk);
+  box-shadow: -10px 4px 0 -1px var(--lemon-dk), -18px 0 0 -2px var(--lav-dk);
+  pointer-events: none;
+}
 /* ③ hero 糖果簇补第四色（薰衣草），四色同框但粉球最大 */
 .candy-hero .ch-candy.c4 {
   left: auto; right: 44%; top: 56%; width: 22px; height: 22px; animation-delay: -3s;

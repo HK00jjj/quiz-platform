@@ -2123,3 +2123,30 @@ D tinted elevation 三级带色温的白；E 夜间可可模式（平行 token�
 - 死样式/幽灵：.rate-btn 基色、.fab-stats、.cap、.count-gem、.drop-cap、L74/L239 旧渐变（被 L1575 否决）。
 - 两套 burstParticles 并存（components.jsx 旧版供 Login/Import/Learn/TouchRitual，CandyBoot 版供 Practice）。
 - JS chunk 508.78 kB 触发 Vite >500KB 警告（supabase-js 是大头），可考虑代码分割。
+
+---
+
+## 34. 第二十四轮（2026-09-05）· 导航托盘的派对装点（用户指名：四板块背景太空）
+
+**gh-pages HEAD：`02418ca`（父 `fadc51c`）。verify-deploy RESULT: IDENTICAL。console 0 errors。**
+
+用户反馈导航四板块（学习/导入/书库/设置）背景太空、缺节日派对的热闹童趣。在「糖霜托盘」既有隐喻里
+做加法，三件套全部**静态零动画**（不占每帧合成成本），零 JSX 改动，candy.css 尾部追加：
+
+1. **四色糖霜裱花边**（.bottom-nav::before）：radial 半圆连排挂在托盘上沿，四层 112px 瓦片里
+   圆心错位 28px → 粉/薄荷/柠檬/薰衣草循环（生日蛋糕裱花的样子）。lemon/lav 无 -lt token，用字面量 #FFF3C4/#E9DDFF。
+2. **每槽 tone 软垫**（.nav-item.tone-*::before）：13~16% 同 tone 色砖（inset 3px 5px），托盘内部不再空。
+   层序技巧：.nav-item 设 z-index:0 自建层叠上下文 + ::before z-index:-1 → 软垫落在按钮底色之上、文字之下。
+   激活态本身已有同 tone 底色，`.nav-item.active::before` 置 transparent 防双层叠色。
+3. **激活彩糖针**（.nav-item.active::after）：三粒 6px 静态小点（mint-dk 基点 + lemon-dk/lav-dk box-shadow 错位），
+   撒在图标左上方。初版 5px/.85 透明度太隐身，真机放大后改深色 token 拉满对比。
+
+不活跃灰图标（用户刻意保留项）未动；hover 沿用既有 translateY(-2px)；reduced-motion 无需新增降级（纯静态）。
+
+**本轮事故与自检（又是真机截图救的）**：初稿给 .bottom-nav 写了 `position: relative`，
+把 global 层的 `position: fixed`（钉视口底）按同特异性后到覆盖掉，导航掉进文档流末尾——
+整页截图当场发现，删掉该行即愈（fixed 本身就是定位元素，::before 直接锚它）。教训入注释。
+
+验证：桌面 1280 + 手机 390 双端截图、导航元素特写、激活项 4× 放大（PowerShell System.Drawing 裁切，
+注意 bash 单引号包 PS 命令防 $ 被 bash 吞）；::after 计算样式实测 mint-dk/lemon-dk/lav-dk 三点几何正确；
+console 0 errors。裁切脚本用到的坑：sharp 未装进 app/node_modules，别再试。
