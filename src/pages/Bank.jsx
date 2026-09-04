@@ -16,6 +16,8 @@ export default function Bank() {
   const [type, setType] = useState('全部')
   const [domain, setDomain] = useState('全部')
   const [difficulty, setDifficulty] = useState('全部')
+  /* 排序：'new' 最近导入（原行为）/ 'seq' 入库序（命题批次先后）/ 'weak' 最该复习的排前面 */
+  const [sort, setSort] = useState('new')
   const [page, setPage] = useState(0)
   const [openId, setOpenId] = useState(null)      // 当前翻开的卡片
   const [confirmId, setConfirmId] = useState(null) // 卡片背面的删除二次确认
@@ -27,16 +29,38 @@ export default function Bank() {
     try { return JSON.parse(localStorage.getItem('qp.importedAt.v1') || '{}') } catch { return {} }
   }, [])
 
+  /* 概览：掌握度口径与卡片上的 .tarot-orb 完全一致（有卡且间隔≥3天=已掌握、
+     有卡但<3天=复习中、无卡=没做过），免得同一页出现两套掌握度定义。
+     答错过 = 最近一次作答为错，与「错题重练」的口径同源（lastResultMap）。 */
+  const overview = useMemo(() => {
+    let mastered = 0, learning = 0, fresh = 0, wrong = 0
+    for (const q of questions) {
+      const rc = cardMap.get(q.id)
+      if (!rc) fresh++
+      else if ((rc.intervalDays ?? 0) >= 3) mastered++
+      else learning++
+      if (lastMap.get(q.id) === false) wrong++
+    }
+    return { mastered, learning, fresh, wrong }
+  }, [questions, cardMap, lastMap])
+
   const filtered = useMemo(() => {
     const kw = search.trim()
-    return questions.filter((q) =>
+    const list = questions.filter((q) =>
       (type === '全部' || q.type === type) &&
       (domain === '全部' || q.knowledgeDomain === domain) &&
       (difficulty === '全部' || q.difficulty === difficulty) &&
       (kw === '' || q.stem.includes(kw) || (q.knowledgePoint ?? '').includes(kw)))
-      .slice()
-      .sort((a, b) => (importedAt[b.id] ?? 0) - (importedAt[a.id] ?? 0))
-  }, [questions, type, domain, difficulty, search, importedAt])
+    /* 三种排序都拿「最近导入」当次级键： seq 跳批次时可能并列（存量数据未迁移，见 §21），
+       不给次级键的话并列项的先后就不确定了。filter 已返回新数组，就地 sort 不会改 store。 */
+    const byNew = (a, b) => (importedAt[b.id] ?? 0) - (importedAt[a.id] ?? 0)
+    if (sort === 'seq') return list.sort((a, b) => (a.seq ?? 0) - (b.seq ?? 0) || byNew(a, b))
+    if (sort === 'weak') {
+      const rank = (q) => { const rc = cardMap.get(q.id); return !rc ? 0 : (rc.intervalDays ?? 0) >= 3 ? 2 : 1 }
+      return list.sort((a, b) => rank(a) - rank(b) || byNew(a, b))
+    }
+    return list.sort(byNew)
+  }, [questions, type, domain, difficulty, search, importedAt, sort, cardMap])
 
   const pages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const view = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)
@@ -63,24 +87,63 @@ export default function Bank() {
           placeholder="🔍 搜题干或知识点…" />
       </div>
 
-      <div className="deck-row">
-        {[
-          { label: '题型', val: type, opts: ['全部', ...TYPES], set: setType },
-          /* 知识域下拉的 value 仍是 K1~K27（筛选逻辑认它），显示走 text 换成中文域名（#8） */
-          { label: '知识域', val: domain, opts: domains, set: setDomain, text: domainLabel },
-          { label: '难度', val: difficulty, opts: ['全部', ...DIFFICULTIES], set: setDifficulty }
-        ].map((d) => (
-          <select key={d.label} className="deck" value={d.val}
-            onChange={(e) => { d.set(e.target.value); setPage(0) }}
-            aria-label={d.label}>
-            {d.opts.map((o) => <option key={o} value={o}>{d.label}：{d.text ? d.text(o) : o}</option>)}
+      {/* 筛选区重做。原来是三个浏览器原生 <select> 套在哥特青铜框 .deck 里
+          （pages.css L382：border 1px solid rgba(139,115,50,.5)、.deck .val 用 --teal-lt），
+          是这页「简陋」的主要来源。现在：
+          ① 题型 / 难度 / 排序 → 糖果胶囊 chip，直接复用 FilterModal 同一套 .chip-row/.chip/.chip.on，不新造组件
+          ② 知识域 27 项做成 chips 会撑爆版面，所以保留下拉、但换成糖果化的 .deck-candy
+             （appearance:none + 自绘 ▾，因为原生箭头在浅色底上几乎看不见） */}
+      <div className="bank-filters">
+        <div className="bank-fgroup">
+          <h5>题型</h5>
+          <div className="chip-row">
+            {['全部', ...TYPES].map((t) => (
+              <button key={t} className={'chip' + (type === t ? ' on' : '')}
+                onClick={() => { setType(t); setPage(0) }}>{t.replace(/题$/, '')}</button>
+            ))}
+          </div>
+        </div>
+        <div className="bank-fgroup">
+          <h5>难度</h5>
+          <div className="chip-row">
+            {['全部', ...DIFFICULTIES].map((d) => (
+              <button key={d} className={'chip' + (difficulty === d ? ' on' : '')}
+                onClick={() => { setDifficulty(d); setPage(0) }}>{d}</button>
+            ))}
+          </div>
+        </div>
+        <div className="bank-fgroup">
+          <h5>排序</h5>
+          <div className="chip-row">
+            {[['new', '最近导入'], ['seq', '入库序'], ['weak', '最该复习']].map(([k, lab]) => (
+              <button key={k} className={'chip' + (sort === k ? ' on' : '')}
+                onClick={() => { setSort(k); setPage(0) }}>{lab}</button>
+            ))}
+          </div>
+        </div>
+        <div className="bank-fgroup">
+          <h5>知识域</h5>
+          {/* value 仍是 K1~K27（筛选逻辑认它），显示走 domainLabel 换成中文域名（#8） */}
+          <select className="deck-candy" value={domain} aria-label="知识域"
+            onChange={(e) => { setDomain(e.target.value); setPage(0) }}>
+            {domains.map((d) => <option key={d} value={d}>{d === '全部' ? '全部知识域' : domainLabel(d)}</option>)}
           </select>
-        ))}
+        </div>
+      </div>
+
+      {/* 概览条：五个数，颜色与卡片上 .tarot-orb 的三态同源（薄荷=已掌握、柠檬=复习中、
+          薰衣草=没做过、草莓=答错过），整页不引入新色相 */}
+      <div className="bank-overview">
+        <span className="ov-cell"><b>{questions.length}</b>总题数</span>
+        <span className="ov-cell ov-ok"><b>{overview.mastered}</b>已掌握</span>
+        <span className="ov-cell ov-mid"><b>{overview.learning}</b>复习中</span>
+        <span className="ov-cell ov-new"><b>{overview.fresh}</b>没做过</span>
+        <span className="ov-cell ov-bad"><b>{overview.wrong}</b>答错过</span>
       </div>
 
       <div className="bank-meta">
         <span>共 {questions.length} 题 · 筛选后 {filtered.length} 题</span>
-        <span>按导入时间从新到旧排列</span>
+        <span>{{ new: '按导入时间从新到旧', seq: '按入库序（命题批次先后）', weak: '没做过 → 复习中 → 已掌握' }[sort]}</span>
       </div>
 
       {/* 竖版卡片墙：正面是题干摘要，点开 3D 翻面看这道题的全部信息 */}

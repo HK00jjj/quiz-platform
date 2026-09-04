@@ -1347,3 +1347,61 @@ body, button, input, textarea, select {
 @media (prefers-reduced-motion: reduce) {
   .login-hero .ch-candy, .login-hero .ch-lolli::before { animation: none !important; }
 }
+
+/* ══════════════════════════════════════════════════════════
+   书库页（#/bank）重做：导航第四色 + 筛选区 + 概览条
+   原来这页的筛选是三个浏览器原生 <select> 套在哥特青铜框 .deck 里
+   （pages.css L382：border 1px solid rgba(139,115,50,.5)、.deck .val 用 --teal-lt），
+   是用户说「太简陋」的主要来源。现在换成系统自有的糖果胶囊 .chip。
+   ══════════════════════════════════════════════════════════ */
+/* 导航第四色：L220 的 .nav-item.active 是粉色默认（学习），L222/L223 已有 mint（导入）与 lav（设置），
+   书库插到导入与设置之间，用糖果四色里还没上导航的柠檬。
+   文字取 #8A6D00 而不是 --lemon-dk(#FFD43B)：浅黄压在奶白底上对比度不够，
+   #8A6D00 约 4.9:1，与答题页「模糊」档、Import 告警框同源。 */
+.nav-item.tone-lemon.active { background: rgba(255, 224, 102, .26); color: #8A6D00; }
+
+.bank-filters { display: flex; flex-direction: column; gap: 11px; margin-bottom: 16px; }
+.bank-fgroup { display: flex; align-items: baseline; gap: 10px; }
+.bank-fgroup > h5 {
+  flex: 0 0 46px; font-size: 11px; font-weight: 700; letter-spacing: 2px;
+  color: var(--ink-3); margin: 0;
+}
+.bank-fgroup .chip-row { flex: 1 1 auto; min-width: 0; }
+/* 知识域 27 项做成 chips 会撑爆版面，保留下拉但糖果化。
+   appearance:none 后原生箭头会消失，所以用 data-URI 自绘一个粉桃色 ▾
+   （原生箭头在浅色底上几乎看不见）。颜色里的 # 必须转义成 %23。 */
+.deck-candy {
+  flex: 1 1 auto; min-width: 0; padding: 9px 34px 9px 15px;
+  font-family: inherit; font-size: 13px; color: var(--ink); cursor: pointer;
+  background: var(--jelly) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'><path d='M1 1.5l5 5 5-5' fill='none' stroke='%23D14767' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/></svg>") no-repeat right 13px center / 11px 7px;
+  border: 1.5px solid var(--candy-pink-lt); border-radius: 999px;
+  -webkit-appearance: none; appearance: none;
+  transition: border-color .2s ease, box-shadow .2s ease;
+}
+.deck-candy:hover { border-color: var(--candy-pink); }
+.deck-candy:focus { outline: none; border-color: var(--mint-dk); box-shadow: 0 0 0 3px rgba(127, 232, 200, .3); }
+
+/* 概览条：五个数。颜色与卡片上 .tarot-orb 的三态同源（薄荷/柠檬/薰衣草）+ 草莓给答错，
+   整页不引入新色相。数字用 tabular-nums，五个格子宽度不会跟着位数跳。 */
+.bank-overview { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+.ov-cell {
+  flex: 1 1 88px; display: flex; flex-direction: column; align-items: center; gap: 3px;
+  padding: 10px 6px 9px; border-radius: var(--r-xs);
+  background: rgba(255, 255, 255, .72); border: 1.5px solid var(--line);
+  font-size: 11px; letter-spacing: 1px; color: var(--ink-2);
+}
+.ov-cell b { font-size: 20px; line-height: 1.05; letter-spacing: 0; color: var(--ink); font-variant-numeric: tabular-nums; }
+.ov-cell.ov-ok { border-color: var(--mint-dk); }
+.ov-cell.ov-ok b { color: var(--ok-ink); }
+.ov-cell.ov-mid { border-color: var(--lemon-dk); }
+.ov-cell.ov-mid b { color: #8A6D00; }
+.ov-cell.ov-new { border-color: var(--lav-dk); }
+.ov-cell.ov-new b { color: #8A63D9; }
+.ov-cell.ov-bad { border-color: var(--bad-dk); }
+.ov-cell.ov-bad b { color: var(--bad-ink); }
+@media (max-width: 520px) {
+  .bank-fgroup { flex-wrap: wrap; }
+  .bank-fgroup > h5 { flex-basis: 100%; }
+  .ov-cell { flex: 1 1 30%; }
+  .ov-cell b { font-size: 17px; }
+}

@@ -51,6 +51,10 @@ export function Background({ intensity = 1 }) {
 const NAV_ITEMS = [
   { key: 'learn', label: '学习', icon: '🍬', to: '/', tone: 'pink' },
   { key: 'import', label: '导入', icon: '📦', to: '/import', tone: 'mint' },
+  /* 书库原来只能从「检测入库成功后那个按钮」或手打 #/bank 到达（底部导航早先被摘掉了），
+     而它是全站唯一能删单题的地方，藏得太深。按用户要求插回导入与设置之间。
+     tone 用 lemon：pink/mint/lav 已被前三项占掉，柠檬是糖果四色里唯一还没上导航的。 */
+  { key: 'bank', label: '书库', icon: '📚', to: '/bank', tone: 'lemon' },
   { key: 'settings', label: '设置', icon: '⚙️', to: '/settings', tone: 'lav' }
 ]
 export function BottomNav({ active, wrongCount, onNav }) {
