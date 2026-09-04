@@ -1253,3 +1253,107 @@ console 全程 0 errors。
 附录D 第 1 条的网页校验器路径 `app\src\core\validator.ts` **仍然是错的**，实际是 `app/src/lib/validate.js`。
 
 上一轮已完成的 skill 规则 vs `validate.js` 比对结论（20 项一致、5 处差异）用户明确表示**不要修**，保持现状。
+
+---
+
+## 21. 第十一轮（2026-09-04）· 入库序改全局单调（修好被打通的刷题顺序）
+
+**gh-pages HEAD：`8487391`（父 `e14af9f`），45 文件 / 4.61 MB，verify-deploy 缺失0/不一致0/多余0。**
+**CSS 哈希未变（`index-blmfZRBh.css`）——本轮纯逻辑改动，一行样式没碰。**
+
+### 21.1 问题：`seq` 存的是批内序号，跨批次会重复
+
+用户问「题目是按照入库时间顺序排列吗？」，查出来两处排序、口径不同：
+
+| 位置 | 排序依据 |
+| --- | --- |
+| 糖果书架 `Bank.jsx` L38 | `importedAt` 降序（新→旧），页面文案「按导入时间从新到旧排列」准确 |
+| 组卷 `stats.js` L149/156/161 | **`a.seq - b.seq`** —— 与入库时间无关 |
+
+而 `seq` 是命题协议里的**批内序号**：`validate.js` L226 `const q = { id: hashId(...), seq, ... }`，
+`seq = seqOf(raw)` 直接取 JSON 的 `序号` 字段，每批都是 1~21。`db.js` L52 云端读取还是 `.order('seq')`。
+
+**后果**：导入 N 批后库里有 N 个 `seq:1`、N 个 `seq:2`……。`buildSession` 的
+`learn`（学新题）/ `wrong`（错题重练）/ `relearn`（挑题练习）三条路径全部 `sort by seq`，
+于是刷题顺序变成「**各批的第1题 → 各批的第2题 → …**」，而不是「第一批21题 → 第二批21题」。
+
+这与命题设计直接冲突：按协议每批 21 题是以 1 道原题为圆心的同心圆，
+序号 2~9 基础 / 10~16 应用 / 17~21 综合是**围绕同一知识点的认知阶梯**。
+按 seq 横切等于把阶梯打散成「所有批次的基础题混在一起、再所有批次的应用题混在一起」，
+上一题讲热继电器、下一题跳 D/A 转换器。同 `seq` 之间的先后 Postgres 还**不保证**（并列值顺序未定义）。
+
+（`review` 到期复习按 `a.dueAt` 排、`random` 走 shuffle，这两条不受影响。）
+
+### 21.2 修法：入库前把批内序号改写成全局单调值
+
+新增 `validate.js` 的 `assignGlobalSeq(incoming, existing)`：
+
+```js
+export function assignGlobalSeq(incoming, existing) {
+  const byId = existing instanceof Map ? existing : new Map((existing ?? []).map((q) => [q.id, q]))
+  let maxSeq = 0
+  byId.forEach((q) => { if (Number.isFinite(q?.seq) && q.seq > maxSeq) maxSeq = q.seq })
+  return (incoming ?? []).map((q) => {
+    const old = byId.get(q.id)
+    if (old && Number.isFinite(old.seq)) return { ...q, seq: old.seq }   // 已在库 → 沿用原 seq
+    const local = Number.isFinite(q.seq) && q.seq > 0 ? q.seq : 0
+    return { ...q, seq: maxSeq + local }                                 // 新题 → 已有最大 + 批内序号
+  })
+}
+```
+
+`store.js` 的 `importBank` 在 `parseBank` 之后、`persistAfterImport` / `upsertQuestions` 之前调用它，
+`existing` 从 `Set<id>` 升级成 `Map<id, q>`（顺带供 `added` 统计复用，少遍历一次）。
+
+**三个刻意的取舍：**
+
+1. **必须在 `parseBank`（即校验）之后调用。** 校验器的 `diffBand(seq)`（2~9基础/10~16应用/17~21综合）、
+   「综合层允许认知层级=分析」的唯一例外（`seq>=17 && seq<=21`）、「拓展题≤2空」「空位居句首」（`seq>=2`）、
+   「序号应为 N」（`seqOf(it) !== i+1`）—— **全部读的是原始 JSON 的 `seqOf(raw)`，不是 `q.seq`**。
+   提前改写会让整套难度层段判定失效。这条已写进函数注释。
+2. **备份恢复那条分支（`importBank` L256-267）故意不重排。** 备份里带的本来就是存好的全局序，
+   再套一次 `maxSeq +` 会把整批推到库尾、毁掉原顺序。
+3. **已在库里的题沿用原 seq**（`if (!map[q.id])` 的同款思路）。否则重复导入同一批，
+   每导一次整批就往后推一段，序号无意义地膨胀。
+
+零表结构变更：`seq` 列本来就存在，只是值的语义从「批内序号」变成「全局入库序」。
+
+### 21.3 回归测试 `scripts/t-seq.mjs`（16 例，全过）
+
+比照 `t-fill.mjs` 的做法**直接 import 真实源码**，不复制逻辑（复制的话测的就不是上线的东西）。
+
+覆盖：空库首批原样 1..21 / 第二批接 22..42 / 重复导入不重排 / **三批 63 题按 seq 排序 = A→B→C 完整分段**
+（这条就是本次改动的目的本身）/ 全局 seq 恰为 1..63 无重复无空洞 / 部分重复（库里只有前 5 题）/
+新题严格大于所有已有 seq / `existing` 传 Map 与传数组等价 / `existing` 为 undefined·null 不炸 /
+`seq` 缺失或为 -1 时退化成 `maxSeq+0` 不产生 NaN / `incoming=undefined` 返回空数组 /
+删题后 maxSeq 回落 / 不可变性（不就地改入参、返回新对象）。
+
+同时跑 `t-fill.mjs` 回归 **13/13 通过** —— `validate.js` 被改过，确认填空判分没受影响。
+
+### 21.4 ⚠ 这个修复是「只向前生效」的
+
+**云端已有的题不会被重排。** 已经导入的那些批次，`seq` 仍是重叠的 1~21，
+它们之间照旧交错；改动只保证**从现在起新导入的批次**整批排在所有旧题之后。
+
+要修存量数据是可行的，但没做（用户只选了方案 2，未要求迁移）：
+`qp.importedAt.v1`（localStorage）里同一批的题共享同一个毫秒时间戳，而现有 `seq` 恰好就是批内序号，
+所以可以「按 importedAt 分组 → 组间按时间戳升序 → `newSeq = 组序 × 1000 + 原 seq`」重建。
+**前提是那台浏览器的 localStorage 还在**——这正是下面 21.5 的脆弱点。
+
+### 21.5 顺带查实的两个既有隐患（本轮未修，用户未要求）
+
+1. **`qp.importedAt.v1` 只存 localStorage、不上云。** `db.js` 里没有对应列。
+   清缓存 / 换浏览器 / 换设备 → map 变空 → 书架页所有 `?? 0` → **sort 静默失效**退回按 seq 排，
+   而页面文案仍写着「按导入时间从新到旧排列」，不报错、也无法重建。
+   彻底解决要给 `questions` 表加 `imported_at` 列（就是上一轮我列的方案 3）。
+2. **`importBank` 没有 DEMO 卫兵。** `store.js` L273 `await repo.upsertQuestions(questions)` 与
+   L261 的备份分支都**裸调云端**，对比 `deleteQuestion` L280 有 `if (!DEMO)`。
+   也就是说 demo 模式下真去导入，会写进生产 Supabase 库。
+   **本轮因此刻意不在浏览器里测导入路径**，改用 16 例单测覆盖。
+   （§11 修过 `updateSettings` 缺 DEMO 卫兵，这是同一类问题的第二处，建议一并补。）
+
+### 21.6 附带的一处文案修正
+
+`Bank.jsx` L125 卡片背面的 `<b>编号</b>` 改成 `<b>入库序</b>`。
+`q.seq` 已经不是协议里的批内序号了，第三批的第 1 题会显示「第 43 题」，
+沿用「编号」会让人以为数据乱了。**这是语义跟随，不是美化。**

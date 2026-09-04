@@ -5,7 +5,7 @@ import { repo } from './lib/db'
 import { newCard, reviewCard } from './lib/fsrs'
 import { fmtDate } from './lib/dates'
 import { buildSession, filtersKey, isObjective } from './lib/stats'
-import { classifyImport, parseBackup, parseBank, gradeObjective } from './lib/validate'
+import { classifyImport, parseBackup, parseBank, gradeObjective, assignGlobalSeq } from './lib/validate'
 
 const RESUME_KEY = 'quiz-platform.resume.v1'
 const IMPORTED_AT_KEY = 'qp.importedAt.v1'
@@ -267,12 +267,16 @@ export const useStore = create((set, get) => ({
     }
     const parsed = parseBank(text)
     if (parsed.questions.length > 0) {
-      persistAfterImport(parsed.questions)
-      const existing = new Set(get().questions.map((q) => q.id))
-      const added = parsed.questions.filter((q) => !existing.has(q.id)).length
-      await repo.upsertQuestions(parsed.questions)
+      const existing = new Map(get().questions.map((q) => [q.id, q]))
+      /* 入库前把批内序号(1~21)改写成全局单调入库序，理由见 assignGlobalSeq 的注释。
+         必须在 parseBank（也就是校验）之后做：校验器用的是原始 JSON 的序号。
+         上面备份恢复那条分支故意不做这件事——备份里带的本来就是存好的全局序，重排会毁掉它。 */
+      const questions = assignGlobalSeq(parsed.questions, existing)
+      persistAfterImport(questions)
+      const added = questions.filter((q) => !existing.has(q.id)).length
+      await repo.upsertQuestions(questions)
       await reloadAll()
-      return { ...parsed, added }
+      return { ...parsed, questions, added }
     }
     return { ...parsed, added: 0 }
   },

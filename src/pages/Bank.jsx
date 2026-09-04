@@ -122,7 +122,10 @@ export default function Bank() {
                   <div className="face-in">
                     <div className="tarot-scroll" onClick={(e) => e.stopPropagation()}>
                       <h6>题目信息</h6>
-                      <div className="tarot-kv"><b>编号</b><span>第 {q.seq ?? '—'} 题</span></div>
+                      {/* q.seq 已不是命题协议里的批内序号(1~21)，而是入库时改写的全局单调序
+                          （见 validate.js 的 assignGlobalSeq），所以标签从「编号」改成「入库序」，
+                          否则第三批的第1题会显示成「第43题」而让人以为数据乱了。 */}
+                      <div className="tarot-kv"><b>入库序</b><span>第 {q.seq ?? '—'} 题</span></div>
                       <div className="tarot-kv"><b>题型</b><span>{q.type}</span></div>
                       {q.knowledgeDomain && <div className="tarot-kv"><b>知识域</b><span>{domainLabel(q.knowledgeDomain)} · {q.knowledgeDomain}</span></div>}
                       {q.knowledgePoint && <div className="tarot-kv"><b>知识点</b><span>{q.knowledgePoint}</span></div>}

@@ -261,6 +261,30 @@ function toQuestions(list) {
   }
   return { questions, skipped, errors }
 }
+/* 全局入库序：命题协议里每批的「序号」都是 1~21，直接存进 q.seq 会让不同批次的同号题
+   在组卷时排到一起——learn / wrong / relearn 三条路径都是 sort((a,b)=>a.seq-b.seq)，
+   结果刷题顺序变成「各批的第1题 → 各批的第2题 → …」，把「以原题为圆心的同心圆 + 认知阶梯」
+   打散成按难度横向切片。这里在入库前把批内序号改写成全局单调值：已有最大 seq + 批内序号。
+
+   - 已在库里的题沿用库里已有的 seq：重复导入同一批不重排，否则每导一次就往后推一段
+   - 新题整批连续排在所有旧题之后，批内相对次序（也就是认知阶梯）原样保留
+   - existing 传 Map<id,q> 或数组都行
+
+   ⚠ 必须在校验之后调用：校验器（diffBand / 综合层「分析」例外 / 拓展题≤2空 / 序号应为N）
+   用的全是原始 JSON 的序号 seqOf(raw)，不是这里的 q.seq。提前改写会让全部难度层段判定失效。
+   同理，备份恢复路径不能用它——备份里带的本来就是存好的全局序。 */
+export function assignGlobalSeq(incoming, existing) {
+  const byId = existing instanceof Map ? existing : new Map((existing ?? []).map((q) => [q.id, q]))
+  let maxSeq = 0
+  byId.forEach((q) => { if (Number.isFinite(q?.seq) && q.seq > maxSeq) maxSeq = q.seq })
+  return (incoming ?? []).map((q) => {
+    const old = byId.get(q.id)
+    if (old && Number.isFinite(old.seq)) return { ...q, seq: old.seq }
+    const local = Number.isFinite(q.seq) && q.seq > 0 ? q.seq : 0
+    return { ...q, seq: maxSeq + local }
+  })
+}
+
 export function parseBank(text) {
   const arr = extractArray(text)
   if (!arr) return { questions: [], skipped: 0, errors: ['未找到 JSON 数组，请确认粘贴的是题库内容'] }
