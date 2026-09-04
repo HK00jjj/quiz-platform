@@ -1972,3 +1972,30 @@ dev 直接 `ReferenceError: IconLearn is not defined` 崩掉整个 Learn 页。
    `.cap` 胶囊的 span 从 JSX 删除（其 CSS 变幽灵，归入 §23.6 待清批）。
 
 验证：真机截图确认左文右糖布局与粉色品牌行；console 0 errors；verify-deploy 26/26 全零差异。
+---
+
+## 29. 第十九轮（2026-09-04）· 修书库卡翻牌时"消失很久"
+
+**gh-pages HEAD：`d326530`（父 `cd8f7a9`）。dist 26 文件 / 3.05 MB，verify-deploy 26/26 全零差异。**
+
+用户报：书库卡每次翻牌会消失很久才重新出现。
+
+**根因（不是翻面动画本身）**：§26 的 `useScrollReveal` 用 `classList.add('is-in')` 标记入场，
+但 **React 重渲染时会用 JSX 的 `className` 整体覆盖 DOM 的 class 属性**，把 IO 加的 `is-in` 抹掉。
+翻牌改变 `openId` → 该卡重渲染 → `is-in` 丢失 → `.reveal { opacity:0; transform:translateY(24px) }` 生效
+→ 卡片消失；随后 MutationObserver 触发重扫、IO 回调补回 `is-in` → 再花 0.6~0.75s 淡入。
+所以是"先消失、再淡入"，而不是翻面过程本身慢。
+
+> 通用教训：**任何由非 React 代码（IO / 直接 DOM 操作）往 React 管理的元素上加的 class，
+> 都会在下一次重渲染时被 JSX 的 className 覆盖。** 这类状态要么进 React state，
+> 要么用 React 不管理的 data 属性承载。
+
+**修法**：IO 改打 `data-in` 属性（`setAttribute('data-in','')`），CSS 选择器 `.reveal.is-in` → `.reveal[data-in]`
+（含 `prefers-reduced-motion` 分支）。React 只更新它自己设的属性，不会碰 `data-in`。
+
+实测：翻牌后 `hasAttribute('data-in')=true`、`opacity=1`、`transform=none`、
+`className="bank-item reveal flipped"`（无 is-in 但 data-in 存活）→ 不再消失。
+
+### 顺带修正 §26 的一处描述
+
+§26.1 第 5 条说"IntersectionObserver 加 .is-in"，现改为 data-in；§26 的其它结论不受影响。

@@ -66,13 +66,17 @@ const NAV_ITEMS = [
    translateY + blur + opacity 的「重」淡入。用 IntersectionObserver 而不是 scroll 监听
    （scroll 监听持续 reflow，移动端掉帧）；进入后 unobserve，只跑一次。
    SPA 路由切换后新节点才挂载，用 MutationObserver 兜底扫描。
-   动画本身写在 CSS 的 .reveal / .reveal.is-in 里，这里只管加类。 */
+   动画本身写在 CSS 的 .reveal / .reveal[data-in] 里，这里只管打 data-in 标记。 */
 export function useScrollReveal() {
   useEffect(() => {
-    const pending = () => [...document.querySelectorAll('.reveal:not(.is-in)')]
-    if (!('IntersectionObserver' in window)) { pending().forEach((e) => e.classList.add('is-in')); return }
+    /* ⚠ 入场状态必须用 data 属性而不是 class：React 重渲染时会用 JSX 的 className
+       整体覆盖 DOM 的 class 属性，把 IO 加的 is-in 抹掉。书库卡一翻牌 openId 变 →
+       重渲染 → is-in 丢失 → .reveal 的 opacity:0 生效 → 卡片先消失再淡入（用户报的
+       「翻转时消失很久」）。data-in 不是 React 管理的属性，不会被覆盖。 */
+    const pending = () => [...document.querySelectorAll('.reveal:not([data-in])')]
+    if (!('IntersectionObserver' in window)) { pending().forEach((e) => e.setAttribute('data-in', '')); return }
     const io = new IntersectionObserver((es) => {
-      es.forEach((en) => { if (en.isIntersecting) { en.target.classList.add('is-in'); io.unobserve(en.target) } })
+      es.forEach((en) => { if (en.isIntersecting) { en.target.setAttribute('data-in', ''); io.unobserve(en.target) } })
     }, { rootMargin: '0px 0px -6% 0px', threshold: 0.06 })
     const scan = () => pending().forEach((e) => io.observe(e))
     scan()
