@@ -1749,3 +1749,108 @@ demo 数据 `seq: i` 是 1..28 唯一，判断题落在 i=3/10/17/24，**真实�
 §18.2 与 §20.3 已两次证明删掉一条覆盖规则会放出更老的规则。
 
 另外 `A.titleDecor`（p45.png）仍被 `Bank.jsx` 的 `.page-head` 用着，所以它和 p45.png 都还活着，不在孤儿清单里。
+
+---
+
+## 25. 第十五轮（2026-09-04）· 书库牌背去哥特：一起藏了很久的对比度事故
+
+**gh-pages HEAD：`2da8f37`（父 `0a982a9`）。dist 27 → 26 文件 / 3.14 → 3.05 MB，verify-deploy 26/26 缺失0/不一致0/多余0。**
+**CSS 108.62 → 109.02 kB。**
+
+用户只说了五个字「与糖果主题风格不搭」，指的是**书库卡片翻面后的详情面**。
+按用户要求加载 `design-qa` skill 做视觉审查（它的硬规矩：*不能只凭代码路径、记忆或文字描述下 QA 结论，
+必须把 source truth 与 rendered implementation 放进同一个比对上下文*）。
+
+### 25.1 根因：一层从没被覆盖的哥特内面板
+
+`pages.css` L420：
+
+```css
+.tarot-face.back .face-in { background: rgba(7,12,16,.82); border-color: rgba(201,168,76,.3); … }
+```
+
+candy.css **只接管了外层** `.bank-item .tarot-face.back` 的糖果渐变（L617），
+而 `inset: 8%` 的这层内面板**盖住了外层 84%×84% 的面积** —— 糖果渐变只剩一圈边，等于没生效。
+实测（修前）：`faceInBg = rgba(7,12,16,0.82)`、`faceInBorder = rgba(201,168,76,0.3)`。
+
+**而这同时是一起对比度事故，不只是审美问题。** L1146-1152 早已把牌背文字改成给浅底设计的深色，
+压在这层近黑底上：
+
+| 文字 | 色值 | 压近黑底的对比度 | WCAG AA |
+| --- | --- | --- | --- |
+| `.tarot-scroll` 正文 | `--ink-2` #6E6E6E | **≈2.5:1** | ✗ |
+| `.tarot-scroll h6` 小标 | #D14767 | **≈3.2:1** | ✗ |
+| `.tarot-ans` 答案 | `--ok-ink` #1B7F63 | **≈2.5:1** | ✗ |
+
+也就是说：**上一轮"Bank 去哥特"把文字改浅底深色时，没有一并把底改掉，反而把原本能读的暗底暗字变成了暗底深灰字。**
+这类"改了一半"的迁移比完全没改更糟 —— 完全没改时至少是统一的暗色方案。
+
+修法（与弹窗 `.modal-box` 同源，一处同时解决"不搭"与"读不清"）：
+
+```css
+.tarot-face.back .face-in {
+  background: rgba(255, 255, 255, .82) !important;
+  border: 1.5px solid var(--candy-pink-lt) !important;
+  border-radius: var(--r-sm) !important;
+  box-shadow: 0 6px 20px rgba(255, 143, 163, .2), inset 0 1px 0 var(--jelly-hi) !important;
+}
+```
+
+透明度取 `.82` 而非 1：让外层粉→薄荷→薰衣草渐变透一点上来当底色，四周仍留一圈可见渐变边框。
+**按 §5 的性能纪律不叠 `backdrop-filter`** —— 一页最多 50 张卡、每张两个 `.face-in`，
+大面积 blur 正是当年 224ms 频闪的来源；`.modal-box` 当时也是同样理由放弃 blur。
+
+修后实测对比度：正文 5.1:1、h6 5.2:1、答案 5.4:1、键值 5.1:1 与 9:1 —— **全部过 AA**。
+
+### 25.2 顺带查出的三处（用户问"有没有漏看的其他哥特残留"）
+
+| 发现 | 判定 | 处理 |
+| --- | --- | --- |
+| **`.tag` 文字 `#8A6A3A` 哥特铜棕** | ✅ 真残留，而且是 **candy.css L921 自己写的**：粉边 `rgba(255,182,193,.9)` + 白底却配铜棕字，而它的兄弟 `.tag.teal`(薄荷 #2FA98A)/`.tag.red`(草莓 `--bad-ink`) 都是糖果色 —— 三态里只有基础态没迁 | 改 `var(--pink-ink)`，实测 `rgb(194,56,90)`。tag 三色现在是**粉/薄荷/草莓**，与全站同一套 |
+| **`.bank-item:hover .tarot-face`** = pages.css L405 的 `0 16px 34px rgba(0,0,0,.55)` 黑阴影 + `rgba(184,150,58,.22)` 金泛光 | ⚠️ **它没带 `!important`，被 candy.css L615 带 `!important` 的糖果阴影压住了** —— 哥特残留其实没生效，**但代价是 hover 完全没有反馈**（L615 对 hover 与非 hover 一视同仁）。craft-floor 要求 hover 态 | 补 `.bank-item:hover .tarot-face { box-shadow: 0 14px 32px rgba(255,143,163,.42) !important }`。只动 box-shadow，**不给 `.tarot-face` 加 transform** —— 3D 翻面靠 `.tarot-inner` 的 rotateY，在 face 上叠 transform 会干扰 `backface-visibility`。实测 hover 阴影已生效 |
+| **`.page-head` 的 `backgroundImage` 实测是 `none`**，可 Bank.jsx L56 明明写了 `url(${A.titleDecor})` | ✅ candy.css **L331 `.page-head { background-image: none !important }` 一直在否决它** —— p45.png「被引用却从不显示」，白占 dist 98 KB | 删掉 Bank.jsx 的内联样式 → `titleDecor` 变零引用键 → 删键 → purge-dist 自动清掉 p45.png |
+
+### 25.3 ⚠ 新的一类死素材：「被引用但被 CSS 否决」
+
+p45.png 这个案例暴露了**引用式审计的盲区**：
+
+- `assets.js` 里有 `titleDecor: img('p45.png')` → 审计脚本判定"活着"
+- `Bank.jsx` 里有 `style={{ backgroundImage: url(${A.titleDecor}) }}` → purge-dist 也判定"被引用"，保留它
+- **但 candy.css 用 `!important` 把那条样式否决了** → 它永远不会被画出来
+
+**两个脚本都对，结论都错。** 这类死素材只能靠"量运行时计算样式"发现：
+`getComputedStyle(el).backgroundImage === 'none'` 而 JSX 里明明设了值 → 说明被 CSS 否决了。
+
+> **规则：查孤儿素材不能只看引用链，还要看引用它的那条样式有没有被 `!important` 盖掉。
+> 尤其在这个项目 —— candy.css 的整个手法就是"末尾追加 + !important 覆盖哥特层"，
+> 被否决的内联样式与旧规则会很多。**
+
+### 25.4 两处假警报（量了才知道，猜一定猜错）
+
+| 疑似 | 实测 | 结论 |
+| --- | --- | --- |
+| `.tarot-scroll` 的 `borderTopColor: rgb(110,110,110)` 看着像深灰边框 | `borderTopWidth: 0px`、`borderTopStyle: none` | **不可见**，只是 `currentColor` 的残影 |
+| `.bank-search input:focus` 用 `var(--glow-teal)`，以为是哥特青光 | candy.css **L65 已把 `--glow-teal` 重定义为薄荷光** `0 0 12px rgba(127,232,200,.5)…` | 已经是糖果的 —— 这正是 §3.1「在 :root 重定义哥特 token 让几百条旧规则自动变色」那个高杠杆手法的成果 |
+
+**这两条如果只看 CSS 文本一定会误报成哥特残留。** 必须量计算样式。
+
+### 25.5 新增 `--pink-ink` token 与一笔明确的债
+
+`#D14767` 在 candy.css 里有 **14 处**，但它压白底只有约 **4.0:1，不够 WCAG AA 的 4.5:1**。
+新增 `--pink-ink: #C2385A`（约 5.2:1，色相几乎相同、只深一档），本轮用于 `.tag` 与 `.tarot-scroll h6`。
+
+**债（未还，需单独一轮）**：其余 12 处 `#D14767` 没有一次性迁移。理由是它们并非都压在白底上 ——
+例如 `.nav-item.active`（L220）是粉底、`.chip:hover`（L599）是粉洗底，那些场景 4.0:1 未必不合格，
+盲目全局替换可能把本来协调的地方改坏。**要迁移得逐处看底色**，属于 §23.6 那批"必须分批 + 真机验证"的活。
+
+### 25.6 Design QA 结论
+
+- **Source truth**：已验收的糖果界面（弹窗 `.modal-box`，本次修改正是照它做的）；项目无 DESIGN.md
+- **Rendered implementation**：`#/bank` 翻面后的 `.bank-item.flipped`
+- **同一比对上下文**：两张 `--hires` 元素截图 2× 放大后横向拼成 `shots/qa-compare.png`（1630×898）再判读
+- **判定：Pass with warnings** —— 牌背与基准面同属一套（奶白果冻底 / 奶粉边 / 大圆角 / 粉色文字），
+  五个必需保真面（字体排版、间距节奏、颜色 token、图像素材、文案）均无哥特残留
+- **两处 info 级差异，均有意为之**：圆角 16px(`--r-sm`) vs 弹窗 24px(`--r-lg`) —— 按元素尺寸缩放，
+  craft-floor 也要求卡片圆角留在 12~16px；底透明度 .82 vs .9 —— 刻意让外层渐变透上来当边框
+- 三套回归 **t-session 18/18、t-seq 16/16、t-fill 13/13**；审计复核 **0 DEAD / 0 UNUSED / assets.js 9 键零引用 0**
+- console 全程 0 errors

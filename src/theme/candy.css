@@ -616,6 +616,14 @@ body, button, input, textarea, select {
 }
 .bank-item .tarot-face.back { background: linear-gradient(150deg, #FFD6E0, #B8F5E3 55%, #D4B8FF) !important; }
 .tarot-face .face-in { inset: 8% 8% 8% !important; }
+/* hover 阴影：pages.css L405 的 .bank-item:hover .tarot-face 是哥特黑阴影
+   0 16px 34px rgba(0,0,0,.55) + 金泛光 rgba(184,150,58,.22)。它没带 !important，
+   所以一直被 L615 那条带 !important 的糖果阴影压住——哥特残留其实没生效，
+   但代价是 **hover 完全没有反馈**（L615 对 hover 与非 hover 一视同仁）。
+   补一条糖果版 hover：多一个 :hover 伪类所以特异性更高，但仍需 !important 才能盖过 L615。
+   只动 box-shadow，不给 .tarot-face 加 transform——3D 翻面靠 .tarot-inner 的 rotateY，
+   在 .tarot-face 上叠 transform 会干扰 backface-visibility。 */
+.bank-item:hover .tarot-face { box-shadow: 0 14px 32px rgba(255, 143, 163, .42) !important; }
 
 /* 减少动效：只保留透明度/颜色，去掉位移与弹性（无障碍底线） */
 @media (prefers-reduced-motion: reduce) {
@@ -918,7 +926,7 @@ body, button, input, textarea, select {
   background: rgba(255, 255, 255, .8) !important;
   border: 1px solid rgba(255, 182, 193, .9) !important;
   border-radius: 18px !important;
-  color: #8A6A3A !important;
+  color: var(--pink-ink) !important;
   box-shadow: 0 3px 10px rgba(255, 143, 163, .16), inset 0 1px 0 rgba(255, 255, 255, .95) !important;
 }
 .tag.teal {
@@ -1018,6 +1026,11 @@ body, button, input, textarea, select {
   --bad-wash: rgba(242, 86, 74, .12);
   --glow-bad: 0 0 12px rgba(242, 86, 74, .45), 0 0 24px rgba(242, 86, 74, .18);
   --ok-ink: #1B7F63;
+  /* 粉色文字专用深调：#D14767 在 candy.css 里有 14 处，但压白底只有约 4.0:1，
+     不够 WCAG AA 的 4.5:1。#C2385A 约 5.2:1，色相与它几乎一样、只是深一档。
+     以后凡是「粉色文字 + 白/奶白底」的组合都用这个 token；
+     压在彩色底上的那几处（如 .nav-item.active 的粉底）继续用 #D14767 无妨。 */
+  --pink-ink: #C2385A;
   /* 高杠杆手法（同 §3.1）：直接重定义哥特层的错误 token，
      让 pages.css / global.css 里几百条用 var(--fault) / var(--glow-red) 的旧规则自动变色 */
   --fault: #F2564A;
@@ -1146,8 +1159,15 @@ body, button, input, textarea, select {
 .tarot-stem { color: var(--ink) !important; text-shadow: none !important; }
 .tarot-scroll { color: var(--ink-2) !important; }
 .tarot-scroll p { text-shadow: none !important; }
-.tarot-scroll h6 { color: #D14767 !important; }
-.tarot-kv b { color: var(--muted) !important; }
+/* h6 从 #D14767 加深到 #C2385A：牌背内层改成奶白底之后，#D14767 压白底只有约 4.0:1，
+   不够 WCAG AA 的 4.5:1；#C2385A 约 5.2:1，且与 .tarot-foot button:hover 同源。 */
+.tarot-scroll h6 { color: var(--pink-ink) !important; }
+/* 键值行原来 b 与 span 同为 --muted(#6E6E6E)，标签和值没有层次
+   （craft-floor 要求明显的字重/字号台阶）。标签用 --ink-2 + 字距、值用 --ink + 600 字重，
+   两者压奶白底分别约 5.1:1 与 9:1。span 不需 !important：pages.css 没有对应规则，
+   而继承来的颜色算不过普通声明。 */
+.tarot-kv b { color: var(--ink-2) !important; letter-spacing: .5px; }
+.tarot-kv span { color: var(--ink); font-weight: 600; }
 .tarot-opt { color: var(--ink-2) !important; }
 .tarot-ans { color: var(--ok-ink) !important; font-weight: 700; }
 /* 这行字只有 clamp(7.5px,4.2cqw,10px)，用 --ink-3(#999) 在浅底上只剩约 2.8:1，
@@ -1404,4 +1424,27 @@ body, button, input, textarea, select {
   .bank-fgroup > h5 { flex-basis: 100%; }
   .ov-cell { flex: 1 1 30%; }
   .ov-cell b { font-size: 17px; }
+}
+
+/* ══════════════════════════════════════════════════════════
+   牌背内层面板：这一条是「书库卡片背面与糖果主题不搭」的真正根因
+   pages.css L420 的 .tarot-face.back .face-in 是哥特近黑 rgba(7,12,16,.82) + 铜边 rgba(201,168,76,.3)，
+   而 candy.css 从来只接管了外层 .tarot-face.back 的糖果渐变（L617）——
+   inset:8% 的这层内面板盖住了外层 84%×84% 的面积，糖果渐变只剩一圈边，等于没生效。
+
+   而且它同时是一起对比度事故：L1146-1152 把牌背文字全改成了给浅底设计的深色
+   （.tarot-scroll 用 --ink-2 #6E6E6E、h6 用 #D14767、答案用 --ok-ink #1B7F63），
+   压在这层近黑底上实测只有约 2.5:1 / 3.2:1 / 2.5:1，全部低于 WCAG AA 的 4.5:1。
+   实测值：faceInBg = rgba(7,12,16,0.82)、faceInBorder = rgba(201,168,76,0.3)。
+
+   改成与弹窗 .modal-box 同源的果冻奶白 + 奶粉边，一处同时修好「不搭」与「读不清」。
+   透明度取 .82 而不是 1：让外层那条粉→薄荷→薰衣草渐变透一点点上来当底色，
+   同时四周仍留出一圈可见的渐变边框。
+   ⚠ 按 §5 的性能纪律不叠 backdrop-filter：一页最多 50 张卡、每张两个 .face-in，
+   大面积 blur 正是当年 224ms 频闪的来源；.modal-box 当时也是同样理由放弃 blur 的。 */
+.tarot-face.back .face-in {
+  background: rgba(255, 255, 255, .82) !important;
+  border: 1.5px solid var(--candy-pink-lt) !important;
+  border-radius: var(--r-sm) !important;
+  box-shadow: 0 6px 20px rgba(255, 143, 163, .2), inset 0 1px 0 var(--jelly-hi) !important;
 }

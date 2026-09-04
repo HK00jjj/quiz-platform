@@ -22,7 +22,11 @@ export const A = {
   roseWindow: img('p20.webp'),      // 玫瑰窗魔法阵（答题页牌背中心）
   emptyShelf: img('p38-1.webp'),
   emptyTable: img('p38-2.webp'),
-  titleDecor: img('p45.png'),      // 页面顶部标题装饰条（Bank 页顶部在用）
+  /* titleDecor(p45.png) 已删：它唯一的使用点是 Bank.jsx 的 .page-head 内联 backgroundImage，
+     而 candy.css L331 的 .page-head { background-image: none !important } 一直把它压掉。
+     这是一类引用式审计抓不到的死素材：“有代码引用”但“被 CSS 否决”，
+     所以 purge-dist 会保留它、审计脚本也会报它活着。以后查孤儿图不能只看引用，
+     还得看引用它的那条样式有没有被 !important 盖掉。 */
   /* ── 外部补充素材（用户提供，已经 ingest-assets.mjs 零感知损失压缩）── */
   markRadio: { off: img('mark-radio-off-n.webp'), on: img('mark-radio-on-n.webp') },   // 单选符文框两态
   markCheck: { off: img('mark-check-off-n.webp'), on: img('mark-check-on-n.webp') },   // 多选符文框两态

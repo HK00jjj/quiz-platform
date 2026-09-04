@@ -77,7 +77,11 @@ export default function Bank() {
 
   return (
     <div className="page-wrap wide">
-      <div className="page-head" style={{ backgroundImage: `url(${A.titleDecor})` }}>
+      {/* 原来这里有 style={{ backgroundImage: `url(${A.titleDecor})` }}，但 candy.css L331 的
+          .page-head { background-image: none !important } 一直把它压掉——p45.png 因此
+          「被引用却从不显示」，白占 dist 体积，而引用式审计（查 assets.js 里有没有 A.titleDecor）
+          抓不到这类死素材。删掉内联样式后，titleDecor 键与 p45.png 一并清掉。 */}
+      <div className="page-head">
         <h1><span className="rune">🍬</span> 糖 果 书 架</h1>
         <p>导入的题目都收在这里，点开卡片看详情</p>
       </div>
