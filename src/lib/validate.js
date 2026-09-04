@@ -49,6 +49,7 @@ export class Validator {
       items.forEach((it, i) => { if (seqOf(it) !== i + 1) this.err(`元素${i + 1}`, `序号应为${i + 1}，实际“${str(it.序号)}”`) })
       this.checkQuota(items)
     }
+    if (batchMode) this.checkBatchRules(items)
     for (const it of items) {
       this.checkCommon(it)
       const type = str(it.题型)
@@ -70,6 +71,23 @@ export class Validator {
       }
     }
     return this.issues
+  }
+  checkBatchRules(items) {
+    // B类语义下沉为机器检查（2026-09-04）：简答方案对比式设问 + 批内知识点重复
+    for (const it of items) {
+      const stem = str(it.题干)
+      if (str(it.题型) === '简答题' && /(两种|多个|若干)(方案|做法)|(方案|做法)[^。；]{0,6}(取舍|优劣|对比|比较)/.test(stem)) {
+        this.err(whereOf(it), '简答题禁止方案对比式设问（规则4.5.6），请改为要点式设问')
+      }
+    }
+    const seen = new Map()
+    for (const it of items) {
+      if (seqOf(it) < 2) continue
+      const k = str(it.知识点).trim()
+      if (!k) continue
+      if (seen.has(k)) this.err(whereOf(it), '知识点「' + k + '」与序号' + seen.get(k) + '重复，批内须避重')
+      else seen.set(k, seqOf(it))
+    }
   }
   checkCommon(it) {
     const w = whereOf(it)

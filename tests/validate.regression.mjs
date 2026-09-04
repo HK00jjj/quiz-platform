@@ -31,6 +31,12 @@ check('multi answer unsorted = error', errs(validateItems([base({ 题型: '多�
   const bk = parseBackup(JSON.stringify({ questions: [{ id: 'q1', seq: 1, type: '单选题', stem: 's', answer: 'A' }], cards: [], records: [], imageMap: { q1: 'tpl_din_wiring' } }))
   check('parseBackup carries imageMap', bk && bk.imageMap && bk.imageMap.q1 === 'tpl_din_wiring')
 }
+// 2026-09-04 新增：B类语义下沉机器检查（按消息精确断言，避免被“数组应为21元素”等顶层错误污染）
+const hasMsg = (issues, kw) => issues.some((i) => i.message.includes(kw))
+check('short-answer scheme-comparison = error', hasMsg(validateItems([base({ 题型: '简答题', 选项: undefined, 题干: '给出两种方案并说明取舍', 答案: '1.a；2.b', 解析: '【推导】x【记忆点】z' })], true), '方案对比'))
+check('short-answer point-style ok', !hasMsg(validateItems([base({ 题型: '简答题', 选项: undefined, 题干: '列出分组直连的适用条件与接线要点', 答案: '1.a；2.b', 解析: '【推导】x【记忆点】z' })], true), '方案对比'))
+check('duplicate 知识点 in batch = error', hasMsg(validateItems([base({ 序号: 2, 知识点: 'dup' }), base({ 序号: 3, 知识点: 'dup' })], true), '批内须避重'))
+check('distinct 知识点 in batch ok', !hasMsg(validateItems([base({ 序号: 2, 知识点: 'a' }), base({ 序号: 3, 知识点: 'b' })], true), '批内须避重'))
 
 console.log(`\nregression: ${pass} pass, ${fail} fail`)
 process.exit(fail > 0 ? 1 : 0)
