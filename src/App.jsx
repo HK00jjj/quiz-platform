@@ -82,6 +82,9 @@ export default function App() {
     return (
       <>
         {boot && <BootRitual onDone={() => setBoot(false)} />}
+        {/* 登录页原来没有气泡层：加载态（L72）与已登录的 Shell（L43）都渲染了 <Background />，
+            只有这个分支漏了，所以它只剩一层平渐变、显得空。补回来与其它屏一致。 */}
+        <Background />
         <Login />
       </>
     )

@@ -1204,7 +1204,11 @@ body, button, input, textarea, select {
    盒子用半透奶白，按 §5「降级技术而不是删掉效果」的原则**不给盒子再叠一层 blur**。
    这几条故意不加 !important：global.css 原规则没带，同特异性靠后置层叠就赢，
    而 .modal-box / .modal-veil / .modal-close 都没有内联样式（只有标题 h3 有，所以它那条要用）。 */
-.modal-veil { background: rgba(255, 214, 224, .5); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); }
+/* 遮罩不能用粉洗：上一版我写成 rgba(255,214,224,.5)，叠在本就粉彩的页面背景上
+   会把整屏推成发红（用户原话「整个页面都变红了」）。改用去饱和的暖灰轻压暗：
+   20% 的 rgb(58,44,48) 叠在 #FFF0F5 上约为 rgb(215,201,205)，是个中性蟹壳灰、不带红相，
+   且能把白底弹窗托出来。blur 从 5px 加到 6px，靠磨砂而不是靠颜色拉开层次。 */
+.modal-veil { background: rgba(58, 44, 48, .2); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
 .modal-box {
   background: rgba(255, 255, 255, .9);
   border: 2px solid var(--candy-pink-lt); border-radius: 24px;
@@ -1293,3 +1297,41 @@ body, button, input, textarea, select {
    那样会把整段解析正文也染红，就不是「只改三处」了。所以给答案字母单独加了 .ans-line 类。 */
 .answer-scroll-box.bad .ans-line { color: var(--bad-ink) !important; }
 .answer-scroll-box.bad .lab { color: var(--bad-ink) !important; }
+
+/* ══════════════════════════════════════════════════════════
+   登录页：把糖果系统自有、但这一页一直没用的手法补回来
+   §13 删掉五个哥特位图（星空/漩涡/青铜门/魔法球/铜质分隔条）之后没补任何东西，
+   页面只剩标题+两个输入框+按钮，用户评价「太简陋」。
+   按 bolder 的原则：不发明新词汇，把系统已有的最强手法用到这一页——
+   ① 气泡层 <Background />（加载态与已登录的 Shell 都有，唯独登录分支漏了，已在 App.jsx 补）
+   ② .ch-lolli 棒棒糖 + .ch-candy 糖豆（Learn 页糖果橱窗的同一套类，直接复用）
+   ③ .divider 那条糖果渐变分隔条配方
+   ══════════════════════════════════════════════════════════ */
+/* .login-stage 那层不透明渐变会把 z-index:0 的 .bubble-layer 盖住（DOM 里它更靠后），
+   改透明，让 body 的糖果渐变与气泡透出来 */
+.login-stage { background: transparent !important; }
+.login-hero { position: relative; height: 118px; max-width: 300px; margin: 0 auto 2px; }
+/* 位置重写：.ch-* 原本的百分比是给 Learn 那条 150px 全宽横幅排的，
+   放进 300px 宽的登录 hero 会挤在一起，所以按新容器重排；棒棒糖居中当主角。
+   用 margin-left 而不是 translate/transform 居中——.ch-lolli::before 自带旋转动画，
+   任何 transform 都会和它打架（§12.2 那个坑）。 */
+.login-hero .ch-lolli { left: 50%; margin-left: -29px; bottom: 0; width: 58px; height: 92px; }
+.login-hero .ch-candy.c1 { left: 6%; top: 22%; }
+.login-hero .ch-candy.c2 { right: 6%; top: 12%; }
+.login-hero .ch-candy.c3 { right: 20%; bottom: 2%; }
+/* 标题给到展示级字号（bolder：display type at full strength） */
+.login-title { font-size: clamp(30px, 8.6vw, 40px) !important; letter-spacing: 6px; }
+/* 分隔条：复用 .divider / .zone-rule 的配方，不引位图 */
+.login-divider {
+  height: 2px; max-width: 220px; margin: 12px auto 18px; border-radius: 2px;
+  background: linear-gradient(90deg, transparent, var(--candy-pink-lt) 18%, var(--mint-lt) 50%, var(--candy-pink-lt) 82%, transparent);
+}
+/* 页脚原来是哥特米金色小字，压在浅粉底上对比度不足 2:1（craft-floor 要求正文 ≥4.5:1） */
+.login-foot { color: var(--muted) !important; letter-spacing: 1.5px; }
+@media (max-width: 420px) {
+  .login-hero { height: 96px; max-width: 240px; }
+  .login-hero .ch-lolli { width: 48px; height: 76px; margin-left: -24px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .login-hero .ch-candy, .login-hero .ch-lolli::before { animation: none !important; }
+}

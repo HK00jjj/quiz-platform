@@ -50,8 +50,20 @@ export default function Login() {
       <div className="login-gate-wrap">
         <div className={'login-gate' + (burst ? ' gate-success' : '')}>
           <div className="login-gate-inner">
+            {/* 糖果 hero：直接复用系统自有的 .ch-lolli（棒棒糖）与 .ch-candy（糖豆）——
+                Learn 页的糖果橱窗用的就是这两个类。这里原本挂着哥特魔法球位图 A.magicOrb，
+                §13 删掉后没补任何东西，页面就空了。不新增位图、不发明新 motif。 */}
+            <div className="login-hero" aria-hidden="true">
+              <span className="ch-lolli" />
+              <span className="ch-candy c1" />
+              <span className="ch-candy c2" />
+              <span className="ch-candy c3" />
+            </div>
             <h1 className="login-title">糖果之门</h1>
             <p className="login-sub">尝 味 师 登 录</p>
+            {/* 糖果分隔条：复用 .divider / .zone-rule 的渐变配方，纯CSS零位图。
+                原本这里是哥特铜质花纹条 A.divider(p44.png)。 */}
+            <div className="login-divider" aria-hidden="true" />
             <form onSubmit={submit}>
               <div className="login-input">
                 <span className="icon" aria-hidden="true">✉️</span>
