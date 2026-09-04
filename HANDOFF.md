@@ -1642,3 +1642,35 @@ SKILL.md L14 说上游是 `规则体系.md`，而这次实际是反方向同步�
   答题页 `imgs: 8, broken: []`、`.crack-veil` 正常、判定横幅「答错了」正常；
   **`#/stats` 实测重定向到 `#/`**；console 全程 0 errors
 - 上线：gh-pages `640621b`、verify-deploy **27/27** 全零差异
+
+### 23.8 补：verify-live / verify-deploy 也加了重试（§22.6 的遗留项本轮清掉）
+
+`push-src` 成功后 `verify-live` 立刻挂在 `UND_ERR_CONNECT_TIMEOUT`——正是 §22.6 表格里预判的那一条
+（「`verify-live.mjs` 走 Pages CDN，而 CDN 正是最容易超时的那个，建议下一轮补」）。
+
+修法与 §22.6 同：给两个脚本各包一层**带指数退避的全局 fetch**（1s→2s→4s→8s→15s 上限，共 5 次，
+只重试网络层错误与 429/5xx，4xx 业务错误直接放行给调用方判断）。
+包 `globalThis.fetch` 而不是逐个改调用点，是为了**所有现有与将来新增的请求自动获得重试**。
+两个脚本都是只读的，重放无副作用。
+
+**补丁当场生效**：重跑时打印 `retry 1/4: ECONNRESET https://hk00jjj.github.io/quiz-platform/img/p4.webp`，
+重试后 `27/27 个 200 OK`、三哈希 MATCH、`LIVE RESULT: ALL OK`。
+
+一个细节：`verify-live.mjs` 的 `head()` 里**本来就有一个 3 次重试循环**，但它没兜住这次——
+抛出的异常来自 L55 那个取哈希的 GET（没有重试）。现在两层叠加，最坏情况 15 次尝试，无害。
+
+**至此四个联网脚本全部具备重试**：`push-src.mjs`（原有）、`deploy-api.mjs`（§22.6）、
+`verify-deploy.mjs`、`verify-live.mjs`（本节）。
+
+### 23.9 工作区联接现状（下个会话要用）
+
+当前会话工作区 `2026-09-03\chat-1` 里有五个 junction 指向真实工程与外部资料，
+**编辑类工具只能改工作区内的路径，所以跨目录改文件一律走这些联接**：
+
+| 联接 | 指向 | 用途 |
+| --- | --- | --- |
+| `app` | `2026-09-02\chat-1\app` | 应用源码 |
+| `scripts` | `2026-09-02\chat-1\scripts` | 部署与测试脚本 |
+| `oldroot` | `2026-09-02\chat-1` | 根级的 `verify-*.mjs` / `HANDOFF.md` / `src-branch-README.md` |
+| `skill-eqg` | `.qoder-cn\skills\electrical-question-gen` | 出题 skill（SKILL.md + rules/） |
+| `pipeline` | `Documents\Qoder\命题流水线` | 规则体系.md 上游与已退役的 validator |

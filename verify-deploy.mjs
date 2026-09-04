@@ -12,6 +12,32 @@ const H = {
   Accept: 'application/vnd.github+json'
 }
 
+/* ⚠ 到 api.github.com 的连接是间歇性的（undici connect timeout 10s，外层 AbortSignal 管不到），
+   一次抖动就会让整轮校验失败。包一层带指数退避的 fetch，所有调用点自动获得重试。
+   只重试网络层错误与 429/5xx；4xx 属业务错误，直接放行给调用方判断。
+   本脚本全是只读请求，重放无副作用。与 deploy-api.mjs / verify-live.mjs 里的是同一套。 */
+const _fetch = globalThis.fetch
+const _sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+globalThis.fetch = async (...a) => {
+  for (let n = 1; n <= 5; n++) {
+    const tail = String(a[0]).slice(-58)
+    try {
+      const r = await _fetch(...a)
+      if ((r.status === 429 || r.status >= 500) && n < 5) {
+        console.log(`  retry ${n}/4: HTTP ${r.status} ${tail}`)
+        await _sleep(Math.min(1000 * 2 ** (n - 1), 15000) + Math.random() * 400); continue
+      }
+      return r
+    } catch (e) {
+      const tag = String(e?.cause?.code ?? '') + ' ' + String(e?.message ?? '')
+      const isNet = e instanceof TypeError || /UND_ERR|ETIMEDOUT|ECONNRESET|ECONNREFUSED|EAI_AGAIN|ENOTFOUND|socket hang up|fetch failed/i.test(tag)
+      if (!isNet || n >= 5) throw e
+      console.log(`  retry ${n}/4: ${String(e?.cause?.code ?? e.message).slice(0, 34)} ${tail}`)
+      await _sleep(Math.min(1000 * 2 ** (n - 1), 15000) + Math.random() * 400)
+    }
+  }
+}
+
 async function req(path) {
   const r = await fetch('https://api.github.com' + path, { headers: H, signal: AbortSignal.timeout(120000) })
   const t = await r.text()
