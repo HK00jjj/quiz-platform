@@ -1534,3 +1534,25 @@ body, button, input, textarea, select {
   border-color: transparent !important;
   box-shadow: none !important;
 }
+
+/* ══ 学习页 hero 重排（用户指认「太丑」）══
+   原来是一条 ~200px 高的空渐变带 + 4 个散点 + 一个居中浮动 caption 胶囊，
+   大片留白显得没做完。改成左文右糖：左边真标题 + 副标，右边糖豆聚成一簇，带高收窄。 */
+.candy-hero { min-height: 132px; }
+.candy-hero .hero-copy {
+  position: absolute; left: 6%; top: 50%; transform: translateY(-50%);
+  z-index: 2; max-width: 56%;
+}
+.candy-hero .hero-copy h2 {
+  margin: 0 0 6px; font-size: clamp(19px, 3.2vw, 25px); font-weight: 900;
+  letter-spacing: 2px; color: var(--gold-text);
+  text-shadow: 0 2px 0 rgba(255, 255, 255, .9);
+}
+.candy-hero .hero-copy p { margin: 0; font-size: 12.5px; letter-spacing: 1px; color: var(--ink-2); }
+.candy-hero .ch-candy.c1 { left: auto; right: 25%; top: 20%; }
+.candy-hero .ch-candy.c2 { right: 9%; top: 15%; }
+.candy-hero .ch-candy.c3 { right: 16%; bottom: 15%; }
+.candy-hero .ch-lolli { left: auto; right: 34%; bottom: 6%; }
+/* 品牌行：去掉哥特金 / 哥特字体类与 ✦ 排版符，用糖果粉 + 自绘棒棒糖图标 */
+.brand { color: var(--gold-text) !important; }
+.brand svg { width: 20px; height: 20px; vertical-align: -3px; margin-right: 7px; color: var(--candy-pink-dk); }

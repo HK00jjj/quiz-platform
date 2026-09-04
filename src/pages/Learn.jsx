@@ -119,7 +119,7 @@ export default function Learn() {
   return (
     <div className="page-wrap">
       <div className="learn-banner">
-        <div className="brand gold-title font-gothic">✦ 糖果题库 ✦</div>
+        <div className="brand"><IconLearn /> 糖果题库</div>
         {doneToday > 0 ? (
           <span className="tag teal" style={{ fontSize: 13, padding: '6px 14px' }}>
             ✦ 今日已做题，甜蜜值延续中 <FlameIcon />
@@ -139,7 +139,12 @@ export default function Learn() {
         <span className="ch-candy c2" aria-hidden="true" />
         <span className="ch-candy c3" aria-hidden="true" />
         <span className="ch-lolli" aria-hidden="true" />
-        <span className="cap">糖果橱窗 · 选一个今天的口味</span>
+        {/* 原来这里只有一个居中浮动的 caption 胶囊，整条 ~200px 渐变带大片留白显得没做完。
+            改成左文右糖：左边真标题 + 副标，右边糖豆聚成一簇（位置在 candy.css 里重排）。 */}
+        <div className="hero-copy">
+          <h2>今天想练点什么？</h2>
+          <p>{questions.length} 道题在架上{streak > 0 ? ` · 已连续学习 ${streak} 天` : ''}</p>
+        </div>
       </div>
 
       <div className="panel deep" style={{ textAlign: 'center' }}>

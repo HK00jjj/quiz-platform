@@ -1955,3 +1955,20 @@ dev 直接 `ReferenceError: IconLearn is not defined` 崩掉整个 Learn 页。
 - 三套回归未受影响（本轮只动 JSX 标记与 CSS，未碰逻辑）
 - 真机：学习页与书库页截图确认三处均修复；console **0 errors**
 - 上线：gh-pages `f888417`、verify-deploy 26/26 全零差异
+
+---
+
+## 28. 第十八轮（2026-09-04）· 学习页 hero 重排（用户指认「太丑」）
+
+**gh-pages HEAD：`cd8f7a9`（父 `f888417`）。dist 26 文件 / 3.05 MB，verify-deploy 26/26 全零差异。**
+
+两处根因：
+
+1. **品牌行还是哥特金 + ✦ 排版符**（`.brand.gold-title.font-gothic`）→ 去掉两个哥特类与 ✦，
+   换糖果粉（`--gold-text`=#E8607F）+ 自绘棒棒糖图标 `.brand svg`。
+2. **hero 是一条 ~200px 高的空渐变带** + 4 个散点 + 一个居中浮动 caption 胶囊（「糖果橱窗 · 选一个今天的口味」），
+   大片留白像没做完 → 改成**左文右糖**：左边真标题「今天想练点什么？」+ 副标「N 道题在架上 · 已连续学习 N 天」，
+   右边糖豆聚成一簇（`.ch-candy.c1/c2/c3` 与 `.ch-lolli` 的 left 改 right 重排到右侧），带高 `min-height:132px`。
+   `.cap` 胶囊的 span 从 JSX 删除（其 CSS 变幽灵，归入 §23.6 待清批）。
+
+验证：真机截图确认左文右糖布局与粉色品牌行；console 0 errors；verify-deploy 26/26 全零差异。
