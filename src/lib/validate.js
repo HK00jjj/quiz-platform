@@ -169,14 +169,23 @@ export class Validator {
       counts.set(t, (counts.get(t) ?? 0) + 1)
     }
     const c = (t) => counts.get(t) ?? 0
-    for (const [t, expect] of [['多选题', 2], ['判断题', 2], ['填空题', 2], ['简答题', 2], ['综合设计/故障诊断题', 1]]) {
-      if (c(t) !== expect) this.err('配比', `${t}应为${expect}道，实际${c(t)}道`)
+    // 区间弹性校验（2026-09-04 修订：固定配比→区间+硬约束）
+    const ranges = [
+      ['多选题', 2, 3], ['判断题', 2, 3], ['填空题', 1, 2],
+      ['简答题', 1, 3], ['计算分析题', 2, 3], ['综合设计/故障诊断题', 1, 1]
+    ]
+    for (const [t, min, max] of ranges) {
+      const n = c(t)
+      if (n < min || n > max) this.err('配比', `${t}为${n}道，应在${min === max ? min : min + '~' + max}道区间内`)
     }
-    const calc = c('计算分析题')
-    if (calc < 2 || calc > 3) this.err('配比', `计算分析题为${calc}道，应为2~3道（默认3），不得增至4道`)
     const single = c('单选题')
-    const expectSingle = 11 - calc
-    if (single !== expectSingle) this.err('配比', `单选题应为${expectSingle}道（11-计算${calc}），实际${single}道`)
+    const others = c('多选题') + c('判断题') + c('填空题') + c('计算分析题') + c('简答题') + c('综合设计/故障诊断题')
+    if (single + others !== 20) this.err('配比', `拓展题总数应为20道，实际单选${single}+其余${others}=${single + others}道`)
+    if (single < 6 || single > 11) this.err('配比', `单选题为${single}道，应在6~11道区间内`)
+    // 硬约束：计算+简答≤5
+    const calcPlusShort = c('计算分析题') + c('简答题')
+    if (calcPlusShort > 5) this.err('配比', `计算+简答=${calcPlusShort}道（>5），违反硬约束`)
+    // 硬约束：客观题≥14
     const objective = single + c('多选题') + c('判断题') + c('填空题')
     if (objective < 14) this.err('配比', `客观题仅${objective}道（<14），违反客观题>=14红线`)
   }
