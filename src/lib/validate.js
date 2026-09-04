@@ -184,8 +184,13 @@ export class Validator {
         if (!ans.includes(mark)) { this.warn(w, `答案中未见分问标记${mark}（三问递进）`); break }
       }
     } else if (type === '综合设计/故障诊断题') {
-      const missing = COMPREHENSIVE_ELEMENTS.filter((e) => !ans.includes(e))
-      if (missing.length > 0) this.err(w, `综合题答案缺少要素：${missing.join('、')}（四要素缺一判不合格）`)
+      // 双框架（规则4.7.2）：设计四要素 或 诊断四要素，满足其一即合格
+      const DIAG_ELEMENTS = ['现象', '可测证据', '故障定位', '验证方法']
+      const missDesign = COMPREHENSIVE_ELEMENTS.filter((e) => !ans.includes(e))
+      const missDiag = DIAG_ELEMENTS.filter((e) => !ans.includes(e))
+      if (missDesign.length > 0 && missDiag.length > 0) {
+        this.err(w, '综合题答案须含设计四要素(方案/选型计算/控制逻辑/保护与安全)或诊断四要素(现象/可测证据/故障定位/验证方法)之一套，当前两套均缺')
+      }
     }
   }
   checkQuota(items) {

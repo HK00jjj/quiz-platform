@@ -37,6 +37,10 @@ check('short-answer scheme-comparison = error', hasMsg(validateItems([base({ 题
 check('short-answer point-style ok', !hasMsg(validateItems([base({ 题型: '简答题', 选项: undefined, 题干: '列出分组直连的适用条件与接线要点', 答案: '1.a；2.b', 解析: '【推导】x【记忆点】z' })], true), '方案对比'))
 check('duplicate 知识点 in batch = error', hasMsg(validateItems([base({ 序号: 2, 知识点: 'dup' }), base({ 序号: 3, 知识点: 'dup' })], true), '批内须避重'))
 check('distinct 知识点 in batch ok', !hasMsg(validateItems([base({ 序号: 2, 知识点: 'a' }), base({ 序号: 3, 知识点: 'b' })], true), '批内须避重'))
+// 2026-09-04 新增：综合题双框架（设计四要素 或 诊断四要素）
+check('comprehensive diagnosis-four-elements ok', !hasMsg(validateItems([base({ 题型: '综合设计/故障诊断题', 选项: undefined, 难度: '综合', 认知层级: '创造', 答案: '现象：x；可测证据：y；故障定位：z；验证方法：w', 解析: '【推导】a【记忆点】b' })], false), '两套均缺'))
+check('comprehensive design-four-elements ok', !hasMsg(validateItems([base({ 题型: '综合设计/故障诊断题', 选项: undefined, 难度: '综合', 认知层级: '创造', 答案: '1.方案：a；2.选型计算：b；3.控制逻辑：c；4.保护与安全：d', 解析: '【推导】a【记忆点】b' })], false), '两套均缺'))
+check('comprehensive missing both = error', hasMsg(validateItems([base({ 题型: '综合设计/故障诊断题', 选项: undefined, 难度: '综合', 认知层级: '创造', 答案: '随便答', 解析: '【推导】a【记忆点】b' })], false), '两套均缺'))
 
 console.log(`\nregression: ${pass} pass, ${fail} fail`)
 process.exit(fail > 0 ? 1 : 0)
