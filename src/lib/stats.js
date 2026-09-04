@@ -1,6 +1,9 @@
 // 统计 / 等级 / 成就 / 会话构建（口径与线上一致）
-import { isDue } from './fsrs'
-import { daysAgoStr } from './dates'
+/* 显式写 .js 扩展名：ESM 规范本来就这么要求，Vite 两种写法都能解析、打包结果完全一致，
+   但 Node 直接 import 本文件时缺扩展名会 ERR_MODULE_NOT_FOUND——
+   scripts/t-session.mjs 的组卷回归测试就是这么挂的。lib/validate.js 零依赖所以不受影响。 */
+import { isDue } from './fsrs.js'
+import { daysAgoStr } from './dates.js'
 
 export const TYPES = ['单选题', '多选题', '判断题', '填空题', '简答题', '计算分析题', '综合设计/故障诊断题']
 export const OBJECTIVE_TYPES = ['单选题', '多选题', '判断题', '填空题']
@@ -149,8 +152,12 @@ export function buildSession(questions, cards, records, opts) {
       return take(filtered.filter((q) => !seen.has(q.id)).sort((a, b) => a.seq - b.seq), opts.size)
     }
     case 'review':
-      return cards.filter((c) => isDue(c, opts.now) && byId.has(c.questionId))
-        .sort((a, b) => a.dueAt - b.dueAt).map((c) => byId.get(c.questionId))
+      /* 原来这是 buildSession 里唯一没走 take() 的分支，hero 传的 size:20 被静默丢掉——
+         几天没练、积压 200 张到期卡就会一次性塞 200 题进会话。
+         按 dueAt 升序取前 N 张 = 拖欠最久的优先，剩下的明天继续到期、不会丢
+         （Anki 的每日复习上限同理）。take 对 size<=0 返回全部，所以不传 size 的调用方行为不变。 */
+      return take(cards.filter((c) => isDue(c, opts.now) && byId.has(c.questionId))
+        .sort((a, b) => a.dueAt - b.dueAt).map((c) => byId.get(c.questionId)), opts.size)
     case 'wrong': {
       const last = lastResultMap(records)
       return take(filtered.filter((q) => last.get(q.id) === false).sort((a, b) => a.seq - b.seq), opts.size)

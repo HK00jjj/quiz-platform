@@ -90,7 +90,7 @@ export default function Learn() {
       ? { sub: `${wrongCount} 道错题等着重练`, run: () => run('wrong', { size: 20 }) }
       : newCount > 0
         ? { sub: `${newCount} 道新题还没做过`, run: () => run('learn') }
-        : { sub: '今天也来练几道，保持手感', run: () => run('random') }
+        : { sub: '今天也来练几道，保持手感', run: () => run('random', { size: 20 }) }
 
   function toggleFilter(scope, dim, value) {
     const key = scope === 'relearn' ? 'relearnFilters' : 'learnFilters'

@@ -9,15 +9,50 @@ const repo = 'HK00jjj/quiz-platform'
 const H = { Authorization: `token ${token}`, 'User-Agent': 'qp-deploy', 'Accept': 'application/vnd.github+json', 'Content-Type': 'application/json' }
 const api = 'https://api.github.com'
 
-async function req(method, path, body, timeoutMs = 300000) {
-  const r = await fetch(api + path, {
-    method, headers: H,
-    body: body ? JSON.stringify(body) : undefined,
-    signal: AbortSignal.timeout(timeoutMs)
-  })
-  const text = await r.text()
-  if (!r.ok) throw new Error(`${method} ${path} -> ${r.status}: ${text.slice(0, 300)}`)
-  return text ? JSON.parse(text) : null
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+const backoff = (n) => Math.min(1000 * 2 ** (n - 1), 15000) + Math.floor(Math.random() * 400)
+const RETRYABLE_STATUS = new Set([429, 500, 502, 503, 504])
+
+/* ⚠ 到 api.github.com 的连接是间歇性的：undici 的 connect timeout 默认 10s，
+   而下面 AbortSignal.timeout(300000) 管的是整体超时、管不到 connect 阶段，
+   于是会在任意一次请求上抛 TypeError: fetch failed / UND_ERR_CONNECT_TIMEOUT 把整轮部署打断。
+   实测过：45 个 blob 与 tree 全部建好了，偏偏最后创建 commit 那一次超时，
+   前面五分钟的上传全白费。这里对「网络层错误 + 5xx + 429」做指数退避重试。
+
+   四种调用都可以安全重放：
+   - POST /git/blobs 与 /git/trees 是内容寻址的，同内容得同 sha
+   - POST /git/commits 的 author/committer date 在调用前就已求值固定，
+     同 body 必然得到同一个 commit sha（commit sha 就是其内容的哈希）
+   - PATCH /git/refs 设成同一个 sha 幂等
+   HTTP 4xx（除 429）属于业务错误，不重试、直接抛。 */
+async function req(method, path, body, timeoutMs = 300000, tries = 5) {
+  for (let n = 1; n <= tries; n++) {
+    try {
+      const r = await fetch(api + path, {
+        method, headers: H,
+        body: body ? JSON.stringify(body) : undefined,
+        signal: AbortSignal.timeout(timeoutMs)
+      })
+      const text = await r.text()
+      if (!r.ok) {
+        if (RETRYABLE_STATUS.has(r.status) && n < tries) {
+          console.log(`  retry ${n}/${tries - 1}: ${method} ${path} -> HTTP ${r.status}`)
+          await sleep(backoff(n))
+          continue
+        }
+        throw new Error(`${method} ${path} -> ${r.status}: ${text.slice(0, 300)}`)
+      }
+      return text ? JSON.parse(text) : null
+    } catch (e) {
+      const code = String(e?.cause?.code ?? '')
+      const msg = String(e?.message ?? '')
+      const isNet = e instanceof TypeError ||
+        /UND_ERR|ETIMEDOUT|ECONNRESET|ECONNREFUSED|EAI_AGAIN|ENOTFOUND|socket hang up|fetch failed/i.test(code + ' ' + msg)
+      if (!isNet || n >= tries) throw e
+      console.log(`  retry ${n}/${tries - 1}: ${method} ${path} -> ${code || msg.slice(0, 60)}`)
+      await sleep(backoff(n))
+    }
+  }
 }
 
 function walk(dir, base, out) {

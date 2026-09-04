@@ -1357,3 +1357,155 @@ export function assignGlobalSeq(incoming, existing) {
 `Bank.jsx` L125 卡片背面的 `<b>编号</b>` 改成 `<b>入库序</b>`。
 `q.seq` 已经不是协议里的批内序号了，第三批的第 1 题会显示「第 43 题」，
 沿用「编号」会让人以为数据乱了。**这是语义跟随，不是美化。**
+
+---
+
+## 22. 第十二轮（2026-09-04）· 五个练习入口的排序口径 + 修两个组卷 bug + 部署脚本加重试
+
+**gh-pages HEAD：`b8a99d3`（父 `8487391`），45 文件 / 4.61 MB，verify-deploy 缺失0/不一致0/多余0。**
+**CSS 哈希未变（`index-blmfZRBh.css`）——纯逻辑改动。**
+
+### 22.1 五个入口的真实口径（用户逐条问过后核对的结果，别再凭印象答）
+
+| 入口 | 代码 | 筛选口径 | 排序 | 题量 |
+| --- | --- | --- | --- | --- |
+| **开始今日练习**（hero） | `Learn.jsx` L86-93 **四选一优先链** | 见下 | 见下 | 见下 |
+| **错题重练** | `run('wrong',{size:0})` | `lastResultMap(records).get(id) === false`，即**最近一次**答错（后来答对就出局，不是"曾经错过"） | `a.seq - b.seq` | 全部 |
+| **随机练习** | `run('random',{size:20})` | **不排除做过的、不排除错题**，从筛选后全库抽 | Fisher-Yates | 20 |
+| **新题上手** | `run('learn')` | `cards` 里没有复习卡的题 = **从未做过三档自评**（不是"从未点进去过"） | `a.seq - b.seq` | **全部（故意不封顶）** |
+| **挑题练习** | modal → `run('relearn',{size:0,…筛选})` | 题型 / 知识域 / 难度 | `a.seq - b.seq` | 全部 |
+
+hero 优先链（`Learn.jsx` L86 注释原文「到期复习 → 错题 → 新题 → 随机（按交接要求保留）」）：
+
+```
+dueCount > 0   → review  「N 道题到期，该复习了」   size:20
+wrongCount > 0 → wrong   「N 道错题等着重练」       size:20
+newCount > 0   → learn   「N 道新题还没做过」       无 size = 全部
+都没有          → random  「今天也来练几道，保持手感」 size:20（本轮补上，原来漏了）
+```
+
+**所以「开始今日练习」不等于间隔重复** —— 只有今天真有到期题时才走 FSRS，否则逐级降级。
+
+`take(list, size)` = `size > 0 ? list.slice(0, size) : list`，**`size:0` 与不传都等于"全部"**。
+`startSession`（`store.js` L427-430）传的是 `size: opts.size ?? 0, now: Date.now()` —— `now` 一定会传，
+这点很关键：`isDue(card, now)` 是 `card.dueAt <= now`，**漏传 now 会让 review 静默返回空会话**（已写成测试 A6 钉住）。
+
+### 22.2 FSRS 在用，而且是完整的 FSRS（不是 SM-2）
+
+`lib/fsrs.js`，注释「与线上算法完全一致，保证复习数据兼容」：17 个权重 `w[0..16]`、
+`DECAY=-0.5`、`FACTOR=19/81`、`REQ=0.9`（目标保留率 90%）、幂遗忘曲线
+`R=(1+FACTOR·elapsed/S)^DECAY`、间隔反解 `I=S/FACTOR·(R^(1/DECAY)−1)`、
+`S0=w[rating−1]`、`D0=clampD(w[4]−(rating−3)·w[5])`、难度更新带 `w[7]` 均值回归、
+回忆后稳定性含 hard/easy 乘子 `w[15]/w[16]`、遗忘走 `nextForgetStability`。
+三档自评映射 **忘记=1(Again)、模糊=2(Hard)、记得=3(Good)**。
+有老卡兼容分支：缺 `stability/difficulty` 的旧卡用 `S=max(1,intervalDays)`、`D=5` 兜底。
+
+**两处死代码**（不影响功能，别以为是 bug 去"修"）：
+- `rating === 4` 的 easy 乘子 `w[16]` **永远不会触发** —— 三档最多映射到 3，没有 Easy
+- `easeFactor: 2.5` 是 SM-2 遗留字段，`reviewCard` 里恒定赋 2.5、**不参与任何计算**
+
+### 22.3 本轮修的两个 bug
+
+**A. `buildSession` 的 `review` 是五条路径里唯一没走 `take()` 的分支**，hero 传的 `size:20` 被静默丢掉 ——
+几天没练、积压 200 张到期卡就会一次性塞 200 题进会话。
+修法：外面套 `take(..., opts.size)`。按 `dueAt` 升序取前 N = **拖欠最久的优先**，
+剩下的明天继续到期、不会丢（Anki 的每日复习上限同理）。`take` 对 `size<=0` 返回全部，不传 size 的调用方行为不变。
+
+**B1. hero 降级到 `random` 时漏传 size** —— 同一条链上 `review`/`wrong` 都传 20、「随机练习」卡片也传 20，
+只有它没传，于是 `take(list, undefined)` 返回**全库打乱**。补 `{ size: 20 }`。
+
+**B2（`learn` 不封顶）故意没改。** 理由：正常节奏是一次导一批 21 题，"全部新题"就是 21 道正好；
+出现几百题会话只在一次性导入很多批时，而那种情况下"把新题全过一遍"可能本来就是用户要的；
+且 hero 文案会显示「N 道新题还没做过」，**点之前就知道是几道 = 知情同意**。
+要封顶是产品决策，不是修 bug，所以留给用户拍板。
+
+### 22.4 新增回归测试 `scripts/t-session.mjs`（18 例，全过）
+
+`buildSession` 之前**一个测试都没有**，而它的排序口径是用户明确关心过的行为。18 例覆盖：
+review 遵守 size / 排序是 dueAt 升序（拖欠最久优先）/ size:0 与不传都返回全部 /
+只取已到期的 / **不传 now 返回空**；learn 排除已有复习卡 + 按 seq + 遵守 size；
+wrong 只取最近一次答错（翻正的不计、翻错的要计）+ **按 seq 而非错题产生时间**；
+random 恰好 N 道 + 无凭空 id + 不排除做过的；relearn 全量按 seq + 题型筛选 + 知识域筛选；未知 mode 返回空。
+
+三套回归现状：**t-session 18/18、t-seq 16/16、t-fill 13/13（共 47 条断言）**。
+
+### 22.5 ⚠ 附带修的：`lib/` 里的相对 import 必须带 `.js` 扩展名
+
+`t-session.mjs` 第一次跑就挂：
+
+```
+Error [ERR_MODULE_NOT_FOUND]: Cannot find module '.../app/src/lib/fsrs'
+  imported from .../app/src/lib/stats.js
+```
+
+根因：`stats.js` 写的是 `import { isDue } from './fsrs'`（**无扩展名**）。
+Vite 能解析，**Node 的 ESM 加载器要求完整文件名**。
+`t-seq.mjs` / `t-fill.mjs` 之所以一直能跑，是因为 `lib/validate.js` **零依赖**。
+
+已把 `stats.js` 的两条改成 `'./fsrs.js'` / `'./dates.js'`。**打包结果完全一致**（Vite 两种写法同样解析），
+但从此 `lib/stats.js` 可以在 Node 里直接测。
+
+**还没改的**：`db.js` 有 `'./supabase'`、`'./dates'`；`store.js` 有 6 条无扩展名 import。
+`store.js` 不用管（它用 `import.meta.env`，Node 里本来跑不起来）；
+`db.js` 目前没测试需要它，要测再改。**以后新增 lib/ 模块一律写全扩展名。**
+
+### 22.6 ⚠ 部署脚本原来完全没有重试，一次网络抖动就废掉整轮上传
+
+本轮部署**连续失败 2 次**。第一次我用 `Select-Object -Last 3` 截断了输出，
+只看到 `}` 和 `Node.js v24.19.0`，**没读到真实报错就又重试了一次** —— 违反 systematic-debugging Phase 1。
+第二次改成完整捕获才拿到根因：
+
+```
+blobs: 40 / 45          ← 45 个 blob 全部上传成功
+new tree: 60b151b0...   ← tree 也建好了
+[TypeError: fetch failed]
+  cause: ConnectTimeoutError (attempted address: api.github.com:443, timeout: 10000ms)
+  code: UND_ERR_CONNECT_TIMEOUT
+```
+
+**卡在最后创建 commit 那一次请求**，前面几分钟的上传全白费。
+
+关键点：`req()` 里的 `AbortSignal.timeout(300000)` 管的是**整体超时**，
+**管不到 undici 那个默认 10 秒的 connect timeout**。而当时的诊断显示
+`Test-NetConnection api.github.com:443 = True`、`Invoke-WebRequest https://api.github.com = HTTP 200` ——
+**连接是间歇性的**，同一时刻 PowerShell 通、Node 不通。（`hk00jjj.github.io` 的 Pages CDN 当时 HTTPS 直接操作超时。）
+
+修法：给 `deploy-api.mjs` 的 `req()` 加**指数退避重试**（`1s→2s→4s→8s→15s` 上限，带 0~400ms 抖动，共 5 次），
+只对「网络层错误（`TypeError` / `UND_ERR*` / `ETIMEDOUT` / `ECONNRESET` / `ECONNREFUSED` / `EAI_AGAIN` / `ENOTFOUND` /
+`socket hang up` / `fetch failed`）+ HTTP 429/5xx」重试；**HTTP 4xx 属业务错误，直接抛不重试**。
+
+**为什么重放是安全的**（四种调用逐一核过）：
+- `POST /git/blobs`、`POST /git/trees` 是**内容寻址**的，同内容得同 sha
+- `POST /git/commits` 的 `author/committer date` 在调用 `req()` **之前就已求值固定**，
+  同 body 必然得到同一个 commit sha（commit sha 就是其内容的哈希）
+- `PATCH /git/refs` 设成同一个 sha 幂等
+
+**实证**：重跑后 `new tree: 60b151b05837f155181afd0d76d453b40f2deb94` 与崩溃那次**完全相同**，退出码 0，
+`new commit: b8a99d3`。
+
+**其它脚本的重试现状**（本轮查实）：
+
+| 脚本 | 有 fetch | 有重试 |
+| --- | --- | --- |
+| `push-src.mjs` | ✅ | ✅ **本来就有**（难怪它一直稳，只偶发首跑 MISMATCH） |
+| `deploy-api.mjs` | ✅ | ✅ 本轮补上 |
+| `verify-deploy.mjs` | ✅ | ❌ 走 API，只读，失败重跑即可 |
+| `verify-live.mjs` | ✅ | ❌ **走 Pages CDN，而 CDN 正是最容易超时的那个**，建议下一轮补 |
+
+### 22.7 挂起：C（存量数据 seq 迁移）的只读试算办法
+
+`assignGlobalSeq`（§21）**只向前生效**，云端已有批次的 `seq` 仍重叠。
+迁移唯一的批次分组信号是 `qp.importedAt.v1`，而它**只在用户浏览器的 localStorage、不上云**，
+所以试算只能在用户那台浏览器里跑。已给用户这段**只读**片段（F12 Console 粘贴，不写任何数据）：
+
+```js
+(()=>{const m=JSON.parse(localStorage.getItem('qp.importedAt.v1')||'{}');const k=Object.keys(m);
+if(!k.length)return console.log('⚠ 空的 —— 这个浏览器没有导入时间记录，存量迁移做不了');
+const g={};k.forEach(id=>{(g[m[id]]=g[m[id]]||[]).push(id)});const b=Object.keys(g).sort((a,c)=>a-c);
+console.log('有时间戳的题:',k.length,'| 批次数:',b.length);
+console.log('各批题数:',b.map(t=>g[t].length).join(' , '));
+console.log('最早:',new Date(+b[0]).toLocaleString(),'最晚:',new Date(+b[b.length-1]).toLocaleString())})()
+```
+
+拿到批次数与覆盖率后再决定要不要做写入。**写入必须在应用内做**（需要已登录的 Supabase 会话），
+且要先备份、先出预览、再确认 —— 不要在 Console 里手搓写操作。
