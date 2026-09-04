@@ -1,9 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect width="64" height="64" rx="10" fill="#0d1117"/>
-  <g stroke="#c9a84c" stroke-width="2" fill="none">
-    <circle cx="32" cy="32" r="22"/>
-    <circle cx="32" cy="32" r="10"/>
-    <path d="M32 10v44M10 32h44M16.4 16.4l31.2 31.2M47.6 16.4L16.4 47.6"/>
-  </g>
-  <circle cx="32" cy="32" r="4.5" fill="#5aa89c"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="糖果题库">
+  <!-- 棒棒糖：与站内 .ch-lolli 同一个 motif（粉桃糖头 + 薄荷糖棍 + 奶白螺旋）。
+       纯几何矢量、零位图，替换掉原来那枚哥特黑底金纹图标。 -->
+  <rect x="28" y="31" width="8" height="30" rx="4" fill="#5FD4B0"/>
+  <circle cx="32" cy="24" r="21" fill="#FF8FA3"/>
+  <circle cx="32" cy="24" r="19.5" fill="none" stroke="#FFD6E0" stroke-width="3"/>
+  <path d="M32 24C32 17 38 12 44 13" fill="none" stroke="#FFF6F8" stroke-width="6" stroke-linecap="round"/>
+  <path d="M32 24C32 31 26 36 20 35" fill="none" stroke="#FFF6F8" stroke-width="6" stroke-linecap="round"/>
+  <circle cx="32" cy="24" r="4.5" fill="#FFF6F8"/>
 </svg>
