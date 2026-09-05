@@ -2299,3 +2299,13 @@ CTA ::after display:none；部署 gh-pages `b93e18f`（IDENTICAL）。
 
 **教训（给下轮设计）**：装饰性「主题移植」（马戏团帐篷这类具象物件）与糖果插画风不兼容——
 hero 已有糖豆/棒棒糖的软糖质感，硬几何条纹帐篷显突兀。之后加装饰先做单件小样截图给用户拍板，再全量铺。
+
+## 42. 第三十二轮（2026-09-05）· 撤回 hero 彩旗串（用户逐项反馈）
+
+**撤回**：Learn.jsx 删 `.ch-bunting` 挂载；candy.css 删彩旗 CSS 块（§39 注释同步更新）。
+§39 其余两项保留：入口卡果冻 hover、结算彩带雨。
+
+**验证**：grep 零残留；真机 buntingGone / hover transition 保留 / 4 颗糖豆完好；
+部署 gh-pages `7254df3`（IDENTICAL）。
+
+**现态装饰清单**（§39 剩余）：入口卡果冻 hover + 结算彩带雨。hero 回归纯糖豆+棒棒糖。

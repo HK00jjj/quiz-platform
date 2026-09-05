@@ -1716,31 +1716,10 @@ body { background: linear-gradient(160deg, #FFF8FA 0%, #FFF0F4 58%, #F0FFFA 82%,
 /* ══════════════════════════════════════════════════════════════
    §39 节日派对感增强（用户口径：缺节日派对般的热闹童趣感）
    boldness 集中在「结算彩带雨」一个 signature，其余安静：
-   ① hero 彩旗串：纯静态零动画（守 §34 纪律）；② 入口卡果冻 hover（transform only）；
+   ② 入口卡果冻 hover（transform only）；
    ③ 结算彩带雨：一次性 1.6s forwards，非 infinite，reduced-motion 整体停。
+   （①hero 彩旗串已在 §42 撤回——用户逐项反馈后去掉）
    ══════════════════════════════════════════════════════════════ */
-
-/* ── ① hero 彩旗串：旗绳 + 九面三角旗，四色循环、高低错落 ── */
-.ch-bunting {
-  position: absolute; top: 0; left: 50%; transform: translateX(-50%);
-  width: 82%; height: 30px; display: flex; justify-content: space-between;
-  pointer-events: none; z-index: 1;
-}
-.ch-bunting::before {
-  content: ''; position: absolute; top: 0; left: -2%; right: -2%; height: 2px;
-  background: rgba(255, 143, 163, .55); border-radius: 2px;
-}
-.ch-bunting i {
-  width: 17px; height: 22px; margin-top: 2px;
-  clip-path: polygon(0 0, 100% 0, 50% 100%);
-  background: var(--candy-pink);
-}
-.ch-bunting i:nth-child(4n+2) { background: var(--mint); }
-.ch-bunting i:nth-child(4n+3) { background: var(--lemon); }
-.ch-bunting i:nth-child(4n+4) { background: var(--lav); }
-.ch-bunting i:nth-child(even) { height: 26px; }
-.ch-bunting i:nth-child(3) { transform: translateY(3px) rotate(3deg); }
-.ch-bunting i:nth-child(7) { transform: translateY(2px) rotate(-3deg); }
 
 /* ── ② 入口卡果冻 hover：整卡浮起 + 图标弹一下（都只动 transform） ── */
 .entry-card { transition: transform .28s var(--jelly-ease), box-shadow .28s var(--smooth-ease); }

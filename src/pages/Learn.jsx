@@ -135,10 +135,6 @@ export default function Learn() {
       {/* 糖果橱窗横幅（取代哥特巫师位图 A.hallVision）：纯 CSS，零位图零请求。
           三颗糖豆 + 一支旋转棒棒糖做氛围，幅度极小，不抢标题注意力 */}
       <div className="learn-vision candy-hero rise">
-        {/* §39 彩旗串：纯 CSS 静态（零动画，守 §34 纪律），四色马卡龙高低错落——节日派对第一印象 */}
-        <span className="ch-bunting" aria-hidden="true">
-          {Array.from({ length: 9 }).map((_, i) => <i key={i} />)}
-        </span>
         <span className="ch-candy c1" aria-hidden="true" />
         <span className="ch-candy c2" aria-hidden="true" />
         <span className="ch-candy c3" aria-hidden="true" />
