@@ -1794,21 +1794,22 @@ body { background: linear-gradient(160deg, #FFF8FA 0%, #FFF0F4 58%, #F0FFFA 82%,
 
 /* ══ §50 答题页糖浆进度条（方案 B 拍板 + 用户口径「圆润、糖浆一点点灌满」） ══
    取代旧 .gem-row 点阵：三遍判定制后会话动辄 200+ 题，点阵密度爆表。
-   糖浆=薄荷味填充，圆滚滚液滴=灌满前沿；糖珠=当前位置（果冻缓动滑动）。
+   配色二轮拍板：方案 3 柠檬糖浆 + 蜜桃珠（原薄荷+粉撞色，用户反馈丑）。
+   糖浆=柠檬味填充，圆滚滚液滴=灌满前沿；糖珠=当前位置（果冻缓动滑动）。
    只动 width/left 一次性微区域过渡（<60px 高的条，无连续动画成本），
    无 infinite、无 blur，prefers-reduced-motion 直接跳变。 */
 .syrup-bar {
   position: relative; flex: 1; height: 18px; min-width: 120px;
   border-radius: 999px !important;
-  background: #FFE9EF !important;
-  border: 1px solid var(--candy-pink-lt) !important;
-  box-shadow: inset 0 2px 6px rgba(255, 143, 163, .18), 0 3px 12px rgba(255, 182, 193, .25) !important;
+  background: #FFF7DC !important;
+  border: 1px solid #F5E6A3 !important;
+  box-shadow: inset 0 2px 6px rgba(255, 212, 59, .16), 0 3px 12px rgba(255, 224, 102, .3) !important;
 }
 .syrup-fill {
   position: absolute; top: 2px; bottom: 2px; left: 2px;
   border-radius: 999px; min-width: 0;
-  background: linear-gradient(180deg, #A5F0D8, var(--mint-dk));
-  box-shadow: inset 0 2px 3px rgba(255, 255, 255, .65), 0 1px 4px rgba(95, 212, 176, .35);
+  background: linear-gradient(180deg, #FFEC8C, var(--lemon-dk));
+  box-shadow: inset 0 2px 3px rgba(255, 255, 255, .65), 0 1px 4px rgba(255, 212, 59, .35);
   transition: width .55s var(--jelly-ease);
 }
 .syrup-fill::after {
@@ -1816,15 +1817,15 @@ body { background: linear-gradient(160deg, #FFF8FA 0%, #FFF0F4 58%, #F0FFFA 82%,
   content: ''; position: absolute; right: -9px; top: 50%;
   width: 18px; height: 18px; border-radius: 50%;
   transform: translateY(-50%);
-  background: radial-gradient(circle at 32% 28%, #D8FBEE, var(--mint-dk) 75%);
-  box-shadow: 0 2px 6px rgba(95, 212, 176, .45);
+  background: radial-gradient(circle at 32% 28%, #FFF3B8, var(--lemon-dk) 75%);
+  box-shadow: 0 2px 6px rgba(255, 212, 59, .45);
 }
 .syrup-knob {
   position: absolute; top: 50%; transform: translate(-50%, -50%);
   width: 28px; height: 28px; border-radius: 50%;
-  background: radial-gradient(circle at 32% 28%, #FFE3EA, var(--candy-pink-dk) 70%, #F2728C);
+  background: radial-gradient(circle at 32% 28%, #FFE9DD, var(--danger) 70%, #F49262);
   border: 2.5px solid #fff;
-  box-shadow: 0 4px 14px rgba(255, 143, 163, .6), 0 0 0 4px rgba(255, 182, 193, .25);
+  box-shadow: 0 4px 14px rgba(255, 176, 136, .4), 0 0 0 4px rgba(255, 224, 102, .3);
   transition: left .55s var(--jelly-ease);
   pointer-events: none;
 }

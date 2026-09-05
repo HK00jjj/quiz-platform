@@ -2459,3 +2459,13 @@ confirmObjective 对已 flush 的题 `commitCard = length>=3 && !flushedIds.has(
 - 答题推进：1/38 fill 0.97px（糖浆刚冒头）→ 7/38 fill 35.8px / knob 41.8px，同步右移。
 - console 0 errors；桌面宽度无断点依赖（flex:1 流式，小样 1120 宽已拍板背书）。
 - 部署 gh-pages `b36feaa`（IDENTICAL），src 80/80，verify-live ALL OK。
+
+## 51. 第四十一轮（2026-09-05）· 糖浆进度条配色二轮（用户反馈「配色有点丑」→ 拍板方案 3）
+
+§50 薄荷糖浆+粉珠绿粉撞色突兀。按铁律先出 4+1 配色小样（草莓/薰衣草/柠檬/蜜桃）拍板，
+用户选 **方案 3：柠檬糖浆 + 蜜桃珠**。仅改 candy.css §50 块色值：
+轨道 #FFF7DC / 边 #F5E6A3；糖浆 #FFEC8C→--lemon-dk；液滴 #FFF3B8→--lemon-dk；
+珠 #FFE9DD→--danger(#FFB088)→#F49262，外圈糖霜环 rgba(255,224,102,.3)。结构与动效零改动。
+
+**验证**：demo 真机 6/42 计算样式全中（fill 渐变 255,236,140→255,212,59 / bar 255,247,220 / knob 蜜桃径向）；
+console 0 errors。部署 gh-pages `6c3aeb1`（IDENTICAL），src 同步，verify-live ALL OK。
