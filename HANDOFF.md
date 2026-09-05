@@ -2324,3 +2324,24 @@ hero 已有糖豆/棒棒糖的软糖质感，硬几何条纹帐篷显突兀。�
 
 **排查线索记录**：`orb-spin` 是 transform 旋转无嫌疑；`.bubble-layer` position:fixed 无嫌疑；
 `<Background />` 气泡 12 颗中 9 颗（intensity>1 才全出）也无嫌疑——别在这三处再浪费时间。
+
+## 44. 第三十四轮（2026-09-05）· 筛选 chip「取消后恢复选中」+ 选中态重构（用户截图指名）
+
+**Bug 根因（生产环境竞态，demo 复现不了）**：
+`updateSettings` 乐观更新本机 → 异步写云端；**任何** realtime 事件都会触发
+`scheduleReload(400ms) → reloadAll → repo.loadAll()`，而 reloadAll **无条件**
+`setState({ settings: data.settings })` 用云端值覆盖本机。当云端读到的比本机旧
+（写云端在途/失败后由别的表事件触发 reload/多端竞态）→ 刚取消的 chip 被「复原」。
+
+**修法**（store.js）：`settingsLocalUntil` 时间戳——updateSettings 时置 `now+5s`；
+reloadAll 应用 settings 前检查：窗口内保留本机值，过期恢复云端优先（多端同步不受影响）。
+
+**选中态重构**（candy.css .chip.on，用户口径：原粉光晕+实心底突兀、与主题割裂）：
+去 `--glow-pink` 外发光 → 糖霜渐变底（#FFF0F4→#FFE4EC）+ 内高光 + 微投影；
+加 `.chip.on::before` 小糖珠「●」做选中记号（--candy-pink-dk）；.chip 加 transition。
+⚠ `.chip` 同时用于弹窗分组页签（.ach-tabs）与筛选项（.filter-group .chip-row），
+真机点测试时注意区分，别像我一样点了半天页签还以为 toggle 坏了。
+
+**验证**：demo 逐步点击 false→true→false→true 奇偶一致（无恢复）；
+新样式计算样式全中（糖霜渐变/内高光/●糖珠），截图 s44-chip-style.png；console 0 errors。
+部署 gh-pages `b2cd7d5`（IDENTICAL）。

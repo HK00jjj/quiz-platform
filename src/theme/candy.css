@@ -598,9 +598,19 @@ body, button, input, textarea, select {
 .chip {
   background: var(--cream) !important; border: 2px solid var(--candy-pink-lt) !important;
   color: #A0526D !important; border-radius: 20px !important;
+  transition: background .2s var(--smooth-ease), border-color .2s var(--smooth-ease), color .2s var(--smooth-ease), transform .15s var(--jelly-ease);
 }
 .chip:hover { border-color: var(--candy-pink) !important; color: var(--pink-ink) !important; }
-.chip.on { background: rgba(255, 182, 193, .22) !important; border-color: var(--candy-pink-dk) !important; color: #C2385A !important; box-shadow: var(--glow-pink) !important; }
+/* §44 选中态重做（用户口径：原粉色光晕+实心底太突兀、与主题割裂）：
+   去掉 glow-pink 外发光，改为果冻卡同语言的「淡糖霜底 + 同色细边 + 内高光」，
+   左侧小糖珠做选中记号，安静且仍达 AA（#C2385A 对奶白 5.4:1）。 */
+.chip.on {
+  background: linear-gradient(180deg, #FFF0F4, #FFE4EC) !important;
+  border-color: var(--candy-pink-dk) !important;
+  color: #C2385A !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .85), 0 2px 8px rgba(255, 143, 163, .14) !important;
+}
+.chip.on::before { content: '●'; font-size: 8px; margin-right: 6px; vertical-align: 2px; color: var(--candy-pink-dk); }
 .filter-group h4 { color: var(--pink-ink) !important; }
 .empty-state h3 { color: #E8607F !important; }
 .empty-state img { display: none; }

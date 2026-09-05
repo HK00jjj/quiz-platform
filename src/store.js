@@ -61,6 +61,10 @@ let unsubscribe = null
 let relearnKey = null
 let reloadTimer = null
 let reloadSeq = 0
+/* §44 防抖动覆写：本机刚写过 settings 后的窗口期内，reloadAll 不允许用云端值覆盖
+   （否则筛选弹窗里刚取消的 chip 会被云端旧值「复原」——用户实测的取消后恢复选中）。
+   5s 后恢复云端优先，多端正常同步不受影响。 */
+let settingsLocalUntil = 0
 
 function saveResume(state) {
   try {
@@ -129,7 +133,10 @@ async function reloadAll() {
     useStore.setState({
       allQuestions: data.questions,
       questions: scopeQuestions(data.questions, bk),
-      cards: data.cards, records: data.records, settings: data.settings, syncError: null,
+      cards: data.cards, records: data.records,
+      /* §44：保护窗口内保留本机 settings（可能比云端新——写云端在途/失败都会造成云端旧值回灌） */
+      settings: Date.now() < settingsLocalUntil ? useStore.getState().settings : data.settings,
+      syncError: null,
       books: bk.books, bookOrder: bk.order, activeBookId: bk.activeBookId, assign: bk.assign
     })
     if (mutated) persistBooks(useStore.getState())
@@ -329,6 +336,7 @@ export const useStore = create((set, get) => ({
        它吃一个 401 就抛出，下面那行 set 永远跑不到——表现就是「挑题练习」里点
        题型/知识域/难度 chip 完全没反应、题数不变，还往 console 丢两个 error。
        生产环境下网络抖动也会让整个设置静默失效，所以改成与 persistBooks 同一套路子。 */
+    settingsLocalUntil = Date.now() + 5000   /* §44：本机权威窗口，防 reloadAll 旧值回灌 */
     set({ settings: merged })
     if (DEMO) return
     try { await repo.saveSettings(merged) } catch (e) {

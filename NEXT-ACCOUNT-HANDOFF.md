@@ -163,7 +163,7 @@ Start-Sleep 40 ; node verify-live.mjs "$PWD\app\dist"      # 期望 LIVE RESULT:
 
 ## 8. 当前状态（2026-09-05）
 
-- gh-pages HEAD **`75a43f1`**（链：… §40 `96af8f2` → §41 `b93e18f` 撤回§40 → §42 `7254df3` 撤回彩旗串 → §43 `75a43f1` 修加载页抖动）。src 分支与 gh-pages 同步（回读零差异，含 NEXT-ACCOUNT-HANDOFF.md）。verify-live ALL OK。
+- gh-pages HEAD **`b2cd7d5`**（链：… §41 `b93e18f` 撤回§40 → §42 `7254df3` 撤回彩旗串 → §43 `75a43f1` 修加载页抖动 → §44 `b2cd7d5` 修筛选chip回灌+选中态）。src 分支与 gh-pages 同步（回读零差异，含 NEXT-ACCOUNT-HANDOFF.md）。verify-live ALL OK。
 - `verify-deploy` RESULT: IDENTICAL；console 0 errors；RLS 探测安全（anon key 匿名读返回空集）。
 - §31 清新活力批（15 处粉字替换 + 去 fog；⚠ token 部分被缓冲区吞掉，§33 补齐）/
   §32 糖果派对派（糖针+hero 第四色+渐变权重）/
