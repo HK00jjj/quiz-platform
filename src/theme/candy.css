@@ -1910,3 +1910,35 @@ body { background: linear-gradient(160deg, #FFF8FA 0%, #FFF0F4 58%, #F0FFFA 82%,
 /* ══ §56 键盘流提示行（配套 Practice.jsx 键盘加速器） ══ */
 .kbd-hint { margin: 8px 0 0; font-size: 11px; text-align: center;
   letter-spacing: .4px; color: var(--ink-2) !important; }
+
+/* ══ §60 登录口重做（方案 A「糖霜胶囊」小样拍板） ══
+   双层框合并为单层果冻胶囊；图标为 Login.jsx 内联 1.7px 线性 SVG（与 CandyIcons 同源）；
+   聚焦：边框转薄荷 + 柔光环 + 图标同色变薄荷（纯 CSS :focus-within，零 JS 状态）。 */
+.login-input {
+  background: #fff !important;
+  border: 1.5px solid var(--candy-pink-lt) !important;
+  border-radius: 999px !important;
+  padding: 4px 18px !important; gap: 10px !important;
+  box-shadow: inset 0 2px 5px rgba(255, 143, 163, .08), 0 2px 8px rgba(255, 182, 193, .15) !important;
+  transition: border-color .2s ease, box-shadow .2s ease;
+}
+.login-input:focus-within {
+  border-color: var(--mint) !important;
+  box-shadow: 0 0 0 4px rgba(127, 232, 200, .18), inset 0 2px 5px rgba(95, 212, 176, .08) !important;
+}
+.login-input .icon {
+  width: auto !important; border-right: none !important; font-size: inherit !important;
+  opacity: 1 !important; display: flex !important; color: #C4849B !important;
+  transition: color .2s ease;
+}
+.login-input:focus-within .icon { color: var(--mint-dk) !important; }
+.login-input input {
+  /* 全局兜底规则给所有 input 上了 2px 粉框+奶油底——胶囊内层必须中和，否则双层框复现 */
+  border: none !important; background: transparent !important;
+  box-shadow: none !important; border-radius: 0 !important;
+  font-size: 15px !important; letter-spacing: .3px !important;
+}
+.login-input .eye {
+  width: auto !important; padding: 0 !important; background: none !important; border: none !important;
+  opacity: 1 !important; display: flex !important; color: #C4849B !important;
+}

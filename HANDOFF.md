@@ -2560,3 +2560,17 @@ startSession 返回值仅用于 n>0（resume/fresh 口径差异无实际影响�
 
 **验证**：demo 真机——坏 JSON 触发解析失败 → 两按钮齐全；点清空后 textarea 空/返工框消失/
 焦点回到输入框/检测按钮回到 disabled；console 0 errors。
+
+## 59. 第四十九轮（2026-09-06）· 登录口重做（用户截图反馈「重新做一下」→ 三方案小样拍板选 A）
+
+原登录口病灶：输入框双层框嵌套 + emoji 图标（✉️🔒👁）。
+**方案 A「糖霜胶囊」实施**：
+- 双层合并为单层果冻胶囊（白底/1.5px 粉边/999px 圆角/内阴影），聚焦 border 转 mint + 4px 柔光环
+- emoji 图标换 Login.jsx 内联 1.7px 线性 SVG（信封/锁/眼），聚焦时图标同色变薄荷——纯 CSS :focus-within 零 JS
+- CTA 去 🍬 前缀；标题/hero/成功光芒爆发仪式全保留
+- **陷阱**：candy.css 全局兜底规则（.rune-input,.rune-textarea,input,textarea,select）给所有 input 上了
+  2px 粉框+奶油底，胶囊内层复现双层框——§60 里对 .login-input input 显式中和（border:none/bg:transparent）
+
+**验证**：非 demo dev server（supabase 配置硬编码，getSession 本地读无会话即匿名）真机截图——
+3 个 SVG 图标、emoji 清零、胶囊 999px、聚焦 border mint rgb(127,232,200)/icon rgb(95,212,176)、
+内层 input border 0/透明；console 0 errors。部署 gh-pages `4edbc9d`（IDENTICAL），src 同步，verify-live ALL OK。

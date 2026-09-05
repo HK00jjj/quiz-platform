@@ -65,22 +65,30 @@ export default function Login() {
                 原本这里是哥特铜质花纹条 A.divider(p44.png)。 */}
             <div className="login-divider" aria-hidden="true" />
             <form onSubmit={submit}>
+              {/* §60 方案 A「糖霜胶囊」：emoji 图标（✉️🔒👁）换 1.7px 线性 SVG（与 CandyIcons 同源），
+                  单层果冻胶囊由 candy.css §60 承担；聚焦态转薄荷走 CSS :focus-within，零 JS 状态 */}
               <div className="login-input">
-                <span className="icon" aria-hidden="true">✉️</span>
+                <span className="icon" aria-hidden="true">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="18" height="14" rx="3" /><path d="M3.5 7l8.5 6 8.5-6" /></svg>
+                </span>
                 <input type="email" required autoComplete="username" value={email}
                   onChange={(e) => setEmail(e.target.value)} placeholder="邮箱" />
               </div>
               <div className="login-input">
-                <span className="icon" aria-hidden="true">🔒</span>
+                <span className="icon" aria-hidden="true">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="10" width="16" height="10" rx="3" /><path d="M8 10V7a4 4 0 0 1 8 0v3" /></svg>
+                </span>
                 <input type={showPwd ? 'text' : 'password'} required autoComplete="current-password"
                   value={password} onChange={(e) => setPassword(e.target.value)} placeholder="密码" />
                 <button type="button" className="eye" onClick={() => setShowPwd(!showPwd)}
-                  aria-label={showPwd ? '隐藏密码' : '显示密码'}>👁</button>
+                  aria-label={showPwd ? '隐藏密码' : '显示密码'}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6z" /><circle cx="12" cy="12" r="2.6" /></svg>
+                </button>
               </div>
               {error && <p className="login-error">{error}</p>}
               {!error && syncError && <p className="login-error">{syncError}</p>}
               <button className="btn lg block" style={{ marginTop: 20 }} disabled={busy}>
-                {busy ? '正在登录…' : '🍬 进入糖果题库'}
+                {busy ? '正在登录…' : '进入糖果题库'}
               </button>
             </form>
             <p className="login-foot">✦ 糖果题库 v1.0 · 尝味师专用 · 纯网页端 · 云端甜蜜值同步 ✦</p>
