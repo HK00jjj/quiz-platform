@@ -158,7 +158,9 @@ export default function Practice() {
         return
       }
       if (typing || phase !== 'answering' || !objective) return
-      const digit = /^Digit([1-5])$/.test(e.code) ? Number(e.code.slice(5)) - 1
+      /* 主键盘 Digit 与小键盘 Numpad 都认 */
+      const dm = /^Digit([1-5])$/.exec(e.code) || /^Numpad([1-5])$/.exec(e.code)
+      const digit = dm ? Number(dm[1]) - 1
         : /^Key([A-E])$/.test(e.code) ? 'ABCDE'.indexOf(e.code.slice(3)) : -1
       if (digit < 0) return
       const row = document.querySelectorAll('.opt-row')[digit]

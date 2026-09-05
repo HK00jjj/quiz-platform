@@ -173,6 +173,8 @@ function commitAnswer(q, { correct, rating, detail, grade, lastRatingValue, comm
   const set = useStore.setState, get = useStore.getState
   const now = Date.now()
   const record = { questionId: q.id, date: fmtDate(new Date(now)), timestamp: now, correct, detail }
+  /* §57 回滚按索引精确摘除（原 slice(-1) 会误删失败后新答的那笔——键盘流连答快，窗口变大） */
+  const resultIndex = get().sessionResults.length
   const existing = get().cards.find((c) => c.questionId === q.id)
   const card = commitCard ? reviewCard(existing ?? newCard(q.id, now), rating, now) : null
   if (!DEMO) repo.persistAnswer(record, card).catch((e) => {
@@ -180,7 +182,7 @@ function commitAnswer(q, { correct, rating, detail, grade, lastRatingValue, comm
     useStore.setState((s) => ({
       syncError: '云端写入失败，本次结果可能未同步',
       summary: { total: s.summary.total - 1, correct: s.summary.correct - (correct ? 1 : 0) },
-      sessionResults: s.sessionResults.slice(0, -1),
+      sessionResults: s.sessionResults.filter((_, i) => i !== resultIndex),
       /* 卡只在 commitCard 分支动过 → 回滚也只在那条分支摘除 */
       ...(card ? { cards: existing ? s.cards.map((c) => (c.questionId === q.id ? existing : c)) : s.cards.filter((c) => c.questionId !== q.id) } : {}),
       records: s.records.filter((r) => !(r.questionId === q.id && r.timestamp === now))
