@@ -1906,3 +1906,7 @@ body { background: linear-gradient(160deg, #FFF8FA 0%, #FFF0F4 58%, #F0FFFA 82%,
 }
 .practice-count { letter-spacing: 1px !important; }
 .candy-hero .hero-copy p, .tarot-hint { letter-spacing: .4px !important; }
+
+/* ══ §56 键盘流提示行（配套 Practice.jsx 键盘加速器） ══ */
+.kbd-hint { margin: 8px 0 0; font-size: 11px; text-align: center;
+  letter-spacing: .4px; color: var(--ink-2) !important; }

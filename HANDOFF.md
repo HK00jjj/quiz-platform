@@ -2514,3 +2514,18 @@ console 0 errors；首页点缀不变。
 
 **验证**：真机计算样式全中（stem 500/.3px/38px/19px，opt 400）；console 0 errors。
 部署 gh-pages `f219c41`（IDENTICAL），verify-live ALL OK。
+
+## 56. 第四十六轮（2026-09-05）· 刷题沉浸感一期：糖豆雨降频 + 键盘流（用户从盘点清单选 3+6）
+
+**糖豆雨降频**：原每答必 burst（doCheck 16 粒 + flipToNext 14 粒双重刺激）→ 只在「本次作答把连击推到 ≥3」时撒一次
+（doCheck 内 combo+1>=3 门控）；flipToNext 改纯翻牌，不再重复 burst/pulse；错题凝视脉冲保留在 doCheck 与 commitSelf(!ok)。
+
+**键盘流**（Practice.jsx，Hooks 挂在早退 return 之前——Rules of Hooks）：
+- 1-5 / A-E 选选项（多选同键 toggle）、1/2 选判断卡；焦点在输入框时数字是内容不劫持
+- Enter：客观题=查看解析 / feedback=确认下一题；主观题自判=我答对了，Shift+Enter=我答错了
+- 填空单行输入框 Enter=提交；主观多行 textarea Enter 留给换行、Ctrl+Enter 展开
+- 实现走「点真实 DOM 按钮/选项行」，零触碰 React state（复用判分/翻牌全链路）
+- 牌底各状态加一行 .kbd-hint 提示（candy.css §56，11px/--ink-2）
+
+**验证**：E2E 四路径全通——单选 Digit1→Enter、填空 input+Enter、主观 Ctrl+Enter→Enter=答对、
+判断 Digit1→Enter（新会话复测）；糖豆雨门控为纯逻辑分支（代码审查）；console 0 errors。

@@ -128,6 +128,47 @@ export default function Practice() {
     return n
   }, [results])
 
+  /* §56 键盘流：1-5/A-E 选选项、1/2 判断、Enter 提交与翻页、Ctrl+Enter 展开主观题答案、
+     Shift+Enter=自判答错。全部走「点真实 DOM 按钮/选项行」复用现有判分链路，
+     不碰 React state 内部（esbuild 不查未定义变量，直接改 state 极易埋雷）。
+     焦点在输入框时数字是题目内容，只有 Enter 参与；无障碍靠真实按钮本身，键盘是加速器。
+     ⚠ 必须挂在早退 return 之前（Hooks 规则）：idle/done 分支也要保持钩子数量一致。 */
+  useEffect(() => {
+    if (phase !== 'answering' && phase !== 'feedback') return
+    const onKey = (e) => {
+      if (e.altKey || e.metaKey) return
+      const tag = e.target && e.target.tagName
+      const typing = tag === 'INPUT' || tag === 'TEXTAREA'
+      const footBtns = () => [...document.querySelectorAll('.q-face-foot button')]
+      if (e.key === 'Enter') {
+        if (phase === 'feedback') {
+          const nx = footBtns().find((b) => b.textContent.includes('下一题'))
+          if (nx) { e.preventDefault(); nx.click(); return }
+          const okB = footBtns().find((b) => b.textContent.includes('我答对了'))
+          const badB = footBtns().find((b) => b.textContent.includes('我答错了'))
+          if (okB && !e.shiftKey) { e.preventDefault(); okB.click(); return }
+          if (badB && e.shiftKey) { e.preventDefault(); badB.click() }
+          return
+        }
+        /* 多行 textarea 的回车留给换行（Ctrl+Enter 才展开）；单行 rune-input（填空）回车=提交 */
+        if (tag === 'TEXTAREA' && !e.ctrlKey) return
+        const rv = footBtns().find((b) => !b.disabled &&
+          (b.textContent.includes('查看解析') || b.textContent.includes('展开参考答案')))
+        if (rv && (!typing || e.ctrlKey || tag === 'INPUT')) { e.preventDefault(); rv.click() }
+        return
+      }
+      if (typing || phase !== 'answering' || !objective) return
+      const digit = /^Digit([1-5])$/.test(e.code) ? Number(e.code.slice(5)) - 1
+        : /^Key([A-E])$/.test(e.code) ? 'ABCDE'.indexOf(e.code.slice(3)) : -1
+      if (digit < 0) return
+      const row = document.querySelectorAll('.opt-row')[digit]
+      const judge = document.querySelectorAll('.judge-card')[digit]
+      if (row) { e.preventDefault(); row.click() } else if (judge) { e.preventDefault(); judge.click() }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [phase, objective])
+
   if (phase === 'idle' || questions.length === 0) {
     return (
       <div className="practice-stage" style={{ textAlign: 'center', paddingTop: '24vh' }}>
@@ -175,15 +216,19 @@ export default function Practice() {
     : text
   const canSubmit = objective ? inputText.trim().length > 0 : true
 
-  function doCheck(e) {
+  function doCheck() {
     if (!canSubmit) return
     breakSeal()
     submitObjective(inputText)
     const ok = lastGradeAfter(inputText)
     setFlash(ok ? 'ok-flash' : 'bad-flash')
-    const r = e.currentTarget.getBoundingClientRect()
-    burstParticles(r.left + r.width / 2, r.top, ok ? 'teal' : 'red', 16)
     if (!ok) window.dispatchEvent(new Event('abyss-pulse')) // 做错：错题凝视加深，短暂愉悦地骚动
+    /* §56 糖豆雨降频：只有把连击推到 ≥3 的作答才撒糖豆，平答靠色彩反馈（防高频刺激竞争注意力） */
+    if (ok && combo + 1 >= 3) {
+      const r = document.querySelector('.reveal-btn')?.getBoundingClientRect()
+        || document.querySelector('.q-card-wrap')?.getBoundingClientRect()
+      if (r) burstParticles(r.left + r.width / 2, r.top, 'teal', 16)
+    }
   }
   function lastGradeAfter(input) {
     // 预判（与 store 同口径）以便立刻播放特效
@@ -192,13 +237,10 @@ export default function Practice() {
     } catch { return true }
   }
 
-  /* 评分即翻牌：翻回牌背（与入场同轴同曲线）→ 到位后自动切下一题，全程无需再点「下一卷」 */
-  function flipToNext(ok) {
+  /* §56 翻牌只负责翻：burst/凝视脉冲已前移到作答与自判处，这里不再重复刺激 */
+  function flipToNext() {
     if (flying.current) return
     flying.current = true
-    const r = document.querySelector('.q-card-wrap')?.getBoundingClientRect()
-    if (r) burstParticles(r.left + r.width / 2, r.top + r.height * 0.32, ok ? 'teal' : 'red', 14)
-    if (!ok) window.dispatchEvent(new Event('abyss-pulse'))
     setFlipped(false)
     // 300ms = .q-flipper 退出时长，留 60ms 余量再切题
     setTimeout(() => { flying.current = false; next() }, 360)
@@ -206,7 +248,8 @@ export default function Practice() {
 
   function commitSelf(ok) {
     submitSubjective(ok ? '记得' : '忘记')
-    flipToNext(ok)
+    if (!ok) window.dispatchEvent(new Event('abyss-pulse'))
+    flipToNext()
   }
 
   /* 客观题三遍判定制：确认本笔作答（store 里第 3 次完成时自动折算记得/模糊/忘记推卡），
@@ -216,7 +259,7 @@ export default function Practice() {
     if (flying.current) return
     const ok = lastGrade ? lastGrade.correct : true
     confirmObjective()
-    flipToNext(ok)
+    flipToNext()
   }
 
   /* ── 结算 ── */
@@ -467,19 +510,28 @@ export default function Practice() {
           <div className="q-face-foot">
             <div className="q-face-rule" aria-hidden="true" />
             {!answered && (objective ? (
-              <GiltBtn size="lg" block className="reveal-btn" disabled={!canSubmit} onClick={doCheck}>
-                <IconReveal /> 查看解析
-              </GiltBtn>
+              <>
+                <GiltBtn size="lg" block className="reveal-btn" disabled={!canSubmit} onClick={doCheck}>
+                  <IconReveal /> 查看解析
+                </GiltBtn>
+                <p className="kbd-hint">键盘 1-5 选择 · Enter 确认</p>
+              </>
             ) : showAnswer ? (
-              <div className="self-judge-row">
-                <GiltBtn tone="teal" onClick={() => commitSelf(true)}>✓ 我答对了</GiltBtn>
-                <GiltBtn tone="danger" onClick={() => commitSelf(false)}>✗ 我答错了</GiltBtn>
-              </div>
+              <>
+                <div className="self-judge-row">
+                  <GiltBtn tone="teal" onClick={() => commitSelf(true)}>✓ 我答对了</GiltBtn>
+                  <GiltBtn tone="danger" onClick={() => commitSelf(false)}>✗ 我答错了</GiltBtn>
+                </div>
+                <p className="kbd-hint">Enter = 答对 · Shift+Enter = 答错</p>
+              </>
             ) : (
-              <GiltBtn size="lg" block className="reveal-btn" disabled={text.trim() === ''}
-                onClick={() => { breakSeal(); setShowAnswer(true) }}>
-                <IconScroll /> 展开参考答案
-              </GiltBtn>
+              <>
+                <GiltBtn size="lg" block className="reveal-btn" disabled={text.trim() === ''}
+                  onClick={() => { breakSeal(); setShowAnswer(true) }}>
+                  <IconScroll /> 展开参考答案
+                </GiltBtn>
+                <p className="kbd-hint">Ctrl+Enter 展开答案</p>
+              </>
             ))}
 
             {answered && objective && !committed && (
@@ -489,6 +541,7 @@ export default function Practice() {
                 <GiltBtn size="lg" block className="reveal-btn" onClick={confirmAndFlip}>
                   <IconReveal /> 确认，下一题
                 </GiltBtn>
+                <p className="kbd-hint">Enter = 下一题</p>
               </>
             )}
 
