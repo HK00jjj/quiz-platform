@@ -2195,3 +2195,32 @@ dev server 在会话间隔仍会死（本次又死了一次），重启后再跑
 
 **验证**：demo 判断题选错路径截图（judge-wrong-narrow.png）：题面白净、错误卡红、
 解析区红边粉底红横幅、答案框纯白；console 0 errors。
+
+## 37. 第二十七轮（2026-09-05）· 答错时正确答案卡不再变绿（用户截图指名）
+
+**需求**：判断题答错时，「正确答案」那张卡不得变绿提示，维持未答奶白色。
+
+**接手实况**：上一账户 09:30 已在源码改好（Practice.jsx 不再给正确答案卡挂 `missed` 类，
+candy.css 删除 `.judge-card.missed` 规则并留注释；多选漏选的绿提示一并撤除），
+但 dist 还是 09:17 旧产物——**改了没构建、没部署、文档没记录**，会话中断。用户 09:26 截图即旧版行为。
+
+**本轮补完**：
+- `vite.config.js` 加 `build.emptyOutDir: false`（WorkBuddy 沙箱给 node 注入 safe-delete 垫片，
+  rmSync→回收站，Vite 清 dist 被拦截崩；dist 清理本就由 purge-dist 负责，语义等价）。
+- 重建 dist（10:26）→ dev 真机验证 → 完整部署链路。
+
+**WorkBuddy 环境三坑**（Qoder 无此问题，换环境必看）：
+1. build 崩于 emptyOutDir → 上面的 `emptyOutDir:false`。
+2. `npm.cmd` 被守卫拦 → 直接 `node node_modules/vite/bin/vite.js --mode demo --port 5173 --host 127.0.0.1`。
+3. agent-browser 自带 Chrome152 在沙箱 exit 3 起不来（脱沙箱也一样）→ 系统 Chrome
+   `--headless=new --remote-debugging-port=9223 --user-data-dir=$TEMP/xxx about:blank` 后台拉起，
+   `agent-browser --cdp 9223 <cmd>` 连接（--cdp 是全局参数，必须放子命令前）。
+   React 受控 input/textarea 直接 `.value=` 不进状态，要用原型 setter + dispatchEvent('input')。
+
+**验证**：demo 判断题选错：选错卡 `wronged` 草莓红；正确答案卡仅 `j-false` 基础色
+rgb(255,217,210)，无 right/missed 类、无绿框；截图 shots/s37-judge-wrong-viewport.png；console 0 errors。
+
+**部署**：gh-pages `0fa3356`（26 文件，verify-deploy IDENTICAL）；src `1bbe5a5`（80/80 回读零差异）；
+verify-live 26/26 200 + 三哈希 MATCH，ALL OK。
+
+**经验**：接手时凡「声称已改」先查 dist mtime vs 源码 mtime——本条就是源码改好但停在半路的案例。

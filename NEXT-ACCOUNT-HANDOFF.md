@@ -163,7 +163,7 @@ Start-Sleep 40 ; node verify-live.mjs "$PWD\app\dist"      # 期望 LIVE RESULT:
 
 ## 8. 当前状态（2026-09-05）
 
-- gh-pages HEAD **`81047af`**（链：… §31 `031fbb1` → §32 `da658a2` → §33 `fadc51c` → §34 `02418ca` → §35 `429c5f0` → §36 `81047af`）。
+- gh-pages HEAD **`0fa3356`**（链：… §33 `fadc51c` → §34 `02418ca` → §35 `429c5f0` → §36 `81047af` → §37 `0fa3356`）。src 分支 **`1bbe5a5`**（80/80 回读零差异，含 NEXT-ACCOUNT-HANDOFF.md）。verify-live ALL OK。
 - `verify-deploy` RESULT: IDENTICAL；console 0 errors；RLS 探测安全（anon key 匿名读返回空集）。
 - §31 清新活力批（15 处粉字替换 + 去 fog；⚠ token 部分被缓冲区吞掉，§33 补齐）/
   §32 糖果派对派（糖针+hero 第四色+渐变权重）/
@@ -175,6 +175,9 @@ Start-Sleep 40 ; node verify-live.mjs "$PWD\app\dist"      # 期望 LIVE RESULT:
   答题前 selected 仍是身份色；全站「对=绿/错=红只出现在我的选择上」语义就此统一。
   §36 答错红色再收窄：撤 crack-veil 红晕（题面维持未答色）、答案框改纯白底；
   红色只存在于「我选错的卡」与「解析区」两处。
+  §37 答错时正确答案卡不变绿：源码上一账户已改（撤 missed 类），本轮补构建+部署+文档；
+  ⚠ WorkBuddy 环境三坑见 HANDOFF §37（emptyOutDir:false / node 直起 vite / 系统 Chrome+--cdp）；
+  token 实际在桌面凭据.txt（与 §0 旧说法矛盾，以本条为准：只走 CLI 参数，绝不写进被 push 的文件）。
 
 ---
 
