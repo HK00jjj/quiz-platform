@@ -2380,3 +2380,17 @@ reloadAll 应用 settings 前检查：窗口内保留本机值，过期恢复云
 
 **验证 + 部署**：真机贴语法错误 JSON →「导入内容无法解析」+ 复制按钮出现；
 node 单测全过；gh-pages `b98b18d`（IDENTICAL）。
+## 47. 第三十七轮（2026-09-05）· 移动端布局优化（用户口径：手机版没电脑端好看）
+
+**诊断**（390×844 真机截图，shots/m-home|m-practice|m-bank.png）：
+① pages.css L42 在 ≤560px 把入口卡降为**单列**，首屏变 4 连近满屏大卡，信息密度骤降——最破的一项；
+② hero 副标在 56% 占幅里折出「…4 / 天」孤字尾行；
+③ 答题页答对/答错角标偏大挤压题数行。书库页/答题页主体其实尚可，不动。
+
+**修法**（candy.css §47 块，@media ≤560px，全布局/字号级零装饰）：
+- 入口卡回 **2 列**（170px/卡）+ 卡内紧凑（图标 clamp 缩小/h3 15px/描述 11px）；
+- hero 副标放宽到 64% + `text-wrap:balance` 均衡折行；
+- pile-counter 角标缩号收紧。
+
+**验证**：390 视口 2 列生效（cols=2, cardW=170），截图 m47-home-2col.png；无横向溢出；
+console 0 errors。部署 gh-pages `aa2f71f`（IDENTICAL）。

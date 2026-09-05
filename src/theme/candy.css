@@ -1787,3 +1787,25 @@ body { background: linear-gradient(160deg, #FFF8FA 0%, #FFF0F4 58%, #F0FFFA 82%,
   .entry-card, .entry-card:hover, .entry-card:active { transition: none; transform: none; }
   .entry-card:hover .entry-ico { transform: none; }
 }
+
+/* ══════════════════════════════════════════════════════════════
+   §47 移动端布局优化（用户口径：手机版没有电脑端好看）
+   诊断（390×844 真机截图）：① pages.css L42 把入口卡降为单列，首屏变成
+   4 连近满屏大卡，信息密度骤降；② hero 副标在窄幅折行成「…4 / 天」孤字；
+   ③ 答题页两个答对/答错角标偏大，挤压题数行。
+   修法全部是布局/字号级，零装饰零动画。
+   ══════════════════════════════════════════════════════════════ */
+@media (max-width: 560px) {
+  /* ① 入口卡 2 列 + 紧凑化：首屏一眼看全四张卡 */
+  .entry-grid { grid-template-columns: 1fr 1fr !important; gap: 10px !important; }
+  .entry-card { padding: 14px 8px 12px !important; }
+  .entry-card::before { font-size: clamp(28px, 8.5cqw, 38px) !important; margin: 2px 0 0 !important; }
+  .entry-card h3 { font-size: 15px !important; letter-spacing: 1px !important; }
+  .entry-card p { font-size: 11px !important; line-height: 1.55 !important; }
+  /* ② hero 副标：放宽占幅 + 均衡折行，不再出「4 / 天」孤字尾行 */
+  .candy-hero .hero-copy { max-width: 64% !important; }
+  .candy-hero .hero-copy p { font-size: 12px !important; text-wrap: balance; }
+  /* ③ 答题页答对/答错角标收紧 */
+  .pile-counter { padding: 3px 8px !important; font-size: 11px !important; gap: 4px !important; }
+  .pile-counter .pile { font-size: 12px !important; }
+}
