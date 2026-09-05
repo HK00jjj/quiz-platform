@@ -325,7 +325,8 @@ export default function Practice() {
                   const inAns = exp.includes(o.orig)
                   if (selected && inAns) cls = 'right'
                   else if (selected && !inAns) cls = 'wronged'
-                  else if (!selected && inAns && q.type === '多选题') cls = 'missed'
+                  /* §37：多选漏选项不再挂 missed 绿提示（用户口径：答错时正确答案不变绿，
+                     维持未答色）。正确答案在解析框里看，选项行不再复述。 */
                 } else if (selected) cls = 'selected'
                 return (
                   <button key={o.oi} disabled={answered}
@@ -345,12 +346,12 @@ export default function Practice() {
                   {[['正确', '✓', 'j-true'], ['错误', '✗', 'j-false']].map(([label, rune, cls]) => {
                     let extra = ''
                     if (answered && grade) {
-                      /* 裁决通道（§35，与 opt-row 同语义）：颜色跟「我答得对不对」走，
+                      /* 裁决通道（§35/§37，与 opt-row 同语义）：颜色跟「我答得对不对」走，
                          不跟选项身份走——旧逻辑给正确答案卡挂 selected，选对「错误」也红脸，
-                         读起来像答错。答题前的 selected 仍是身份色（那是"我正选着它"）。 */
+                         读起来像答错。§37 收窄：只有「我选的那张卡」有裁决色——
+                         对=right / 错=wronged；没选的卡（含正确答案卡）一律维持未答色，
+                         不再给 missed 绿提示（用户截图指名）。正确答案去解析框看。 */
                       if (judge === label) extra = grade.expected === label ? 'right' : 'wronged'
-                      else if (grade.expected === label) extra = 'missed'
-                      else extra = 'dimmed'
                     } else {
                       extra = judge === label ? 'selected' : (judge ? 'dimmed' : '')
                     }

@@ -1651,16 +1651,9 @@ body { background: linear-gradient(160deg, #FFF8FA 0%, #FFF0F4 58%, #F0FFFA 82%,
   background: radial-gradient(circle at 32% 28%, #FFD9D2, #F2564A);
   box-shadow: 0 0 12px rgba(242, 86, 74, .45), inset 0 1px 0 rgba(255, 255, 255, .7) !important;
 }
-.judge-card.missed {
-  border: 2px dashed var(--mint-dk) !important;
-  background-color: rgba(127, 232, 200, .1) !important;
-}
-.judge-card.missed .judge-label { color: #2FA98A !important; }
-.judge-card.missed::before {
-  content: '✓';
-  background: radial-gradient(circle at 32% 28%, #B8F5E3, #5FD4B0);
-  box-shadow: 0 0 12px rgba(95, 212, 176, .35), inset 0 1px 0 rgba(255, 255, 255, .7) !important;
-}
+/* §37：missed（答错时给正确答案挂绿提示）已按用户口径撤销——判断卡与选项行都不再挂这个类，
+   正确答案维持未答色，去解析框看。§35 的 .judge-card.missed 三条规则已删；
+   L451 的 .opt-row.missed 是更早的历史规则，现在同样无 DOM 引用，留待幽灵清单统一处理。 */
 
 /* ════════ §36（2026-09-05）答错红色范围收窄（用户截图指名） ════════
    答错时红色只允许出现在两处：① 我选错的选项/判断卡 ② ◇解析 大区块（含答错横幅）。
