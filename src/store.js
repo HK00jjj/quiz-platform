@@ -59,6 +59,10 @@ async function persistBooks(s) {
 }
 let unsubscribe = null
 let relearnKey = null
+/* 三遍判定制：本会话内已被 flushPendingRatings 按 1~2 次结果折算推过卡的题目 id。
+   断点续练恢复后这些题剩余的出现次数只记 record、不再推卡（否则 FSRS 同题双推进）。
+   relearn 会随 resume 持久化（flushedIds），其他模式会话即弃。 */
+let flushedIds = new Set()
 let reloadTimer = null
 let reloadSeq = 0
 /* §44 防抖动覆写：本机刚写过 settings 后的窗口期内，reloadAll 不允许用云端值覆盖
@@ -99,7 +103,8 @@ function maybeSaveResume(state) {
   saveResume({
     mode: 'relearn', filtersKey: relearnKey ?? filtersKey(),
     questionIds: state.sessionQuestions.map((q) => q.id),
-    index: state.sessionIndex, results: state.sessionResults, savedAt: Date.now()
+    index: state.sessionIndex, results: state.sessionResults, savedAt: Date.now(),
+    flushedIds: [...flushedIds]
   })
 }
 
@@ -207,6 +212,7 @@ function flushPendingRatings() {
   for (const { results, q } of acc.values()) {
     if (results.length === 0 || results.length >= 3) continue  // 满三次的已在 confirmObjective 推过
     const rating = results.every(Boolean) ? '记得' : results.some(Boolean) ? '模糊' : '忘记'
+    flushedIds.add(q.id)  // 标记：续练后该题剩余出现只记 record 不再推卡
     const existing = cards.find((c) => c.questionId === q.id)
     const card = reviewCard(existing ?? newCard(q.id, now), rating, now)
     if (!DEMO) repo.persistCard(card).catch((e) => {
@@ -497,6 +503,7 @@ export const useStore = create((set, get) => ({
           const index = Math.min(Math.max(saved.index, Math.min(saved.results.length, list.length - 1)), list.length - 1)
           const results = saved.results.slice(0, index)
           relearnKey = saved.filtersKey
+          flushedIds = new Set(saved.flushedIds ?? [])  // 恢复 flush 已推过卡的题，防续练后二次推卡
           set({
             sessionMode: mode, sessionQuestions: list, sessionIndex: index,
             phase: 'answering', sessionResults: results, lastGrade: null, lastRating: null,
@@ -513,6 +520,7 @@ export const useStore = create((set, get) => ({
     })
     /* 三遍判定制：客观题 ×3 随机穿插、主观题保持 1 次。返回值仍报原始题数（页面计数口径不变） */
     const queue = expandTriple(list)
+    flushedIds = new Set()  // 新会话，flush 记录清零（relearn resume 路径上面已单独恢复）
     set({
       sessionMode: mode, sessionQuestions: queue, sessionIndex: 0,
       phase: queue.length > 0 ? 'answering' : 'done',
@@ -548,7 +556,9 @@ export const useStore = create((set, get) => ({
     const rating = results.every(Boolean) ? '记得' : results.some(Boolean) ? '模糊' : '忘记'
     commitAnswer(q, {
       correct: lastGrade.correct, rating, detail: lastGrade.normalized ?? '',
-      grade: lastGrade, lastRatingValue: rating, commitCard: results.length >= 3
+      grade: lastGrade, lastRatingValue: rating,
+      /* 已被 flush 折算推过卡（中断后续练）的题只记 record，防 FSRS 同题双推进 */
+      commitCard: results.length >= 3 && !flushedIds.has(q.id)
     })
   },
   // 主观题：自判“管对了”→'记得'，“答错了”→'忘记'（与线上一致）；单次出现，即时推卡
@@ -557,15 +567,6 @@ export const useStore = create((set, get) => ({
     if (q) commitAnswer(q, {
       correct: rating === '记得', rating, detail: rating,
       grade: null, lastRatingValue: rating, commitCard: true
-    })
-  },
-  submitAnswer: (q, ratingOrBool, detail, grade) => {
-    commitAnswer(q, {
-      correct: grade ? grade.correct : ratingOrBool === '记得',
-      rating: typeof ratingOrBool === 'string' ? ratingOrBool : '记得',
-      detail, grade,
-      lastRatingValue: typeof ratingOrBool === 'string' ? ratingOrBool : null,
-      commitCard: true
     })
   },
   next: () => {

@@ -210,8 +210,10 @@ export default function Practice() {
   }
 
   /* 客观题三遍判定制：确认本笔作答（store 里第 3 次完成时自动折算记得/模糊/忘记推卡），
-     随后立即翻牌切题。三档手动自评已下线——评级由三次真实作答结果决定 */
+     随后立即翻牌切题。三档手动自评已下线——评级由三次真实作答结果决定。
+     flying 复用翻牌锁做双击防护：连点会造成重复 record + 卡二次推进 */
   function confirmAndFlip() {
+    if (flying.current) return
     const ok = lastGrade ? lastGrade.correct : true
     confirmObjective()
     flipToNext(ok)
