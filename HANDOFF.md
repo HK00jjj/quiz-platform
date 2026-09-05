@@ -2224,3 +2224,26 @@ rgb(255,217,210)，无 right/missed 类、无绿框；截图 shots/s37-judge-wro
 verify-live 26/26 200 + 三哈希 MATCH，ALL OK。
 
 **经验**：接手时凡「声称已改」先查 dist mtime vs 源码 mtime——本条就是源码改好但停在半路的案例。
+
+## 38. 第二十八轮（2026-09-05）· 题图移出题干，随解析显示（用户截图指名）
+
+**需求**：图片不要出现在题干位置；只能点击解析后，随答案一起显示。
+
+**改动**（全在 Practice.jsx，零 CSS）：
+- `Stem` 组件删掉题图渲染（原 L25-28 的 imgId/imgUri/diagram 三件套），题干只剩文字。
+  题图唯一渲染点 = 解析区 `fbImgUri`。
+- 解析区题图挂上 `seal === 'broken'` 条件——原代码 `fbImgUri && <img>` 没判揭示态，
+  蜡封未开时就渲染（隐性提前漏题），一并修掉。现在与答案同一时刻显影。
+
+**真机验证**（demo 注入 `qp.imgmap.v1` 把 demo_1..28 全映射到 tpl_din_wiring，每题带图）：
+- 答题前：`.zone-q img` 无、`.zone-s > img` 无、全页无 `img[alt="DIN插头接线"]` ✓
+- 点「查看解析」（doCheck→breakSeal，520ms 蜡封卸载）后：解析区图出现（高 238px 可见）、题干仍无图 ✓
+- 截图 shots/s38-img-reveal-only.png；console 0 errors。
+
+**真机操作坑（下次省时间）**：
+- `.opt-row` 点击后 React 状态要一拍才落位；同帧连点「选选项+提交」会因 canSubmit=false 静默无效
+  （doCheck 直接 return，按钮 disabled）。分两次 eval、中间 sleep 1s。
+- 客观题流程：选项 → 查看解析（内部已调 breakSeal，没有独立的蜡封点击）；评分按钮出现即进反馈态。
+- demo 池 id 规律 `demo_1..28`（store.js demoData）。
+
+**部署**：gh-pages `026b94e`（27 文件，IDENTICAL）。

@@ -22,22 +22,16 @@ function shuffledOrder(n) {
 /* 题干渲染：填空题把 {空} 显示为下划线占位 */
 function Stem({ q }) {
   // 首字下沉已去掉（#4）：drop-cap 把第一个字放到 2.1em 还浮动，读起来累，与正文同号更舒服
-  const imgId = imageFor(q.id)
-  const imgUri = imgId ? diagramDataUri(imgId) : null
-  const diagram = imgUri
-    ? <img src={imgUri} alt={diagramTitle(imgId)} style={{ display: 'block', maxWidth: '100%', margin: '0 auto 10px', background: '#fff', border: '1px solid #e5d9c3', borderRadius: 8 }} />
-    : null
-  if (q.type !== '填空题' || !q.stem.includes('{')) return <>{diagram}<p className="q-stem">{q.stem}</p></>
+  // §38：题图不再出现在题干（用户指名：图片只能点击解析后随答案一起显示）。
+  // 题图统一由解析区的 fbImgUri 渲染（挂 seal==='broken'，蜡封启封后才出现）。
+  if (q.type !== '填空题' || !q.stem.includes('{')) return <p className="q-stem">{q.stem}</p>
   const parts = q.stem.split(/(\{[^{}]*\})/g)
   return (
-    <>
-      {diagram}
-      <p className="q-stem">
-        {parts.map((p, i) => p.startsWith('{') && p.endsWith('}')
-          ? <span key={i} style={{ display: 'inline-block', minWidth: 70, borderBottom: '1.5px solid #5a4a2a', margin: '0 3px' }}>&nbsp;</span>
-          : <React.Fragment key={i}>{p}</React.Fragment>)}
-      </p>
-    </>
+    <p className="q-stem">
+      {parts.map((p, i) => p.startsWith('{') && p.endsWith('}')
+        ? <span key={i} style={{ display: 'inline-block', minWidth: 70, borderBottom: '1.5px solid #5a4a2a', margin: '0 3px' }}>&nbsp;</span>
+        : <React.Fragment key={i}>{p}</React.Fragment>)}
+    </p>
   )
 }
 
@@ -408,7 +402,8 @@ export default function Practice() {
             <section className={'zone zone-s' + (answered || showAnswer ? ' revealed' : '') + (answered && !(objective ? lastGrade?.correct : lastRating === '记得') ? ' bad' : '')}>
             {/* 这里原来是 `answered || showAnswer ? '◇ 解析' : '◇ 解析'`——两个分支完全相同的遗留三元，已收成一行 */}
             <h5 className="zone-label">◇ 解析</h5>
-            {fbImgUri && <img src={fbImgUri} alt={diagramTitle(imageFor(q.id))} style={{ display: 'block', maxWidth: '100%', margin: '0 auto 10px', background: '#fff', border: '1px solid #e5d9c3', borderRadius: 8 }} />}
+            {/* §38：题图只在点击解析（蜡封启封）后随答案一起显示，答题前不渲染 */}
+            {seal === 'broken' && fbImgUri && <img src={fbImgUri} alt={diagramTitle(imageFor(q.id))} style={{ display: 'block', maxWidth: '100%', margin: '0 auto 10px', background: '#fff', border: '1px solid #e5d9c3', borderRadius: 8 }} />}
             {seal !== 'broken' && (
               <div className={'seal-lock ' + seal}>
                 <span className="seal-wax" aria-hidden="true">
