@@ -1885,3 +1885,24 @@ body { background: linear-gradient(160deg, #FFF8FA 0%, #FFF0F4 58%, #F0FFFA 82%,
 }
 /* §52b 答题页 compact：只撤小旗（用户口径——答题界面去掉小旗就行，其余全保留） */
 .festive-layer.is-compact .fbunting { display: none; }
+
+/* ══ §55 字体沉浸感（方案 B 拍板：清爽雅黑——字体不动，修排版病灶） ══
+   晕的病灶：题干 600 加粗、阅读面字重偏高、1-6px 字距、作答框等宽字体（中文落宋体渲染）。
+   修法：题干 500/.3px/行高 2/字号提一档；阅读面一律 400；作答框改正文 15px/行高 1.9；
+   高频小标签字距减半。品牌大字（登录/结算标题字距是造型）不动。 */
+.q-stem {
+  font-weight: 500 !important; letter-spacing: .3px !important;
+  line-height: 2 !important; font-size: clamp(16px, 3.4cqw, 19px) !important;
+}
+.q-face .rune-input, .q-face .rune-textarea, .fill-item .rune-input {
+  font-family: 'Nunito', 'Noto Sans SC', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif !important;
+  font-size: 15px !important; line-height: 1.9 !important;
+  letter-spacing: .3px !important; font-weight: 400 !important;
+}
+.opt-row { font-weight: 400 !important; letter-spacing: .2px !important; }
+.judge-label { letter-spacing: 1px !important; font-weight: 500 !important; }
+.grade-panel p, .answer-scroll-box, .answer-scroll-box p {
+  line-height: 1.95 !important; letter-spacing: .3px !important; font-weight: 400 !important;
+}
+.practice-count { letter-spacing: 1px !important; }
+.candy-hero .hero-copy p, .tarot-hint { letter-spacing: .4px !important; }

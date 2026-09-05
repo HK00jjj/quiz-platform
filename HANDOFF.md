@@ -2502,3 +2502,15 @@ console 0 errors；首页点缀不变。
 用户口径「答题界面去掉小旗就行了，其他不用保留」——compact 从撤 6 件收窄为只撤 .fbunting，
 灯串/圣诞帽/彩屑在答题页全部恢复。candy.css §52b 一条规则 + FestiveDecor 注释同步。
 真机复验：bunting display:none、lights/hat/cdot block；console 0 errors。
+
+## 55. 第四十五轮（2026-09-05）· 字体沉浸感（用户「看的有点晕」→ 三方案小样拍板选 B 清爽雅黑）
+
+诊断三个病灶：题干 600 加粗、阅读面字重偏高、1-6px 字距；另抓到主观题作答框用等宽字体
+（global.css .rune-textarea 13px monospace → 中文落默认宋体渲染）。
+修法（candy.css §55 权威层，方案 B=字体不动只修排版）：
+题干 500/.3px/行高 2/字号 clamp(16,3.4cqw,19)；作答框弃等宽改正文字体 15px/行高 1.9/400；
+选项 400/.2px、判断标签 1px/500、解析 1.95/.3px/400；practice-count 与 hero 副标字距减半。
+品牌大字（登录 8px 字距/结算 6px）是造型，不动。
+
+**验证**：真机计算样式全中（stem 500/.3px/38px/19px，opt 400）；console 0 errors。
+部署 gh-pages `f219c41`（IDENTICAL），verify-live ALL OK。
