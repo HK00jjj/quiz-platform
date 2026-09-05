@@ -144,8 +144,6 @@ export default function Learn() {
         <span className="ch-candy c3" aria-hidden="true" />
         <span className="ch-candy c4" aria-hidden="true" />
         <span className="ch-lolli" aria-hidden="true" />
-        {/* §40 马戏团小帐篷：纯 CSS 条纹篷（粉白条纹+柠檬旗），静态零动画，与糖果马卡龙同色系 */}
-        <span className="ch-circus" aria-hidden="true" />
         {/* 原来这里只有一个居中浮动的 caption 胶囊，整条 ~200px 渐变带大片留白显得没做完。
             改成左文右糖：左边真标题 + 副标，右边糖豆聚成一簇（位置在 candy.css 里重排）。 */}
         <div className="hero-copy">

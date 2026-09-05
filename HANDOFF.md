@@ -2286,3 +2286,16 @@ signature = 结算彩带雨；hero 彩旗给第一印象；入口卡 hover 给�
 跑完整轮到结算，奖章 conic 放射 rays-ok + 彩带共存（s40-settle-medal.png）；console 0 errors。
 
 **部署**：gh-pages `96af8f2`（IDENTICAL）。
+
+## 41. 第三十一轮（2026-09-05）· 整轮撤回 §40 马戏团元素（用户反馈：太丑了）
+
+**撤回内容**（§40 三处全撤，恢复 §39 派对状态）：
+- Learn.jsx 删 `.ch-circus` 帐篷挂载；
+- candy.css 删整个 §40 段（帐篷/`.btn.lg::after` 条纹底边/`.settle-medal` 放射纹）。
+§39（彩旗/果冻 hover/彩带雨）保留未动。
+
+**验证**：grep `ch-circus|§40` 源码零残留；真机 circusGone=true、bunting 9 面保留、
+CTA ::after display:none；部署 gh-pages `b93e18f`（IDENTICAL）。
+
+**教训（给下轮设计）**：装饰性「主题移植」（马戏团帐篷这类具象物件）与糖果插画风不兼容——
+hero 已有糖豆/棒棒糖的软糖质感，硬几何条纹帐篷显突兀。之后加装饰先做单件小样截图给用户拍板，再全量铺。
