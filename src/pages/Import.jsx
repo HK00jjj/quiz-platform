@@ -47,7 +47,9 @@ export default function Import() {
           setResult({ tone: 'red', title: '云端写入失败', issues: [{ where: '云端', level: '错误', message: '云端写入受阻，请重试' }], rework: false })
         }
       } else if (cls.kind === 'parse-error') {
-        setResult({ tone: 'red', title: '导入内容无法解析', issues: cls.errors.map((m) => ({ where: '顶层', level: '错误', message: m })), rework: false })
+        /* §46：JSON 语法解析失败同样给返工话术（用户口径：图二没出复制窗口）。
+           报错信息本身含 line/column 定位，AI 拿话术即可定向修语法。 */
+        setResult({ tone: 'red', title: '导入内容无法解析', issues: cls.errors.map((m) => ({ where: '顶层', level: '错误', message: m })), rework: true })
       } else if (cls.issues.filter((i) => i.level === '错误').length === 0) {
         setSealing(true)
         try {

@@ -239,8 +239,16 @@ export function reworkTalk(issues) {
 }
 
 // ── 解析管道 ──
+/* §46 围栏只剥首尾：旧版 `replace(/```/g,'')` 是全局替换——题干/解析里合法出现的
+   ```（代码段）会被一起删掉，JSON 内容被破坏 → 整批「无法解析」。现改为锚定首尾。 */
+function stripFences(text) {
+  return text
+    .replace(/^\s*```(?:json)?\s*/i, '')
+    .replace(/\s*```\s*$/, '')
+    .trim()
+}
 function extractArray(text) {
-  const t = text.replace(/```(?:json)?/gi, '').trim()
+  const t = stripFences(text)
   const a = t.indexOf('['), b = t.lastIndexOf(']')
   if (a === -1 || b === -1 || b <= a) return null
   return t.slice(a, b + 1)
@@ -335,7 +343,7 @@ const validRecord = (r, ids) =>
   typeof r === 'object' && r !== null && typeof r.questionId === 'string' && ids.has(r.questionId) &&
   typeof r.date === 'string' && typeof r.timestamp === 'number' && typeof r.correct === 'boolean' && typeof r.detail === 'string'
 export function parseBackup(text) {
-  const t = text.replace(/```(?:json)?/gi, '').trim()
+  const t = stripFences(text)   /* §46：同 extractArray，只剥首尾围栏 */
   if (!t.startsWith('{')) return null
   let parsed
   try { parsed = JSON.parse(t) } catch { return null }
