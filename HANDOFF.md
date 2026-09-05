@@ -2440,3 +2440,22 @@ confirmObjective 对已 flush 的题 `commitCard = length>=3 && !flushedIds.has(
 由退出/答完时 flush 兜底提交——一次性边缘，不修。
 
 **验证**：t-session 18/18；重建部署 gh-pages `5a02dba`（IDENTICAL），src 80/80，verify-live ALL OK。
+
+## 50. 第四十轮（2026-09-05）· 答题页点阵 → 糖浆进度条（用户拍板方案 B + 口径「圆润、糖浆一点点灌满」）
+
+**背景**：三遍判定制后会话动辄 200+ 题（题数×3），旧 .gem-row 一题一点密度爆表（用户截图 260 点铺两行）。
+按 §41-42 铁律先出三方案小样（糖霜双味条/糖珠轨道/糖果珠链，等比例用真实 token 绘制）拍板，用户选 B 并加口径。
+
+**实现**：
+- `Practice.jsx`：.gem-row 点阵换 .syrup-bar（role=progressbar + aria-valuenow）；pct = results.length/总题数；
+  fill width `calc(pct% - 6px)`，knob left `clamp(15px, pct%, calc(100% - 15px))`（0% 与 100% 不出轨道）。
+- `candy.css` 末尾 §50 块：胶囊轨道（奶粉槽 + 内阴影）、薄荷糖浆填充（顶部高光 = 糖浆光泽）、
+  填充前沿 18px 圆液滴（灌满感的关键）、28px 粉糖珠滑标（径向渐变 + 白描边 + 外圈糖霜环 + 高光点）；
+  width/left .55s 果冻缓动一次性过渡（微区域、无 infinite、无 blur）；reduced-motion 跳变。
+- 死样式清理：.gem-dot 三处（pages.css 基础层 5 规则 + candy.css 权威层 4+1 规则）——元素已删，无「删覆盖放老值」风险。
+
+**验证**（demo 真机 390×844，系统 Chrome+CDP）：
+- 结构：syrup-bar 在、gem-dot 0 个、radius 999px；未答时 fill=0px、knob 钳在 15px。
+- 答题推进：1/38 fill 0.97px（糖浆刚冒头）→ 7/38 fill 35.8px / knob 41.8px，同步右移。
+- console 0 errors；桌面宽度无断点依赖（flex:1 流式，小样 1120 宽已拍板背书）。
+- 部署 gh-pages `b36feaa`（IDENTICAL），src 80/80，verify-live ALL OK。
