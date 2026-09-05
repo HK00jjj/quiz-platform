@@ -2178,7 +2178,7 @@ dev server 在会话间隔仍会死（本次又死了一次），重启后再跑
 
 ## 36. 第二十六轮（2026-09-05）· 答错红色范围再收窄（用户截图圈定两处）
 
-**gh-pages HEAD：见本节末部署记录。verify-deploy RESULT: IDENTICAL。console 0 errors。**
+**gh-pages HEAD：`81047af`（父 `429c5f0`）。verify-deploy RESULT: IDENTICAL。console 0 errors。**
 
 用户在 §35 之后的截图上再圈：答错时红色只允许出现两处——① 我选错的判断/选项卡 ② ◇解析 大区块
 （含红色「答错了」横幅）；箭头指的**题目区**要维持未做题时的状态颜色；被其遮挡的**答案框**用白色背景。

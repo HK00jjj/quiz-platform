@@ -2,7 +2,7 @@
 
 > 本文是**自包含**的入门文档：不读本文之外的任何会话记录也能接手。
 > 逐轮详细历史见项目根 `HANDOFF.md`（2024 行，§1–§30）。本文只浓缩"必须知道"的部分。
-> 最后更新：2026-09-05，对应 gh-pages 待填（§36）。
+> 最后更新：2026-09-05，对应 gh-pages `81047af`（§36）。
 
 ---
 
@@ -163,7 +163,7 @@ Start-Sleep 40 ; node verify-live.mjs "$PWD\app\dist"      # 期望 LIVE RESULT:
 
 ## 8. 当前状态（2026-09-05）
 
-- gh-pages HEAD **`429c5f0`**（链：… §31 `031fbb1` → §32 `da658a2` → §33 `fadc51c` → §34 `02418ca` → §35 `429c5f0`）。
+- gh-pages HEAD **`81047af`**（链：… §31 `031fbb1` → §32 `da658a2` → §33 `fadc51c` → §34 `02418ca` → §35 `429c5f0` → §36 `81047af`）。
 - `verify-deploy` RESULT: IDENTICAL；console 0 errors；RLS 探测安全（anon key 匿名读返回空集）。
 - §31 清新活力批（15 处粉字替换 + 去 fog；⚠ token 部分被缓冲区吞掉，§33 补齐）/
   §32 糖果派对派（糖针+hero 第四色+渐变权重）/
