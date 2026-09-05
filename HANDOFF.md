@@ -2309,3 +2309,18 @@ hero 已有糖豆/棒棒糖的软糖质感，硬几何条纹帐篷显突兀。�
 部署 gh-pages `7254df3`（IDENTICAL）。
 
 **现态装饰清单**（§39 剩余）：入口卡果冻 hover + 结算彩带雨。hero 回归纯糖豆+棒棒糖。
+
+## 43. 第三十三轮（2026-09-05）· 修加载页「抖动一下」（用户截图指名）
+
+**根因**（实测定位，非猜测）：加载态内容恰好 `minHeight:100vh` 无滚动条；ready 后首页内容
+1350px 超一屏 → 滚动条出现 → 视口宽度被压掉（无头 8px / 真机约 17px）→ 整页瞬间重新居中 =
+肉眼可见的横向抖动。经典 scrollbar reflow 问题。
+
+**修法**：`global.css` 加 `html { scrollbar-gutter: stable; }`（槽位常驻，滚动条出现与否不改布局宽度；
+移动端覆盖式滚动条环境无副作用）。一行修，零 JS。
+
+**验证**：修复前 clientW 512→504 跳变；修复后加载态/加载后恒定 504，gutter=stable；
+部署 gh-pages `75a43f1`（IDENTICAL）。
+
+**排查线索记录**：`orb-spin` 是 transform 旋转无嫌疑；`.bubble-layer` position:fixed 无嫌疑；
+`<Background />` 气泡 12 颗中 9 颗（intensity>1 才全出）也无嫌疑——别在这三处再浪费时间。

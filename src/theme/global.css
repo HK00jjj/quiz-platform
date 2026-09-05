@@ -48,6 +48,11 @@
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body, #root { min-height: 100%; }
+/* §43 修「加载页抖动一下」：加载态内容恰好一屏无滚动条，ready 后首页超一屏滚动条出现，
+   视口宽度瞬间被压掉一条（真机约 17px）→ 整页重新居中 = 肉眼可见的横向抖动。
+   scrollbar-gutter:stable 让槽位常驻，滚动条出现与否都不再改变布局宽度。
+   移动端/覆盖式滚动条环境此属性无副作用。 */
+html { scrollbar-gutter: stable; }
 body {
   background: linear-gradient(180deg, var(--bg-0) 0%, var(--bg-1) 100%) fixed;
   color: var(--gold-text);
