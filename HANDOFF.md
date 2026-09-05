@@ -2529,3 +2529,34 @@ console 0 errors；首页点缀不变。
 
 **验证**：E2E 四路径全通——单选 Digit1→Enter、填空 input+Enter、主观 Ctrl+Enter→Enter=答对、
 判断 Digit1→Enter（新会话复测）；糖豆雨门控为纯逻辑分支（代码审查）；console 0 errors。
+
+## 57. 第四十七轮（2026-09-05）· §48+§56 二次严格审查（用户点名三遍判定制+沉浸一期）
+
+**逐轴复核通过（无需改）**：expandTriple 纯函数/不改原数组；confirmObjective 扫描与 resume results 平行；
+flushedIds 恢复/清零/持久化闭环；flush 满三次跳过、中断折算口径；persistAnswer(card=null)/persistCard 回滚对称；
+键盘流 DOM-click 复用判分链路、effect 挂在早退 return 前（line 136 < 172，Rules of Hooks 合规）、
+卸载时移除监听、输入框焦点不劫持数字、flying 防双击；糖豆雨门控 combo+1>=3 口径正确；
+startSession 返回值仅用于 n>0（resume/fresh 口径差异无实际影响）。
+
+**修复 2 处**：
+① 回滚误删（预存缺陷被键盘流放大）：persistAnswer 失败回调原用 sessionResults.slice(-1)——
+   失败回调晚到时会误删「失败之后新答的那笔」。改按捕获时的 resultIndex 精确摘除（filter index）。
+② 键盘流只认主键盘 Digit1-5 → 补 Numpad1-5（小键盘党）。
+
+**已知可接受项（不改）**：
+- 切页/关标签时未 flush（仅在应用内导航触发）——浏览器关闭丢 1-2 次未折算记录，量级极小
+- 主观题连对不撒糖豆（与客观题不对称）——自判场景仪式感本就低，刻意
+- 云端失败双发时多笔回滚的索引仍可能交叠——需失败连发+中途新答两个条件叠加，概率极低
+- buildSession 旧格式 resume（§48 前遗留）一次性降级——已由 flush 兜底
+
+**验证**：t-session 18/18；构建过；部署 gh-pages `79f83d0`（IDENTICAL），src 同步，verify-live ALL OK。
+
+## 58. 第四十八轮（2026-09-05）· 返工复制后缺「重新导入」出口（用户反馈）
+
+红色返工框里只有「一键复制返工话术」，复制完去 AI 修正后回来没有清场重导的按键，流程断头。
+修法（Import.jsx）：返工按钮行加 ghost 按钮「🧹 清空，重新导入」——清空 textarea + result + copied，
+并 focus 回输入框直接可粘贴修正后的 JSON。顺手修连带 bug：copied 状态在 detect() 开始时不重置，
+下一次报错会错误显示「✓ 已复制」。textarea 挂 taRef 供聚焦。
+
+**验证**：demo 真机——坏 JSON 触发解析失败 → 两按钮齐全；点清空后 textarea 空/返工框消失/
+焦点回到输入框/检测按钮回到 disabled；console 0 errors。

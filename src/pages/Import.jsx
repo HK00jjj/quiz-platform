@@ -17,6 +17,7 @@ export default function Import() {
   const [dragOn, setDragOn] = useState(false)
   const [sealing, setSealing] = useState(false)
   const fileRef = useRef(null)
+  const taRef = useRef(null)
 
   function showResult(issues, importRes) {
     const errs = issues.filter((i) => i.level === '错误')
@@ -35,7 +36,7 @@ export default function Import() {
 
   async function detect() {
     if (!text.trim() || busy) return
-    setBusy(true); setResult(null); setSealing(false)
+    setBusy(true); setResult(null); setSealing(false); setCopied(false)
     try {
       const cls = classifyImport(text)
       if (cls.kind === 'backup') {
@@ -127,7 +128,7 @@ export default function Import() {
           onDragOver={(e) => { e.preventDefault(); setDragOn(true) }}
           onDragLeave={() => setDragOn(false)}
           onDrop={(e) => { e.preventDefault(); setDragOn(false); onFile(e.dataTransfer.files?.[0]) }}>
-          <textarea className="rune-textarea" value={text} onChange={(e) => setText(e.target.value)}
+          <textarea ref={taRef} className="rune-textarea" value={text} onChange={(e) => setText(e.target.value)}
             placeholder={'将 AI 生成的题目 JSON 数组导入到这里，如 [{"序号":1,"题型":"单选题",…}]，也可直接拖入 JSON 文件'}
             rows={12} />
         </div>
@@ -191,6 +192,10 @@ export default function Import() {
             {result.rework && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 12, flexWrap: 'wrap' }}>
                 <GiltBtn tone="danger" onClick={copyRework}>{copied ? '✓ 已复制，发回给 AI 修正' : '📋 一键复制返工话术'}</GiltBtn>
+                {/* §59：复制只是「离开修内容」的第一步，回来要有一键清场重导的出口（用户反馈） */}
+                <GiltBtn tone="ghost" onClick={() => { setText(''); setResult(null); setCopied(false); taRef.current?.focus() }}>
+                  🧹 清空，重新导入
+                </GiltBtn>
                 <span style={{ fontSize: 12, color: 'var(--muted)' }}>话术含全部报错行与修正要求，AI 改完重新导入再检测。</span>
               </div>
             )}
