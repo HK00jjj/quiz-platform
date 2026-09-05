@@ -2469,3 +2469,21 @@ confirmObjective 对已 flush 的题 `commitCard = length>=3 && !flushedIds.has(
 
 **验证**：demo 真机 6/42 计算样式全中（fill 渐变 255,236,140→255,212,59 / bar 255,247,220 / knob 蜜桃径向）；
 console 0 errors。部署 gh-pages `6c3aeb1`（IDENTICAL），src 同步，verify-live ALL OK。
+
+## 52. 第四十二轮（2026-09-05）· 全站节日点缀层：圣诞×马戏「玩具糖偶」（用户逐条规格 + 两轮小样拍板）
+
+**规格**（用户全文给出）：只加不改（整层非交互、点击穿透）/ 只待空地（页框四缘，不进阅读区）/
+只取现有色板（树莓粉/深薄荷/香槟金/淡紫）/ 单件 20-40px、每屏 ~20 单位、透明度 .7-.85 / 糖偶质感。
+用户两轮反馈迭代：v1 → ①更协调热闹不乱 ②加密度 ③加小动物/蛋糕/游乐设施/圣诞树/帐篷 → v2 拍板。
+
+**实现**：
+- 新组件 `components/FestiveDecor.jsx`（挂 Shell，登录前不挂）：22 个纯 SVG 小物——
+  灯串/三角旗/圣诞帽/雪花×4/圣诞树/马戏帐篷/摩天轮/蛋糕/兔/熊/气球×2/姜饼人/冬青/拐杖糖/礼盒/彩屑×3。
+- `candy.css` §52 块：fixed 层 z-5（内容之上、导航 z-40/弹窗之下）、pointer-events:none、aria-hidden；
+  动画仅 transform/opacity（灯呼吸 2.4s/雪落 9-13s/气球 3.8-4.4s/轮慢转 26s），无 blur；
+  reduced-motion 全静止；@media ≤560px 撤 9 个静态散件减密度（移动端防挤卡）。
+- 红线自查：无新大面积 infinite（元素均 <80px）、不动 transform/opacity 以外属性、零 JS 监听。
+
+**验证**：demo 真机 1280×800——首页/答题页截图氛围到位；开始按钮点击穿透正常；
+层 pointerEvents=none / z=5 / 22 子元素；console 0 errors。
+部署 gh-pages `183857d`（IDENTICAL），src 同步，verify-live ALL OK。

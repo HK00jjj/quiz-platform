@@ -6,6 +6,7 @@ import { TouchRitual } from './components'
 /* 背景气泡 / 三格糖果导航 / 开机仪式改从 CandyBoot 引入：components.jsx 正被编辑器的
    陈旧缓冲区反复回写（实测同一轮内被覆盖两次），改动会被吞掉，所以拆到新文件里 */
 import { Background, BottomNav, BootRitual, useScrollReveal } from './components/CandyBoot'
+import FestiveDecor from './components/FestiveDecor'
 import { lastResultMap } from './lib/stats'
 import Login from './pages/Login'
 import Learn from './pages/Learn'
@@ -62,6 +63,9 @@ function Shell() {
         <i /><i /><i /><i /><i /><i /><i /><i /><i /><i /><i /><i />
       </span>
       <Background intensity={inPractice ? 1.6 : 1} />
+      {/* §52 节日点缀层：整层点击穿透（pointer-events:none），元素全在页框空隙，
+          z-5 压在内容上但低于底部导航/弹窗；登录前不挂（BootRitual/Login 分支保持素净） */}
+      <FestiveDecor />
       <Routes>
         <Route path="/" element={<Learn />} />
         <Route path="/bank" element={<Bank />} />

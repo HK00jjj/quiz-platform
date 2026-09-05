@@ -1836,3 +1836,50 @@ body { background: linear-gradient(160deg, #FFF8FA 0%, #FFF0F4 58%, #F0FFFA 82%,
 @media (prefers-reduced-motion: reduce) {
   .syrup-fill, .syrup-knob { transition: none; }
 }
+
+/* ══ §52 节日点缀层（圣诞×马戏「玩具糖偶」，v2 小样拍板） ══
+   配套组件 components/FestiveDecor.jsx（图形在此、布局在此、颜色双写）。
+   纪律：整层 pointer-events:none / aria-hidden；元素只占页框四缘；透明度带 0.7-0.85；
+   动画只 transform/opacity，微幅慢速（灯呼吸 2.4s / 雪落 9-13s / 气球 3.8-4.4s / 轮 26s）；
+   无 blur、无新增大面积 infinite；reduced-motion 全静止。 */
+.festive-layer { position: fixed; inset: 0; z-index: 5; pointer-events: none; }
+.festive-layer > * { position: absolute; }
+.flights { top: 0; left: 50%; transform: translateX(-50%); animation: f-glow 2.4s ease-in-out infinite; }
+.fbunting { left: 50%; top: 118px; transform: translateX(-50%); }
+.fhat { top: 88px; left: calc(50% - 400px); transform: rotate(-10deg); }
+.fflake { animation: f-fall 10s linear infinite; }
+.ff1 { top: -30px; left: 9%; }
+.ff2 { top: -30px; left: 47%; animation-delay: -4s; animation-duration: 12s; }
+.ff3 { top: -30px; left: 90%; animation-delay: -7.5s; animation-duration: 9s; }
+.ff4 { top: -30px; left: 70%; animation-delay: -2s; animation-duration: 13s; }
+.ftree { bottom: 30px; left: 6.5%; }
+.ftent { bottom: 26px; right: 8%; transform: rotate(-3deg); }
+.fwheel { top: 26%; right: 2.8%; animation: f-spin 26s linear infinite; transform-origin: 50% 50%; }
+.fcake { bottom: 130px; left: 3%; transform: rotate(-4deg); }
+.fbunny { bottom: 44px; left: 24%; transform: rotate(4deg); }
+.fbear { bottom: 120px; right: 24%; transform: rotate(-6deg); }
+.fballoon { animation: f-bob 3.8s ease-in-out infinite; }
+.fb1 { bottom: 210px; right: 12%; }
+.fb2 { bottom: 90px; left: 13%; animation-delay: -1.9s; animation-duration: 4.4s; }
+.fginger { top: 58%; right: 16%; transform: rotate(7deg); opacity: .75; }
+.fholly { top: 36%; left: 2.4%; transform: rotate(-9deg); }
+.fcane { top: 20%; left: 7%; transform: rotate(24deg); }
+.fgift { top: 64%; left: 12%; transform: rotate(-6deg); }
+.fcstar { top: 15%; right: 30%; }
+.fcdot { top: 48%; left: 30%; }
+.fcbar { bottom: 34%; right: 5%; transform: rotate(-32deg); }
+@keyframes f-glow { 0%,100% { opacity: .66; } 50% { opacity: .95; } }
+@keyframes f-bob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+@keyframes f-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+@keyframes f-fall { 0% { transform: translateY(0) rotate(0deg); opacity: .8; }
+  100% { transform: translateY(105vh) rotate(50deg); opacity: .35; } }
+@media (prefers-reduced-motion: reduce) {
+  .flights, .fballoon, .fflake, .fwheel { animation: none; }
+}
+/* 窄屏减密度：撤掉静态散件，只留顶部灯串小旗+四角朋友，避免挤到卡片上 */
+@media (max-width: 560px) {
+  .fginger, .fbear, .fcane, .fgift, .fcstar, .fcdot, .fcbar, .fholly, .fcake { display: none; }
+  .fwheel { top: 18%; right: 1%; transform: scale(.8); transform-origin: 50% 50%; }
+  .ftree { left: 4%; }
+  .ftent { right: 4%; }
+}
