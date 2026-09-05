@@ -224,6 +224,11 @@ export default function Practice() {
       <div className="practice-stage">
         <div className="settle-wrap">
           <div className="settle-card">
+            {/* §39 彩带雨：结算即庆典。一次性 1.6s 撒糖纸屑（transform/opacity only），
+                reduced-motion 直接不渲染动画（display:none）。 */}
+            <div className="confetti-drop" aria-hidden="true">
+              {Array.from({ length: 14 }).map((_, i) => <i key={i} />)}
+            </div>
             {/* 哥特玫瑰窗位图下线（#7）：换成纯 CSS 糖果奖章，零位图零请求；
                 图标随正确率变，给一点成绩反馈 */}
             <div className="settle-medal" aria-hidden="true">{pct === 100 ? '🏆' : pct >= 60 ? '🍬' : '🍓'}</div>

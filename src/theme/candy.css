@@ -1712,3 +1712,85 @@ body { background: linear-gradient(160deg, #FFF8FA 0%, #FFF0F4 58%, #F0FFFA 82%,
   left: auto; right: 44%; top: 56%; width: 22px; height: 22px; animation-delay: -3s;
   background: radial-gradient(circle at 32% 28%, #F3EBFF, #B894FF 72%);
 }
+
+/* ══════════════════════════════════════════════════════════════
+   §39 节日派对感增强（用户口径：缺节日派对般的热闹童趣感）
+   boldness 集中在「结算彩带雨」一个 signature，其余安静：
+   ① hero 彩旗串：纯静态零动画（守 §34 纪律）；② 入口卡果冻 hover（transform only）；
+   ③ 结算彩带雨：一次性 1.6s forwards，非 infinite，reduced-motion 整体停。
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── ① hero 彩旗串：旗绳 + 九面三角旗，四色循环、高低错落 ── */
+.ch-bunting {
+  position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+  width: 82%; height: 30px; display: flex; justify-content: space-between;
+  pointer-events: none; z-index: 1;
+}
+.ch-bunting::before {
+  content: ''; position: absolute; top: 0; left: -2%; right: -2%; height: 2px;
+  background: rgba(255, 143, 163, .55); border-radius: 2px;
+}
+.ch-bunting i {
+  width: 17px; height: 22px; margin-top: 2px;
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+  background: var(--candy-pink);
+}
+.ch-bunting i:nth-child(4n+2) { background: var(--mint); }
+.ch-bunting i:nth-child(4n+3) { background: var(--lemon); }
+.ch-bunting i:nth-child(4n+4) { background: var(--lav); }
+.ch-bunting i:nth-child(even) { height: 26px; }
+.ch-bunting i:nth-child(3) { transform: translateY(3px) rotate(3deg); }
+.ch-bunting i:nth-child(7) { transform: translateY(2px) rotate(-3deg); }
+
+/* ── ② 入口卡果冻 hover：整卡浮起 + 图标弹一下（都只动 transform） ── */
+.entry-card { transition: transform .28s var(--jelly-ease), box-shadow .28s var(--smooth-ease); }
+.entry-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 14px 34px rgba(255, 143, 163, .28), var(--shadow-candy);
+}
+.entry-card:active { transform: translateY(-1px) scale(.98); }
+.entry-ico { transition: transform .28s var(--jelly-ease); }
+.entry-card:hover .entry-ico { transform: scale(1.15) rotate(-6deg); }
+
+/* ── ③ 结算彩带雨：settle-card 内一次 1.6s 撒糖，落定即静止 ── */
+.settle-card { position: relative; }
+.confetti-drop {
+  position: absolute; inset: 0; overflow: hidden; border-radius: inherit;
+  pointer-events: none;
+}
+.confetti-drop i {
+  position: absolute; top: -14px; width: 8px; height: 13px; border-radius: 2px;
+  opacity: 0; animation: confetti-fall 1.6s var(--smooth-ease) forwards;
+  background: var(--candy-pink);
+}
+.confetti-drop i:nth-child(4n+2) { background: var(--mint); }
+.confetti-drop i:nth-child(4n+3) { background: var(--lemon); }
+.confetti-drop i:nth-child(4n+4) { background: var(--sky); }
+/* 14 片各自的水平落点/延迟/漂移/自旋——写死避免 JS 计算 */
+.confetti-drop i:nth-child(1)  { left: 6%;  --dx: 18px;  animation-delay: .00s; }
+.confetti-drop i:nth-child(2)  { left: 14%; --dx: -22px; animation-delay: .10s; }
+.confetti-drop i:nth-child(3)  { left: 21%; --dx: 26px;  animation-delay: .05s; }
+.confetti-drop i:nth-child(4)  { left: 28%; --dx: -14px; animation-delay: .18s; }
+.confetti-drop i:nth-child(5)  { left: 35%; --dx: 20px;  animation-delay: .02s; }
+.confetti-drop i:nth-child(6)  { left: 42%; --dx: -26px; animation-delay: .14s; }
+.confetti-drop i:nth-child(7)  { left: 49%; --dx: 16px;  animation-delay: .08s; }
+.confetti-drop i:nth-child(8)  { left: 56%; --dx: -18px; animation-delay: .21s; }
+.confetti-drop i:nth-child(9)  { left: 63%; --dx: 24px;  animation-delay: .04s; }
+.confetti-drop i:nth-child(10) { left: 70%; --dx: -20px; animation-delay: .12s; }
+.confetti-drop i:nth-child(11) { left: 77%; --dx: 14px;  animation-delay: .16s; }
+.confetti-drop i:nth-child(12) { left: 84%; --dx: -24px; animation-delay: .06s; }
+.confetti-drop i:nth-child(13) { left: 90%; --dx: 20px;  animation-delay: .19s; }
+.confetti-drop i:nth-child(14) { left: 96%; --dx: -16px; animation-delay: .09s; }
+@keyframes confetti-fall {
+  0%   { transform: translate3d(0, -16px, 0) rotate(0deg); opacity: 0; }
+  10%  { opacity: 1; }
+  82%  { opacity: 1; }
+  100% { transform: translate3d(var(--dx, 0), 330px, 0) rotate(520deg); opacity: 0; }
+}
+
+/* ── reduced-motion 降级：彩带不撒、hover 不弹、彩旗本来就是静态 ── */
+@media (prefers-reduced-motion: reduce) {
+  .confetti-drop { display: none; }
+  .entry-card, .entry-card:hover, .entry-card:active { transition: none; transform: none; }
+  .entry-card:hover .entry-ico { transform: none; }
+}

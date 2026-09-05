@@ -2247,3 +2247,23 @@ verify-live 26/26 200 + 三哈希 MATCH，ALL OK。
 - demo 池 id 规律 `demo_1..28`（store.js demoData）。
 
 **部署**：gh-pages `026b94e`（27 文件，IDENTICAL）。
+
+## 39. 第二十九轮（2026-09-05）· 节日派对感增强（用户口径：缺热闹童趣感）
+
+**设计决策**（boldness 集中一处，其余安静）：结算页是天然的「节日时刻」，
+signature = 结算彩带雨；hero 彩旗给第一印象；入口卡 hover 给生命。CTA/进度珠刻意不动（避免过载）。
+
+**改动**：
+- Learn.jsx：candy-hero 顶部加 `.ch-bunting`（9 面三角旗，四色马卡龙循环、高低错落，纯静态零动画守 §34 纪律）。
+- Practice.jsx：settle-card 内加 `.confetti-drop`（14 片糖纸屑）。
+- candy.css 尾部 §39 段：彩旗样式；`.entry-card` 果冻 hover（translateY -5px + ico 弹转，全 transform only，
+  :active 按压回位）；彩带雨 keyframes（一次性 1.6s forwards 落定 opacity:0，每片 left/--dx/delay 写死 nth-child 零 JS）；
+  reduced-motion 降级（彩带 display:none、hover 动效全停）。
+
+**红线自查**：只动 transform/opacity ✓；无新增 infinite ✓（彩带是一次性 forwards）；无大面积 blur ✓；
+颜色全部取自现有糖果 token ✓；reduced-motion 覆盖 ✓；console 0 errors ✓。
+
+**真机验证**：首页彩旗 9 面四色可见（截图 s39-hero-bunting.png）；跑完整轮 demo 会话到结算页，
+14 片彩带 `confetti-fall 1.6s` 真实执行（getAnimations finished@1600ms），空中瞬间截图 s39-confetti-midair.png。
+
+**部署**：gh-pages `f5f4e6f`（IDENTICAL）。
