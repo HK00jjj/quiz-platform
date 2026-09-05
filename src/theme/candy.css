@@ -1662,6 +1662,16 @@ body { background: linear-gradient(160deg, #FFF8FA 0%, #FFF0F4 58%, #F0FFFA 82%,
   box-shadow: 0 0 12px rgba(95, 212, 176, .35), inset 0 1px 0 rgba(255, 255, 255, .7) !important;
 }
 
+/* ════════ §36（2026-09-05）答错红色范围收窄（用户截图指名） ════════
+   答错时红色只允许出现在两处：① 我选错的选项/判断卡 ② ◇解析 大区块（含答错横幅）。
+   ③ 题目区（zone-q/整张卡面）维持未做题时的状态颜色：
+      - crack-veil 的径向红晕撤掉——裂纹位图早已 display:none（L388），这层只剩
+        红晕在染整个题面，正是用户箭头指的「题目区变红」的来源；
+      - card-flash-bad 的一次性阴影脉冲保留（提交瞬间 0.9s 自愈，不进入持续状态）。
+   ④ 答案框（answer-scroll-box）答错时用纯白底：旧值 .72 半透白会透出解析区的红。 */
+.crack-veil { background: none !important; }
+.answer-scroll-box.bad { background: #fff !important; }
+
 /* ════════ §34（2026-09-05）导航托盘的派对装点 ════════
    用户反馈：四个板块的背景太空，缺节日派对般的热闹童趣。
    在「糖霜托盘」的既有隐喻里做加法，三件套全部静态零动画（不占每帧合成成本，

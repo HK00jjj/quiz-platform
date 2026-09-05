@@ -2173,3 +2173,25 @@ console 0 errors。裁切脚本用到的坑：sharp 未装进 app/node_modules�
 选对→我选卡薄荷绿✓、另一张 dimmed（judge-right.png）；console 0 errors。
 playwright 坑补充：css 选择器 `.opt-row` 多匹配会撞 strict mode，用 `.opt-row >> nth=0`；
 dev server 在会话间隔仍会死（本次又死了一次），重启后再跑。
+
+---
+
+## 36. 第二十六轮（2026-09-05）· 答错红色范围再收窄（用户截图圈定两处）
+
+**gh-pages HEAD：见本节末部署记录。verify-deploy RESULT: IDENTICAL。console 0 errors。**
+
+用户在 §35 之后的截图上再圈：答错时红色只允许出现两处——① 我选错的判断/选项卡 ② ◇解析 大区块
+（含红色「答错了」横幅）；箭头指的**题目区**要维持未做题时的状态颜色；被其遮挡的**答案框**用白色背景。
+
+**根源与修复**（candy.css 尾部 §36，两行）：
+- 题目区的持续红雾来自 `.crack-veil` 径向红晕（L1076）——裂纹位图其实早就 display:none（L388），
+  这层只剩红晕在染整个卡面。→ `background: none`，答错态题面即回到未答色。
+  §18-§20 时代的「裂纹蔓延」仪式至此名存实亡（位图隐藏+红晕撤除），JSX 里的 crack-veil 挂载点保留
+  （flash 状态还驱动它，将来要恢复加回背景即可）。
+- `.answer-scroll-box.bad` 底色从 .72 半透白（会透出解析区红）提到纯白 #fff。
+  L1049-1052 的「必须显式写 background 挡旧橄榄绿」约束仍满足。
+- `card-flash-bad` 的一次性 0.9s 阴影脉冲**保留**（提交瞬间的反馈，自愈、不进入持续状态；
+  用户圈的是持续态颜色）。若仍嫌闪，candy 层一条 `animation:none` 即可再撤。
+
+**验证**：demo 判断题选错路径截图（judge-wrong-narrow.png）：题面白净、错误卡红、
+解析区红边粉底红横幅、答案框纯白；console 0 errors。
