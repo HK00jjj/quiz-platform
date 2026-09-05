@@ -4,7 +4,7 @@ import { client } from './lib/supabase'
 import { repo } from './lib/db'
 import { newCard, reviewCard } from './lib/fsrs'
 import { fmtDate } from './lib/dates'
-import { buildSession, filtersKey, isObjective } from './lib/stats'
+import { buildSession, expandTriple, filtersKey, isObjective } from './lib/stats'
 import { classifyImport, parseBackup, parseBank, gradeObjective, assignGlobalSeq } from './lib/validate'
 import { saveImageMap, mergeImageMap } from './lib/diagrams'
 
@@ -159,6 +159,65 @@ async function attach(email) {
 const emptySession = {
   phase: 'idle', sessionMode: null, sessionQuestions: [], sessionIndex: 0,
   sessionResults: [], lastGrade: null, lastRating: null, summary: { total: 0, correct: 0 }
+}
+
+/* 统一入账（三遍判定制）：写 record + 摘要 + 会话结果；commitCard=true 时同步推进 FSRS 卡。
+   客观题前两次 commitCard=false（卡延后到第 3 次折算后推），
+   云端失败的回滚按「卡是否动过」保持对称（§33），避免半回滚。 */
+function commitAnswer(q, { correct, rating, detail, grade, lastRatingValue, commitCard }) {
+  const set = useStore.setState, get = useStore.getState
+  const now = Date.now()
+  const record = { questionId: q.id, date: fmtDate(new Date(now)), timestamp: now, correct, detail }
+  const existing = get().cards.find((c) => c.questionId === q.id)
+  const card = commitCard ? reviewCard(existing ?? newCard(q.id, now), rating, now) : null
+  if (!DEMO) repo.persistAnswer(record, card).catch((e) => {
+    console.error('[persistAnswer] 云端写入失败', e)
+    useStore.setState((s) => ({
+      syncError: '云端写入失败，本次结果可能未同步',
+      summary: { total: s.summary.total - 1, correct: s.summary.correct - (correct ? 1 : 0) },
+      sessionResults: s.sessionResults.slice(0, -1),
+      /* 卡只在 commitCard 分支动过 → 回滚也只在那条分支摘除 */
+      ...(card ? { cards: existing ? s.cards.map((c) => (c.questionId === q.id ? existing : c)) : s.cards.filter((c) => c.questionId !== q.id) } : {}),
+      records: s.records.filter((r) => !(r.questionId === q.id && r.timestamp === now))
+    }))
+  })
+  set((s) => ({
+    phase: 'feedback', lastGrade: grade, lastRating: lastRatingValue,
+    ...(card ? { cards: [...s.cards.filter((c) => c.questionId !== q.id), card] } : {}),
+    records: [...s.records, { ...record }],
+    summary: { total: s.summary.total + 1, correct: s.summary.correct + (correct ? 1 : 0) },
+    sessionResults: [...s.sessionResults, correct]
+  }))
+  maybeSaveResume(get())
+}
+
+/* 会话结束/中断：把没答满 3 次就退出的客观题按已答结果折算推卡（提前退出按已答折算口径：
+   全对→记得 / 有对有错→模糊 / 全错→忘记；一次没答→不提交） */
+function flushPendingRatings() {
+  const get = useStore.getState
+  const { sessionQuestions, sessionResults, cards } = get()
+  if (sessionQuestions.length === 0) return
+  const now = Date.now()
+  const acc = new Map()
+  sessionQuestions.forEach((q, i) => {
+    if (!isObjective(q.type) || typeof sessionResults[i] !== 'boolean') return
+    if (!acc.has(q.id)) acc.set(q.id, { results: [], q })
+    acc.get(q.id).results.push(sessionResults[i])
+  })
+  for (const { results, q } of acc.values()) {
+    if (results.length === 0 || results.length >= 3) continue  // 满三次的已在 confirmObjective 推过
+    const rating = results.every(Boolean) ? '记得' : results.some(Boolean) ? '模糊' : '忘记'
+    const existing = cards.find((c) => c.questionId === q.id)
+    const card = reviewCard(existing ?? newCard(q.id, now), rating, now)
+    if (!DEMO) repo.persistCard(card).catch((e) => {
+      console.error('[persistCard] 云端写入失败', e)
+      useStore.setState((s) => ({
+        syncError: '云端写入失败，本次结果可能未同步',
+        cards: existing ? s.cards.map((c) => (c.questionId === q.id ? existing : c)) : s.cards.filter((c) => c.questionId !== q.id)
+      }))
+    })
+    useStore.setState((s) => ({ cards: [...s.cards.filter((c) => c.questionId !== q.id), card] }))
+  }
 }
 
 /* 演示模式（--mode demo）：本地造数据，不连云端，仅供视觉/流程验证 */
@@ -452,15 +511,18 @@ export const useStore = create((set, get) => ({
       mode, size: opts.size ?? 0, now: Date.now(),
       domains: opts.domains, types: opts.types, difficulties: opts.difficulties
     })
+    /* 三遍判定制：客观题 ×3 随机穿插、主观题保持 1 次。返回值仍报原始题数（页面计数口径不变） */
+    const queue = expandTriple(list)
     set({
-      sessionMode: mode, sessionQuestions: list, sessionIndex: 0,
-      phase: list.length > 0 ? 'answering' : 'done',
+      sessionMode: mode, sessionQuestions: queue, sessionIndex: 0,
+      phase: queue.length > 0 ? 'answering' : 'done',
       sessionResults: [], lastGrade: null, lastRating: null, summary: { total: 0, correct: 0 }
     })
     if (mode === 'relearn') {
       relearnKey = filtersKey(opts)
-      if (list.length > 0) {
-        saveResume({ mode, filtersKey: relearnKey, questionIds: list.map((q) => q.id), index: 0, results: [], savedAt: Date.now() })
+      if (queue.length > 0) {
+        /* 断点续练存的是扩充后的队列（含 ×3 重复 id），恢复时按原样重建 */
+        saveResume({ mode, filtersKey: relearnKey, questionIds: queue.map((q) => q.id), index: 0, results: [], savedAt: Date.now() })
       } else clearResume()
     }
     return list.length
@@ -471,49 +533,46 @@ export const useStore = create((set, get) => ({
     const grade = gradeObjective(q, input)
     set({ phase: 'feedback', lastGrade: grade, lastRating: null })
   },
-  rateObjective: (rating) => {
-    const { sessionQuestions, sessionIndex, lastGrade, submitAnswer } = get()
+  /* 客观题第 n/3 次确认：按当前 grade 记一笔 record；
+     第 3 次完成时把三次结果折算成 rating（全对=记得 / 有对有错=模糊 / 全错=忘记）推 FSRS 卡，
+     前两次只记 record 不动卡（三遍判定制，替代原手动三档自评） */
+  confirmObjective: () => {
+    const { sessionQuestions, sessionIndex, sessionResults, lastGrade } = get()
     const q = sessionQuestions[sessionIndex]
     if (!q || !lastGrade || !isObjective(q.type)) return
-    submitAnswer(q, rating, lastGrade.normalized ?? '', lastGrade)
+    const results = []
+    for (let i = 0; i < sessionIndex; i++) {
+      if (sessionQuestions[i].id === q.id) results.push(sessionResults[i])
+    }
+    results.push(lastGrade.correct)
+    const rating = results.every(Boolean) ? '记得' : results.some(Boolean) ? '模糊' : '忘记'
+    commitAnswer(q, {
+      correct: lastGrade.correct, rating, detail: lastGrade.normalized ?? '',
+      grade: lastGrade, lastRatingValue: rating, commitCard: results.length >= 3
+    })
   },
-  // 主观题：自判“管对了”→'记得'，“答错了”→'忘记'（与线上一致）
+  // 主观题：自判“管对了”→'记得'，“答错了”→'忘记'（与线上一致）；单次出现，即时推卡
   submitSubjective: (rating) => {
     const q = get().sessionQuestions[get().sessionIndex]
-    if (q) get().submitAnswer(q, rating, rating, null)
+    if (q) commitAnswer(q, {
+      correct: rating === '记得', rating, detail: rating,
+      grade: null, lastRatingValue: rating, commitCard: true
+    })
   },
   submitAnswer: (q, ratingOrBool, detail, grade) => {
-    const correct = grade ? grade.correct : ratingOrBool === '记得'
-    const now = Date.now()
-    const record = { questionId: q.id, date: fmtDate(new Date(now)), timestamp: now, correct, detail }
-    const existing = get().cards.find((c) => c.questionId === q.id)
-    const card = reviewCard(existing ?? newCard(q.id, now), typeof ratingOrBool === 'string' ? ratingOrBool : '记得', now)
-    if (!DEMO) repo.persistAnswer(record, card).catch((e) => {
-      console.error('[persistAnswer] 云端写入失败', e)
-      /* 回滚必须对称（§33）：乐观写入动了 cards/records/summary/sessionResults 四处，
-         旧写法只回滚后两处，会出现「计数没算、SRS 卡却推进了」的半回滚。
-         按 questionId+时间戳精确摘除，避免快速连答时误伤后一题的记录。 */
-      useStore.setState((s) => ({
-        syncError: '云端写入失败，本次结果可能未同步',
-        summary: { total: s.summary.total - 1, correct: s.summary.correct - (correct ? 1 : 0) },
-        sessionResults: s.sessionResults.slice(0, -1),
-        cards: existing ? s.cards.map((c) => (c.questionId === q.id ? existing : c)) : s.cards.filter((c) => c.questionId !== q.id),
-        records: s.records.filter((r) => !(r.questionId === q.id && r.timestamp === now))
-      }))
+    commitAnswer(q, {
+      correct: grade ? grade.correct : ratingOrBool === '记得',
+      rating: typeof ratingOrBool === 'string' ? ratingOrBool : '记得',
+      detail, grade,
+      lastRatingValue: typeof ratingOrBool === 'string' ? ratingOrBool : null,
+      commitCard: true
     })
-    set((s) => ({
-      phase: 'feedback', lastGrade: grade, lastRating: typeof ratingOrBool === 'string' ? ratingOrBool : null,
-      cards: [...s.cards.filter((c) => c.questionId !== q.id), card],
-      records: [...s.records, { ...record }],
-      summary: { total: s.summary.total + 1, correct: s.summary.correct + (correct ? 1 : 0) },
-      sessionResults: [...s.sessionResults, correct]
-    }))
-    maybeSaveResume(get())
   },
   next: () => {
     const { sessionIndex, sessionQuestions } = get()
     const n = sessionIndex + 1
     if (n >= sessionQuestions.length) {
+      flushPendingRatings()  // 正常答完不该有残留，防御性兜底
       set({ phase: 'done' })
       if (get().sessionMode === 'relearn') clearResume()
     } else {
@@ -521,7 +580,10 @@ export const useStore = create((set, get) => ({
       maybeSaveResume(get())
     }
   },
-  abortSession: () => set({ ...emptySession })
+  abortSession: () => {
+    flushPendingRatings()  // 中途退出：未满 3 次的客观题按已答结果折算
+    set({ ...emptySession })
+  }
 }))
 
 // 导入分类（供页面使用）

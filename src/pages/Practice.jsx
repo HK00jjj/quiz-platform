@@ -46,7 +46,7 @@ export default function Practice() {
   const lastRating = useStore((s) => s.lastRating)
   const summary = useStore((s) => s.summary)
   const submitObjective = useStore((s) => s.submitObjective)
-  const rateObjective = useStore((s) => s.rateObjective)
+  const confirmObjective = useStore((s) => s.confirmObjective)
   const submitSubjective = useStore((s) => s.submitSubjective)
   const next = useStore((s) => s.next)
   const abortSession = useStore((s) => s.abortSession)
@@ -139,6 +139,8 @@ export default function Practice() {
 
   const answered = phase === 'feedback'
   const committed = lastRating !== null
+  /* 本题在本批中的第几次作答（三遍判定制）：数当前 index 之前同 id 出现的次数 */
+  const attemptNo = objective && q ? questions.slice(0, index).filter((x) => x.id === q.id).length + 1 : 0
   /* 选项随机化（#6）：内部一律用「原始字母」跑判分与对错高亮，只有显示出来的字母跟着洗牌走。
      于是 gradeObjective 与 opt-row 的 right/wronged/missed 判定链路一行都不用改，
      而给用户看的答案字母会同步换算，不会出现「答案是 D、洗牌后那项显示在 A 位置」的错位。 */
@@ -207,10 +209,12 @@ export default function Practice() {
     flipToNext(ok)
   }
 
-  /* 客观题三档自评：记录 + 评级后立即翻牌切题 */
-  function rate(rating) {
-    rateObjective(rating)
-    flipToNext(rating === '记得')
+  /* 客观题三遍判定制：确认本笔作答（store 里第 3 次完成时自动折算记得/模糊/忘记推卡），
+     随后立即翻牌切题。三档手动自评已下线——评级由三次真实作答结果决定 */
+  function confirmAndFlip() {
+    const ok = lastGrade ? lastGrade.correct : true
+    confirmObjective()
+    flipToNext(ok)
   }
 
   /* ── 结算 ── */
@@ -475,14 +479,11 @@ export default function Practice() {
 
             {answered && objective && !committed && (
               <>
-                <h4>你的记忆状态？</h4>
-                {/* 三档副标题改成大白话：这三个选项直接驱动 FSRS 间隔算法，
-                    原文案「被答错了 / 正确率游离 / 正确率铭刻」语义含糊，选错会影响复习排期 */}
-                <div className="rate-row">
-                  <button className="rate-btn r-forget" onClick={() => rate('忘记')}>忘记<small>完全想不起来</small></button>
-                  <button className="rate-btn r-hazy" onClick={() => rate('模糊')}>模糊<small>犹豫了一下才对</small></button>
-                  <button className="rate-btn r-remember" onClick={() => rate('记得')}>记得<small>一眼就答出来了</small></button>
-                </div>
+                {/* 三遍判定制（§48）：不再问「你的记忆状态」，评级由本批 3 次作答自动折算 */}
+                <h4>第 {attemptNo} / 3 次作答</h4>
+                <GiltBtn size="lg" block className="reveal-btn" onClick={confirmAndFlip}>
+                  <IconReveal /> 确认，下一题
+                </GiltBtn>
               </>
             )}
 

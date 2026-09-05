@@ -99,8 +99,15 @@ export class CloudRepo {
       correct: record.correct, detail: record.detail
     })
     if (error) throw error
+    /* 三遍判定制：客观题前两次只记 record、卡延后到第 3 次才推，card 为 null 时跳过 */
+    if (!card) return
     const { error: e2 } = await this.client.from('review_cards').upsert(cardRow(card))
     if (e2) throw e2
+  }
+  /* 只推卡不记 record（会话中断时补交未满 3 次的客观题评分） */
+  async persistCard(card) {
+    const { error } = await this.client.from('review_cards').upsert(cardRow(card))
+    if (error) throw error
   }
   async deleteQuestion(id) {
     const { error } = await this.client.from('questions').delete().eq('id', id)

@@ -2394,3 +2394,31 @@ node 单测全过；gh-pages `b98b18d`（IDENTICAL）。
 
 **验证**：390 视口 2 列生效（cols=2, cardW=170），截图 m47-home-2col.png；无横向溢出；
 console 0 errors。部署 gh-pages `aa2f71f`（IDENTICAL）。
+
+## 48. 第三十八轮（2026-09-05 · 新账户首轮）· 三遍判定制：手动三档自评下线（用户拍板四口径）
+
+**需求**：客观题每题在本批内随机出现 3 次，三次全对=记得 / 有对有错=模糊 / 全错=忘记，自动折算 FSRS 评分；
+复习排期算法不动，界面撤掉手动三档按钮。
+**用户口径**（AskUserQuestion 四问）：① 全部五种模式适用 ② 会话总题数=题数×3 接受
+③ 中途退出按已答折算（全对→记得/有对有错→模糊/全错→忘记/没答→不提交）④ 主观题保留自判两键（单次出现）。
+
+**实现**：
+- `lib/stats.js` 新增 `expandTriple(list)`：客观题 ×3、主观题 ×1，shuffle 随机穿插；`startSession` 组卷后扩充队列
+  （返回值仍报原始题数，页面计数口径不变；relearn 断点续练存扩充后 id 序列，恢复按原样重建）。
+- `store.js`：`submitAnswer` 重构为统一入账 `commitAnswer(q,{correct,rating,detail,grade,lastRatingValue,commitCard})`——
+  客观题前两次 commitCard=false 只记 record，第 3 次完成时 `confirmObjective` 扫描同 id 已有结果折算 rating 推卡
+  （云端失败回滚按「卡是否动过」保持对称，§33 纪律）。`rateObjective` 删除。
+  新增 `flushPendingRatings()`：`next()` 答完与 `abortSession()` 中断时补交未满 3 次的题（用 `repo.persistCard`）。
+- `lib/db.js`：`persistAnswer(record, null)` 跳过卡 upsert；新增 `persistCard(card)`。
+- `Practice.jsx`：三档按钮删除，改为「第 N / 3 次作答」计数（扫当前 index 前同 id 次数）+「确认，下一题」大按钮；
+  主观题自判两键不动。
+- CSS：`.rate-btn`/`.rate-row` 整套死样式清除（pages.css L279-292 基础层 + candy.css L530-544 权威层 +
+  candy.css L1514 磁吸按压组选择器摘除 `.rate-btn:active`）。元素已不存在，无「删覆盖放老值」风险。
+
+**验证**（demo 真机，系统 Chrome+CDP）：
+- 随机练习 20 题原批 → 队列 42（14 客观×3 + 0~?，扩充生效）；计数横幅「第 N 题 / 共 42 题」。
+- 三档按钮 0 个；「第 1/3」「第 2/3」「第 3/3」计数随穿插出现递增；同一填空题跨多次穿插计数正确。
+- 主观题（简答/计算）单次出现、自判两键正常；判断题/单选/填空/多选四客观题型全流程通畅。
+- 全程 console 0 errors；中途 ✕ 退出（flushPendingRatings）无 crash 正常回首页。
+- `node scripts/t-session.mjs` 18/18 ALL PASS；build 过（CSS 120.1kB→118.4kB，死样式清除收益）。
+- 评级折算逻辑（every/some）为纯函数代码审查覆盖；demo 不写云端，persistCard/persistAnswer(null) 走线上后由 verify-deploy 保障。

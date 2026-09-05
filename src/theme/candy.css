@@ -527,21 +527,7 @@ body, button, input, textarea, select {
 .grade-panel h4, .q-face-foot h4 { color: #E8607F !important; }
 .flip-hint { color: var(--ink-2) !important; }
 
-/* 三档自评：白底糖果按钮。配色与判分双通道对齐——忘记=草莓红、模糊=柠檬、记得=薄荷绿。
-   原来忘记用的是酸橙绿（--sour），跟「错=红」并排看语义打架；
-   顺便把三个文字色的对比度从 3.0~3.3:1 提到 WCAG AA 4.5:1 以上。 */
-.rate-btn {
-  background: #fff !important; border: 2px solid var(--candy-pink-lt) !important;
-  border-bottom-width: 4px !important; border-radius: var(--r-xs) !important;
-  color: #D14767 !important; box-shadow: 0 3px 12px rgba(255, 182, 193, .2);
-}
-.rate-btn small { opacity: .8; }
-.rate-btn.r-forget { border-color: var(--bad-dk) !important; color: var(--bad-ink) !important; }
-.rate-btn.r-forget:hover { box-shadow: 0 4px 14px rgba(242, 86, 74, .4) !important; }
-.rate-btn.r-hazy { border-color: var(--lemon-dk) !important; color: #8A6D00 !important; }
-.rate-btn.r-hazy:hover { box-shadow: 0 4px 14px rgba(255, 212, 59, .45) !important; }
-.rate-btn.r-remember { border-color: var(--mint-dk) !important; color: var(--ok-ink) !important; }
-.rate-btn.r-remember:hover { box-shadow: 0 4px 14px rgba(95, 212, 176, .45) !important; }
+/* 三档自评：白底糖果按钮——§48 随三遍判定制下线（按钮已删），整套 .rate-btn 死样式一并清除 */
 
 /* 糖罐计数器 + 进度糖豆 */
 .pile-counter {
@@ -1511,7 +1497,7 @@ body, button, input, textarea, select {
 /* 3. 磁吸按压物理：按下整体缩 0.965 模拟物理按压，回弹交给果冻缓动。只动 transform。
       §33 补齐漏网的三类交互面：选项行 / 判断卡 / 步进器与弹窗关闭钮。 */
 .btn:active, .chip:active, .nav-item:active, .entry-card:active,
-.rate-btn:active, .deck-candy:active, .tarot-foot button:active,
+.deck-candy:active, .tarot-foot button:active,
 .opt-row:active, .judge-card:active, .stepper button:active, .modal-close:active {
   transform: scale(.965) !important;
   transition-duration: .09s !important;

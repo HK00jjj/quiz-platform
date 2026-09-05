@@ -57,6 +57,16 @@ export const filtersKey = (f) => JSON.stringify({
   types: [...(f?.types ?? [])].sort(),
   difficulties: [...(f?.difficulties ?? [])].sort()
 })
+/* 三遍判定制：客观题每题在会话内出现 3 次、随机穿插（主观题自判，保持 1 次）。
+   作答结果在第 3 次完成时自动折算 FSRS 评分（全对=记得 / 有对有错=模糊 / 全错=忘记），
+   界面不再有手动三档自评按钮。 */
+export function expandTriple(list, rng = Math.random) {
+  const multi = [], single = []
+  for (const q of list) (isObjective(q.type) ? multi : single).push(q)
+  const expanded = []
+  for (const q of multi) expanded.push(q, q, q)
+  return shuffle([...expanded, ...single], rng)
+}
 export function buildSession(questions, cards, records, opts) {
   const rng = opts.rng ?? Math.random
   const filtered = filterQuestions(questions, opts)

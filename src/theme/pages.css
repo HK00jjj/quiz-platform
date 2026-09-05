@@ -276,20 +276,7 @@
 /* 答案区已由 .zone-s 给出分隔与底色，面板自身不再重复画分隔线 */
 .grade-panel { margin-top: 2px; padding-top: 0; border-top: none; }
 .grade-panel h4 { font-size: clamp(11px, 2.7cqw, 13.5px); letter-spacing: 3px; color: #5a4413; font-weight: 700; margin-bottom: 8px; text-align: center; }
-.rate-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 0; }
-/* 三档自评：羊皮纸上用白底糖果按钮 + 档位深色文字 + 同色 4px 按压底边（下沉手感） */
-.rate-btn { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 10px 4px;
-  border: 1px solid; border-bottom-width: 4px; background: #f6efdb;
-  font-size: clamp(12px, 2.9cqw, 15px); font-weight: 700; letter-spacing: 2px;
-  transition: transform .15s ease, box-shadow .18s ease, border-bottom-width .15s ease; }
-.rate-btn:active { transform: translateY(3px); border-bottom-width: 1px; }
-.rate-btn small { font-size: clamp(8px, 2cqw, 10px); letter-spacing: 1px; opacity: .72; }
-.rate-btn.r-forget { border-color: #8b2a4a; color: #8b2a4a; }
-.rate-btn.r-forget:hover { box-shadow: 0 4px 12px rgba(139,42,74,.35); }
-.rate-btn.r-hazy { border-color: #6d560a; color: #6d560a; }
-.rate-btn.r-hazy:hover { box-shadow: 0 4px 12px rgba(168,138,26,.35); }
-.rate-btn.r-remember { border-color: #1f5a4f; color: #1f5a4f; }
-.rate-btn.r-remember:hover { box-shadow: 0 4px 12px rgba(47,122,109,.35); }
+/* §48 三档自评 .rate-btn/.rate-row 已随三遍判定制下线，样式一并删除 */
 .self-judge-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 0; }
 /* 评分后翻牌期间的轻提示（取代已删除的「下一卷」按钮） */
 .flip-hint { text-align: center; padding: 14px 0 6px; letter-spacing: 3px; color: rgba(44,24,16,.68);
