@@ -163,7 +163,7 @@ Start-Sleep 40 ; node verify-live.mjs "$PWD\app\dist"      # 期望 LIVE RESULT:
 
 ## 8. 当前状态（2026-09-05）
 
-- gh-pages HEAD **`b2cd7d5`**（链：… §41 `b93e18f` 撤回§40 → §42 `7254df3` 撤回彩旗串 → §43 `75a43f1` 修加载页抖动 → §44 `b2cd7d5` 修筛选chip回灌+选中态）。src 分支与 gh-pages 同步（回读零差异，含 NEXT-ACCOUNT-HANDOFF.md）。verify-live ALL OK。
+- gh-pages HEAD **`560df4b`**（链：… §42 `7254df3` 撤回彩旗串 → §43 `75a43f1` 修加载页抖动 → §44 `b2cd7d5` 修筛选chip回灌+选中态 → §45 `560df4b` 判断题未选态统一）。src 分支与 gh-pages 同步（回读零差异，含 NEXT-ACCOUNT-HANDOFF.md）。verify-live ALL OK。
 - `verify-deploy` RESULT: IDENTICAL；console 0 errors；RLS 探测安全（anon key 匿名读返回空集）。
 - §31 清新活力批（15 处粉字替换 + 去 fog；⚠ token 部分被缓冲区吞掉，§33 补齐）/
   §32 糖果派对派（糖针+hero 第四色+渐变权重）/
@@ -187,6 +187,8 @@ Start-Sleep 40 ; node verify-live.mjs "$PWD\app\dist"      # 期望 LIVE RESULT:
   §41 §40 已整轮撤回（用户反馈「太丑了」），现态=§39 派对状态；教训：装饰先出小样拍板再铺（HANDOFF §41）。
   §42 hero 彩旗串也已撤回（用户逐项反馈）。§39 现仅剩：入口卡果冻 hover + 结算彩带雨。
   ⚠ 装饰类改动铁律：先单件小样截图给用户拍板，再实施（§40/§41/§42 三连撤的教训）。
+  §45 判断题未选态两卡统一中性粉（边/球/hover 全同色，只差 ✓✗ 符号）；
+  红系只属于「选中错误」与裁决 wronged；j-false 旧绿死规则已清理，唯一权威定义在 candy.css §45 块。
 
 ---
 

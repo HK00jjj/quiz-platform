@@ -469,12 +469,8 @@ body, button, input, textarea, select {
   background: radial-gradient(circle at 32% 28%, #FFC9D4, #FF8FA3);
   box-shadow: 0 0 12px rgba(255, 143, 163, .45), inset 0 1px 0 rgba(255, 255, 255, .7);
 }
-.judge-card.j-false { border-color: #DFF3B8 !important; }
-.judge-card.j-false::before {
-  content: '✗';
-  background: radial-gradient(circle at 32% 28%, #D6F0A8, #8BC34A);
-  box-shadow: 0 0 12px rgba(139, 195, 74, .45), inset 0 1px 0 rgba(255, 255, 255, .7);
-}
+/* §45：j-false 未选态配色的唯一权威定义在本文件后段（§45 块）；这里旧的绿系
+   j-false 规则已被后段覆盖成死规则，为免双源误导整段删除（§37 幽灵选择器教训）。 */
 .judge-label { color: var(--ink) !important; text-shadow: none !important; padding: 0 !important; font-size: clamp(14px, 3.4cqw, 18px); letter-spacing: 3px; }
 .judge-card:hover { transform: translateY(-4px); }
 .judge-card.j-true:hover, .judge-card.j-true.selected {
@@ -488,7 +484,7 @@ body, button, input, textarea, select {
   box-shadow: 0 0 0 4px rgba(168, 224, 99, .28), 0 8px 24px rgba(139, 195, 74, .35) !important;
 }
 .judge-card.j-true.selected .judge-label { color: #C2385A !important; }
-.judge-card.j-false.selected .judge-label { color: #5E8420 !important; }
+/* §45：旧绿系 .j-false.selected .judge-label 已删（死规则），选中错误标签色由 §45 块的 var(--bad-ink) 决定 */
 .judge-card.dimmed { opacity: .42; filter: grayscale(.45) !important; transform: scale(.96); }
 
 /* 填空 / 简答 */
@@ -1073,12 +1069,20 @@ body, button, input, textarea, select {
 .opt-row.wronged::before { background: radial-gradient(circle at 32% 28%, #FFD9D2, #F2564A) !important; border-color: #F2564A !important; }
 .fill-item.wronged .rune-input { border-color: var(--bad-dk) !important; box-shadow: var(--glow-bad) !important; }
 .fill-item.right .rune-input { border-color: var(--mint-dk) !important; box-shadow: var(--glow-mint) !important; }
-.judge-card.j-false { border-color: #FFD9D2 !important; }
+/* §45 未选态两卡同色（用户口径：未选择前正确/错误卡颜色应一致）。
+   红系只属于「选中错误」与「裁决 wronged」，未选时错误卡与正确卡同为中性粉。
+   顺带清理：L472-491 的旧绿系 j-false 规则已被本块全面覆盖（死规则），删除防误导。 */
+.judge-card.j-false { border-color: var(--candy-pink-lt) !important; }
 .judge-card.j-false::before {
-  background: radial-gradient(circle at 32% 28%, #FFD9D2, #F2564A) !important;
-  box-shadow: 0 0 12px rgba(242, 86, 74, .45), inset 0 1px 0 rgba(255, 255, 255, .7) !important;
+  content: '✗';
+  background: radial-gradient(circle at 32% 28%, #FFC9D4, #FF8FA3) !important;
+  box-shadow: 0 0 12px rgba(255, 143, 163, .45), inset 0 1px 0 rgba(255, 255, 255, .7) !important;
 }
-.judge-card.j-false:hover, .judge-card.j-false.selected {
+.judge-card.j-false:hover {
+  border-color: var(--candy-pink) !important;
+  box-shadow: 0 0 0 4px rgba(255, 182, 193, .25), 0 8px 24px rgba(255, 143, 163, .35) !important;
+}
+.judge-card.j-false.selected {
   border-color: var(--bad-dk) !important;
   box-shadow: 0 0 0 4px rgba(242, 86, 74, .22), 0 8px 24px rgba(242, 86, 74, .3) !important;
 }

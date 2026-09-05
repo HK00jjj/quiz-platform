@@ -2345,3 +2345,19 @@ reloadAll 应用 settings 前检查：窗口内保留本机值，过期恢复云
 **验证**：demo 逐步点击 false→true→false→true 奇偶一致（无恢复）；
 新样式计算样式全中（糖霜渐变/内高光/●糖珠），截图 s44-chip-style.png；console 0 errors。
 部署 gh-pages `b2cd7d5`（IDENTICAL）。
+
+## 45. 第三十五轮（2026-09-05）· 判断题未选态两卡统一（用户截图指名）
+
+**根因**：§35 时代的红系块（candy.css 后段）把 j-false 未选态也染了色（橙粉边 #FFD9D2 + 红球），
+与前段 j-true 的中性粉不一致；前段更早的绿系 j-false 规则（#DFF3B8 边/绿球/绿标签）全是被后段
+覆盖的死规则——双源三色，谁最后改谁生效。
+
+**修法**（语义对齐 §35/§37：红=我的选择错误/裁决，装饰性差异不得进入未选态）：
+- 未选：j-false 边框、✗ 球体与 j-true 完全同色（--candy-pink-lt 边 / #FFC9D4→#FF8FA3 球），
+  唯一区别是符号 ✓/✗；hover 也统一为粉系。
+- 选中「错误」：仍转红系（bad-dk 边 + bad-ink 标签），裁决语义不变。
+- 删除前段死绿规则（含 content:'✗' 迁移——⚠ 删绿规则时差点把 ✗ 符号一起删掉，已迁入 §45 块）。
+
+**验证**：真机两卡 borderTopColor 相等（rgb(255,214,224)）、球体渐变相同、✗ 保留；
+选中错误后 border rgb(242,86,74) / 标签深红；截图 s45-judge-uniform.png。
+部署 gh-pages `560df4b`（IDENTICAL）。
