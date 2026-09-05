@@ -2267,3 +2267,22 @@ signature = 结算彩带雨；hero 彩旗给第一印象；入口卡 hover 给�
 14 片彩带 `confetti-fall 1.6s` 真实执行（getAnimations finished@1600ms），空中瞬间截图 s39-confetti-midair.png。
 
 **部署**：gh-pages `f5f4e6f`（IDENTICAL）。
+
+## 40. 第三十轮（2026-09-05）· 马戏团元素融入糖果风（用户口径：加马戏团元素，要融合协调）
+
+**设计决策**：每屏一个马戏团重音，零动画全静态（守 §34 纪律）。关键翻译——
+马戏团惯用的红白条纹在本站改用**粉白条纹**（--candy-pink token）：红是「答错」裁决色（§35 语义），
+不可被装饰侵占。这也是「融合协调」的核心手段：只用现有糖果 token，马戏团只借形不借色。
+
+**改动**（Learn.jsx + candy.css §40 段，零 JS）：
+- hero：`.ch-circus` 粉白条纹小帐篷（58×40，条纹圆顶 + 柠檬尖旗），放糖豆簇右侧。
+- `.btn.lg::after`：帐篷斜纹底边（repeating-linear-gradient 45° 粉白）。
+  ⚠ L148 有 `.btn::before,.btn::after{display:none!important}` 全局隐藏，
+  用 `.btn.lg::after`（特异性 0,2,1>0,1,1 + !important）压回，仅 lg 主按钮生效。
+- `.settle-medal`：叠加 `repeating-conic-gradient` 柠檬放射纹（0.5 透明度）垫在 emoji 下，
+  多重 background 实现，不动伪元素不碰 DOM。
+
+**真机验证**：帐篷 58×40 条纹 + 柠檬旗 + CTA 条纹计算样式全中（s40-hero-circus.png）；
+跑完整轮到结算，奖章 conic 放射 rays-ok + 彩带共存（s40-settle-medal.png）；console 0 errors。
+
+**部署**：gh-pages `96af8f2`（IDENTICAL）。

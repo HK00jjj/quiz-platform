@@ -163,7 +163,7 @@ Start-Sleep 40 ; node verify-live.mjs "$PWD\app\dist"      # 期望 LIVE RESULT:
 
 ## 8. 当前状态（2026-09-05）
 
-- gh-pages HEAD **`f5f4e6f`**（链：… §36 `81047af` → §37 `0fa3356` → §38 `026b94e` → §39 `f5f4e6f`）。src 分支与 gh-pages 同步（回读零差异，含 NEXT-ACCOUNT-HANDOFF.md）。verify-live ALL OK。
+- gh-pages HEAD **`96af8f2`**（链：… §37 `0fa3356` → §38 `026b94e` → §39 `f5f4e6f` → §40 `96af8f2`）。src 分支与 gh-pages 同步（回读零差异，含 NEXT-ACCOUNT-HANDOFF.md）。verify-live ALL OK。
 - `verify-deploy` RESULT: IDENTICAL；console 0 errors；RLS 探测安全（anon key 匿名读返回空集）。
 - §31 清新活力批（15 处粉字替换 + 去 fog；⚠ token 部分被缓冲区吞掉，§33 补齐）/
   §32 糖果派对派（糖针+hero 第四色+渐变权重）/
@@ -182,6 +182,8 @@ Start-Sleep 40 ; node verify-live.mjs "$PWD\app\dist"      # 期望 LIVE RESULT:
   题图唯一渲染点=Practice.jsx 解析区 fbImgUri（顺手修了蜡封未开就渲染图的隐性漏题）。
   §39 节日派对感：hero 彩旗串（静态）+ 入口卡果冻 hover + 结算彩带雨（一次性 1.6s）；
   红线自查全过（transform/opacity only、无新 infinite、reduced-motion 降级），见 HANDOFF §39。
+  §40 马戏团元素：hero 粉白条纹帐篷 + lg 按钮条纹底边 + 结算奖章柠檬放射纹（全静态）；
+  ⚠ 马戏团条纹用粉不用红——红=答错裁决色（§35），装饰不可侵占语义，见 HANDOFF §40。
 
 ---
 
