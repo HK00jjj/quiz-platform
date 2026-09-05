@@ -268,13 +268,16 @@ export default function Practice() {
   /* ── 答题 ── */
   const grade = lastGrade
   const fbImgUri = q ? diagramDataUri(imageFor(q.id)) : null
+  /* §50 糖浆进度条（方案 B 拍板）：糖浆一点点灌满，糖珠=当前位置。
+     旧 .gem-row 点阵撤下——三遍判定制后会话动辄 200+ 题，点阵密度爆表 */
+  const pct = questions.length ? (results.length / questions.length) * 100 : 0
   return (
     <div className="practice-stage">
       <div className="practice-top">
-        <div className="gem-row" aria-label="进度">
-          {questions.map((_, i) => (
-            <span key={i} className={'gem-dot' + (i === index ? ' cur' : i < results.length ? (results[i] ? ' ok' : ' bad') : '')} />
-          ))}
+        <div className="syrup-bar" role="progressbar" aria-label="答题进度"
+          aria-valuenow={Math.round(pct)} aria-valuemin={0} aria-valuemax={100}>
+          <div className="syrup-fill" style={{ width: `calc(${pct}% - 6px)` }} />
+          <div className="syrup-knob" style={{ left: `clamp(15px, ${pct}%, calc(100% - 15px))` }} />
         </div>
         <span className="practice-count">第 {index + 1} 题 / 共 {questions.length} 题</span>
         <button className="chip" style={{ fontSize: 11 }} onClick={() => { abortSession(); navigate('/') }}>✕ 退出</button>

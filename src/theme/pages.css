@@ -88,11 +88,7 @@
    而竖直方向本来只差 ~7px（手机剩余空隙 14.8px，上下 28 / 36.8 已接近居中），不值得拿两个页面去换 */
 .practice-stage { position: relative; z-index: 1; min-height: 100vh; min-height: 100dvh; padding: 14px 12px 16px; max-width: 940px; margin: 0 auto; }
 .practice-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; padding: 0 4px; }
-.gem-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-.gem-dot { width: 11px; height: 11px; border-radius: 50%; background: rgba(139,115,50,.35); border: 1px solid rgba(139,115,50,.5); transition: all .3s ease; }
-.gem-dot.cur { width: 14px; height: 14px; background: var(--teal); box-shadow: var(--glow-teal); animation: pulse 1.6s ease-in-out infinite; }
-.gem-dot.ok { background: var(--teal-lt); box-shadow: 0 0 6px rgba(90,168,156,.8); }
-.gem-dot.bad { background: var(--fault-lt); box-shadow: 0 0 6px rgba(139,42,74,.8); }
+/* §50：旧 .gem-row/.gem-dot 点阵已随糖浆进度条下线，样式清除（权威层新块 .syrup-bar） */
 .practice-count { font-size: 12px; letter-spacing: 2px; color: var(--muted); white-space: nowrap; }
 /* 题卡尺寸：高度优先。旧写法用宽度×0.72 推高度，在手机竖屏下宽度被 94vw 卡住，
    卡牌只有 367×510，下方白留 ~270px。现在改成：宽取容器上限，高直接吃满视口剩余空间，

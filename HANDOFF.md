@@ -2422,3 +2422,21 @@ console 0 errors。部署 gh-pages `aa2f71f`（IDENTICAL）。
 - 全程 console 0 errors；中途 ✕ 退出（flushPendingRatings）无 crash 正常回首页。
 - `node scripts/t-session.mjs` 18/18 ALL PASS；build 过（CSS 120.1kB→118.4kB，死样式清除收益）。
 - 评级折算逻辑（every/some）为纯函数代码审查覆盖；demo 不写云端，persistCard/persistAnswer(null) 走线上后由 verify-deploy 保障。
+
+## 49. 第三十九轮（2026-09-05）· §48 代码审查修复（自查三连）
+
+**Bug1（真 bug，relearn 断点续练 × flush 交互）**：挑题练习答 1~2 次后退出 → flushPendingRatings 按已答折算推卡；
+再进同一批断点续练答满第 3 次 → confirmObjective `results.length>=3` 再次推卡 → **FSRS 同题同日双推进**。
+修法：模块级 `flushedIds` Set——flush 推卡时登记；`maybeSaveResume` 持久化 flushedIds、resume 恢复时重建；
+confirmObjective 对已 flush 的题 `commitCard = length>=3 && !flushedIds.has(id)`（只记 record）。
+新会话 startSession 时清零（relearn resume 路径在恢复处单独重建）。
+
+**清理**：`submitAnswer` action 重构后已无任何调用方 → 删除（死代码纪律 §23）。
+
+**防护**：Practice.jsx `confirmAndFlip` 复用 `flying` 翻牌锁做双击防护——连点会造成重复 record + 卡二次推进
+（老版 rate() 同样裸奔，属预存模式，这次一并封上）。
+
+**已知可接受降级**：旧版本（§48 之前）遗留的 relearn resume 队列未扩充，恢复后 confirm 恒 length=1 不推卡，
+由退出/答完时 flush 兜底提交——一次性边缘，不修。
+
+**验证**：t-session 18/18；重建部署 gh-pages `5a02dba`（IDENTICAL），src 80/80，verify-live ALL OK。

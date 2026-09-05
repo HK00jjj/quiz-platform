@@ -539,10 +539,7 @@ body, button, input, textarea, select {
 .pile-counter.badp { color: #6E9B2E !important; border-color: rgba(168, 224, 99, .75) !important; }
 .teal-glow-text { color: #2FA98A !important; text-shadow: none !important; }
 .red-glow-text { color: #6E9B2E !important; text-shadow: none !important; }
-.gem-dot { background: #FFE4EC !important; border: 1px solid var(--candy-pink-lt) !important; }
-.gem-dot.cur { background: var(--candy-pink-dk) !important; box-shadow: 0 0 10px rgba(255, 143, 163, .65) !important; }
-.gem-dot.ok { background: var(--mint-dk) !important; box-shadow: 0 0 8px rgba(95, 212, 176, .6) !important; }
-.gem-dot.bad { background: var(--sour-dk) !important; box-shadow: 0 0 8px rgba(139, 195, 74, .6) !important; }
+/* §50：旧 .gem-dot 点阵四色规则已随糖浆进度条下线（元素删除），死样式清除 */
 .practice-count { color: var(--ink-2) !important; }
 .settle-card { border: 2px solid var(--candy-pink-lt) !important; }
 
@@ -1076,7 +1073,6 @@ body, button, input, textarea, select {
 .crack-veil { background: radial-gradient(circle at 50% 50%, transparent 38%, rgba(242, 86, 74, .28) 100%) !important; }
 .pile-counter.okp { color: var(--ok-ink) !important; border-color: rgba(127, 232, 200, .75) !important; }
 .pile-counter.badp { color: var(--bad-ink) !important; border-color: rgba(242, 86, 74, .6) !important; }
-.gem-dot.bad { background: var(--bad-dk) !important; box-shadow: 0 0 8px rgba(242, 86, 74, .6) !important; }
 .entry-card.hot .count-gem {
   border-color: var(--bad) !important; color: var(--bad-ink) !important;
   background: #fff !important; box-shadow: 0 0 10px rgba(242, 86, 74, .45) !important;
@@ -1794,4 +1790,48 @@ body { background: linear-gradient(160deg, #FFF8FA 0%, #FFF0F4 58%, #F0FFFA 82%,
   /* ③ 答题页答对/答错角标收紧 */
   .pile-counter { padding: 3px 8px !important; font-size: 11px !important; gap: 4px !important; }
   .pile-counter .pile { font-size: 12px !important; }
+}
+
+/* ══ §50 答题页糖浆进度条（方案 B 拍板 + 用户口径「圆润、糖浆一点点灌满」） ══
+   取代旧 .gem-row 点阵：三遍判定制后会话动辄 200+ 题，点阵密度爆表。
+   糖浆=薄荷味填充，圆滚滚液滴=灌满前沿；糖珠=当前位置（果冻缓动滑动）。
+   只动 width/left 一次性微区域过渡（<60px 高的条，无连续动画成本），
+   无 infinite、无 blur，prefers-reduced-motion 直接跳变。 */
+.syrup-bar {
+  position: relative; flex: 1; height: 18px; min-width: 120px;
+  border-radius: 999px !important;
+  background: #FFE9EF !important;
+  border: 1px solid var(--candy-pink-lt) !important;
+  box-shadow: inset 0 2px 6px rgba(255, 143, 163, .18), 0 3px 12px rgba(255, 182, 193, .25) !important;
+}
+.syrup-fill {
+  position: absolute; top: 2px; bottom: 2px; left: 2px;
+  border-radius: 999px; min-width: 0;
+  background: linear-gradient(180deg, #A5F0D8, var(--mint-dk));
+  box-shadow: inset 0 2px 3px rgba(255, 255, 255, .65), 0 1px 4px rgba(95, 212, 176, .35);
+  transition: width .55s var(--jelly-ease);
+}
+.syrup-fill::after {
+  /* 糖浆前沿的圆滚滚液滴——「一点一点灌满」的关键细节 */
+  content: ''; position: absolute; right: -9px; top: 50%;
+  width: 18px; height: 18px; border-radius: 50%;
+  transform: translateY(-50%);
+  background: radial-gradient(circle at 32% 28%, #D8FBEE, var(--mint-dk) 75%);
+  box-shadow: 0 2px 6px rgba(95, 212, 176, .45);
+}
+.syrup-knob {
+  position: absolute; top: 50%; transform: translate(-50%, -50%);
+  width: 28px; height: 28px; border-radius: 50%;
+  background: radial-gradient(circle at 32% 28%, #FFE3EA, var(--candy-pink-dk) 70%, #F2728C);
+  border: 2.5px solid #fff;
+  box-shadow: 0 4px 14px rgba(255, 143, 163, .6), 0 0 0 4px rgba(255, 182, 193, .25);
+  transition: left .55s var(--jelly-ease);
+  pointer-events: none;
+}
+.syrup-knob::after {
+  content: ''; position: absolute; top: 5px; left: 7px; width: 8px; height: 5px;
+  border-radius: 50%; background: rgba(255, 255, 255, .9); transform: rotate(-25deg);
+}
+@media (prefers-reduced-motion: reduce) {
+  .syrup-fill, .syrup-knob { transition: none; }
 }
