@@ -5,10 +5,11 @@ import React from 'react'
    只待空地——元素压在页框四缘，绝不进题干/卡片阅读区；
    色板纪律——树莓粉/薄荷/香槟金/淡紫四族，线材一律香槟金；
    动效克制——灯串呼吸/雪花缓落/气球浮动/摩天轮慢转，全 transform+opacity，
-   无 blur、reduced-motion 全静止（candy.css §52 块）。位置/尺寸调整改 CSS，别动这里。 */
-export default function FestiveDecor() {
+   无 blur、reduced-motion 全静止（candy.css §52 块）。位置/尺寸调整改 CSS，别动这里。
+   compact（答题页）：只撤小旗（用户口径——答题界面去掉小旗就行，其余全保留）。 */
+export default function FestiveDecor({ compact = false }) {
   return (
-    <div className="festive-layer" aria-hidden="true">
+    <div className={'festive-layer' + (compact ? ' is-compact' : '')} aria-hidden="true">
       <svg className="flights" width="760" height="44" viewBox="0 0 760 44">
         <path d="M0 6 Q190 34 380 14 T760 10" fill="none" stroke="#F6D99A" strokeWidth="2" opacity=".7" />
         <circle cx="95" cy="26" r="7" fill="#FF8FA3" /><rect x="92" y="17" width="6" height="5" rx="1.5" fill="#E8B27D" />

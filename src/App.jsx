@@ -64,8 +64,9 @@ function Shell() {
       </span>
       <Background intensity={inPractice ? 1.6 : 1} />
       {/* §52 节日点缀层：整层点击穿透（pointer-events:none），元素全在页框空隙，
-          z-5 压在内容上但低于底部导航/弹窗；登录前不挂（BootRitual/Login 分支保持素净） */}
-      <FestiveDecor />
+          z-5 压在内容上但低于底部导航/弹窗；登录前不挂（BootRitual/Login 分支保持素净）；
+          答题页 compact——顶部灯串/小旗/圣诞帽按学习页 hero 定位，会压题干，撤掉 */}
+      <FestiveDecor compact={inPractice} />
       <Routes>
         <Route path="/" element={<Learn />} />
         <Route path="/bank" element={<Bank />} />

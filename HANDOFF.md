@@ -2487,3 +2487,18 @@ console 0 errors。部署 gh-pages `6c3aeb1`（IDENTICAL），src 同步，verif
 **验证**：demo 真机 1280×800——首页/答题页截图氛围到位；开始按钮点击穿透正常；
 层 pointerEvents=none / z=5 / 22 子元素；console 0 errors。
 部署 gh-pages `183857d`（IDENTICAL），src 同步，verify-live ALL OK。
+
+## 53. 第四十三轮（2026-09-05）· §52 修正：答题页挡字（用户截图反馈）
+
+小旗/灯串/圣诞帽按学习页 hero 定位，答题卡直抵页顶 → 小旗压题干、彩屑圆点飘进作答框。
+修法：FestiveDecor 加 compact prop（App 传 inPractice），`is-compact` 撤顶部三件 + 彩屑三件
+（candy.css §52b），只留页缘固定小物。首页/书库等不受影响。
+
+**验证**：真机答题页 lights/bunting/hat/cstar/cdot/cbar 全 display:none，题干/作答框零遮挡，
+console 0 errors；首页点缀不变。
+
+## 54. 第四十四轮（2026-09-05）· §53 口径修正：答题页只撤小旗
+
+用户口径「答题界面去掉小旗就行了，其他不用保留」——compact 从撤 6 件收窄为只撤 .fbunting，
+灯串/圣诞帽/彩屑在答题页全部恢复。candy.css §52b 一条规则 + FestiveDecor 注释同步。
+真机复验：bunting display:none、lights/hat/cdot block；console 0 errors。

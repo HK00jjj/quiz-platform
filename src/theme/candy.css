@@ -1883,3 +1883,5 @@ body { background: linear-gradient(160deg, #FFF8FA 0%, #FFF0F4 58%, #F0FFFA 82%,
   .ftree { left: 4%; }
   .ftent { right: 4%; }
 }
+/* §52b 答题页 compact：只撤小旗（用户口径——答题界面去掉小旗就行，其余全保留） */
+.festive-layer.is-compact .fbunting { display: none; }
