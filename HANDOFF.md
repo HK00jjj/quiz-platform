@@ -2150,3 +2150,26 @@ D tinted elevation 三级带色温的白；E 夜间可可模式（平行 token�
 验证：桌面 1280 + 手机 390 双端截图、导航元素特写、激活项 4× 放大（PowerShell System.Drawing 裁切，
 注意 bash 单引号包 PS 命令防 $ 被 bash 吞）；::after 计算样式实测 mint-dk/lemon-dk/lav-dk 三点几何正确；
 console 0 errors。裁切脚本用到的坑：sharp 未装进 app/node_modules，别再试。
+
+---
+
+## 35. 第二十五轮（2026-09-05）· 判断题卡片改裁决色（用户截图指名）
+
+**gh-pages HEAD：`429c5f0`（父 `02418ca`）。verify-deploy RESULT: IDENTICAL。console 0 errors。**
+
+**问题**：判断题 answered 后把 selected 挂在「正确答案那张卡」上，颜色跟**选项身份**走——
+错误卡永远红脸（j-false.selected → 红边红字红✗球，L1066-1075），用户选「错误」答对也红，
+读起来像答错。选择题 opt-row 则早有裁决通道（.right 薄荷 / .wronged 草莓红 / .missed 虚线薄荷）。
+
+**修复**（与 opt-row 同语义，判断题从此不特殊）：
+- Practice.jsx answered 分支：我的选择对→right、错→wronged；漏掉的正确项→missed；没点过也非答案→dimmed。
+  答题**前**的 selected 仍为身份色（粉/红，那是「我正选着它」不是裁决），dimmed 不变。
+- candy.css 尾部追加 §35：.right 薄荷边+薄荷✓球+标签 #1F5D4C；.wronged 红边+草莓✗球+标签 --bad-ink；
+  .missed 虚线薄荷+✓薄荷球+标签 #2FA98A。追加在文件尾，等特异性压过 L472-491 旧身份色块。
+- §18-§20 的「答错只红三处」口径不受影响：红色仍只出现在「我选错的选择面」上，
+  答对态其余区域照旧不染色（解析区薄荷绿原本就有）。
+
+**验证**：demo 真机双路径——选错→我选卡红✗+正确项虚线薄荷✓（judge-wrong.png）；
+选对→我选卡薄荷绿✓、另一张 dimmed（judge-right.png）；console 0 errors。
+playwright 坑补充：css 选择器 `.opt-row` 多匹配会撞 strict mode，用 `.opt-row >> nth=0`；
+dev server 在会话间隔仍会死（本次又死了一次），重启后再跑。

@@ -345,7 +345,12 @@ export default function Practice() {
                   {[['正确', '✓', 'j-true'], ['错误', '✗', 'j-false']].map(([label, rune, cls]) => {
                     let extra = ''
                     if (answered && grade) {
-                      extra = grade.expected === label ? 'selected' : 'dimmed'
+                      /* 裁决通道（§35，与 opt-row 同语义）：颜色跟「我答得对不对」走，
+                         不跟选项身份走——旧逻辑给正确答案卡挂 selected，选对「错误」也红脸，
+                         读起来像答错。答题前的 selected 仍是身份色（那是"我正选着它"）。 */
+                      if (judge === label) extra = grade.expected === label ? 'right' : 'wronged'
+                      else if (grade.expected === label) extra = 'missed'
+                      else extra = 'dimmed'
                     } else {
                       extra = judge === label ? 'selected' : (judge ? 'dimmed' : '')
                     }

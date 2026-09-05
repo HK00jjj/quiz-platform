@@ -2,7 +2,7 @@
 
 > 本文是**自包含**的入门文档：不读本文之外的任何会话记录也能接手。
 > 逐轮详细历史见项目根 `HANDOFF.md`（2024 行，§1–§30）。本文只浓缩"必须知道"的部分。
-> 最后更新：2026-09-05，对应 gh-pages `02418ca`（§34）。
+> 最后更新：2026-09-05，对应 gh-pages `429c5f0`（§35）。
 
 ---
 
@@ -163,7 +163,7 @@ Start-Sleep 40 ; node verify-live.mjs "$PWD\app\dist"      # 期望 LIVE RESULT:
 
 ## 8. 当前状态（2026-09-05）
 
-- gh-pages HEAD **`02418ca`**（链：… `7ee4b28` §30 → `031fbb1` §31 → `da658a2` §32 → `fadc51c` §33 → `02418ca` §34）。
+- gh-pages HEAD **`429c5f0`**（链：… §31 `031fbb1` → §32 `da658a2` → §33 `fadc51c` → §34 `02418ca` → §35 `429c5f0`）。
 - `verify-deploy` RESULT: IDENTICAL；console 0 errors；RLS 探测安全（anon key 匿名读返回空集）。
 - §31 清新活力批（15 处粉字替换 + 去 fog；⚠ token 部分被缓冲区吞掉，§33 补齐）/
   §32 糖果派对派（糖针+hero 第四色+渐变权重）/
@@ -171,6 +171,8 @@ Start-Sleep 40 ; node verify-live.mjs "$PWD\app\dist"      # 期望 LIVE RESULT:
   + 按压补齐（opt-row/judge/stepper/modal-close）+ syncToast 全局提示条 + 删题/回滚健壮性 + 书库卡键盘可达。
   §34 导航派对装点：四色裱花边 + 每槽 tone 软垫 + 激活彩糖针（全静态零动画，零 JSX）；
   ⚠ 别给 .bottom-nav 重设 position（会覆盖 global 的 fixed，导航掉出视口——§34 事故）。
+  §35 判断题卡片改裁决色：我的选择对=薄荷绿/错=草莓红/漏选=虚线薄荷（对齐 opt-row 通道），
+  答题前 selected 仍是身份色；全站「对=绿/错=红只出现在我的选择上」语义就此统一。
 
 ---
 

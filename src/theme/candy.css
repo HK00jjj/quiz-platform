@@ -1621,6 +1621,47 @@ body { background: linear-gradient(160deg, #FFF8FA 0%, #FFF0F4 58%, #F0FFFA 82%,
 @keyframes toast-in { from { opacity: 0; transform: translate(-50%, -8px); } to { opacity: 1; transform: translate(-50%, 0); } }
 @media (prefers-reduced-motion: reduce) { .sync-toast { animation: none; } }
 
+/* ════════ §35（2026-09-05）判断题卡片改裁决色 ════════
+   旧逻辑：answered 后给「正确答案那张卡」挂 selected——颜色跟选项身份走，
+   错误卡永远红脸，用户选对也红，读起来像答错（用户截图指名）。
+   新逻辑：与 opt-row 同一套裁决通道——我的选择对=薄荷绿、错=草莓红、
+   漏掉的正确项=虚线薄荷，没点过也非答案=dimmed。
+   答题前的 selected 保持身份色（粉/红），那是「我正选着它」不是裁决。
+   ::before 圆符同步换：right/missed → ✓ 薄荷球，wronged → ✗ 草莓球。
+   追加在文件尾，等特异性下稳定压过 L472-491 的旧身份色块。 */
+.judge-card.right {
+  border-color: var(--mint-dk) !important;
+  background-color: rgba(127, 232, 200, .22) !important;
+  box-shadow: 0 0 0 4px rgba(127, 232, 200, .2), 0 8px 24px rgba(95, 212, 176, .3) !important;
+}
+.judge-card.right .judge-label { color: #1F5D4C !important; }
+.judge-card.right::before {
+  content: '✓';
+  background: radial-gradient(circle at 32% 28%, #B8F5E3, #5FD4B0);
+  box-shadow: 0 0 12px rgba(95, 212, 176, .45), inset 0 1px 0 rgba(255, 255, 255, .7) !important;
+}
+.judge-card.wronged {
+  border-color: var(--bad-dk) !important;
+  background-color: rgba(242, 86, 74, .14) !important;
+  box-shadow: 0 0 0 4px rgba(242, 86, 74, .2), 0 8px 24px rgba(242, 86, 74, .3) !important;
+}
+.judge-card.wronged .judge-label { color: var(--bad-ink) !important; }
+.judge-card.wronged::before {
+  content: '✗';
+  background: radial-gradient(circle at 32% 28%, #FFD9D2, #F2564A);
+  box-shadow: 0 0 12px rgba(242, 86, 74, .45), inset 0 1px 0 rgba(255, 255, 255, .7) !important;
+}
+.judge-card.missed {
+  border: 2px dashed var(--mint-dk) !important;
+  background-color: rgba(127, 232, 200, .1) !important;
+}
+.judge-card.missed .judge-label { color: #2FA98A !important; }
+.judge-card.missed::before {
+  content: '✓';
+  background: radial-gradient(circle at 32% 28%, #B8F5E3, #5FD4B0);
+  box-shadow: 0 0 12px rgba(95, 212, 176, .35), inset 0 1px 0 rgba(255, 255, 255, .7) !important;
+}
+
 /* ════════ §34（2026-09-05）导航托盘的派对装点 ════════
    用户反馈：四个板块的背景太空，缺节日派对般的热闹童趣。
    在「糖霜托盘」的既有隐喻里做加法，三件套全部静态零动画（不占每帧合成成本，
