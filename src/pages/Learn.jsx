@@ -1,16 +1,16 @@
 import React, { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useStore } from '../store'
+import { useStore, peekRelearnResume } from '../store'
 import { A } from '../assets'
 import { GiltBtn, EmptyState, burstParticles, FlameIcon } from '../components'
 import { IconRetry, IconShuffle, IconNew, IconFilter, IconLearn, IconImport } from '../components/CandyIcons'
-import { buildSession, lastResultMap, TYPES, DIFFICULTIES, domainLabel } from '../lib/stats'
+import { buildSession, lastResultMap, TYPES, DIFFICULTIES, domainLabel, filtersKey } from '../lib/stats'
 import { isDue } from '../lib/fsrs'
 import { todayStr, streakLength } from '../lib/dates'
 
 const DOMAINS_ALL = Array.from({ length: 27 }, (_, i) => `K${i + 1}`)
 
-function FilterModal({ title, filters, onToggle, onClose, onStart, count, startLabel }) {
+function FilterModal({ title, filters, onToggle, onClose, onStart, count, startLabel, note }) {
   const [dim, setDim] = useState('types')
   const dims = [
     { key: 'types', label: '题型', options: TYPES },
@@ -41,11 +41,12 @@ function FilterModal({ title, filters, onToggle, onClose, onStart, count, startL
             ))}
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 10, marginTop: 18, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 10, marginTop: 18, flexWrap: 'wrap', alignItems: 'center' }}>
           <GiltBtn size="lg" onClick={onStart} disabled={count === 0}>
             {startLabel}（{count} 题）
           </GiltBtn>
           <GiltBtn tone="ghost" onClick={onClose}>返回</GiltBtn>
+          {note && <span style={{ fontSize: 12, color: 'var(--ink-2)', letterSpacing: '.3px' }}>{note}</span>}
         </div>
       </div>
     </div>
@@ -75,9 +76,21 @@ export default function Learn() {
 
   const relearnFilters = settings.relearnFilters ?? {}
   const learnFilters = settings.learnFilters ?? {}
-  const relearnCount = useMemo(
-    () => buildSession(questions, cards, records, { mode: 'relearn', size: 1e5, now, ...relearnFilters }).length,
+  /* §61 增量续练：弹窗计数按「当前重算」口径显示，并 peek 断点给出续练提示
+     （断点剩余 R 题 + 新增 N 题将排在末尾——避免 379/260 两本账对不上的困惑） */
+  const relearnList = useMemo(
+    () => buildSession(questions, cards, records, { mode: 'relearn', size: 1e5, now, ...relearnFilters }),
     [questions, cards, records, now, relearnFilters])
+  const relearnCount = relearnList.length
+  const resumePeek = useMemo(() => peekRelearnResume(filtersKey(relearnFilters)), [relearnFilters, questions])
+  const resumeNote = useMemo(() => {
+    if (!resumePeek) return null
+    const newN = relearnList.filter((q) => !resumePeek.savedIds.has(q.id)).length
+    if (resumePeek.remaining <= 0 && newN === 0) return null
+    return newN > 0
+      ? `断点续练：剩余 ${resumePeek.remaining} 题，新增 ${newN} 题将排在末尾`
+      : `断点续练：将从第 ${resumePeek.savedCount - resumePeek.remaining + 1} 题继续`
+  }, [resumePeek, relearnList])
   const randomCount = Math.min(20, questions.length)
 
   async function run(mode, opts = {}) {
@@ -203,6 +216,7 @@ export default function Learn() {
           onClose={() => setOpenFilter(null)}
           count={relearnCount}
           startLabel="开始练习"
+          note={resumeNote}
           onStart={() => { setOpenFilter(null); run('relearn', { size: 0, ...relearnFilters }) }}
         />
       )}

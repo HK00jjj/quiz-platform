@@ -2574,3 +2574,19 @@ startSession 返回值仅用于 n>0（resume/fresh 口径差异无实际影响�
 **验证**：非 demo dev server（supabase 配置硬编码，getSession 本地读无会话即匿名）真机截图——
 3 个 SVG 图标、emoji 清零、胶囊 999px、聚焦 border mint rgb(127,232,200)/icon rgb(95,212,176)、
 内层 input border 0/透明；console 0 errors。部署 gh-pages `4edbc9d`（IDENTICAL），src 同步，verify-live ALL OK。
+
+## 60. 第五十轮（2026-09-06）· 挑题断点增量续练（用户报「379/260 对不上」→ 三方案拍板选 1）
+
+**根因**：弹窗 379 是实时重算的当前匹配数；进入后走 relearn 断点恢复（filtersKey 匹配即恢复旧队列 260），
+旧会话把后来新导入的题全部挡在外面——两本账对不上。
+
+**方案 1「增量续练」实施**（store.js startSession relearn 分支）：
+断点恢复后用当前 filters 重算 fresh 列表，不在断点队列里的题经 expandTriple 追加到队尾
+（老题保持断点进度，新题接着练）；追加后的队列立刻 maybeSaveResume 回存。
+新增 `peekRelearnResume(fKey)`（只读 localStorage，供弹窗提示）。
+Learn.jsx：FilterModal 加 note prop；挑题弹窗显示「断点续练：剩余 R 题，新增 N 题将排在末尾」
+（新增 0 时显示「将从第 X 题继续」）。relearnCount 改从 relearnList memo 取。
+
+**验证**（demo 真机，模拟「新题」=从断点删除 demo_4 全部 3 副本再进入）：
+弹窗 note「剩余 54 题，新增 1 题将排在末尾」；进入后共 57 题（54+demo_4×3 补回）；
+断点回存确认队列 57、demo_4 恢复 3 份；console 0 errors；t-session 18/18。

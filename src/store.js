@@ -230,6 +230,13 @@ function flushPendingRatings() {
 
 /* 演示模式（--mode demo）：本地造数据，不连云端，仅供视觉/流程验证 */
 export const DEMO = import.meta.env.MODE === 'demo'
+/* §61 断点 peek（挑题弹窗提示用）：返回 null=无匹配断点；否则给剩余题数与断点队列总长。
+   只读 localStorage，不触任何组卷/状态变更。 */
+export function peekRelearnResume(fKey) {
+  const saved = loadResume()
+  if (!saved || saved.filtersKey !== fKey) return null
+  return { remaining: Math.max(0, saved.questionIds.length - saved.index), savedCount: saved.questionIds.length, savedIds: new Set(saved.questionIds) }
+}
 function demoData() {
   const now = Date.now()
   const types = ['单选题', '多选题', '判断题', '填空题', '简答题', '计算分析题', '综合设计/故障诊断题']
@@ -502,16 +509,27 @@ export const useStore = create((set, get) => ({
         const byId = new Map(questions.map((q) => [q.id, q]))
         const list = saved.questionIds.map((id) => byId.get(id)).filter(Boolean)
         if (list.length > 0) {
-          const index = Math.min(Math.max(saved.index, Math.min(saved.results.length, list.length - 1)), list.length - 1)
+          /* §61 增量续练：断点恢复后，把当前重算出的「新增题」追加到队尾——
+             老题保持断点进度，新入库的题不再被旧会话挡在外面。
+             新增题同样走 expandTriple（客观题 ×3、主观题 ×1），与主队列口径一致。 */
+          const savedIds = new Set(list.map((q) => q.id))
+          const fresh = buildSession(questions, cards, records, {
+            mode: 'relearn', size: 0, now: Date.now(),
+            domains: opts.domains, types: opts.types, difficulties: opts.difficulties
+          })
+          const added = expandTriple(fresh.filter((q) => !savedIds.has(q.id)))
+          const queue = added.length > 0 ? [...list, ...added] : list
+          const index = Math.min(Math.max(saved.index, Math.min(saved.results.length, queue.length - 1)), queue.length - 1)
           const results = saved.results.slice(0, index)
           relearnKey = saved.filtersKey
           flushedIds = new Set(saved.flushedIds ?? [])  // 恢复 flush 已推过卡的题，防续练后二次推卡
           set({
-            sessionMode: mode, sessionQuestions: list, sessionIndex: index,
+            sessionMode: mode, sessionQuestions: queue, sessionIndex: index,
             phase: 'answering', sessionResults: results, lastGrade: null, lastRating: null,
             summary: { total: results.length, correct: results.filter(Boolean).length }
           })
-          return list.length
+          maybeSaveResume(get())  // 追加后的队列立刻存回断点，进度跨刷新稳定
+          return queue.length
         }
       }
       clearResume()

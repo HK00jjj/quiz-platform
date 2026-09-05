@@ -149,6 +149,24 @@ export class Validator {
     } else {
       this.err(w, `多选题答案应为2~4个字母连写，实际“${ans}”`)
     }
+    /* §61 语义均衡检查（用户规则：四个选项里正确答案不能太过明显）：
+       「最长最详细的就是答案」是 AI 出题最常见的泄露模式。格式校验拦不住它，只能在这里量长度。
+       错误级：正确项 ≥ 2×最长干扰项 且 ≥12 字（明显泄露，拦截）；
+       告警级：正确项比最长干扰项长 ≥8 字且 ≥12 字（偏明显，提醒均衡）。 */
+    const stripped = opts.map((o) => o.replace(/^[A-E][.、]\s*/, ''))
+    const maxWrong = Math.max(0, ...[...letters]
+      .filter((L) => !ans.includes(L))
+      .map((L) => (stripped[letters.indexOf(L)] ?? '').length))
+    if (opts.length === n && maxWrong > 0) {
+      for (const L of single ? [ans] : [...ans]) {
+        const len = (stripped[letters.indexOf(L)] ?? '').length
+        if (len >= 12 && len >= 2 * maxWrong) {
+          this.err(w, `选项${L}长${len}字，达最长干扰项（${maxWrong}字）的2倍以上——正确答案过于明显，请重写选项使长度/细节度均衡`)
+        } else if (len >= 12 && len - maxWrong >= 8) {
+          this.warn(w, `选项${L}比最长干扰项长${len - maxWrong}字，正确答案偏明显，建议均衡各选项长度与细节度`)
+        }
+      }
+    }
   }
   checkJudgement(it) {
     const ans = str(it.答案)
