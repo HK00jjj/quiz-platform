@@ -47,11 +47,24 @@ const toRecord = (r) => ({
 
 export class CloudRepo {
   constructor(c) { this.client = c }
+  /* §66 分页拉全表：PostgREST 单请求默认最多返回 1000 行（超出静默截断），
+     题库/做题记录超过后早期数据不可见。按 range 翻页直到不足一页。
+     翻页必须按唯一键排序（seq/answered_at 会重复，边界漂移会漏行/重行）。 */
+  async fetchAllPaged(table, orderCol, pageSize = 1000) {
+    const rows = []
+    for (let from = 0; ; from += pageSize) {
+      const { data, error } = await this.client.from(table).select('*')
+        .order(orderCol).range(from, from + pageSize - 1)
+      if (error) throw error
+      rows.push(...data)
+      if (data.length < pageSize) return rows
+    }
+  }
   async loadAll() {
     const [q, c, r, s, b] = await Promise.all([
-      this.client.from('questions').select('*').order('seq'),
-      this.client.from('review_cards').select('*'),
-      this.client.from('answer_records').select('*').order('answered_at'),
+      this.fetchAllPaged('questions', 'id'),
+      this.fetchAllPaged('review_cards', 'question_id'),
+      this.fetchAllPaged('answer_records', 'id'),
       this.client.from('settings').select('value').eq('key', 'app').maybeSingle(),
       // 多题库（书本）映射存在 settings 的 key='books' 行里：
       // 这样不需要改任何表结构（没有 DDL 权限），而且因为 cards/records 以 questionId 为键，

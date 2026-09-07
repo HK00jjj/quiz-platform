@@ -2647,3 +2647,6 @@ badge 加 position:relative。molten 熔炉区、🥅 标题小图标等其余�
 
 ### §65c 补充（同日）：蜡封印纹去🍬
 用户指认「答案已封印」行的蜡封图标仍是红粉糖果 emoji（.seal-wax::after content:🍬——与设置页头像同批漏网）。换**火漆印纹**：深薄荷四角星压印（clip-path 八边形星）+ 内圈虚线齿环（::before dashed 圆环），纯 CSS。真机验证后部署 gh-pages `799a5a5`，src 同步，verify-live ALL OK。
+
+### §66 补充（同日）：loadAll 分页解除 1000 行上限
+容量分析确认瓶颈：PostgREST 单请求默认 1000 行静默截断（题库/卡片/记录三表裸 select）。修法：db.js 新增 fetchAllPaged(table, orderCol, pageSize=1000)——按唯一键 order + range 翻页至不足一页（翻页必须按唯一键排序，seq/answered_at 会重复致边界漂移漏行）；loadAll 三表切换。行为等价性：<1000 行时单请求即返回与旧版一致。验证：anon 直连实测（RLS 拒匿名读返回空集，通路无报错）+ 构建过；翻页边界待数据自然超 1000 行后生效，无需回归。部署 gh-pages `74f1273`，src 同步，verify-live ALL OK。
