@@ -106,7 +106,7 @@ export function BottomNav({ active, wrongCount, onNav }) {
    对：粉桃/薄荷/柠檬三色；错：酸橙绿（方案 2.2 “错了用酸橙绿而不是红色”）。
    一次性动画，不循环；只动 transform/opacity，1.1s 后自行从 DOM 移除。
    附带一次轻振动（支持的设备），与变色/shake 同一帧。 ── */
-const CANDY_OK = ['#FF8FA3', '#7FE8C8', '#FFE066', '#D4B8FF']
+const CANDY_OK = ['#5FAE8F', '#7FE8C8', '#FFE066', '#FF8FA3']
 const CANDY_BAD = ['#A8E063', '#8BC34A', '#C6E86A']
 export function burstParticles(x, y, tone = 'gold', count = 14) {
   if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {

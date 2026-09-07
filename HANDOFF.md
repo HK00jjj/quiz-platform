@@ -2590,3 +2590,16 @@ Learn.jsx：FilterModal 加 note prop；挑题弹窗显示「断点续练：剩�
 **验证**（demo 真机，模拟「新题」=从断点删除 demo_4 全部 3 副本再进入）：
 弹窗 note「剩余 54 题，新增 1 题将排在末尾」；进入后共 57 题（54+demo_4×3 补回）；
 断点回存确认队列 57、demo_4 恢复 3 份；console 0 errors；t-session 18/18。
+
+## 61. 第五十轮（2026-09-07）· 全站主题中性化：青瓷薄荷（用户「粉色太多太少女」→ 四方案小样拍板选 2 + 粉色适量分布）
+
+**策略（三层）**：
+① `:root` token 重映射——--candy-pink 系（#FFB6C1/#FF8FA3/#FFD6E0）→ 薄荷家族（#A8D8C4/#5FAE8F/#D3EADF），
+   --line/--cream/--shadow-candy/--glow-pink/--gold-text(#E8607F→#2E6E58)/--copper 同步冷移，var() 引用全站自动跟随；
+② 散落硬编码粉 159 处按映射表脚本替换（选项选中态/书脊/罐子/标题字/登录胶囊等结构 UI）；
+   糖浆进度条（柠檬+蜜桃，§51 用户拍板）与判分红绿语义色（--bad/--ok）不动；
+③ 节庆点缀层 FestiveDecor.jsx 不改（粉帽/拐杖糖/气球/姜饼人就是「适量粉点缀」本体）；
+   CandyBoot 开机彩豆数组换薄荷主导 + 一粒粉；Bookshelf 书封色板为用户自选项保留原马卡龙板。
+
+**验证**：真机首页/答题页截图——薄荷主色清爽中性、粉只剩节庆点缀、糖浆条作暖点缀保留；
+console 0 errors；t-session 18/18。部署 gh-pages `75471a8`（IDENTICAL），src 同步，verify-live ALL OK。
