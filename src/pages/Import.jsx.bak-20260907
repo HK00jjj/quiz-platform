@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store'
-import { classifyImport, PROTOCOL_VERSION, parseItems, validateItems } from '../lib/validate'
+import { classifyImport } from '../lib/validate'
 import { reworkTalk } from '../lib/validate'
 import { GiltBtn, burstParticles } from '../components'
 
@@ -16,59 +16,21 @@ export default function Import() {
   const [copied, setCopied] = useState(false)
   const [dragOn, setDragOn] = useState(false)
   const [sealing, setSealing] = useState(false)
-  const [setMode, setSetMode] = useState(false) // 题集模式：逐题检测，与 21 道生成批规则隔离
   const fileRef = useRef(null)
   const taRef = useRef(null)
 
-  function showResult(issues, importRes, prefix = '') {
+  function showResult(issues, importRes) {
     const errs = issues.filter((i) => i.level === '错误')
     const warns = issues.filter((i) => i.level === '告警')
     if (importRes && importRes.errors.length > 0) {
       const title = `检测通过但入库被拒：${importRes.errors.length} 条条目无效`
       setResult({ tone: 'red', title, issues: importRes.errors.map((m) => ({ where: '入库', level: '错误', message: m })), rework: true })
     } else if (errs.length > 0) {
-      setResult({ tone: 'red', title: `${prefix}检测失败：${errs.length} 项错误、${warns.length} 项告警，未入库`, issues, rework: true })
+      setResult({ tone: 'red', title: `检测失败：${errs.length} 项错误、${warns.length} 项告警，未入库`, issues, rework: true })
     } else if (importRes) {
-      setResult({ tone: 'green', title: `${prefix}检测通过，已入库 新增 ${importRes.added} 题`, warnings: warns, added: importRes.added })
+      setResult({ tone: 'green', title: `检测通过，已入库 新增 ${importRes.added} 题`, warnings: warns, added: importRes.added })
     } else {
-      setResult({ tone: 'warn', title: `${prefix}检测完成：${warns.length} 项告警（可入库）`, warnings: warns, issues })
-    }
-  }
-
-  /* 题集模式（v4.1）：与生成模式完全互斥的两个检测器。
-     只跑逐题校验；若整批恰好 21 元素且完全满足生成批规则（配比/层段/层内构成
-     全部通过），判定为出题模式产物，拒绝检测并要求回默认通道——点哪个通道，
-     另一套规则的产物就通不过。备份恢复也不走本分支。 */
-  async function detectSetMode() {
-    const { items, errors } = parseItems(text)
-    if (errors.length > 0) {
-      setResult({ tone: 'red', title: '题集模式 · 导入内容无法解析', issues: errors.map((m) => ({ where: '顶层', level: '错误', message: m })), rework: true })
-      return
-    }
-    if (items.length === 21) {
-      const genIssues = validateItems(items, true)
-      if (genIssues.filter((i) => i.level === '错误').length === 0) {
-        setResult({
-          tone: 'red',
-          title: '题集模式 · 检测到生成模式批次，已拒绝',
-          issues: [{ where: '顶层', level: '错误', message: '本批 21 题完全满足生成批规则（配比/难度层段/层内题型构成），属于《出题规则》生成模式产物。两套检测互斥隔离：请关闭右上角「🧩 题集模式」开关，用默认通道检测本批。' }],
-          rework: false
-        })
-        return
-      }
-    }
-    const issues = validateItems(items, false)
-    const errs = issues.filter((i) => i.level === '错误')
-    if (errs.length > 0) {
-      showResult(issues, null, '题集模式 · ')
-      return
-    }
-    setSealing(true)
-    try {
-      const res = await importBank(text)
-      showResult(issues, res, '题集模式 · ')
-    } catch (e) {
-      setResult({ tone: 'red', title: '云端写入失败', issues: [{ where: '云端', level: '错误', message: e instanceof Error ? e.message : String(e) }], rework: false })
+      setResult({ tone: 'warn', title: `检测完成：${warns.length} 项告警（可入库）`, warnings: warns, issues })
     }
   }
 
@@ -76,7 +38,6 @@ export default function Import() {
     if (!text.trim() || busy) return
     setBusy(true); setResult(null); setSealing(false); setCopied(false)
     try {
-      if (setMode) { await detectSetMode(); return }
       const cls = classifyImport(text)
       if (cls.kind === 'backup') {
         setSealing(true)
@@ -133,40 +94,6 @@ export default function Import() {
         <p>题库导入 · 当前 {total} 题</p>
       </div>
 
-      {/* 右上角 · 题集模式开关：开=逐题检测（题集解答规则 v4.1），关=默认整批生成批规则 */}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 10, margin: '-6px 0 10px' }}>
-        <button
-          type="button"
-          aria-pressed={setMode}
-          onClick={() => { setSetMode((v) => !v); setResult(null) }}
-          style={{
-            display: 'inline-flex', alignItems: 'center', gap: 8, cursor: 'pointer',
-            padding: '6px 14px', borderRadius: 999, fontSize: 13, fontWeight: 700,
-            border: '1.5px solid ' + (setMode ? 'var(--candy-pink-dk, #5FAE8F)' : 'rgba(0,0,0,.15)'),
-            background: setMode ? 'rgba(168,216,196,.35)' : 'rgba(255,255,255,.7)',
-            color: setMode ? '#2E6B52' : 'var(--muted, #666)'
-          }}>
-          <span style={{
-            width: 30, height: 16, borderRadius: 999, position: 'relative',
-            background: setMode ? 'var(--candy-pink-dk, #5FAE8F)' : 'rgba(0,0,0,.18)', transition: 'background .2s'
-          }}>
-            <span style={{
-              position: 'absolute', top: 2, left: setMode ? 16 : 2, width: 12, height: 12,
-              borderRadius: '50%', background: '#fff', transition: 'left .2s'
-            }} />
-          </span>
-          🧩 题集模式{setMode ? ' · 已开启' : ''}
-        </button>
-      </div>
-      {setMode && (
-        <div className="panel" style={{ marginBottom: 16, borderColor: 'var(--candy-pink-dk, #5FAE8F)' }}>
-          <div className="panel-title">🧩 题集模式（逐题检测）</div>
-          <p style={{ fontSize: 13, lineHeight: 1.9, color: 'var(--muted)' }}>
-            开启后<b>只做逐题校验</b>（题型、元数据映射、选项结构、解析标记、填空与配图白名单），<b>不校验</b> 21 道生成批的数量/配比/难度层段/批内避重。两套检测<b>完全互斥</b>：本开关下，完全满足生成批规则的 21 题批次会被<b>拒绝</b>并要求回默认通道；默认通道下，非 21 元素的题集批同样无法通过（N&gt;21 走逐题检测为既有特性）。对应《题集模式规则》v2026-09-07-v4.1（AI 触发词：<b>源题：</b>）；备份 JSON 请关闭本开关走「备份恢复」。
-          </p>
-        </div>
-      )}
-
       <div className="panel deep">
         <div className="step-bar">
           <div className={'step-node st1' + (stepState >= 1 ? (stepState === 1 ? ' active' : ' done') : '')}>
@@ -193,7 +120,7 @@ export default function Import() {
           <div className="panel-title">📖 导入说明</div>
           <p style={{ fontSize: 13, lineHeight: 1.9, color: 'var(--muted)' }}>
             把外部 AI 生成的题目 JSON 粘贴到下方输入框，或直接拖入 JSON 文件，会自动校验结构与规范。
-            21 题及以内按整批规则校验（区间配比 / 难度层段 / 层内题型构成 / 元数据映射 / 解析标记等 11 类）；超过 21 题只逐题检测；备份 JSON 走「备份恢复」。题集批量题目（AI 触发词「源题：」）请开启右上角「🧩 题集模式」走逐题检测。协议版本 {PROTOCOL_VERSION}（须与《出题规则》文档版本一致）。
+            21 题及以内按整批规则校验（题型配比 / 难度层段 / 元数据映射等 9 类）；超过 21 题只逐题检测；备份 JSON 走「备份恢复」。
           </p>
         </div>
 
