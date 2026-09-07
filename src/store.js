@@ -147,7 +147,7 @@ async function reloadAll() {
     if (mutated) persistBooks(useStore.getState())
   } catch (e) {
     console.error('[reload] 云端拉取失败', e)
-    useStore.setState({ syncError: '云端同步失败，请检查网络' })
+    useStore.setState({ syncError: '云端同步失败：' + (e && e.message ? e.message : '网络异常') + '（点击关闭）' })
   }
 }
 function scheduleReload() {
