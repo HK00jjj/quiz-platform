@@ -2638,3 +2638,6 @@ badge 加 position:relative。molten 熔炉区、🥅 标题小图标等其余�
 **验证**：真机判断题全链——↓↓ 指针到「错误」→ Enter 选中（selected=1，phase 仍 answering）→
 再 Enter 提交（feedback「答对了」）；单选步进 2→3 线性；console 0 errors。
 部署 gh-pages `cd64d09`（IDENTICAL），src 同步，verify-live ALL OK。
+
+### §64b 补充（同轮）：尝味师徽章重绘
+用户反馈人形剪影版「背景太重、图案不贴题」。重绘：圆底轻量化（#FBFDFC→#E1F0E9 浅渐变 + 1.5px 灰绿描边，去重投影），图案换**螺旋棒棒糖**（repeating-conic 薄荷/白螺纹 + 白描边 + 奶油棒杆，-12° 微倾；与登录 hero .ch-lolli 同 motif）。真机截图验证后部署 gh-pages `07e8a37`，src 同步，verify-live ALL OK。
