@@ -78,15 +78,12 @@ export class CloudRepo {
       // 只要各书题目 ID 不重叠，间隔重复与做题记录就是天然隔离的。
       this.client.from('settings').select('value').eq('key', 'books').maybeSingle()
     ])
-    if (q.error) throw q.error
-    if (c.error) throw c.error
-    if (r.error) throw r.error
-    if (s.error) throw s.error
-    if (b.error) throw b.error
+    /* §66 修复：fetchAllPaged 直接返回行数组（无 .data 包装）——
+       此前 return 仍用旧写法 q.data.map → undefined.map 必炸，登录后加载 100% 失败 */
     return {
-      questions: q.data.map(toQuestion),
-      cards: c.data.map(toCard),
-      records: r.data.map(toRecord),
+      questions: q.map(toQuestion),
+      cards: c.map(toCard),
+      records: r.map(toRecord),
       settings: { dailyGoal: 20, ...(s.data?.value ?? {}) },
       books: b.data?.value ?? null
     }
