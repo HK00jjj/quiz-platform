@@ -1,5 +1,7 @@
-// 导入校验与解析（与线上规则 1:1，含 21 题批九类规则与返工话术）
+// 导入校验与解析（与线上规则 1:1，含 21 题批十一类规则与返工话术）
+// 版本纪律：PROTOCOL_VERSION 必须与《出题规则体系》头部"协议版本"一致（2026-09-06）
 import { DIAGRAM_IDS } from './diagrams.js'
+export const PROTOCOL_VERSION = '2026-09-06'
 export const TYPE_LIST = ['单选题', '多选题', '判断题', '填空题', '简答题', '计算分析题', '综合设计/故障诊断题']
 const DIFFS = ['基础', '应用', '综合']
 const COG = ['记忆', '理解', '应用', '分析', '评价', '创造']
@@ -49,7 +51,11 @@ export class Validator {
       items.forEach((it, i) => { if (seqOf(it) !== i + 1) this.err(`元素${i + 1}`, `序号应为${i + 1}，实际“${str(it.序号)}”`) })
       this.checkQuota(items)
     }
-    if (batchMode) this.checkBatchRules(items)
+    if (batchMode) {
+      this.checkBatchRules(items)
+      this.checkLayerComposition(items)
+      if (items.length === 21) this.checkDataStimulus(items)
+    }
     for (const it of items) {
       this.checkCommon(it)
       const type = str(it.题型)
@@ -118,12 +124,14 @@ export class Validator {
     if (a.includes('\n') || a.includes('\r')) this.err(w, '"解析"含换行符，须为单行字符串')
     const p1 = a.indexOf('【推导】'), p3 = a.indexOf('【记忆点】')
     if (p1 < 0 || p3 < 0 || p1 > p3) this.err(w, '"解析"须依次包含【推导】【记忆点】标记')
-    // 单选/多选题须含【误诊】段（2026-09-04 新增）
+    // 单选/多选题必含【误诊】段（2026-09-04 新增；2026-09-06 起升级为错误级，对齐规则A类⑦）
     const type = str(it.题型)
+    const p2 = a.indexOf('【误诊】')
     if (type === '单选题' || type === '多选题') {
-      const p2 = a.indexOf('【误诊】')
-      if (p2 < 0) this.warn(w, '单选/多选题解析缺少【误诊】段（建议逐项归因）')
+      if (p2 < 0) this.err(w, '单选/多选题“解析”须依次包含【推导】【误诊】【记忆点】三段')
       else if (p2 < p1 || p2 > p3) this.err(w, '【误诊】标记须位于【推导】与【记忆点】之间')
+    } else if (p2 >= 0) {
+      this.warn(w, '非选择题应省略【误诊】段（仅单选/多选必写）')
     }
     const limit = ANALYSIS_LIMIT[type] ?? 300
     if (a.length > limit) this.warn(w, `"解析"${a.length}字，超出建议上限${limit}字`)
@@ -238,6 +246,42 @@ export class Validator {
     // 硬约束：客观题≥14
     const objective = single + c('多选题') + c('判断题') + c('填空题')
     if (objective < 14) this.err('配比', `客观题仅${objective}道（<14），违反客观题>=14红线`)
+  }
+  // A类⑨ 层内题型构成（2026-09-06 新增）：判断/填空在基础层，多选在应用层，简答/综合在综合层，计算按总数分配
+  // 以 seqOf>=2 判定拓展题（不假设首元素为原题，兼容局部粘贴）
+  checkLayerComposition(items) {
+    let calcTotal = 0, calcInAdv = 0
+    const band = (s) => (s >= 2 && s <= 9 ? '基础' : s >= 10 && s <= 16 ? '应用' : s >= 17 && s <= 21 ? '综合' : null)
+    for (const it of items) {
+      const s = seqOf(it)
+      if (s < 2) continue
+      const t = str(it.题型), w = whereOf(it), b = band(s)
+      if (b === null) continue
+      const map = { 判断题: '基础', 填空题: '基础', 多选题: '应用', 简答题: '综合', '综合设计/故障诊断题': '综合' }
+      if (map[t] && map[t] !== b) {
+        this.err(w, `${t}应全部位于${map[t]}层（序号${map[t] === '基础' ? '2~9' : map[t] === '应用' ? '10~16' : '17~21'}）`)
+      }
+      if (t === '计算分析题') { calcTotal += 1; if (b === '综合') calcInAdv += 1 }
+    }
+    // 层内分配：计算=2→全部在应用层；计算=3→应用层2+综合层1
+    const expectAdv = Math.max(0, calcTotal - 2)
+    if (calcTotal >= 2 && calcTotal <= 3 && calcInAdv !== expectAdv) {
+      this.err('层段', `计算分析题共${calcTotal}道，综合层（序号17~21）应有${expectAdv}道，实际${calcInAdv}道`)
+    }
+  }
+  // A类⑩ 结构化数据刺激≥3道（启发式检测，仅告警，需人工确认；仅整批 21 元素时运行）
+  checkDataStimulus(items) {
+    const UNIT = /\d+(?:\.\d+)?\s*(?:kV|kA|kW|kVA|kΩ|mA|mH|ms|mm²|mm2|r\/min|rpm|MPa|kPa|℃|°C|V|A|Ω|W|Hz|Pa|μF)\b/g
+    const TABLE_HINT = /(实测数据|测量数据|数据表|参数表|记录表|工况表|时序表|如下表|数据如下|参数如下)/
+    let n = 0
+    for (const it of items) {
+      if (seqOf(it) < 2) continue
+      const stem = str(it.题干)
+      if (TABLE_HINT.test(stem)) { n += 1; continue }
+      const units = stem.match(UNIT)
+      if (units && units.length >= 2) n += 1
+    }
+    if (n < 3) this.warn('配比', `结构化数据刺激启发式检出${n}道（规则要求≥3道），请人工确认是否达标`)
   }
 }
 
