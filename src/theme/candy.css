@@ -75,7 +75,7 @@
 
 /* ── 基底：奶白三色渐变 + 圆润无衬线（方案 6.1 / 6.2） ── */
 html, body, #root, .app-shell {
-  background: linear-gradient(160deg, #FFF5F7 0%, #F0FFF9 52%, #F5F0FF 100%) !important;
+  background: linear-gradient(160deg, #F4FAF6 0%, #F0FFF9 52%, #F5F0FF 100%) !important;
   background-attachment: fixed !important;
   color: var(--ink);
 }
@@ -231,7 +231,7 @@ body, button, input, textarea, select {
   animation: candy-pulse 1.5s ease-in-out infinite;
 }
 @keyframes candy-pulse { 0%, 100% { transform: scale(1); opacity: .85 } 50% { transform: scale(1.3); opacity: 1 } }
-.nav-veil { background: rgba(255, 245, 247, .92) !important; backdrop-filter: blur(6px); }
+.nav-veil { background: rgba(240, 248, 244, .92) !important; backdrop-filter: blur(6px); }
 
 /* ══ 开机仪式：2 秒四段分镜（方案 1.2）══
    全部只用 transform/opacity（合成器属性）：不碰 background-position、不连续动 blur、
@@ -240,7 +240,7 @@ body, button, input, textarea, select {
 .boot-eye, .boot-rose { display: none !important; }
 .boot-half {
   position: absolute; top: 0; bottom: 0; width: 50.6%;
-  background: linear-gradient(160deg, #FFF5F7 0%, #F0FFF9 52%, #F5F0FF 100%);
+  background: linear-gradient(160deg, #F4FAF6 0%, #F0FFF9 52%, #F5F0FF 100%);
   transition: transform .5s var(--jelly-ease);
 }
 .boot-half.left { left: 0 }
@@ -389,11 +389,12 @@ body, button, input, textarea, select {
 .crack-veil img { display: none !important; }
 
 /* 三分区：题目区最亮、作答区原底、答案区糖纸封印 */
+/* §65 题干区换羊皮纸（用户反馈粉白底刺眼）：暖米轻渐变 + 暖沙色描边，与薄荷主题互补不突兀 */
 .zone-q {
-  background: rgba(255, 245, 247, .78) !important;
-  border: 1px solid var(--line) !important;
+  background: linear-gradient(165deg, rgba(252, 247, 236, .92), rgba(247, 239, 221, .84)) !important;
+  border: 1px solid #E6DAC2 !important;
   border-radius: var(--r-sm) !important;
-  box-shadow: 0 2px 12px rgba(127, 190, 160, .16), inset 0 1px 0 rgba(255, 255, 255, .8) !important;
+  box-shadow: 0 2px 12px rgba(180, 160, 120, .15), inset 0 1px 0 rgba(255, 255, 255, .8) !important;
 }
 .zone-s {
   background: rgba(127, 190, 160, .08) !important;

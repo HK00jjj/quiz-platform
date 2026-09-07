@@ -2641,3 +2641,6 @@ badge 加 position:relative。molten 熔炉区、🥅 标题小图标等其余�
 
 ### §64b 补充（同轮）：尝味师徽章重绘
 用户反馈人形剪影版「背景太重、图案不贴题」。重绘：圆底轻量化（#FBFDFC→#E1F0E9 浅渐变 + 1.5px 灰绿描边，去重投影），图案换**螺旋棒棒糖**（repeating-conic 薄荷/白螺纹 + 白描边 + 奶油棒杆，-12° 微倾；与登录 hero .ch-lolli 同 motif）。真机截图验证后部署 gh-pages `07e8a37`，src 同步，verify-live ALL OK。
+
+### §65 补充（同日）：题干区羊皮纸化
+用户反馈题干区粉白底（rgba(255,245,247,.78)——§61 漏网硬编码）刺眼。换羊皮纸暖米轻渐变（rgba(252,247,236,.92)→rgba(247,239,221,.84)）+ 暖沙描边 #E6DAC2 + 中性暖投影；另清 3 处粉白 tint 残留（登录/背景大渐变首段 #FFF5F7→#F4FAF6、.nav-veil → 冷白绿）。真机验证后部署 gh-pages `8627de4`，src 同步，verify-live ALL OK。
