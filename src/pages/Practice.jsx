@@ -60,6 +60,12 @@ export default function Practice() {
   const [fills, setFills] = useState([])              // 填空
   const [text, setText] = useState('')                // 主观
   const [kIdx, setKIdx] = useState(-1)                // §64 键盘 ↑↓ 指针（-1=未激活）
+  /* §70 指针退场：有真实选中（鼠标/数字/Enter 任一来源）即隐藏键盘指针，
+     ↑↓ 同时停用——任何时刻只有一个「选中」视觉（用户反馈双高亮 bug） */
+  const hasPick = !q || !objective ? false
+    : q.type === '单选题' ? choice != null
+    : q.type === '多选题' ? multi.length > 0
+    : judge != null
   const [showAnswer, setShowAnswer] = useState(false) // 主观题答案展开
   const [flash, setFlash] = useState('')
   const [flipped, setFlipped] = useState(false)   // 卡牌 3D 翻面
@@ -143,7 +149,7 @@ export default function Practice() {
       const typing = tag === 'INPUT' || tag === 'TEXTAREA'
       const footBtns = () => [...document.querySelectorAll('.q-face-foot button')]
       /* ↑↓：客观题未作答时在选项/判断卡之间移动指针（window 级，不依赖焦点） */
-      if ((e.key === 'ArrowDown' || e.key === 'ArrowUp') && phase === 'answering' && objective && !typing) {
+      if ((e.key === 'ArrowDown' || e.key === 'ArrowUp') && phase === 'answering' && objective && !typing && !hasPick) {
         const els = document.querySelectorAll('.opt-row, .judge-card')
         if (!els.length) return
         e.preventDefault()
@@ -189,7 +195,7 @@ export default function Practice() {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [phase, objective, kIdx, q?.id])
+  }, [phase, objective, kIdx, hasPick, q?.id])
 
   if (phase === 'idle' || questions.length === 0) {
     return (
@@ -403,7 +409,7 @@ export default function Practice() {
                 } else if (selected) cls = 'selected'
                 return (
                   <button key={o.oi} disabled={answered}
-                    className={`opt-row ${q.type === '多选题' ? 'square' : ''} ${cls}${!answered && kIdx === o.oi ? ' kbd-cursor' : ''}`}
+                    className={`opt-row ${q.type === '多选题' ? 'square' : ''} ${cls}${!answered && !hasPick && kIdx === o.oi ? ' kbd-cursor' : ''}`}
                     onClick={() => q.type === '单选题'
                       ? setChoice(o.orig)
                       : setMulti((m) => m.includes(o.orig) ? m.filter((x) => x !== o.orig) : [...m, o.orig].sort())}>
@@ -429,7 +435,7 @@ export default function Practice() {
                       extra = judge === label ? 'selected' : (judge ? 'dimmed' : '')
                     }
                     return (
-                      <button key={label} disabled={answered} className={`judge-card ${cls} ${extra}${!answered && kIdx === jIdx ? ' kbd-cursor' : ''}`}
+                      <button key={label} disabled={answered} className={`judge-card ${cls} ${extra}${!answered && !hasPick && kIdx === jIdx ? ' kbd-cursor' : ''}`}
                         style={{ backgroundImage: `url(${label === '正确' ? A.judgeCard.ok : A.judgeCard.no})` }}
                         aria-pressed={judge === label} onClick={() => setJudge(label)}>
                         <span className="judge-label">{label}</span>

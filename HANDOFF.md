@@ -2662,3 +2662,6 @@ badge 加 position:relative。molten 熔炉区、🥅 标题小图标等其余�
 
 ### §69c 补充（同日·重要）：§66 分页改造自带的阻断性 bug 修复（用户报告「题目都不见了」后定位）
 真相：§66 改 fetchAllPaged 时，loadAll 的 return 块仍残留旧写法 q.data.map——fetchAllPaged 返回的是行数组（无 .data 包装），undefined.map 必炸 → **登录后加载 100% 失败**（toast 反复弹 + 前端拿到空数据 = 题目「不见」）。云端数据全程完好（实测 questions=672 / cards=62 / records=118）。修复：return 改为 q.map/c.map/r.map 直读；toast 透出真实错误（本次即靠它 10 分钟内定位）。真机登录验证：672 题恢复、到期 22、无 toast、console 0 errors。另：凭据断链已修复（用户找回密码，已写回 app/.env 的 E2E_PASSWORD——该密码已在聊天中暴露，建议用户尽快改密）。部署 gh-pages `4e67706`，src 同步，verify-live ALL OK。
+
+### §70 补充（同日）：键盘指针退场——双高亮 bug 修复
+用户反馈：鼠标/数字选中后，键盘指针（黑框）仍可移动并与选中框叠加显示（两个视觉并存）。修复语义：**指针只服务于「未选中」的预选导航**——新增 hasPick（单选 choice≠null / 多选 multi.length>0 / 判断 judge≠null）：hasPick 时指针视觉隐藏 + ↑↓ 停用 + Enter 只执行提交。修复过程中避免了一个 TDZ 崩溃（hasPick 初稿插在 choice/multi/judge 声明之前，自查发现已移正）。真机验证：↑↓ 出指针 → 鼠标点选 → 指针消失、仅剩绿色选中；选中后 ↓ 指针不再出现；console 0 errors。部署 gh-pages `f5c7d20`，src 同步，verify-live ALL OK。
