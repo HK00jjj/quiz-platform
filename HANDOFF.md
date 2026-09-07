@@ -2659,3 +2659,6 @@ badge 加 position:relative。molten 熔炉区、🥅 标题小图标等其余�
 
 ### §68c 补充（同日）：分页加载瞬时抖动加固
 用户遇到「云端同步失败」toast——实测 Supabase 可达（REST 200 但响应 1.7s 偏慢），判定为瞬时抖动（分页后请求数变多，单页失败即整体失败的新暴露面）。加固：fetchAllPaged 每页失败自动重试 2 次（600ms/1200ms 退避），3 连败才抛。写入路径（persistAnswer 等）本身已有本地回滚不丢数据。部署 gh-pages `6f49807`，src 同步，verify-live ALL OK。
+
+### §69c 补充（同日·重要）：§66 分页改造自带的阻断性 bug 修复（用户报告「题目都不见了」后定位）
+真相：§66 改 fetchAllPaged 时，loadAll 的 return 块仍残留旧写法 q.data.map——fetchAllPaged 返回的是行数组（无 .data 包装），undefined.map 必炸 → **登录后加载 100% 失败**（toast 反复弹 + 前端拿到空数据 = 题目「不见」）。云端数据全程完好（实测 questions=672 / cards=62 / records=118）。修复：return 改为 q.map/c.map/r.map 直读；toast 透出真实错误（本次即靠它 10 分钟内定位）。真机登录验证：672 题恢复、到期 22、无 toast、console 0 errors。另：凭据断链已修复（用户找回密码，已写回 app/.env 的 E2E_PASSWORD——该密码已在聊天中暴露，建议用户尽快改密）。部署 gh-pages `4e67706`，src 同步，verify-live ALL OK。
