@@ -2653,3 +2653,6 @@ badge 加 position:relative。molten 熔炉区、🥅 标题小图标等其余�
 
 ### §67 补充（同日）：记录增长防患性 memo 化
 三处（App.jsx 一处是**全树重渲染级 bug**）：① App.jsx 错题角标原 selector 在 useStore 内跑 lastResultMap（O(全部记录)）且返回新 Map 引用——store 任意变化（含答题计时）都触发 Shell 全树重渲染+O(N) 重算，改为订阅 records 引用 + useMemo；② Learn.jsx doneToday/dueCount/wrongCount 三处 O(N) filter 包 useMemo；③ Learn.jsx now=Date.now() 每渲染变化致 relearnCount（O(N) buildSession）useMemo 实际每次失效——挂载期固定。真机验证到期 12/新题 10/连胜 4 天数字与改前一致，console 0 errors。部署 gh-pages `fcb82fc`，src 同步，verify-live ALL OK。
+
+### §68 补充（同日）：答题页雪花减速
+用户反馈答题时雪花飘落分散注意力（只动答题页）。candy.css §68：.festive-layer.is-compact 下 .fflake 落速 45s、.ff2/55s、.ff3/40s、.ff4/60s（原 9~13s 的 4~5 倍，接近凝滞但仍活着），负 delay 保留、其他页面不变。真机计算样式验证 45s 生效、console 0 errors。部署 gh-pages `c4f9002`，src 同步，verify-live ALL OK。

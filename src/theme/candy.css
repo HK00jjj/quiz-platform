@@ -1964,3 +1964,11 @@ body { background: linear-gradient(160deg, #FFF8FA 0%, #EAF2ED 58%, #F0FFFA 82%,
   border-color: var(--mint-dk) !important;
   box-shadow: 0 0 0 3px rgba(127, 232, 200, .3) !important;
 }
+
+/* ══ §68 答题页雪花减速（用户反馈飘落分散注意力，只动答题页） ══
+   compact 模式下落速放慢 4~5 倍（40~60s），接近「凝在空中」但仍活着；
+   负 delay 保留（雪花初始位置按新时长比例分布）。学习页等其他页面不变。 */
+.festive-layer.is-compact .fflake { animation-duration: 45s; }
+.festive-layer.is-compact .ff2 { animation-duration: 55s; }
+.festive-layer.is-compact .ff3 { animation-duration: 40s; }
+.festive-layer.is-compact .ff4 { animation-duration: 60s; }
