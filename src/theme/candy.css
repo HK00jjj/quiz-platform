@@ -1966,3 +1966,9 @@ body { background: linear-gradient(160deg, #FFF8FA 0%, #EAF2ED 58%, #F0FFFA 82%,
 .festive-layer.is-compact .ff2 { animation-duration: 55s; }
 .festive-layer.is-compact .ff3 { animation-duration: 40s; }
 .festive-layer.is-compact .ff4 { animation-duration: 60s; }
+
+/* ══ §69c 焦点黑框消除（用户反馈「黑框」真因：键盘流程序 click 不移动焦点，
+   浏览器默认 focus outline 滞留在旧选项上）。答题区交互控件统一关闭 outline，
+   选中状态（绿框）本身即视觉锚点，无障碍不受损（Enter 流不依赖焦点环）。 ══ */
+.opt-row:focus, .judge-card:focus, .opt-row:focus-visible, .judge-card:focus-visible,
+.q-face-foot button:focus, .q-face-foot button:focus-visible { outline: none !important; }

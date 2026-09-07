@@ -2668,3 +2668,6 @@ badge 加 position:relative。molten 熔炉区、🥅 标题小图标等其余�
 
 ### §70c 补充（同日·二次反馈）：↑↓ 语义重构——移除指针中间态
 §70 首版修复（选中后指针隐藏+↑↓ 停用）不合用户预期：用户要「↑↓ 随时可用且永远只有一个选中视觉」。重构：**移除 kIdx/hasPick/kbd-cursor 整个指针体系**，↑↓ 直接把选中切到上一项/下一项（按 DOM selected 定位当前位置，window 级；单选/判断=改选，多选=勾选/取消该行）；数字/鼠标行为不变。三种输入方式任一时刻唯一绿色选中视觉，黑框物理消失。hint 改「键盘 1-5 直选 · ↑↓ 切换选项 · Enter 确认」。真机验证：↓↓ 选中 A→B、鼠标点 D 唯一选中、↑ 回移 C、kbd-cursor 零残留、console 0 errors。教训：交互语义要先对齐用户心智模型再实现（首版按工程师直觉做了「指针预选」中间态）。部署 gh-pages `071b904`，src 同步，verify-live ALL OK。
+
+### §70d 补充（同日·三次反馈）：黑框真因=浏览器 focus outline
+§70c 重构后用户仍见黑框（数字/↑↓ 后停留在先前交互的选项上，鼠标点别处即消失）→ 真因：**浏览器默认 focus outline**——键盘流的程序 click() 不移动焦点，轮廓滞留在早前真实交互的元素上。修复：答题控件（.opt-row/.judge-card/.q-face-foot button）focus/:focus-visible 一律 outline:none（选中绿框本身即视觉锚点）。真机（含真实键击 press）：outlineOnSelected=none、kbd-cursor 0、单选唯一选中、多选 A+B 并存正常。部署 gh-pages `5837590`（首次上传中断已续传），src 同步，verify-live ALL OK。
