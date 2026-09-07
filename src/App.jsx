@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { HashRouter, Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom'
 import { useStore } from './store'
 import { A } from './assets'
@@ -23,8 +23,15 @@ function Shell() {
   const abortSession = useStore((s) => s.abortSession)
   const syncError = useStore((s) => s.syncError)
   const clearSyncError = useStore((s) => s.clearSyncError)
-  const wrongCount = useStore((s) => lastResultMap(s.records))
-  const wrongN = [...wrongCount.values()].filter((v) => v === false).length
+  /* §67 性能：原 selector 在 useStore 内跑 lastResultMap（O(全部记录)）且返回新 Map 引用——
+     store 任意变化（含答题计时）都会触发 Shell 全树重渲染。改为只订阅 records 数组引用，
+     错题计数包 useMemo，记录不变则零重算零重渲染。 */
+  const records = useStore((s) => s.records)
+  const wrongN = useMemo(() => {
+    let n = 0
+    for (const v of lastResultMap(records).values()) if (v === false) n++
+    return n
+  }, [records])
   const inPractice = location.pathname === '/practice'
   /* /stats 已整页下线：它的入口（📊 星象）早就按用户要求摘掉了，页面成了只能手打 URL 到达的孤儿，
      而它一个人占着剩余哥特位图（身份证卡/头像框/星盘/奖杯/徽章框）的一大半。

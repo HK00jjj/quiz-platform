@@ -2650,3 +2650,6 @@ badge 加 position:relative。molten 熔炉区、🥅 标题小图标等其余�
 
 ### §66 补充（同日）：loadAll 分页解除 1000 行上限
 容量分析确认瓶颈：PostgREST 单请求默认 1000 行静默截断（题库/卡片/记录三表裸 select）。修法：db.js 新增 fetchAllPaged(table, orderCol, pageSize=1000)——按唯一键 order + range 翻页至不足一页（翻页必须按唯一键排序，seq/answered_at 会重复致边界漂移漏行）；loadAll 三表切换。行为等价性：<1000 行时单请求即返回与旧版一致。验证：anon 直连实测（RLS 拒匿名读返回空集，通路无报错）+ 构建过；翻页边界待数据自然超 1000 行后生效，无需回归。部署 gh-pages `74f1273`，src 同步，verify-live ALL OK。
+
+### §67 补充（同日）：记录增长防患性 memo 化
+三处（App.jsx 一处是**全树重渲染级 bug**）：① App.jsx 错题角标原 selector 在 useStore 内跑 lastResultMap（O(全部记录)）且返回新 Map 引用——store 任意变化（含答题计时）都触发 Shell 全树重渲染+O(N) 重算，改为订阅 records 引用 + useMemo；② Learn.jsx doneToday/dueCount/wrongCount 三处 O(N) filter 包 useMemo；③ Learn.jsx now=Date.now() 每渲染变化致 relearnCount（O(N) buildSession）useMemo 实际每次失效——挂载期固定。真机验证到期 12/新题 10/连胜 4 天数字与改前一致，console 0 errors。部署 gh-pages `fcb82fc`，src 同步，verify-live ALL OK。

@@ -64,15 +64,15 @@ export default function Learn() {
   const startSession = useStore((s) => s.startSession)
   const [openFilter, setOpenFilter] = useState(null) // 'relearn' | 'learn'
 
-  const now = Date.now()
+  const now = useMemo(() => Date.now(), [])  // §67 挂载期固定：now 每渲染变化会让下方 useMemo 全部失效
   const today = todayStr()
   const dates = useMemo(() => [...new Set(records.map((r) => r.date))], [records])
   const streak = streakLength(dates, today)
-  const doneToday = records.filter((r) => r.date === today).length
-  const dueCount = cards.filter((c) => isDue(c, now)).length
+  const doneToday = useMemo(() => records.filter((r) => r.date === today).length, [records, today])
+  const dueCount = useMemo(() => cards.filter((c) => isDue(c, now)).length, [cards, now])
   const newCount = questions.length - cards.length
   const lastMap = useMemo(() => lastResultMap(records), [records])
-  const wrongCount = questions.filter((q) => lastMap.get(q.id) === false).length
+  const wrongCount = useMemo(() => questions.filter((q) => lastMap.get(q.id) === false).length, [questions, lastMap])
 
   const relearnFilters = settings.relearnFilters ?? {}
   const learnFilters = settings.learnFilters ?? {}
