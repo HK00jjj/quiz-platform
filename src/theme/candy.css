@@ -508,7 +508,12 @@ body, button, input, textarea, select {
   box-shadow: 0 0 12px rgba(95, 174, 143, .5), inset 0 1px 0 rgba(255, 255, 255, .8);
 }
 .seal-wax img { display: none !important; }
-.seal-wax::after { content: '🍬'; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 17px; }
+/* §65 同轮：🍬 emoji → 火漆印纹（深薄荷四角星压印 + 内圈虚线齿环，纯 CSS） */
+.seal-wax::before { content: ''; position: absolute; inset: 4px; border-radius: 50%;
+  border: 1.5px dashed rgba(255, 255, 255, .65); }
+.seal-wax::after { content: ''; position: absolute; left: 50%; top: 50%; width: 15px; height: 15px;
+  transform: translate(-50%, -50%); background: rgba(35, 92, 73, .72);
+  clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%); }
 
 /* 答案区：薄荷绿=甜、酸橙绿=酸（方案 3.5 判分反馈） */
 .answer-scroll-box {

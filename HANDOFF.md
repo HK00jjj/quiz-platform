@@ -2644,3 +2644,6 @@ badge 加 position:relative。molten 熔炉区、🥅 标题小图标等其余�
 
 ### §65 补充（同日）：题干区羊皮纸化
 用户反馈题干区粉白底（rgba(255,245,247,.78)——§61 漏网硬编码）刺眼。换羊皮纸暖米轻渐变（rgba(252,247,236,.92)→rgba(247,239,221,.84)）+ 暖沙描边 #E6DAC2 + 中性暖投影；另清 3 处粉白 tint 残留（登录/背景大渐变首段 #FFF5F7→#F4FAF6、.nav-veil → 冷白绿）。真机验证后部署 gh-pages `8627de4`，src 同步，verify-live ALL OK。
+
+### §65c 补充（同日）：蜡封印纹去🍬
+用户指认「答案已封印」行的蜡封图标仍是红粉糖果 emoji（.seal-wax::after content:🍬——与设置页头像同批漏网）。换**火漆印纹**：深薄荷四角星压印（clip-path 八边形星）+ 内圈虚线齿环（::before dashed 圆环），纯 CSS。真机验证后部署 gh-pages `799a5a5`，src 同步，verify-live ALL OK。
