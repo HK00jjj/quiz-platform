@@ -2665,3 +2665,6 @@ badge 加 position:relative。molten 熔炉区、🥅 标题小图标等其余�
 
 ### §70 补充（同日）：键盘指针退场——双高亮 bug 修复
 用户反馈：鼠标/数字选中后，键盘指针（黑框）仍可移动并与选中框叠加显示（两个视觉并存）。修复语义：**指针只服务于「未选中」的预选导航**——新增 hasPick（单选 choice≠null / 多选 multi.length>0 / 判断 judge≠null）：hasPick 时指针视觉隐藏 + ↑↓ 停用 + Enter 只执行提交。修复过程中避免了一个 TDZ 崩溃（hasPick 初稿插在 choice/multi/judge 声明之前，自查发现已移正）。真机验证：↑↓ 出指针 → 鼠标点选 → 指针消失、仅剩绿色选中；选中后 ↓ 指针不再出现；console 0 errors。部署 gh-pages `f5c7d20`，src 同步，verify-live ALL OK。
+
+### §70c 补充（同日·二次反馈）：↑↓ 语义重构——移除指针中间态
+§70 首版修复（选中后指针隐藏+↑↓ 停用）不合用户预期：用户要「↑↓ 随时可用且永远只有一个选中视觉」。重构：**移除 kIdx/hasPick/kbd-cursor 整个指针体系**，↑↓ 直接把选中切到上一项/下一项（按 DOM selected 定位当前位置，window 级；单选/判断=改选，多选=勾选/取消该行）；数字/鼠标行为不变。三种输入方式任一时刻唯一绿色选中视觉，黑框物理消失。hint 改「键盘 1-5 直选 · ↑↓ 切换选项 · Enter 确认」。真机验证：↓↓ 选中 A→B、鼠标点 D 唯一选中、↑ 回移 C、kbd-cursor 零残留、console 0 errors。教训：交互语义要先对齐用户心智模型再实现（首版按工程师直觉做了「指针预选」中间态）。部署 gh-pages `071b904`，src 同步，verify-live ALL OK。
