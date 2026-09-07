@@ -2622,3 +2622,19 @@ badge 加 position:relative。molten 熔炉区、🥅 标题小图标等其余�
 
 **验证**：真机设置页——::before/::after 白底生效、🍬 清零、剪影头像与主题一致；console 0 errors。
 部署 gh-pages `07c2571`（IDENTICAL），src 同步，verify-live ALL OK。
+
+## 64. 第五十三轮（2026-09-07）· 键盘流补 ↑↓ 指针（用户反馈：↑↓ 要先点一下界面才「能用」）
+
+根因：↑↓ 此前未绑行为，用户感知到的「时灵时不灵」实为浏览器原生滚屏受焦点漂移影响。
+**实装**（Practice.jsx 键盘 effect + candy.css §64b）：
+- ↑↓：客观题未作答时在选项/判断卡间移动**指针**（window 级监听，零焦点依赖），kbd-cursor 薄荷描边高亮，
+  scrollIntoView(nearest) 长列表跟随；1-5 直选同步移动指针；指针随切题重置
+- Enter 两段式：未选中时 Enter=选中指针所在项，已选中时 Enter=提交（↑↓ 移动 → Enter 选中 → 再 Enter 提交）
+- **测试陷阱**：dev HMR 窗口期监听器叠加/同步连发事件时 kIdx 闭包不更新，均为测试伪影；
+  真实按键（间隔>100ms，生产 bundle）单步步进精确
+- **修复 1 个实现 bug**：Enter 提交按钮 find 条件带 !disabled，未选时按钮禁用被过滤，两段式永不触发——
+  改为按文案找按钮、以 disabled 区分提交/选中
+
+**验证**：真机判断题全链——↓↓ 指针到「错误」→ Enter 选中（selected=1，phase 仍 answering）→
+再 Enter 提交（feedback「答对了」）；单选步进 2→3 线性；console 0 errors。
+部署 gh-pages `cd64d09`（IDENTICAL），src 同步，verify-live ALL OK。

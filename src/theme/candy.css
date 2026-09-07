@@ -1949,3 +1949,9 @@ body { background: linear-gradient(160deg, #FFF8FA 0%, #EAF2ED 58%, #F0FFFA 82%,
   width: auto !important; padding: 0 !important; background: none !important; border: none !important;
   opacity: 1 !important; display: flex !important; color: #6E9A87 !important;
 }
+
+/* ══ §64b 键盘 ↑↓ 指针高亮（配套 Practice.jsx 键盘流） ══ */
+.opt-row.kbd-cursor, .judge-card.kbd-cursor {
+  border-color: var(--mint-dk) !important;
+  box-shadow: 0 0 0 3px rgba(127, 232, 200, .3) !important;
+}

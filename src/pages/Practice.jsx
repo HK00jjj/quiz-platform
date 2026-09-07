@@ -59,6 +59,7 @@ export default function Practice() {
   const [judge, setJudge] = useState(null)            // 判断
   const [fills, setFills] = useState([])              // 填空
   const [text, setText] = useState('')                // 主观
+  const [kIdx, setKIdx] = useState(-1)                // §64 键盘 ↑↓ 指针（-1=未激活）
   const [showAnswer, setShowAnswer] = useState(false) // 主观题答案展开
   const [flash, setFlash] = useState('')
   const [flipped, setFlipped] = useState(false)   // 卡牌 3D 翻面
@@ -72,7 +73,7 @@ export default function Practice() {
 
   useEffect(() => {
     setChoice(null); setMulti([]); setJudge(null); setFills(blanksOf(q?.stem ?? '').map(() => ''))
-    setText(''); setShowAnswer(false); setFlash('')
+    setText(''); setShowAnswer(false); setFlash(''); setKIdx(-1)
     clearTimeout(sealTimer.current); setSeal('intact')
     // 新卡牌入场：先见牌背，再 3D 翻到正面（上一题已翻回牌背，这里只留极短停留避免同帧交错）
     setFlipped(false)
@@ -128,11 +129,12 @@ export default function Practice() {
     return n
   }, [results])
 
-  /* §56 键盘流：1-5/A-E 选选项、1/2 判断、Enter 提交与翻页、Ctrl+Enter 展开主观题答案、
-     Shift+Enter=自判答错。全部走「点真实 DOM 按钮/选项行」复用现有判分链路，
-     不碰 React state 内部（esbuild 不查未定义变量，直接改 state 极易埋雷）。
-     焦点在输入框时数字是题目内容，只有 Enter 参与；无障碍靠真实按钮本身，键盘是加速器。
-     ⚠ 必须挂在早退 return 之前（Hooks 规则）：idle/done 分支也要保持钩子数量一致。 */
+  /* §64 键盘流：1-5/A-E/小键盘直选、↑↓ 在选项间移动指针（未作答也可先移再确认）、
+     Enter 提交与翻页、Ctrl+Enter 展开主观题答案、Shift+Enter=自判答错。
+     全部走「点真实 DOM 按钮/选项行」复用现有判分链路，不碰 React state 内部
+     （esbuild 不查未定义变量，直接改 state 极易埋雷）。焦点在输入框时数字是题目内容，
+     只有 Enter 参与；window 级监听不依赖焦点位置（用户反馈：要点一下界面 ↑↓ 才活）。
+     ⚠ 必须挂在早退 return 之前（Rules of Hooks）：idle/done 分支也要保持钩子数量一致。 */
   useEffect(() => {
     if (phase !== 'answering' && phase !== 'feedback') return
     const onKey = (e) => {
@@ -140,6 +142,18 @@ export default function Practice() {
       const tag = e.target && e.target.tagName
       const typing = tag === 'INPUT' || tag === 'TEXTAREA'
       const footBtns = () => [...document.querySelectorAll('.q-face-foot button')]
+      /* ↑↓：客观题未作答时在选项/判断卡之间移动指针（window 级，不依赖焦点） */
+      if ((e.key === 'ArrowDown' || e.key === 'ArrowUp') && phase === 'answering' && objective && !typing) {
+        const els = document.querySelectorAll('.opt-row, .judge-card')
+        if (!els.length) return
+        e.preventDefault()
+        const down = e.key === 'ArrowDown'
+        const nx = kIdx < 0 ? (down ? 0 : els.length - 1)
+          : Math.min(els.length - 1, Math.max(0, kIdx + (down ? 1 : -1)))
+        setKIdx(nx)
+        els[nx]?.scrollIntoView({ block: 'nearest' })
+        return
+      }
       if (e.key === 'Enter') {
         if (phase === 'feedback') {
           const nx = footBtns().find((b) => b.textContent.includes('下一题'))
@@ -152,24 +166,30 @@ export default function Practice() {
         }
         /* 多行 textarea 的回车留给换行（Ctrl+Enter 才展开）；单行 rune-input（填空）回车=提交 */
         if (tag === 'TEXTAREA' && !e.ctrlKey) return
-        const rv = footBtns().find((b) => !b.disabled &&
-          (b.textContent.includes('查看解析') || b.textContent.includes('展开参考答案')))
-        if (rv && (!typing || e.ctrlKey || tag === 'INPUT')) { e.preventDefault(); rv.click() }
+        const rv = footBtns().find((b) =>
+          b.textContent.includes('查看解析') || b.textContent.includes('展开参考答案'))
+        if (rv && !rv.disabled) { e.preventDefault(); rv.click(); return }
+        /* 什么都没选（提交按钮禁用）+ 指针已落在某选项 → 先选中（两段式：↑↓ 移动，Enter 选中，再 Enter 提交） */
+        if (rv && !typing && kIdx >= 0 && phase === 'answering') {
+          const el = document.querySelectorAll('.opt-row, .judge-card')[kIdx]
+          if (el) { e.preventDefault(); el.click() }
+        }
         return
       }
       if (typing || phase !== 'answering' || !objective) return
-      /* 主键盘 Digit 与小键盘 Numpad 都认 */
+      /* 主键盘 Digit 与小键盘 Numpad 都认；直选同步移动指针 */
       const dm = /^Digit([1-5])$/.exec(e.code) || /^Numpad([1-5])$/.exec(e.code)
       const digit = dm ? Number(dm[1]) - 1
         : /^Key([A-E])$/.test(e.code) ? 'ABCDE'.indexOf(e.code.slice(3)) : -1
       if (digit < 0) return
       const row = document.querySelectorAll('.opt-row')[digit]
       const judge = document.querySelectorAll('.judge-card')[digit]
-      if (row) { e.preventDefault(); row.click() } else if (judge) { e.preventDefault(); judge.click() }
+      if (row) { e.preventDefault(); row.click(); setKIdx(digit) }
+      else if (judge) { e.preventDefault(); judge.click(); setKIdx(digit) }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [phase, objective])
+  }, [phase, objective, kIdx, q?.id])
 
   if (phase === 'idle' || questions.length === 0) {
     return (
@@ -383,7 +403,7 @@ export default function Practice() {
                 } else if (selected) cls = 'selected'
                 return (
                   <button key={o.oi} disabled={answered}
-                    className={`opt-row ${q.type === '多选题' ? 'square' : ''} ${cls}`}
+                    className={`opt-row ${q.type === '多选题' ? 'square' : ''} ${cls}${!answered && kIdx === o.oi ? ' kbd-cursor' : ''}`}
                     onClick={() => q.type === '单选题'
                       ? setChoice(o.orig)
                       : setMulti((m) => m.includes(o.orig) ? m.filter((x) => x !== o.orig) : [...m, o.orig].sort())}>
@@ -396,7 +416,7 @@ export default function Practice() {
 
               {q.type === '判断题' && (
                 <div className="judge-pair">
-                  {[['正确', '✓', 'j-true'], ['错误', '✗', 'j-false']].map(([label, rune, cls]) => {
+                  {[['正确', '✓', 'j-true'], ['错误', '✗', 'j-false']].map(([label, rune, cls], jIdx) => {
                     let extra = ''
                     if (answered && grade) {
                       /* 裁决通道（§35/§37，与 opt-row 同语义）：颜色跟「我答得对不对」走，
@@ -409,7 +429,7 @@ export default function Practice() {
                       extra = judge === label ? 'selected' : (judge ? 'dimmed' : '')
                     }
                     return (
-                      <button key={label} disabled={answered} className={`judge-card ${cls} ${extra}`}
+                      <button key={label} disabled={answered} className={`judge-card ${cls} ${extra}${!answered && kIdx === jIdx ? ' kbd-cursor' : ''}`}
                         style={{ backgroundImage: `url(${label === '正确' ? A.judgeCard.ok : A.judgeCard.no})` }}
                         aria-pressed={judge === label} onClick={() => setJudge(label)}>
                         <span className="judge-label">{label}</span>
@@ -516,7 +536,7 @@ export default function Practice() {
                 <GiltBtn size="lg" block className="reveal-btn" disabled={!canSubmit} onClick={doCheck}>
                   <IconReveal /> 查看解析
                 </GiltBtn>
-                <p className="kbd-hint">键盘 1-5 选择 · Enter 确认</p>
+                <p className="kbd-hint">键盘 1-5 直选 · ↑↓ 移动 · Enter 确认</p>
               </>
             ) : showAnswer ? (
               <>
