@@ -138,7 +138,7 @@ export default function Settings() {
 
       {/* 页脚原来是 rgba(156,132,82,.55) 哥特青铜色再叠 55% 透明，约 1.6:1，基本看不见 */}
       <p style={{ textAlign: 'center', fontSize: 11, letterSpacing: 2, color: 'var(--ink-3)', marginTop: 26 }}>
-        ✦ 糖果题库 v1.0 · 尝味师专用 · 纯网页端 · 云端甜蜜值同步 ✦
+        ✦ 糖果题库 v1.0 · 尝味师专用 · 纯网页端 · 云端成长档案同步 ✦
       </p>
     </div>
   )

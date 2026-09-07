@@ -135,13 +135,13 @@ export default function Learn() {
         <div className="brand"><IconLearn /> 糖果题库</div>
         {doneToday > 0 ? (
           <span className="tag teal" style={{ fontSize: 13, padding: '6px 14px' }}>
-            ✦ 今日已做题，甜蜜值延续中 <FlameIcon />
+            ✦ 今日已做题，成长值累积中 <FlameIcon />
           </span>
         ) : (
           <GiltBtn size="sm" onClick={(e) => {
             burstParticles(e.clientX, e.clientY, 'gold', 14)
             hero.run()
-          }}><IconRetry /> 延续甜蜜值</GiltBtn>
+          }}><IconRetry /> 继续累积</GiltBtn>
         )}
       </div>
 

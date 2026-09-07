@@ -163,7 +163,7 @@ export function BootRitual({ onDone }) {
           <span className="boot-foil" aria-hidden="true" />
           <span className="boot-bean" aria-hidden="true" />
           <span className="boot-title">糖果题库</span>
-          <span className="boot-sub">尝味师的甜蜜修行地</span>
+          <span className="boot-sub">电气工程师的成长训练营</span>
         </span>
       </span>
     </div>

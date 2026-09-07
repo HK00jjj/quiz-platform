@@ -97,7 +97,7 @@ export default function App() {
         <Background />
         <div style={{ position: 'relative', zIndex: 1, paddingTop: '30vh' }}>
           <div className="loading-orb" />
-          <p style={{ textAlign: 'center', color: 'var(--muted)', letterSpacing: 4, fontSize: 13 }}>甜蜜值凝聚中…</p>
+          <p style={{ textAlign: 'center', color: 'var(--muted)', letterSpacing: 4, fontSize: 13 }}>成长档案加载中…</p>
         </div>
       </div>
     )

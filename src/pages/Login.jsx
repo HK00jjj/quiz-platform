@@ -91,7 +91,7 @@ export default function Login() {
                 {busy ? '正在登录…' : '进入糖果题库'}
               </button>
             </form>
-            <p className="login-foot">✦ 糖果题库 v1.0 · 尝味师专用 · 纯网页端 · 云端甜蜜值同步 ✦</p>
+            <p className="login-foot">✦ 糖果题库 v1.0 · 尝味师专用 · 纯网页端 · 云端成长档案同步 ✦</p>
           </div>
         </div>
       </div>

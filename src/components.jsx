@@ -101,7 +101,7 @@ export function BootRitual({ onDone }) {
       </svg>
       <img className="boot-rose" src={A.roseWindow} alt="" />
       <div className="boot-title font-gothic">糖果题库</div>
-      <div className="boot-sub">尝味师的甜蜜修行地</div>
+      <div className="boot-sub">电气工程师的成长训练营</div>
     </div>
   )
 }
