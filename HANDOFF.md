@@ -2656,3 +2656,6 @@ badge 加 position:relative。molten 熔炉区、🥅 标题小图标等其余�
 
 ### §68 补充（同日）：答题页雪花减速
 用户反馈答题时雪花飘落分散注意力（只动答题页）。candy.css §68：.festive-layer.is-compact 下 .fflake 落速 45s、.ff2/55s、.ff3/40s、.ff4/60s（原 9~13s 的 4~5 倍，接近凝滞但仍活着），负 delay 保留、其他页面不变。真机计算样式验证 45s 生效、console 0 errors。部署 gh-pages `c4f9002`，src 同步，verify-live ALL OK。
+
+### §68c 补充（同日）：分页加载瞬时抖动加固
+用户遇到「云端同步失败」toast——实测 Supabase 可达（REST 200 但响应 1.7s 偏慢），判定为瞬时抖动（分页后请求数变多，单页失败即整体失败的新暴露面）。加固：fetchAllPaged 每页失败自动重试 2 次（600ms/1200ms 退避），3 连败才抛。写入路径（persistAnswer 等）本身已有本地回滚不丢数据。部署 gh-pages `6f49807`，src 同步，verify-live ALL OK。

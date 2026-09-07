@@ -49,12 +49,19 @@ export class CloudRepo {
   constructor(c) { this.client = c }
   /* §66 分页拉全表：PostgREST 单请求默认最多返回 1000 行（超出静默截断），
      题库/做题记录超过后早期数据不可见。按 range 翻页直到不足一页。
-     翻页必须按唯一键排序（seq/answered_at 会重复，边界漂移会漏行/重行）。 */
+     翻页必须按唯一键排序（seq/answered_at 会重复，边界漂移会漏行/重行）。
+     §68 加固：分页后请求数变多，单页瞬时失败会让整个加载失败——每页自动重试 2 次。 */
   async fetchAllPaged(table, orderCol, pageSize = 1000) {
     const rows = []
     for (let from = 0; ; from += pageSize) {
-      const { data, error } = await this.client.from(table).select('*')
-        .order(orderCol).range(from, from + pageSize - 1)
+      let data, error
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const res = await this.client.from(table).select('*')
+          .order(orderCol).range(from, from + pageSize - 1)
+        data = res.data; error = res.error
+        if (!error) break
+        if (attempt < 2) await new Promise((r) => setTimeout(r, 600 * (attempt + 1)))
+      }
       if (error) throw error
       rows.push(...data)
       if (data.length < pageSize) return rows
