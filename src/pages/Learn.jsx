@@ -69,8 +69,13 @@ export default function Learn() {
   const dates = useMemo(() => [...new Set(records.map((r) => r.date))], [records])
   const streak = streakLength(dates, today)
   const doneToday = useMemo(() => records.filter((r) => r.date === today).length, [records, today])
-  const dueCount = useMemo(() => cards.filter((c) => isDue(c, now)).length, [cards, now])
-  const newCount = questions.length - cards.length
+  /* 计数必须「书本作用域」：questions 已按当前书过滤，但 cards/records 是全局的
+     （review_cards 以 questionId 为键，无 book_id 列）。旧写法 newCount = questions.length - cards.length
+     会把其他书或历史遗留的卡片也算进分母——导入新题后 newCount 掉到 0 甚至负数，
+     表现就是「新题上手」误报"全部题目都做过了"（2026-09-07 用户实测）。 */
+  const bookCardIds = useMemo(() => new Set(questions.map((q) => q.id)), [questions])
+  const dueCount = useMemo(() => cards.filter((c) => bookCardIds.has(c.questionId) && isDue(c, now)).length, [cards, bookCardIds, now])
+  const newCount = useMemo(() => questions.reduce((n, q) => n + (cards.some((c) => c.questionId === q.id) ? 0 : 1), 0), [questions, cards])
   const lastMap = useMemo(() => lastResultMap(records), [records])
   const wrongCount = useMemo(() => questions.filter((q) => lastMap.get(q.id) === false).length, [questions, lastMap])
 
