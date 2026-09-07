@@ -748,12 +748,18 @@ body, button, input, textarea, select {
 .candy-jar .cj-body i:nth-child(5) { left: 21px; bottom: 15px; background: #A8D8FF; animation-delay: 1.6s }
 @keyframes jar-jiggle { 0%, 100% { transform: translateY(0) } 50% { transform: translateY(-2px) } }
 
-/* 尝味人徽章：圆形糖果徽章，极轻微摇摆 */
-.candy-badge { width: 56px; height: 56px; border-radius: 50%; font-size: 26px;
+/* 尝味人徽章：圆形徽章，极轻微摇摆 */
+.candy-badge { width: 56px; height: 56px; border-radius: 50%; font-size: 26px; position: relative;
   background: radial-gradient(circle at 34% 28%, #D3EADF, #5FAE8F 72%);
   box-shadow: 0 0 18px rgba(95, 174, 143, .45), inset 0 2px 0 rgba(255, 255, 255, .8);
   animation: candy-bob 5.2s ease-in-out infinite; }
-.candy-badge::after { content: '🍬' }
+/* §63 中性化：🍬 糖果 emoji → 人形剪影头像（头圆 + 肩弧，纯 CSS，青瓷主题同语言） */
+.candy-badge::before { content: ''; position: absolute; left: 50%; top: 56%;
+  transform: translateX(-50%); width: 32px; height: 17px;
+  border-radius: 17px 17px 0 0; background: rgba(255, 255, 255, .92); }
+.candy-badge::after { content: ''; position: absolute; left: 50%; top: 28%;
+  transform: translateX(-50%); width: 18px; height: 18px;
+  border-radius: 50%; background: rgba(255, 255, 255, .92); }
 
 /* 糖果熔炉：橙红炉体 + 炉口 + 火焰跳动（火焰只动 transform/opacity，静态 blur 不参与动画） */
 .candy-furnace::before { content: ''; position: absolute; bottom: 8px; left: 50%; width: 48px; height: 40px;

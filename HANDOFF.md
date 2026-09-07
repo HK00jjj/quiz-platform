@@ -2613,3 +2613,12 @@ console 0 errors；t-session 18/18。部署 gh-pages `75471a8`（IDENTICAL），
 
 **验证**：真机横幅文案、全页无「甜蜜值」残留；console 0 errors。
 部署 gh-pages `48ae280`（IDENTICAL），src 同步，verify-live ALL OK。
+
+## 63. 第五十二轮（2026-09-07）· 设置页头像去糖果化（用户截图反馈「图标与主题不搭」）
+
+设置页「尝味师凭证」卡的头像原为薄荷圆底 + 🍬 糖果 emoji（.candy-badge::after content）——红粉糖果
+与青瓷薄荷中性主题冲突。改为**人形剪影头像**（::before 肩弧 + ::after 头圆，纯 CSS 白色 92% 透明度），
+badge 加 position:relative。molten 熔炉区、🥅 标题小图标等其余装饰不动。
+
+**验证**：真机设置页——::before/::after 白底生效、🍬 清零、剪影头像与主题一致；console 0 errors。
+部署 gh-pages `07c2571`（IDENTICAL），src 同步，verify-live ALL OK。
