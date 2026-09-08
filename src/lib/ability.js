@@ -64,3 +64,49 @@ export function pickMatched(pool, ability, size, records, rng = Math.random) {
   const k = Math.min(pool.length, Math.max(size, Math.ceil(pool.length * 0.3)))
   return shuffle(scored.slice(0, k).map((s) => s.q), rng).slice(0, Math.min(size, pool.length))
 }
+
+/* 能力档（v4.8 规则协议口径，Import 页发"我的水平：XX"用）：
+   <55 新手 / 55~78 进阶 / >78 熟练（取整百分比判定）。 */
+export function tierOf(a) {
+  const p = Math.round(a * 100)
+  return p < 55 ? '新手' : p <= 78 ? '进阶' : '熟练'
+}
+
+/* 排位段位系统（2026-09-09 深夜：LOL 式定级赛/晋级赛）。
+   段位只通过考试获得（settings.rank 持久化官方段位），状态指数只决定"考试门槛"：
+   定级赛门槛 85（用户指定），晋级赛门槛 = 下一段位 lo。段位本身不由指数自动升降——
+   防 EWMA 波动导致段位漂移。 */
+export const RANKS = [
+  { name: '黑铁', lo: 0, hi: 19, emoji: '⛓️', color: '#7C848D' },
+  { name: '青铜', lo: 20, hi: 34, emoji: '🥉', color: '#B0793C' },
+  { name: '白银', lo: 35, hi: 49, emoji: '🥈', color: '#8C9BAB' },
+  { name: '黄金', lo: 50, hi: 64, emoji: '🥇', color: '#D4A017' },
+  { name: '铂金', lo: 65, hi: 74, emoji: '💠', color: '#3FA7A0' },
+  { name: '钻石', lo: 75, hi: 84, emoji: '💎', color: '#5B8DD9' },
+  { name: '大师', lo: 85, hi: 92, emoji: '🌟', color: '#9B59D0' },
+  { name: '最强王者', lo: 93, hi: 100, emoji: '👑', color: '#D95B5B' }
+]
+export function rankOf(ability) {
+  const p = Math.round(ability * 100)
+  return RANKS.find((r) => p >= r.lo && p <= r.hi) ?? RANKS[0]
+}
+/* 定级赛门槛（用户指定：EWMA 能力指数 ≥0.85 才有资格开考） */
+export const PLACEMENT_ABILITY = 85
+
+/* 换区建议（题库难度与用户水平的错位检测，Learn 页段位卡的副提示行）。
+   样本闸（2026-09-09 用户反馈：原 8 题太少，题库几百题必须有量的积累才可信）：
+   近 30 题、≥24 条有效判定。双条件闸防误报——「近期表现」与「EWMA 指数」同时越界：
+   too-easy：近 30 题 ≥85% 且能力指数 ≥0.85 → 题库太易，劝导入更高水平源题上分；
+   too-hard：近 30 题 ≤45% 且能力指数 ≤0.45 → 题库偏难，劝降阶源题补基础。 */
+export function zoneAdvice(records) {
+  const xs = (records ?? [])
+    .filter((r) => typeof r.correct === 'boolean')
+    .sort((a, b) => a.timestamp - b.timestamp)
+  const recent = xs.slice(-30)
+  const n = recent.length
+  const acc = n ? recent.filter((r) => r.correct).length / n : 0
+  const ability = abilityOf(records)
+  if (n >= 24 && acc >= 0.85 && ability >= 0.85) return { level: 'too-easy', ability, recentAcc: acc, recentN: n }
+  if (n >= 24 && acc <= 0.45 && ability <= 0.45) return { level: 'too-hard', ability, recentAcc: acc, recentN: n }
+  return { level: 'ok', ability, recentAcc: acc, recentN: n }
+}

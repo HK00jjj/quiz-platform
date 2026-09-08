@@ -3,15 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store'
 import { classifyImport, PROTOCOL_VERSION, parseItems, validateItems, crossBatchCheck } from '../lib/validate'
 import { reworkTalk } from '../lib/validate'
-import { abilityOf } from '../lib/ability'
+import { abilityOf, tierOf } from '../lib/ability'
 import { GiltBtn, burstParticles } from '../components'
-
-/* v4.8 能力档联动：状态指数 → 建议档位，与《题集模式规则》v4.8 第八章口径一致
-   （<55 新手 / 55~78 进阶 / >78 熟练；取整百分比判定，显示与判定同源）。 */
-function tierOf(a) {
-  const p = Math.round(a * 100)
-  return p < 55 ? '新手' : p <= 78 ? '进阶' : '熟练'
-}
 
 /* 导入页 · 题库导入 */
 export default function Import() {
@@ -248,7 +241,7 @@ export default function Import() {
               <span style={{ fontSize: 12 }}>（&lt;55 新手 / 55~78 进阶 / &gt;78 熟练）</span>
             </span>
             <GiltBtn tone="ghost" onClick={copyTier}>{tierCopied ? '✓ 已复制' : '📋 复制水平声明'}</GiltBtn>
-            <span style={{ fontSize: 12, color: 'var(--muted)' }}>发源题时把声明一并粘给 AI：新手档会触发层级适配降阶（源题原解法保留在解析中，不丢信息）</span>
+            <span style={{ fontSize: 12, color: 'var(--muted)' }}>发源题给 AI 时无需手动声明——AI 会自动调取云端段位与难度配比（fetch_level 脚本）；此按钮仅在 AI 无法访问云端时备用</span>
           </div>
         </div>
       )}

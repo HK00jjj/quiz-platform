@@ -928,6 +928,70 @@ body, button, input, textarea, select {
   margin-left: -2.5px; border-radius: 3px; background: linear-gradient(180deg, #FFFFFF, #E9DCC5); }
 @keyframes lolli-spin { to { transform: rotate(360deg) } }
 
+/* 排位系统（2026-09-09 深夜，Learn 页）：LOL 式晋级赛。
+   rank-card 常驻段位卡；promo-banner 考后播报；exam-* 考试弹窗。
+   入场动画走全局 .rise（一次性），循环动画只挂在 22px 的 emoji 上（§5 红线：infinite 不上大元素）。 */
+.rank-card {
+  display: flex; align-items: center; gap: 14px; margin: 0 0 14px;
+  padding: 14px 16px; border-radius: 16px; border: 1.5px solid rgba(95, 174, 143, .35);
+  background: rgba(255, 255, 255, .72); box-shadow: 0 8px 22px rgba(95, 174, 143, .12);
+}
+.rank-badge {
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  width: 46px; height: 46px; border-radius: 50%; border: 2px solid; background: rgba(255, 255, 255, .85);
+}
+.rank-emoji { font-size: 22px; line-height: 1; animation: rank-bob 1.8s ease-in-out infinite; }
+@keyframes rank-bob { 0%, 100% { transform: translateY(0) rotate(-6deg) } 50% { transform: translateY(-4px) rotate(6deg) } }
+.rank-info { min-width: 0; flex: 1; }
+.rank-info h4 { margin: 0; font-size: 14.5px; letter-spacing: .5px; }
+.rank-bar { margin: 6px 0 4px; height: 8px; border-radius: 999px; background: rgba(0, 0, 0, .08); overflow: hidden; }
+.rank-bar span { display: block; height: 100%; border-radius: 999px; transition: width .5s ease; }
+.rank-info p { margin: 0; font-size: 12px; line-height: 1.7; color: var(--muted, #666); }
+.rank-hint { margin-top: 4px; }
+.promo-banner {
+  display: flex; align-items: center; gap: 14px; margin: 0 0 14px; padding: 14px 18px;
+  border-radius: 16px; border: 1.5px solid #E8C15A;
+  background: linear-gradient(115deg, #FFF6DC 0%, #FFFDF4 60%, #F0FFE9 100%);
+  box-shadow: 0 10px 26px rgba(232, 193, 90, .3);
+}
+.promo-banner.promo-demote {
+  border-color: rgba(168, 200, 240, .8);
+  background: linear-gradient(115deg, #EAF2FF, #F7FAFF);
+  box-shadow: 0 10px 26px rgba(168, 200, 240, .25);
+}
+.promo-emoji { font-size: 28px; line-height: 1; animation: rank-pop .6s cubic-bezier(.2, 1.6, .4, 1) 1; }
+@keyframes rank-pop { from { transform: scale(.3) rotate(-20deg) } to { transform: scale(1) rotate(0) } }
+.promo-banner h4 { margin: 0; font-size: 15px; color: #8A6D00; letter-spacing: .5px; }
+.promo-banner.promo-demote h4 { color: #3D6BB3; }
+.promo-banner p { margin: 2px 0 0; font-size: 12.5px; color: var(--muted, #666); }
+/* 晋级赛考试弹窗 */
+.exam-box { width: min(640px, 92vw); max-height: 84vh; overflow-y: auto; }
+.exam-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+.exam-head > span:first-child { font-weight: 800; font-size: 15px; color: var(--pink-ink, #8A4B2D); letter-spacing: 2px; }
+.exam-score { font-size: 12.5px; color: var(--muted, #666); }
+.exam-stem { font-size: 14.5px; line-height: 1.8; margin: 0 0 12px; white-space: pre-wrap; }
+.exam-opt {
+  display: block; width: 100%; text-align: left; cursor: pointer; margin: 0 0 8px;
+  padding: 10px 14px; border-radius: 12px; font-size: 13.5px; line-height: 1.6;
+  border: 1.5px solid rgba(0, 0, 0, .12); background: rgba(255, 255, 255, .8);
+}
+.exam-opt b { color: #2E6B52; margin-right: 6px; }
+.exam-opt.on { border-color: #5FAE8F; background: rgba(168, 216, 196, .28); }
+.exam-opt.locked { cursor: default; opacity: .82; }
+.exam-fill {
+  width: 100%; padding: 10px 14px; border-radius: 12px; font-size: 14px;
+  border: 1.5px solid rgba(0, 0, 0, .15); background: rgba(255, 255, 255, .85);
+}
+.exam-verdict { margin: 10px 0 4px; padding: 10px 14px; border-radius: 12px; font-size: 13.5px; line-height: 1.7; }
+.exam-verdict.ok { background: rgba(168, 216, 196, .3); color: #2E6B52; }
+.exam-verdict.bad { background: rgba(255, 205, 205, .35); color: #A33D3D; }
+.exam-verdict p { margin: 4px 0 0; font-size: 12.5px; color: var(--muted, #666); }
+.exam-foot { display: flex; align-items: center; gap: 12px; margin-top: 14px; flex-wrap: wrap; }
+.exam-quit { background: none; border: none; cursor: pointer; font-size: 12px; color: var(--muted, #999); text-decoration: underline; }
+@media (max-width: 640px) {
+  .rank-card { flex-wrap: wrap; }
+}
+
 /* 标签胶囊：哥特版是深色底 + 金字，在糖果页里像两块脏橡皮（实测截图里就是深灰方块），
    换成奶白果冻胶囊 + 糖果色描边 */
 .tag {
