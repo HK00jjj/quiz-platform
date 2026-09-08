@@ -3,6 +3,7 @@
    但 Node 直接 import 本文件时缺扩展名会 ERR_MODULE_NOT_FOUND——
    scripts/t-session.mjs 的组卷回归测试就是这么挂的。lib/validate.js 零依赖所以不受影响。 */
 import { isDue } from './fsrs.js'
+import { abilityOf, pickMatched } from './ability.js'
 
 export const TYPES = ['单选题', '多选题', '判断题', '填空题', '简答题', '计算分析题', '综合设计/故障诊断题']
 export const OBJECTIVE_TYPES = ['单选题', '多选题', '判断题', '填空题']
@@ -88,7 +89,12 @@ export function buildSession(questions, cards, records, opts) {
       return take(filtered.filter((q) => last.get(q.id) === false).sort((a, b) => a.seq - b.seq), opts.size)
     }
     case 'random':
-      return take(shuffle(filtered, rng), opts.size)
+      /* 自适应匹配（2026-09-09）：随机练习从纯 shuffle 改为"合意困难"选题——
+         按 |经验难度 - 目标难度| 取最匹配的前 K 题再随机抽，让作答正确率
+         落在 60~80% 学习效率区间。learn 保留 seq 认知阶梯、review 归 FSRS、
+         wrong/relearn 定向练习，均不受匹配干扰。records 为空时 pickMatched
+         全按自评先验排序，行为仍优于纯随机且与旧版同为"从筛选池取题"。 */
+      return pickMatched(filtered, abilityOf(records), opts.size, records, rng)
     case 'relearn':
       return take([...filtered].sort((a, b) => a.seq - b.seq), opts.size)
     default:
