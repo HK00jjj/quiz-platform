@@ -41,27 +41,17 @@ export default function Import() {
     }
   }
 
-  /* 题集模式（v4.1）：与生成模式完全互斥的两个检测器。
-     只跑逐题校验；若整批恰好 21 元素且完全满足生成批规则（配比/层段/层内构成
-     全部通过），判定为出题模式产物，拒绝检测并要求回默认通道——点哪个通道，
-     另一套规则的产物就通不过。备份恢复也不走本分支。 */
+  /* 题集模式（v4.6 通用性整改）：逐题校验直通任意 N（含恰 21 元素）。
+     旧版"恰 21 元素且满足生成批规则即互斥拒绝"已删除——那是围绕默认通道
+     实现缺陷（batchMode = N<=21）打的补丁；v4.6 起逐题检查对全部序号同口径
+     （生成批专属豁免已收敛到 batchMode 门内），两模式产物可由各自的
+     结构特征（21 元素配比 vs 任意 N）自然区分，无需互斥拦截。
+     备份恢复不走本分支（classifyImport 先识别 kind）。 */
   async function detectSetMode() {
     const { items, errors } = parseItems(text)
     if (errors.length > 0) {
       setResult({ tone: 'red', title: '题集模式 · 导入内容无法解析', issues: errors.map((m) => ({ where: '顶层', level: '错误', message: m })), rework: true })
       return
-    }
-    if (items.length === 21) {
-      const genIssues = validateItems(items, true)
-      if (genIssues.filter((i) => i.level === '错误').length === 0) {
-        setResult({
-          tone: 'red',
-          title: '题集模式 · 检测到生成模式批次，已拒绝',
-          issues: [{ where: '顶层', level: '错误', message: '本批 21 题完全满足生成批规则（配比/难度层段/层内题型构成），属于《出题规则》生成模式产物。两套检测互斥隔离：请关闭右上角「🧩 题集模式」开关，用默认通道检测本批。' }],
-          rework: false
-        })
-        return
-      }
     }
     const issues = validateItems(items, false)
     const errs = issues.filter((i) => i.level === '错误')
@@ -139,7 +129,7 @@ export default function Import() {
         <p>题库导入 · 当前 {total} 题</p>
       </div>
 
-      {/* 右上角 · 题集模式开关：开=逐题检测（题集解答规则 v4.1），关=默认整批生成批规则 */}
+      {/* 右上角 · 题集模式开关：开=逐题检测（题集解答规则，N 任意），关=默认整批生成批规则 */}
       <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 10, margin: '-6px 0 10px' }}>
         <button
           type="button"
@@ -168,7 +158,7 @@ export default function Import() {
         <div className="panel" style={{ marginBottom: 16, borderColor: 'var(--candy-pink-dk, #5FAE8F)' }}>
           <div className="panel-title">🧩 题集模式（逐题检测）</div>
           <p style={{ fontSize: 13, lineHeight: 1.9, color: 'var(--muted)' }}>
-            开启后<b>只做逐题校验</b>（题型、元数据映射、选项结构、解析标记、填空与配图白名单），<b>不校验</b> 21 道生成批的数量/配比/难度层段/批内避重。两套检测<b>完全互斥</b>：本开关下，完全满足生成批规则的 21 题批次会被<b>拒绝</b>并要求回默认通道；默认通道下，非 21 元素的题集批同样无法通过（N&gt;21 走逐题检测为既有特性）。对应《题集模式规则》v2026-09-07-v4.1（AI 触发词：<b>源题：</b>）；备份 JSON 请关闭本开关走「备份恢复」。
+            开启后<b>只做逐题校验</b>（题型、元数据映射、选项结构、解析标记、填空与配图白名单、批内避重等通用检查），<b>不校验</b> 21 道生成批的数量/配比/难度层段。<b>任意元素数（含 21）均可通过本通道</b>；关闭开关则是生成模式产物与备份恢复的通道（生成批整批规则仅在恰为 21 元素时生效）。对应《题集模式规则》现行版（AI 触发词：<b>源题：</b>）；备份 JSON 请关闭本开关走「备份恢复」。
           </p>
         </div>
       )}
@@ -199,7 +189,7 @@ export default function Import() {
           <div className="panel-title">📖 导入说明</div>
           <p style={{ fontSize: 13, lineHeight: 1.9, color: 'var(--muted)' }}>
             把外部 AI 生成的题目 JSON 粘贴到下方输入框，或直接拖入 JSON 文件，会自动校验结构与规范。
-            21 题及以内按整批规则校验（区间配比 / 难度层段 / 层内题型构成 / 元数据映射 / 解析标记等 11 类）；超过 21 题只逐题检测；备份 JSON 走「备份恢复」。题集批量题目（AI 触发词「源题：」）请开启右上角「🧩 题集模式」走逐题检测。协议版本 {PROTOCOL_VERSION}（须与《出题规则》文档版本一致）。
+            关闭开关（默认通道）：恰 21 题按整批生成批规则校验（区间配比 / 难度层段 / 层内题型构成 / 元数据映射 / 解析标记等 11 类），非 21 元素无法通过；题集批量题目（AI 触发词「源题：」）请开启右上角「🧩 题集模式」走逐题检测（N 任意，含 21）。生成模式协议版本 {PROTOCOL_VERSION}。
           </p>
         </div>
 

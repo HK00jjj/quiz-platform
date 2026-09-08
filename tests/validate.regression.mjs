@@ -35,7 +35,12 @@ check('multi answer unsorted = error', errs(validateItems([base({ 题型: '多�
 }
 // 2026-09-04 新增：B类语义下沉机器检查（按消息精确断言，避免被“数组应为21元素”等顶层错误污染）
 const hasMsg = (issues, kw) => issues.some((i) => i.message.includes(kw))
-check('short-answer scheme-comparison = error', hasMsg(validateItems([base({ 题型: '简答题', 选项: undefined, 题干: '给出两种方案并说明取舍', 答案: '1.a；2.b', 解析: '【推导】x【记忆点】z' })], true), '方案对比'))
+// 2026-09-08 通用性整改：方案对比降为启发式告警（漏检由闸4 评审兜底）——断言级别为告警且无错误级
+check('short-answer scheme-comparison = warning', (() => {
+  const iss = validateItems([base({ 题型: '简答题', 选项: undefined, 题干: '给出两种方案并说明取舍', 答案: '1.a；2.b', 解析: '【推导】x【记忆点】z' })], true)
+  return iss.some((i) => i.level === '告警' && i.message.includes('方案对比')) &&
+         !iss.some((i) => i.level === '错误' && i.message.includes('方案对比'))
+})())
 check('short-answer point-style ok', !hasMsg(validateItems([base({ 题型: '简答题', 选项: undefined, 题干: '列出分组直连的适用条件与接线要点', 答案: '1.a；2.b', 解析: '【推导】x【记忆点】z' })], true), '方案对比'))
 check('duplicate 知识点 in batch = error', hasMsg(validateItems([base({ 序号: 2, 知识点: 'dup' }), base({ 序号: 3, 知识点: 'dup' })], true), '批内须避重'))
 check('distinct 知识点 in batch ok', !hasMsg(validateItems([base({ 序号: 2, 知识点: 'a' }), base({ 序号: 3, 知识点: 'b' })], true), '批内须避重'))
