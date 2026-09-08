@@ -1,7 +1,20 @@
 # 交接文档 · 糖果题库（quiz-platform）
 
 > 写给下一个接手的会话。读完这一份就能独立干活，不需要翻历史对话。
-> 最后更新：2026-09-03，对应线上提交 `61687bb`。
+> 最后更新：2026-09-08 晚，对应线上提交 `9769e75`。
+
+## 2026-09-08 晚增量（commit 9769e75，bundle index-DZdKzHV_.js）
+
+源自"网站全方位分析报告"（E:/workbuddy-cc/2026-09-08-21-39-09/quiz-platform_深度分析报告_20260908.md）的改进落地：
+
+1. **R1 修复**：`validate.js` checkBatchRules 的"序号 1 查重豁免"加 batchMode 门——生成批（整批通道）保留豁免（第 1 题为原题），题集逐题通道全序号同口径批内查重。原实现豁免泄漏进题集通道，第 1 题与后续题知识点撞名静默放行。
+2. **新增 `crossBatchCheck(items, existing)`**（validate.js 导出，Import.jsx 两条通道接入）：跨批知识点撞名 + 题干近似改写告警（2-gram 重叠系数 ≥0.8、最短 6-gram 护栏；用重叠系数而非 Jaccard，防扩写稀释漏检与通用模板误报）。仅告警不拦截；内容哈希已在库内的题整题跳过（重导同批零噪音）。填补"跨批避重只靠台账/precheck 脚本、近似改写不查"的机器盲区。
+3. **模式误用引导**：默认通道报"数组应为21个元素"时追加一条告警指向题集模式开关。
+4. **RLS 核验结论（R4，一次性）**：用 publishable key（无登录态）实测——四表 INSERT 全部 42501 策略级拒绝；anon SELECT 四表均 0 行可见（库内有真实数据，说明 SELECT 也被策略挡住）。匿名 INSERT/读两个面确认关闭；UPDATE/DELETE 对不存在行返回 0 行受影响属不可判定（probe 行无法创建），如需 100% 终判可在 Supabase dashboard 跑 `select * from pg_policies;`——按标准 "authenticated only" 模板推断无缺口。
+5. **验证**：增量单测 7/7 + validate_回归 10/10 全绿（脚本：E:/workbuddy-cc/2026-09-08-21-39-09/unit_test_crossbatch_20260908.mjs）；六步链全过（verify-deploy IDENTICAL）。
+6. **待办**：dist/assets 堆积 55 个历史孤儿 index-*.js（历次 emptyOutDir:false 累积，purge-dist 只清 img 素材）；线上同构、功能无害但拖慢部署（109 blobs），建议某次部署前统一清理本地+线上。
+
+---
 
 ---
 
