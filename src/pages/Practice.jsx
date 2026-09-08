@@ -79,20 +79,39 @@ export default function Practice() {
     // 新卡牌入场：先见牌背，再 3D 翻到正面（上一题已翻回牌背，这里只留极短停留避免同帧交错）
     setFlipped(false)
     const t = setTimeout(() => setFlipped(true), 120)
-    /* 自动定位作答区：填空/主观这类要打字的题，切题后把焦点直接放进第一个输入框，
-       免去再鼠标点一下。两点细节：
-       ① 延到翻面动画启动后再聚焦（120ms 入场 + 一点余量），且 focus 用 preventScroll——
-          卡牌还在做 3D 变换时让浏览器自己滚会跟入场动画抢滚动权；
-       ② 选择器只认未禁用的输入框：选择题/判断题没有 rune-input 自然跳过，
-          复习态（已作答 disabled）也不会抢焦点。聚焦后 scrollIntoView 居中，保证输入区可见。 */
-    const ft = setTimeout(() => {
-      const el = document.querySelector('.rune-input:not([disabled]), .rune-textarea:not([disabled])')
-      if (el) {
-        el.focus({ preventScroll: true })
-        el.scrollIntoView?.({ block: 'center', behavior: 'smooth' })
+    /* 自动定位作答区：填空/主观这类要打字的题，切题后把焦点直接放进第一个输入框。
+       实测（dev+线上真机 CDP 双重复现）：单次延时聚焦会被卡牌 3D 翻面动画无声夺走
+       （focus() 成功执行、元素也在文档中，但 activeElement 随即掉回 BODY；整页直载则正常），
+       所以改成短间隔重试式：焦点没站稳就每拍重新聚焦，直到站稳为止。
+       四个保险：① 选择器只认未禁用输入框——选择题/判断题没有输入框自然跳过，复习态（disabled）不抢；
+       ② 用户任何 pointerdown/keydown 立即永久停手，绝不和人抢焦点（键盘 Tab 用户也不受干扰）；
+       ③ 2.2s 后自动放弃，不留常驻定时器；④ 成功聚焦只 scrollIntoView 一次，被夺后重聚焦不滚动，避免画面抖动。 */
+    const ftStart = Date.now()
+    let userTouched = false
+    let scrolled = false
+    const yieldFocus = () => { userTouched = true }
+    window.addEventListener('pointerdown', yieldFocus, true)
+    window.addEventListener('keydown', yieldFocus, true)
+    const ft = setInterval(() => {
+      const a = document.activeElement
+      if (userTouched || Date.now() - ftStart > 2200 || (a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA'))) {
+        clearInterval(ft)
+        window.removeEventListener('pointerdown', yieldFocus, true)
+        window.removeEventListener('keydown', yieldFocus, true)
+        return
       }
-    }, 200)
-    return () => { clearTimeout(t); clearTimeout(ft) }
+      const el = document.querySelector('.rune-input:not([disabled]), .rune-textarea:not([disabled])')
+      if (el && a !== el) {
+        el.focus({ preventScroll: true })
+        if (!scrolled) { el.scrollIntoView?.({ block: 'center', behavior: 'smooth' }); scrolled = true }
+      }
+    }, 130)
+    return () => {
+      clearTimeout(t)
+      clearInterval(ft)
+      window.removeEventListener('pointerdown', yieldFocus, true)
+      window.removeEventListener('keydown', yieldFocus, true)
+    }
   }, [index, q?.id])
 
   /* 启封：蜡封裂开 520ms 后消散，答案卷轴随后展开 */
