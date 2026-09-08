@@ -16,7 +16,13 @@ export default function Import() {
   const [copied, setCopied] = useState(false)
   const [dragOn, setDragOn] = useState(false)
   const [sealing, setSealing] = useState(false)
-  const [setMode, setSetMode] = useState(false) // 题集模式：逐题检测，与 21 道生成批规则隔离
+  /* 题集模式开关（2026-09-08 用户反馈）：改存 settings 持久化——原 useState 局部状态
+     每次刷新/切页都重置回关闭，长批导入每次都要重开。走 updateSettings 与
+     relearnFilters 同一条云端同步链路（DEMO 模式守卫内只落本机）。 */
+  const settings = useStore((s) => s.settings)
+  const updateSettings = useStore((s) => s.updateSettings)
+  const setMode = settings.questionSetMode ?? false
+  const toggleSetMode = () => { updateSettings({ questionSetMode: !setMode }); setResult(null) }
   const fileRef = useRef(null)
   const taRef = useRef(null)
 
@@ -138,7 +144,7 @@ export default function Import() {
         <button
           type="button"
           aria-pressed={setMode}
-          onClick={() => { setSetMode((v) => !v); setResult(null) }}
+          onClick={toggleSetMode}
           style={{
             display: 'inline-flex', alignItems: 'center', gap: 8, cursor: 'pointer',
             padding: '6px 14px', borderRadius: 999, fontSize: 13, fontWeight: 700,
