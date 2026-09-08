@@ -6,6 +6,10 @@
 //   ② 批内知识点查重 + 简答方案对比检测升级为通用检查（任意 N 均查，不再限 21 元素整批）；
 //   ③ "异常"元素机器化放行：逐题通道仅查序号与题干非空，导入管道自动跳过（替代"导入前人工移除"）；
 //   ④ 返工话术去"21 元素"硬编码，改为数量中性表述；方案对比检测降为启发式告警（漏检由闸4 评审兜底）。
+// 2026-09-08 增量（通用化收尾 + 跨批撞库产品化）：
+//   ⑤ 批内知识点查重的"序号 1 豁免"收敛到 batchMode 门——题集逐题通道全序号同口径查重；
+//   ⑥ 新增 crossBatchCheck：导入时与库内已有题做知识点撞名 + 题干近似重复（2-gram 重叠系数）
+//      告警，填补"跨批避重只靠台账/precheck 脚本、近似改写不查"的机器盲区（仅告警，保真优先不拦截）。
 import { DIAGRAM_IDS } from './diagrams.js'
 export const PROTOCOL_VERSION = '2026-09-08'
 export const TYPE_LIST = ['单选题', '多选题', '判断题', '填空题', '简答题', '计算分析题', '综合设计/故障诊断题']
@@ -62,7 +66,7 @@ export class Validator {
       if (items.length === 21) this.checkDataStimulus(items)
     }
     // 简答方案对比 + 批内知识点查重：通用检查，任意 N 均查（2026-09-08 起不再限于整批通道）
-    this.checkBatchRules(items)
+    this.checkBatchRules(items, batchMode)
     for (const it of items) {
       const type = str(it.题型)
       if (type === '异常' && !batchMode) {
@@ -92,7 +96,7 @@ export class Validator {
     }
     return this.issues
   }
-  checkBatchRules(items) {
+  checkBatchRules(items, batchMode) {
     // B类语义下沉为机器检查（2026-09-04）：简答方案对比式设问 + 批内知识点重复。
     // 2026-09-08 通用化：任意 N 均查；方案对比正则为启发式（存在漏检），降为告警级，
     // 漏检与误判由独立评审（SOP 闸4）与人工抽检兜底。
@@ -104,7 +108,9 @@ export class Validator {
     }
     const seen = new Map()
     for (const it of items) {
-      if (seqOf(it) < 2) continue
+      /* 批内查重的"序号 1 豁免"是生成批（整批通道）"第 1 题为原题"的配套，须有 batchMode 门：
+         泄漏进题集逐题通道会让第 1 题与后续题知识点撞名静默放行（2026-09-08 通用化收尾）。 */
+      if (batchMode && seqOf(it) < 2) continue
       const k = str(it.知识点).trim()
       if (!k) continue
       if (seen.has(k)) this.err(whereOf(it), '知识点「' + k + '」与序号' + seen.get(k) + '重复，批内须避重')
@@ -518,6 +524,57 @@ export function gradeObjective(q, input) {
   return { correct: normalized !== null && normalized === expected, normalized, expected, expectedParts: [expected] }
 }
 const isObjType = (t) => ['单选题', '多选题', '判断题', '填空题'].includes(t)
+
+// ── 跨批撞库检查（2026-09-08 新增，仅告警不拦截）──
+/* 此前跨批避重只靠命题台账 + 本地 precheck 脚本（流程闸），网站端导入时不与库内已有题
+   比对——新会话不走 SOP 时跨批同知识点/近似题干会静默入库。本检查由导入页在
+   validateItems 通过后、入库前调用，existing 传 store 的 allQuestions：
+   - 知识点撞名：库内已有同名字段 → 告警（保真优先，不拦截）；
+   - 题干近似重复：2-gram Jaccard ≥ 0.6 → 告警（填补机器盲区声明"近似改写不查"的空档）；
+   已在库内的题（内容哈希命中，即重复导入场景）整题跳过，避免重导同批时的告警噪音。 */
+function bigrams(s) {
+  const t = String(s ?? '').replace(/\s+/g, '')
+  const set = new Set()
+  for (let i = 0; i < t.length - 1; i++) set.add(t.slice(i, i + 2))
+  return set
+}
+/* 相似度口径：重叠系数（交集/较短边的 bigram 数）而非 Jaccard——
+   "题干A 如何整定" 改写成 "题干A 如何进行整定的方法" 时 Jaccard 被扩写稀释（0.46），
+   重叠系数则 0.86 稳定命中；而 "下列关于…说法正确的是" 类通用模板两边都长、互不包含
+   （0.77<0.8），配 6-gram 最短护栏后不误报。 */
+const SIM_THRESHOLD = 0.8
+const SIM_MIN_NGRAMS = 6
+function simScore(a, b) {
+  let inter = 0
+  for (const g of a) if (b.has(g)) inter++
+  return inter / Math.min(a.size, b.size)
+}
+export function crossBatchCheck(items, existing) {
+  const warns = []
+  const exList = (existing ?? []).filter((q) => q && typeof q.stem === 'string' && q.stem)
+  const kpInBank = new Set(exList.map((q) => str(q.knowledgePoint).trim()).filter(Boolean))
+  const idInBank = new Set(exList.map((q) => q.id))
+  const bankStems = exList.map((q) => ({ id: q.id, g: bigrams(q.stem) }))
+  for (const it of items) {
+    const stem = str(it.题干).trim()
+    if (idInBank.has(hashId(stem, str(it.题型), str(it.答案).trim()))) continue
+    const w = whereOf(it)
+    const kp = str(it.知识点).trim()
+    if (kp && kpInBank.has(kp)) {
+      warns.push({ where: w, level: '告警', message: `知识点「${kp}」与库内已有题同名（可能来自历史批次），若考点相同请细化粒度区分，若为重复题请换批避重` })
+    }
+    const g = bigrams(stem)
+    if (g.size >= SIM_MIN_NGRAMS) {
+      for (const s of bankStems) {
+        if (Math.min(g.size, s.g.size) >= SIM_MIN_NGRAMS && simScore(g, s.g) >= SIM_THRESHOLD) {
+          warns.push({ where: w, level: '告警', message: '题干与库内已有题高度相似（疑似近似改写），请人工确认非重复题' })
+          break
+        }
+      }
+    }
+  }
+  return warns
+}
 
 // ── 导入分类入口 ──
 export function classifyImport(text) {

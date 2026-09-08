@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store'
-import { classifyImport, PROTOCOL_VERSION, parseItems, validateItems } from '../lib/validate'
+import { classifyImport, PROTOCOL_VERSION, parseItems, validateItems, crossBatchCheck } from '../lib/validate'
 import { reworkTalk } from '../lib/validate'
 import { GiltBtn, burstParticles } from '../components'
 
@@ -86,10 +86,14 @@ export default function Import() {
       showResult(issues, null, '题集模式 · ')
       return
     }
+    /* 跨批撞库（2026-09-08）：与库内已有题比知识点撞名/题干近似，仅告警不拦截；
+       已在库内的题（内容哈希命中）自动跳过，重复导入同批不产生噪音。 */
+    const crossWarns = crossBatchCheck(items, useStore.getState().allQuestions)
+    const allIssues = [...issues, ...crossWarns]
     setSealing(true)
     try {
       const res = await guardCloud(importBank(text))
-      showResult(issues, res, '题集模式 · ')
+      showResult(allIssues, res, '题集模式 · ')
     } catch (e) {
       if (e instanceof Error && e.message === '__cloud_timeout__') { cloudTimeoutResult(); return }
       setResult({ tone: 'red', title: '云端写入失败', issues: [{ where: '云端', level: '错误', message: e instanceof Error ? e.message : String(e) }], rework: false })
@@ -117,16 +121,22 @@ export default function Import() {
            报错信息本身含 line/column 定位，AI 拿话术即可定向修语法。 */
         setResult({ tone: 'red', title: '导入内容无法解析', issues: cls.errors.map((m) => ({ where: '顶层', level: '错误', message: m })), rework: true })
       } else if (cls.issues.filter((i) => i.level === '错误').length === 0) {
+        const crossWarns = crossBatchCheck(parseItems(text).items, useStore.getState().allQuestions)
         setSealing(true)
         try {
           const res = await guardCloud(importBank(text))
-          showResult(cls.issues, res)
+          showResult([...cls.issues, ...crossWarns], res)
         } catch (e) {
           if (e instanceof Error && e.message === '__cloud_timeout__') { cloudTimeoutResult(); return }
           setResult({ tone: 'red', title: '云端写入失败', issues: [{ where: '云端', level: '错误', message: e instanceof Error ? e.message : String(e) }], rework: false })
         }
       } else {
-        showResult(cls.issues, null)
+        /* 模式误用引导（2026-09-08）：题集产物忘开开关且 N≠21 时，默认通道会报
+           "数组应为21个元素"——对题集用户有误导性，追加一句指向开关的告警。 */
+        const modeHints = cls.issues.some((i) => i.message.includes('数组应为21个元素'))
+          ? [{ where: '提示', level: '告警', message: '若本批是题集解答产物（AI 触发词"源题："），请开启右上角「🧩 题集模式」开关后重新检测——题集通道对任意题数放行' }]
+          : []
+        showResult([...cls.issues, ...modeHints], null)
       }
     } finally {
       setBusy(false)
@@ -189,7 +199,7 @@ export default function Import() {
         <div className="panel" style={{ marginBottom: 16, borderColor: 'var(--candy-pink-dk, #5FAE8F)' }}>
           <div className="panel-title">🧩 题集模式（逐题检测）</div>
           <p style={{ fontSize: 13, lineHeight: 1.9, color: 'var(--muted)' }}>
-            开启后<b>只做逐题校验</b>（题型、元数据映射、选项结构、解析标记、填空与配图白名单、批内避重等通用检查），<b>不校验</b> 21 道生成批的数量/配比/难度层段。<b>任意元素数（含 21）均可通过本通道</b>；关闭开关则是生成模式产物与备份恢复的通道（生成批整批规则仅在恰为 21 元素时生效）。对应《题集模式规则》现行版（AI 触发词：<b>源题：</b>）；备份 JSON 请关闭本开关走「备份恢复」。
+            开启后<b>只做逐题校验</b>（题型、元数据映射、选项结构、解析标记、填空与配图白名单、批内避重等通用检查），<b>不校验</b> 21 道生成批的数量/配比/难度层段。<b>任意元素数（含 21）均可通过本通道</b>；通过校验后还会与<b>库内已有题</b>做跨批撞库提示（知识点同名 / 题干高度相似，仅告警不拦截，已在库内的题自动跳过）；关闭开关则是生成模式产物与备份恢复的通道（生成批整批规则仅在恰为 21 元素时生效）。对应《题集模式规则》现行版（AI 触发词：<b>源题：</b>）；备份 JSON 请关闭本开关走「备份恢复」。
           </p>
         </div>
       )}
