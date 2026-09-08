@@ -35,10 +35,37 @@ export default function Import() {
     } else if (errs.length > 0) {
       setResult({ tone: 'red', title: `${prefix}检测失败：${errs.length} 项错误、${warns.length} 项告警，未入库`, issues, rework: true })
     } else if (importRes) {
-      setResult({ tone: 'green', title: `${prefix}检测通过，已入库 新增 ${importRes.added} 题`, warnings: warns, added: importRes.added })
+      const total = importRes.questions?.length ?? importRes.added
+      const skipped = importRes.skipped ?? Math.max(0, total - importRes.added)
+      /* 重复导入同一批：id 按内容哈希生成、全部撞库去重 → added=0。
+         旧文案「已入库 新增 0 题」误导（2026-09-08 用户反馈），改为明确去重提示 */
+      if (importRes.added === 0 && total > 0) {
+        setResult({ tone: 'warn', title: `${prefix}检测通过：本批 ${total} 题均已存在，未新增（重复导入自动去重，题库无重复题）`, warnings: warns })
+      } else {
+        setResult({ tone: 'green', title: `${prefix}检测通过，已入库 新增 ${importRes.added} 题` + (skipped > 0 ? `，另有 ${skipped} 题已存在跳过` : ''), warnings: warns, added: importRes.added })
+      }
     } else {
       setResult({ tone: 'warn', title: `${prefix}检测完成：${warns.length} 项告警（可入库）`, warnings: warns, issues })
     }
+  }
+
+  /* 云端写入超时守卫（2026-09-08 用户反馈：导入转圈无提示）。importBank 先写本地
+     再等云端，Supabase 请求一旦卡住，await 永不返回、页面永远停在转圈——用户误以为
+     失败而重导。此处只对「等结果」加时限：超时给出明确话术并解锁按钮，底层写入
+     继续在后台跑（幂等 upsert + 内容哈希去重，稍后刷新或重导都安全）。 */
+  const CLOUD_TIMEOUT_MS = 20000
+  function guardCloud(p) {
+    return Promise.race([
+      p,
+      new Promise((_, rej) => setTimeout(() => rej(new Error('__cloud_timeout__')), CLOUD_TIMEOUT_MS))
+    ])
+  }
+  function cloudTimeoutResult() {
+    setResult({
+      tone: 'warn',
+      title: '云端写入响应超时（本地已保存）',
+      warnings: [{ where: '云端', message: '题目数据已写入本机，云端可能仍在后台完成。请稍后刷新页面核对题数；若未入库，重新导入本批即可——题目按内容自动去重，不会产生重复题。' }]
+    })
   }
 
   /* 题集模式（v4.6 通用性整改）：逐题校验直通任意 N（含恰 21 元素）。
@@ -61,9 +88,10 @@ export default function Import() {
     }
     setSealing(true)
     try {
-      const res = await importBank(text)
+      const res = await guardCloud(importBank(text))
       showResult(issues, res, '题集模式 · ')
     } catch (e) {
+      if (e instanceof Error && e.message === '__cloud_timeout__') { cloudTimeoutResult(); return }
       setResult({ tone: 'red', title: '云端写入失败', issues: [{ where: '云端', level: '错误', message: e instanceof Error ? e.message : String(e) }], rework: false })
     }
   }
@@ -77,9 +105,11 @@ export default function Import() {
       if (cls.kind === 'backup') {
         setSealing(true)
         try {
-          const res = await importBank(text)
-          setResult({ tone: 'green', title: `✦ 备份恢复完成，已恢复 ${res.added} 题 ✦`, added: res.added, backup: true })
-        } catch {
+          const res = await guardCloud(importBank(text))
+          const skipped = res.skipped ?? Math.max(0, (res.questions?.length ?? res.added) - res.added)
+          setResult({ tone: 'green', title: `✦ 备份恢复完成，新增 ${res.added} 题` + (skipped > 0 ? `，${skipped} 题已存在跳过` : '') + ' ✦', added: res.added, backup: true })
+        } catch (e) {
+          if (e instanceof Error && e.message === '__cloud_timeout__') { cloudTimeoutResult(); return }
           setResult({ tone: 'red', title: '云端写入失败', issues: [{ where: '云端', level: '错误', message: '云端写入受阻，请重试' }], rework: false })
         }
       } else if (cls.kind === 'parse-error') {
@@ -89,9 +119,10 @@ export default function Import() {
       } else if (cls.issues.filter((i) => i.level === '错误').length === 0) {
         setSealing(true)
         try {
-          const res = await importBank(text)
+          const res = await guardCloud(importBank(text))
           showResult(cls.issues, res)
         } catch (e) {
+          if (e instanceof Error && e.message === '__cloud_timeout__') { cloudTimeoutResult(); return }
           setResult({ tone: 'red', title: '云端写入失败', issues: [{ where: '云端', level: '错误', message: e instanceof Error ? e.message : String(e) }], rework: false })
         }
       } else {

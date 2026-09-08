@@ -350,7 +350,9 @@ export const useStore = create((set, get) => ({
         await repo.replaceProgress(backup.cards, backup.records)
       }
       await reloadAll()
-      return { questions: backup.questions, skipped: 0, errors: [], added }
+      /* skipped = 内容哈希撞库被去重的数量：重复导入同一批时 added=0、skipped=总数，
+         导入页据此提示「均已存在」而不是误导性的「新增 0 题」（2026-09-08 用户反馈） */
+      return { questions: backup.questions, skipped: backup.questions.length - added, errors: [], added }
     }
     const parsed = parseBank(text)
     if (parsed.questions.length > 0) {
@@ -364,9 +366,9 @@ export const useStore = create((set, get) => ({
       const added = questions.filter((q) => !existing.has(q.id)).length
       await repo.upsertQuestions(questions)
       await reloadAll()
-      return { ...parsed, questions, added }
+      return { ...parsed, questions, added, skipped: questions.length - added }
     }
-    return { ...parsed, added: 0 }
+    return { ...parsed, added: 0, skipped: 0 }
   },
   deleteQuestion: async (id) => {
     /* 云端失败不再静默（§33）：此前 Bank 的空 catch 会把失败吞掉，用户点了删除、
