@@ -18,8 +18,10 @@ const base = (over = {}) => ({
 
 check('valid single-choice no error', errs(validateItems([base()], false)).length === 0)
 {
+  // 2026-09-08 期望对齐：v2026-09-06 校验器（完整11类规则）把单选/多选缺【误诊】段从告警升级为错误，
+  // 与规则第六章"单选/多选必须三段齐全"（纪律9）一致；旧期望"warn not error"为 9/4 版过期基准。
   const r = validateItems([base({ 解析: '【推导】x【记忆点】z' })], false)
-  check('missing 误诊 = warn not error', errs(r).length === 0 && warns(r).some((w) => w.message.includes('误诊')))
+  check('missing 误诊 = error (aligned 2026-09-06 validator)', errs(r).length > 0 && r.some((i) => i.message.includes('误诊')))
 }
 check('unknown image id = error', errs(validateItems([base({ image: 'tpl_nope' })], false)).length > 0)
 check('image id|params accepted', errs(validateItems([base({ image: 'tpl_din_wiring|24|4.8' })], false)).length === 0)
