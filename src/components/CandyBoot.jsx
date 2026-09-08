@@ -54,11 +54,13 @@ import { IconLearn, IconImport, IconBank, IconSettings } from './CandyIcons'
 
 const NAV_ITEMS = [
   { key: 'learn', label: '学习', icon: <IconLearn />, to: '/', tone: 'pink' },
+  /* 2026-09-08 用户要求：导入与书库仅对调显示位置，功能/路由/图标 tone 均不动。
+     书库插回的历史见下注。 */
+  { key: 'bank', label: '书库', icon: <IconBank />, to: '/bank', tone: 'lemon' },
   { key: 'import', label: '导入', icon: <IconImport />, to: '/import', tone: 'mint' },
   /* 书库原来只能从「检测入库成功后那个按钮」或手打 #/bank 到达（底部导航早先被摘掉了），
      而它是全站唯一能删单题的地方，藏得太深。按用户要求插回导入与设置之间。
      tone 用 lemon：pink/mint/lav 已被前三项占掉，柠檬是糖果四色里唯一还没上导航的。 */
-  { key: 'bank', label: '书库', icon: <IconBank />, to: '/bank', tone: 'lemon' },
   { key: 'settings', label: '设置', icon: <IconSettings />, to: '/settings', tone: 'lav' }
 ]
 
