@@ -1,7 +1,13 @@
 // 导入校验与解析（与线上规则 1:1，含 21 题批十一类规则与返工话术）
-// 版本纪律：PROTOCOL_VERSION 必须与《出题规则体系》头部"协议版本"一致（2026-09-06）
+// 版本纪律（2026-09-08 双层规则后修订）：PROTOCOL_VERSION 为生成模式协议版本，与《规则体系》
+// （生成模式）头部一致；题集模式协议独立演进（现为 2026-09-08-题集模式-v4.6），不再强绑定。
+// 2026-09-08 通用性整改（v4.6 同步）：
+//   ① 序号 17~21"综合+分析"豁免与填空"序号 1"豁免收敛到整批通道（batchMode 门），逐题通道全序号同口径；
+//   ② 批内知识点查重 + 简答方案对比检测升级为通用检查（任意 N 均查，不再限 21 元素整批）；
+//   ③ "异常"元素机器化放行：逐题通道仅查序号与题干非空，导入管道自动跳过（替代"导入前人工移除"）；
+//   ④ 返工话术去"21 元素"硬编码，改为数量中性表述；方案对比检测降为启发式告警（漏检由闸4 评审兜底）。
 import { DIAGRAM_IDS } from './diagrams.js'
-export const PROTOCOL_VERSION = '2026-09-06'
+export const PROTOCOL_VERSION = '2026-09-08'
 export const TYPE_LIST = ['单选题', '多选题', '判断题', '填空题', '简答题', '计算分析题', '综合设计/故障诊断题']
 const DIFFS = ['基础', '应用', '综合']
 const COG = ['记忆', '理解', '应用', '分析', '评价', '创造']
@@ -52,19 +58,27 @@ export class Validator {
       this.checkQuota(items)
     }
     if (batchMode) {
-      this.checkBatchRules(items)
       this.checkLayerComposition(items)
       if (items.length === 21) this.checkDataStimulus(items)
     }
+    // 简答方案对比 + 批内知识点查重：通用检查，任意 N 均查（2026-09-08 起不再限于整批通道）
+    this.checkBatchRules(items)
     for (const it of items) {
-      this.checkCommon(it)
       const type = str(it.题型)
+      if (type === '异常' && !batchMode) {
+        /* 异常元素机器化放行（2026-09-08）：占位守恒语义——仅查序号有效与题干非空，
+           其余检查跳过；入库管道 toItem 对"异常"本就 SKIP，无需导入前人工移除。 */
+        if (seqOf(it) < 0) this.err(whereOf(it), '异常元素缺少有效序号')
+        if (!str(it.题干).trim()) this.err(whereOf(it), '异常元素题干为空')
+        continue
+      }
+      this.checkCommon(it)
       if (TYPE_LIST.includes(type)) {
-        this.checkMetaMapping(it)
+        this.checkMetaMapping(it, batchMode)
         this.checkAnalysis(it)
         if (type === '单选题' || type === '多选题') this.checkChoice(it)
         else if (type === '判断题') this.checkJudgement(it)
-        else if (type === '填空题') this.checkFillBlank(it)
+        else if (type === '填空题') this.checkFillBlank(it, batchMode)
         else this.checkSubjective(it)
         if (batchMode) {
           const seq = seqOf(it)
@@ -79,11 +93,13 @@ export class Validator {
     return this.issues
   }
   checkBatchRules(items) {
-    // B类语义下沉为机器检查（2026-09-04）：简答方案对比式设问 + 批内知识点重复
+    // B类语义下沉为机器检查（2026-09-04）：简答方案对比式设问 + 批内知识点重复。
+    // 2026-09-08 通用化：任意 N 均查；方案对比正则为启发式（存在漏检），降为告警级，
+    // 漏检与误判由独立评审（SOP 闸4）与人工抽检兜底。
     for (const it of items) {
       const stem = str(it.题干)
       if (str(it.题型) === '简答题' && /(两种|多个|若干)(方案|做法)|(方案|做法)[^。；]{0,6}(取舍|优劣|对比|比较)/.test(stem)) {
-        this.err(whereOf(it), '简答题禁止方案对比式设问（规则4.5.6），请改为要点式设问')
+        this.warn(whereOf(it), '简答题疑为"方案对比"式设问（启发式检测，请人工确认），建议改为要点式设问')
       }
     }
     const seen = new Map()
@@ -112,10 +128,12 @@ export class Validator {
     if (!str(it.题干).trim()) this.err(w, '“题干”为空')
     if (it.image != null && !(typeof it.image === 'string' && DIAGRAM_IDS.includes(it.image.split('|')[0]))) this.err(w, `“image”须为已注册模板ID（${DIAGRAM_IDS.join('/')} ）或省略`)
   }
-  checkMetaMapping(it) {
+  checkMetaMapping(it, batchMode) {
     const d = str(it.难度), cog = str(it.认知层级), seq = seqOf(it)
     if (!META_MAP[d] || !COG.includes(cog)) return
-    if (d === '综合' && cog === '分析' && seq >= 17 && seq <= 21) return
+    /* 序号 17~21"综合+分析"豁免是生成批（整批）通道的层段配套设计，须有 batchMode 门：
+       泄漏进题集逐题通道会让恰排 17~21 的违规标注静默放行（2026-09-08 通用性整改）。 */
+    if (batchMode && d === '综合' && cog === '分析' && seq >= 17 && seq <= 21) return
     if (!META_MAP[d].includes(cog)) this.err(whereOf(it), `认知层级“${cog}”与难度“${d}”映射不一致`)
   }
   checkAnalysis(it) {
@@ -180,12 +198,15 @@ export class Validator {
     const ans = str(it.答案)
     if (ans !== '正确' && ans !== '错误') this.err(whereOf(it), `判断题答案应只填“正确”或“错误”，实际“${ans}”`)
   }
-  checkFillBlank(it) {
+  checkFillBlank(it, batchMode) {
     const w = whereOf(it)
     const stem = str(it.题干), ans = str(it.答案)
     const blanks = [...stem.matchAll(/\{([^{}]*)\}/g)].map((m) => m[1])
     const parts = ans ? ans.split('|') : []
-    const extended = seqOf(it) >= 2
+    /* "序号 1 不查空位/空数"是生成批"第 1 题为原题"的配套豁免，须有 batchMode 门：
+       整批通道保留 seq>=2 限定；题集逐题通道的第 1 题是普通源题，全序号同口径
+       （2026-09-08 通用性整改）。 */
+    const extended = batchMode ? seqOf(it) >= 2 : true
     if (extended && stem.trimStart().startsWith('{')) this.err(w, '空位居句首，违反挖空规则')
     if (blanks.length !== parts.length) {
       this.err(w, `题干{}空数${blanks.length}与答案竖线分段数${parts.length}不一致`)
@@ -287,6 +308,8 @@ export class Validator {
 
 export const validateItems = (items, batchMode) => new Validator().run(items, batchMode)
 
+// 返工话术（数量中性，2026-09-08）：生成批与题集批通用——元素总数与序号由
+// 各模式的守恒规则约束，话术不再硬编码"21 元素"。
 export function reworkTalk(issues) {
   return [
     '以下是外部校验器对你上一轮输出的报错，请按报错逐题定向修正：',
@@ -295,7 +318,7 @@ export function reworkTalk(issues) {
     '',
     '修正要求：',
     '1. 只修改报错序号对应的题目，其余题目保持原文一字不动；',
-    '2. 修正后重新输出完整的 21 元素 JSON 数组（不是只输出改动的题）；',
+    '2. 修正后重新输出完整的 JSON 数组（元素总数与序号保持不变，不是只输出改动的题）；',
     '3. 输出纯 JSON，不加任何解释文字和 markdown 围栏。'
   ].join('\n')
 }
