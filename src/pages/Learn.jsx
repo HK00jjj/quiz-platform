@@ -1,11 +1,12 @@
-import React, { useMemo, useState } from 'react'
+import React, { useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useStore, peekRelearnResume } from '../store'
 import { A } from '../assets'
 import { GiltBtn, EmptyState, burstParticles, FlameIcon } from '../components'
 import { IconRetry, IconShuffle, IconNew, IconFilter, IconLearn, IconImport } from '../components/CandyIcons'
 import { buildSession, lastResultMap, TYPES, DIFFICULTIES, domainLabel, filtersKey } from '../lib/stats'
-import { abilityOf } from '../lib/ability.js'
+import { abilityOf, zoneAdvice, RANKS } from '../lib/ability.js'
+import { gradeObjective } from '../lib/validate'
 import { isDue } from '../lib/fsrs'
 import { todayStr, streakLength } from '../lib/dates'
 
@@ -48,6 +49,85 @@ function FilterModal({ title, filters, onToggle, onClose, onStart, count, startL
           </GiltBtn>
           <GiltBtn tone="ghost" onClick={onClose}>返回</GiltBtn>
           {note && <span style={{ fontSize: 12, color: 'var(--ink-2)', letterSpacing: '.3px' }}>{note}</span>}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/* 晋级赛弹窗（五局三胜）：随机抽 5 道客观题（含图题不进考池），逐局作答即时判分。
+   纯考试：不写 records / 不动 SRS / 不进 EWMA——考完由 onDone 把结果交回 Learn 结算。 */
+function ExamModal({ pool, target, onDone }) {
+  const [deck] = useState(() => {
+    const a = [...pool]
+    for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1));[a[i], a[j]] = [a[j], a[i]] }
+    return a.slice(0, 5)
+  })
+  const [round, setRound] = useState(0)
+  const [wins, setWins] = useState(0)
+  const [input, setInput] = useState('')
+  const [multi, setMulti] = useState([])
+  const [verdict, setVerdict] = useState(null)
+  const q = deck[round]
+  if (!q) return null
+  const isChoice = q.type === '单选题' || q.type === '多选题'
+  const isMulti = q.type === '多选题'
+  const canSubmit = isMulti ? multi.length > 0 : input.trim().length > 0
+
+  function submit() {
+    const text = isMulti ? multi.join('') : input
+    let g
+    try { g = gradeObjective(q, text) } catch { g = { correct: true, expected: q.answer } }
+    setVerdict(g)
+    if (g.correct) setWins((w) => w + 1)
+  }
+  function nextRound() {
+    if (round + 1 >= deck.length) { onDone({ pass: wins >= 3, wins }); return }
+    setRound((r) => r + 1); setInput(''); setMulti([]); setVerdict(null)
+  }
+
+  return (
+    <div className="modal-veil">
+      <div className="modal-box exam-box">
+        <div className="exam-head">
+          <span>⚔️ 晋级赛 · 五局三胜</span>
+          <span className="exam-score">第 {round + 1}/5 局 · 已 {wins} 胜 · 冲击「{target.emoji} {target.name}」</span>
+        </div>
+        <div className="exam-stem">{q.stem}</div>
+        {isChoice && (q.options ?? []).map((raw, i) => {
+          const letter = raw.match(/^([A-E])[.、]/)?.[1] ?? 'ABCDE'[i]
+          const on = isMulti ? multi.includes(letter) : input === letter
+          return (
+            <button key={i} className={'exam-opt' + (on ? ' on' : '') + (verdict ? ' locked' : '')}
+              disabled={!!verdict}
+              onClick={() => isMulti
+                ? setMulti((m) => m.includes(letter) ? m.filter((x) => x !== letter) : [...m, letter])
+                : setInput(letter)}>
+              <b>{letter}</b> {raw.replace(/^[A-E]\s*[.、]\s*/, '')}
+            </button>
+          )
+        })}
+        {q.type === '判断题' && ['正确', '错误'].map((v) => (
+          <button key={v} className={'exam-opt' + (input === v ? ' on' : '') + (verdict ? ' locked' : '')}
+            disabled={!!verdict} onClick={() => setInput(v)}>{v}</button>
+        ))}
+        {q.type === '填空题' && (
+          <input className="exam-fill" value={input} disabled={!!verdict}
+            onChange={(e) => setInput(e.target.value)} placeholder="作答（多空用「、」分隔）" />
+        )}
+        {verdict && (
+          <div className={'exam-verdict ' + (verdict.correct ? 'ok' : 'bad')}>
+            {verdict.correct ? '✓ 答对' : '✗ 答错'} · 正确答案：{verdict.expected}
+            {q.explanation && <p>{q.explanation}</p>}
+          </div>
+        )}
+        <div className="exam-foot">
+          {!verdict ? (
+            <GiltBtn size="sm" onClick={submit} disabled={!canSubmit}>提交本题</GiltBtn>
+          ) : (
+            <GiltBtn size="sm" onClick={nextRound}>{round + 1 >= deck.length ? `查看结果（${wins} 胜）` : '下一局'}</GiltBtn>
+          )}
+          <button className="exam-quit" onClick={() => onDone({ pass: false, wins })}>放弃本场（算失败）</button>
         </div>
       </div>
     </div>
@@ -100,6 +180,42 @@ export default function Learn() {
   const randomCount = Math.min(20, questions.length)
   /* 能力指数（自适应匹配）：EWMA 于每次作答即时更新，只喂客观题作答（主观题自评不算对错） */
   const ability = useMemo(() => abilityOf(records), [records])
+  const advice = useMemo(() => zoneAdvice(records), [records])
+  /* 排位系统（LOL 式晋级赛，2026-09-09 深夜定稿）：
+     - 段位从黑铁起步（settings.rank 持久化官方段位），晋级只能一级一级考上去，不能跳段；
+     - 晋级赛触发：题库所有题自上次考试（settings.lastExamAt）后都刷过一遍 + 状态指数 ≥ 下一段位门槛；
+     - 五局三胜，随机抽题、只有客观题进考池（含图题不进——脱离配图没法判分）；
+     - 通过 → 官方段位 +1；失败 → lastExamAt 重置 = 必须"再刷一遍题"才能再次触发；
+     - 考试作答不写 records：不污染 EWMA 能力指数与复习计划，纯考试。 */
+  const [examOpen, setExamOpen] = useState(false)
+  const [promo, setPromo] = useState(null)
+  const promoTimer = useRef(null)
+  const rank = useMemo(() => {
+    const official = RANKS.find((r) => r.name === (settings.rank ?? '黑铁')) ?? RANKS[0]
+    const next = RANKS[RANKS.indexOf(official) + 1] ?? null
+    const since = settings.lastExamAt ?? 0
+    const answered = new Set(records.filter((r) => r.timestamp > since).map((r) => r.questionId))
+    const doneN = questions.filter((q) => answered.has(q.id)).length
+    const covered = questions.length > 0 && doneN === questions.length
+    const p = Math.round(ability * 100)
+    const threshold = next ? next.lo : null
+    const objPool = questions.filter((q) => ['单选题', '多选题', '判断题', '填空题'].includes(q.type) && !q.image)
+    return { official, next, since, doneN, total: questions.length, covered, p, threshold, examReady: covered && threshold !== null && p >= threshold, objPool }
+  }, [questions, records, settings.rank, settings.lastExamAt, ability])
+
+  function finishExam({ pass, wins }) {
+    setExamOpen(false)
+    const { official, next } = rank
+    if (pass && next) {
+      updateSettings({ rank: next.name, lastExamAt: Date.now() })
+      setPromo({ kind: 'promo', title: `晋级成功！${official.emoji} ${official.name} → ${next.emoji} ${next.name}`, sub: '五局三胜拿下，段位只能一级一级考上去——继续刷，向着最强王者进发' })
+    } else {
+      updateSettings({ lastExamAt: Date.now() })
+      setPromo({ kind: 'demote', title: `晋级失败（${wins} 胜）：${official.emoji} ${official.name}`, sub: `差 ${5 - wins} 局。晋级条件重新计数——把题库再刷一遍，就能再次挑战「${next?.name ?? '下一段位'}」` })
+    }
+    if (promoTimer.current) clearTimeout(promoTimer.current)
+    promoTimer.current = setTimeout(() => setPromo(null), 8000)
+  }
 
   async function run(mode, opts = {}) {
     const n = await startSession(mode, opts)
@@ -169,6 +285,49 @@ export default function Learn() {
         </div>
       </div>
 
+      {/* 晋级赛横幅：考试结束时的晋级/失败播报，8 秒自动消失 */}
+      {promo && (
+        <div className={'promo-banner rise' + (promo.kind === 'demote' ? ' promo-demote' : '')}>
+          <span className="promo-emoji" aria-hidden="true">{promo.kind === 'promo' ? '🏆' : '🔁'}</span>
+          <div className="zone-copy">
+            <h4>{promo.title}</h4>
+            <p>{promo.sub}</p>
+          </div>
+        </div>
+      )}
+
+      {/* 排位卡（LOL 式晋级赛）：官方段位只通过五局三胜考试获得，一级一级往上考 */}
+      <div className="rank-card rise">
+        <span className="rank-badge" style={{ borderColor: rank.official.color }}>
+          <span className="rank-emoji" aria-hidden="true">{rank.official.emoji}</span>
+        </span>
+        <div className="rank-info">
+          <h4 style={{ color: rank.official.color }}>
+            当前段位：{rank.official.name}{rank.next ? '' : ' · 已到顶'}
+          </h4>
+          {rank.next && (
+            <div className="rank-bar">
+              <span style={{ width: `${Math.min(100, Math.round((rank.p / rank.next.lo) * 100))}%`, background: rank.official.color }} />
+            </div>
+          )}
+          <p>
+            状态指数 {rank.p}
+            {rank.next ? ` · 晋级「${rank.next.emoji} ${rank.next.name}」门槛 ${rank.next.lo}` : ''}
+            {' · '}刷库进度 {rank.doneN}/{rank.total}
+            {rank.examReady ? ' · ✅ 晋级赛已就绪' : ` · 还需刷完 ${Math.max(0, rank.total - rank.doneN)} 道未刷题`}
+          </p>
+          {advice.level === 'too-easy' && (
+            <p className="rank-hint">⚡ 近 30 题正确率 {Math.round(advice.recentAcc * 100)}%——题库对你已偏易，去导入更高水平源题继续上分</p>
+          )}
+          {advice.level === 'too-hard' && (
+            <p className="rank-hint">🛟 近 30 题正确率 {Math.round(advice.recentAcc * 100)}%——题库偏难，可导入降阶源题先回血</p>
+          )}
+        </div>
+        {rank.examReady && rank.objPool.length >= 5 && (
+          <GiltBtn size="sm" onClick={() => setExamOpen(true)}>⚔️ 进入晋级赛</GiltBtn>
+        )}
+      </div>
+
       <div className="panel deep" style={{ textAlign: 'center' }}>
         <div style={{ display: 'flex', justifyContent: 'center', gap: 10, marginBottom: 10 }} aria-hidden="true">
           <span className="tag teal"><IconNew /></span>
@@ -199,7 +358,7 @@ export default function Learn() {
         <div className="entry-card rise" style={{ animationDelay: '.16s' }} onClick={() => run('random', { size: 20 })}>
           <span className="entry-ico ico-yellow" aria-hidden="true"><IconShuffle /></span>
           <h3>智能匹配练习</h3>
-          <p>按你的水平挑 {randomCount} 道（目标答对率 60~80%）· 状态指数 {Math.round(ability * 100)}</p>
+          <p>按你的水平挑 {randomCount} 道（目标答对率 60~80%）· 状态指数 {rank.p} · 段位 {rank.official.name}</p>
         </div>
         <div className="entry-card rise" style={{ animationDelay: '.24s' }} onClick={() => newCount > 0 && run('learn')}>
           <span className="entry-ico ico-mint" aria-hidden="true"><IconNew /></span>
@@ -227,6 +386,11 @@ export default function Learn() {
           note={resumeNote}
           onStart={() => { setOpenFilter(null); run('relearn', { size: 0, ...relearnFilters }) }}
         />
+      )}
+
+      {/* 晋级赛考试弹窗：examReady 已保证 next 存在且考池 ≥5 题 */}
+      {examOpen && (
+        <ExamModal pool={rank.objPool} target={rank.next} onDone={finishExam} />
       )}
     </div>
   )

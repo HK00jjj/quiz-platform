@@ -1,7 +1,30 @@
 # 交接文档 · 糖果题库（quiz-platform）
 
 > 写给下一个接手的会话。读完这一份就能独立干活，不需要翻历史对话。
-> 最后更新：2026-09-09 晚，对应线上提交 `8f4bbf0`。
+> 最后更新：2026-09-09 深夜（二），对应线上提交 `eb0fcb4`。
+
+## 2026-09-09 深夜增量二（commit eb0fcb4，bundle index-Cmmt97g-.js）· 排位系统 v2（晋级赛 + AI 自动调取）
+
+用户三轮迭代后的定稿（推翻本日早些的"怪区横幅"与"定级赛"两版）：
+
+1. **晋级赛（不是定级赛）**：段位从**黑铁**起步（settings.rank，缺省即黑铁），晋级只能**一级一级考上去，不能跳段**。触发条件 = 题库所有题自上次考试（settings.lastExamAt）后**都刷过一遍** + 状态指数 ≥ 下一段位门槛（RANKS[].lo）；五局三胜，随机抽 5 道客观题（含图题不进考池）；通过 → 官方段位 +1；失败 → lastExamAt 重置 = 必须**再刷一遍题库**才能再次触发。考试作答**不写 records**（不污染 EWMA/SRS），弹窗组件 ExamModal 在 Learn.jsx（gradeObjective 判分，learn 页自含）。Learn 页新增常驻排位卡（段位徽章/晋级进度条/刷库进度/晋级按钮）+ 考后播报横幅（8s 自动消失）。原 zone-banner 横幅与 rankState/lastRank 对比 effect 已删除；candy.css 的 .zone-* 换成 .rank-*/.promo-*/.exam-*。
+2. **AI 自动调取水平（v4.9 核心）**：`Documents/Qoder/命题流水线/fetch_level.mjs`——AI 收到"源题："先跑此脚本（E2E 账号登录 Supabase 拉 answer_records，凭据从 Documents/Qoder/app/.env 自取），输出 状态指数/段位/**难度配比 mix**/认知重点 cogFocus/输出层级/近30题正确率/错位判定 skew+instruction。**段位↔难度配比表**（黑铁→王者 = 基础80/65/50/35/20/10/5/0%、应用20/30/40/45/50/50/40/30%、综合0/5/10/20/30/40/55/70%，认知重点 记忆→创造）。skew=too-easy/too-hard 时按 instruction 上浮/下调一档。**出题难度永远跟状态指数走，不跟官方段位走**（官方段位落后于实际水平是设计使然）。
+3. **规则 v4.9**：出题规则体系 v4.9（md5 `88e3472b…` 三副本同步）——2.2 第 0 步改"自动调取优先、声明备用、皆缺默认进阶"，第八章输入协议重写，纪律 3 补"不得为凑配比拔高源题"。用户使用路径简化为：**把源题发给 AI 即可，其余全自动**。
+4. Import.jsx：能力档条去掉 zoneNameOf（已删函数），"复制水平声明"降级为备用按钮（文案注明 AI 自动调取）。ability.js：RANKS/rankOf 保留，PLACEMENT_ABILITY/rankState 删除。
+
+单测 unit_test_ability_20260909.mjs 升至 **20/20**（Z 组改 30 题窗口 + rankOf 八段位边界）。fetch_level.mjs 实测：250 作答 → 指数 73 → 铂金/进阶/近30题 83%/skew ok。六步链全过（IDENTICAL、SRC OK、ALL OK、特征串 HIT）。
+
+
+## 2026-09-09 深夜增量（commit 3942465，bundle index-vmAdqORV.js）· 怪区提示（游戏化换区建议）
+
+用户提案"小怪太低就建议换高区打怪"的落地。用户原案"近 5 题全对 90%+"误报率过高（连对几道送分题即触发），改为**双条件闸**：
+
+1. **`ability.js` 新增 `zoneAdvice(records)`**：too-easy = 近 10 题（≥8 条有效）正确率 ≥85% **且** EWMA 能力指数 ≥0.85；too-hard = 近 10 题（≥8 条）≤45% **且** 指数 ≤0.45；其余 ok。同时新增 `tierOf`/`zoneNameOf`（<55 新手村 / 55~78 进阶平原 / >78 熟练之巅，取整百分比判定）——Import.jsx 的本地 tierOf 副本已删，改从 ability.js 统一导入（单一真源）。
+2. **Learn.jsx 怪区横幅**：advice.level ≠ ok 时在 hero 下方显示动画横幅（zone-hot 暖橙 ⚔️"这片怪区已经打不动你了"劝升源题 / zone-cool 冷蓝 🛟"这片怪区超出当前水平"劝降阶补基础），带近 N 题正确率 + 状态指数，CTA「去换怪区」直达 /import，✕ 可关闭（仅本次会话）。循环动画只挂 26px emoji（§5 红线），入场走全局 .rise。智能匹配练习卡片追加当前怪区名。
+3. **candy.css** `.zone-banner/.zone-hot/.zone-cool/.zone-emoji/.zone-actions/.zone-close` + `zone-bob` keyframes + 640px 折行适配。
+
+单测：unit_test_ability_20260909.mjs 增 Z1~Z7b 共 8 例（含"7 题不触发""近期 70% 不误报"反例），**19/19 PASS**。六步链全过（IDENTICAL、ALL OK、特征串 HIT）。
+
 
 ## 2026-09-09 晚增量（commit 8f4bbf0，bundle index-C_niQngz.js）· v4.8 能力档联动（导入页）
 
