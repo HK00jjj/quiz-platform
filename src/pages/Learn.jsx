@@ -5,6 +5,7 @@ import { A } from '../assets'
 import { GiltBtn, EmptyState, burstParticles, FlameIcon } from '../components'
 import { IconRetry, IconShuffle, IconNew, IconFilter, IconLearn, IconImport } from '../components/CandyIcons'
 import { buildSession, lastResultMap, TYPES, DIFFICULTIES, domainLabel, filtersKey } from '../lib/stats'
+import { abilityOf } from '../lib/ability.js'
 import { isDue } from '../lib/fsrs'
 import { todayStr, streakLength } from '../lib/dates'
 
@@ -97,6 +98,8 @@ export default function Learn() {
       : `断点续练：将从第 ${resumePeek.savedCount - resumePeek.remaining + 1} 题继续`
   }, [resumePeek, relearnList])
   const randomCount = Math.min(20, questions.length)
+  /* 能力指数（自适应匹配）：EWMA 于每次作答即时更新，只喂客观题作答（主观题自评不算对错） */
+  const ability = useMemo(() => abilityOf(records), [records])
 
   async function run(mode, opts = {}) {
     const n = await startSession(mode, opts)
@@ -195,8 +198,8 @@ export default function Learn() {
         </div>
         <div className="entry-card rise" style={{ animationDelay: '.16s' }} onClick={() => run('random', { size: 20 })}>
           <span className="entry-ico ico-yellow" aria-hidden="true"><IconShuffle /></span>
-          <h3>随机练习</h3>
-          <p>从全部 {questions.length} 题里随机抽 {randomCount} 道 · 练考场手感</p>
+          <h3>智能匹配练习</h3>
+          <p>按你的水平挑 {randomCount} 道（目标答对率 60~80%）· 状态指数 {Math.round(ability * 100)}</p>
         </div>
         <div className="entry-card rise" style={{ animationDelay: '.24s' }} onClick={() => newCount > 0 && run('learn')}>
           <span className="entry-ico ico-mint" aria-hidden="true"><IconNew /></span>
