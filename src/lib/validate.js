@@ -10,6 +10,11 @@
 //   ⑤ 批内知识点查重的"序号 1 豁免"收敛到 batchMode 门——题集逐题通道全序号同口径查重；
 //   ⑥ 新增 crossBatchCheck：导入时与库内已有题做知识点撞名 + 题干近似重复（2-gram 重叠系数）
 //      告警，填补"跨批避重只靠台账/precheck 脚本、近似改写不查"的机器盲区（仅告警，保真优先不拦截）。
+// 2026-09-08 v4.7 反平庸化（机制整改）：
+//   ⑦ checkChoice 新增"四胞胎同构"告警：长度几乎一致+句式同构（开头字相同/同一连接词≥3项）→ 告警，
+//      治"为过长度均衡而模板化写作"——均衡性查太悬殊，此检查查太整齐；
+//   ⑧ 批内查重与 crossBatchCheck 新增"去修饰同名"告警（kpNorm 剥离高频通用修饰词），
+//      反"电气互锁/机械互锁"式改名过闸；均为告警级，人工确认实质重复还是真细分。
 import { DIAGRAM_IDS } from './diagrams.js'
 export const PROTOCOL_VERSION = '2026-09-08'
 export const TYPE_LIST = ['单选题', '多选题', '判断题', '填空题', '简答题', '计算分析题', '综合设计/故障诊断题']
@@ -19,6 +24,11 @@ const DOMAINS = Array.from({ length: 27 }, (_, i) => `K${i + 1}`)
 const META_MAP = { 基础: ['记忆', '理解'], 应用: ['应用', '分析'], 综合: ['评价', '创造'] }
 const ANALYSIS_LIMIT = { '综合设计/故障诊断题': 500, 计算分析题: 400 }
 const COMPREHENSIVE_ELEMENTS = ['方案', '选型计算', '控制逻辑', '保护与安全']
+/* 反"改名过闸"（2026-09-08 v4.7）：查重是字符串匹配，AI 会学会把同考点换措辞绕过
+   （"互锁"被拦 → 拆成"电气互锁""机械互锁"）。此归一剥离高频通用修饰词后比对：
+   异名同归 → 告警（不拦截），交人工确认是实质重复还是真细分。 */
+const KP_MODIFIERS = /(电气|机械|常用|常见|基本|主要|典型|通用|相应|相关|特殊|类型|功能|特点|作用|原理|定义|方法|步骤|区别|分类|应用|选择|设置|使用|安装|接线|调试|维护|故障|处理|分析|判断|检测|原则|要求|规范|标准|条件|影响|后果|原因|危害|措施|要点|流程|方式|形式|性质|概念|场景|场合|工况)/g
+const kpNorm = (s) => String(s ?? '').trim().replace(KP_MODIFIERS, '')
 
 const str = (v) => (v == null ? '' : String(v))
 function seqOf(item) {
@@ -107,6 +117,7 @@ export class Validator {
       }
     }
     const seen = new Map()
+    const normSeen = new Map()
     for (const it of items) {
       /* 批内查重的"序号 1 豁免"是生成批（整批通道）"第 1 题为原题"的配套，须有 batchMode 门：
          泄漏进题集逐题通道会让第 1 题与后续题知识点撞名静默放行（2026-09-08 通用化收尾）。 */
@@ -115,6 +126,10 @@ export class Validator {
       if (!k) continue
       if (seen.has(k)) this.err(whereOf(it), '知识点「' + k + '」与序号' + seen.get(k) + '重复，批内须避重')
       else seen.set(k, seqOf(it))
+      const nk = kpNorm(k)
+      if (normSeen.has(nk) && normSeen.get(nk) !== k) {
+        this.warn(whereOf(it), `知识点「${k}」与「${normSeen.get(nk)}」去通用修饰后同名，疑似"改名过闸"——请人工确认是实质重复还是真细分`)
+      } else if (!normSeen.has(nk)) normSeen.set(nk, k)
     }
   }
   checkCommon(it) {
@@ -197,6 +212,24 @@ export class Validator {
         } else if (len >= 12 && len - maxWrong >= 8) {
           this.warn(w, `选项${L}比最长干扰项长${len - maxWrong}字，正确答案偏明显，建议均衡各选项长度与细节度`)
         }
+      }
+    }
+    /* 反模板检查（2026-09-08 v4.7）：均衡性治"太悬殊"，这里治"太整齐"——
+       长度几乎一致 + 句式同构（开头字相同或同一连接词出现在 ≥3 个选项）是
+       "四胞胎选项"的写作特征（为过长度均衡而模板化）。合法的好题允许节奏差异，
+       故仅告警不拦截，由人工/闸4 评审确认。 */
+    if (opts.length === n) {
+      const lens = stripped.map((o) => o.length)
+      const maxLen = Math.max(...lens), minLen = Math.min(...lens)
+      const nearlyEqual = maxLen > 0 && maxLen - minLen <= Math.max(6, Math.round(maxLen * 0.12))
+      const sameStart = (() => {
+        const heads = stripped.map((o) => o.slice(0, 1))
+        return Math.max(...[...new Set(heads)].map((h) => heads.filter((x) => x === h).length))
+      })()
+      const CONNECTIVES = ['导致', '引起', '使得', '从而', '造成', '因此', '应按', '应当', '需要', '必须', '无法', '不能', '可以', '能够']
+      const sameConn = CONNECTIVES.some((c) => stripped.filter((o) => o.includes(c)).length >= (single ? 3 : 4))
+      if (nearlyEqual && (sameStart >= (single ? 3 : 4) || sameConn)) {
+        this.warn(w, '选项疑似"四胞胎"同构（长度几乎一致且句式雷同）：好题允许节奏差异，请检查是否为凑均衡而模板化写作，必要时改写为句式自然的干扰项')
       }
     }
   }
@@ -552,7 +585,14 @@ function simScore(a, b) {
 export function crossBatchCheck(items, existing) {
   const warns = []
   const exList = (existing ?? []).filter((q) => q && typeof q.stem === 'string' && q.stem)
-  const kpInBank = new Set(exList.map((q) => str(q.knowledgePoint).trim()).filter(Boolean))
+  const kpInBank = new Map()
+  for (const q of exList) {
+    const k = str(q.knowledgePoint).trim()
+    if (!k) continue
+    const nk = kpNorm(k)
+    if (!kpInBank.has(nk)) kpInBank.set(nk, [])
+    if (!kpInBank.get(nk).includes(k)) kpInBank.get(nk).push(k)
+  }
   const idInBank = new Set(exList.map((q) => q.id))
   const bankStems = exList.map((q) => ({ id: q.id, g: bigrams(q.stem) }))
   for (const it of items) {
@@ -560,8 +600,15 @@ export function crossBatchCheck(items, existing) {
     if (idInBank.has(hashId(stem, str(it.题型), str(it.答案).trim()))) continue
     const w = whereOf(it)
     const kp = str(it.知识点).trim()
-    if (kp && kpInBank.has(kp)) {
-      warns.push({ where: w, level: '告警', message: `知识点「${kp}」与库内已有题同名（可能来自历史批次），若考点相同请细化粒度区分，若为重复题请换批避重` })
+    if (kp) {
+      const bankNames = kpInBank.get(kpNorm(kp))
+      if (bankNames) {
+        if (bankNames.includes(kp)) {
+          warns.push({ where: w, level: '告警', message: `知识点「${kp}」与库内已有题同名（可能来自历史批次），若考点相同请细化粒度区分，若为重复题请换批避重` })
+        } else {
+          warns.push({ where: w, level: '告警', message: `知识点「${kp}」与库内「${bankNames[0]}」去通用修饰后同名，疑似"改名过闸"——请人工确认是实质重复还是真细分` })
+        }
+      }
     }
     const g = bigrams(stem)
     if (g.size >= SIM_MIN_NGRAMS) {
