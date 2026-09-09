@@ -1,8 +1,9 @@
-import React, { useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import { useStore } from '../store'
 import { GiltBtn } from '../components'
 import Bookshelf from '../components/Bookshelf'
 import { readImageMap } from '../lib/diagrams'
+import { estimateStorage, fmtBytes, HARD_LIMIT, SOFT_LIMIT } from '../lib/storageQuota'
 
 /* 设置页 · 尝味师的糖果抽屉 */
 export default function Settings() {
@@ -18,6 +19,15 @@ export default function Settings() {
   const [confirmText, setConfirmText] = useState('')
   const [melting, setMelting] = useState(false)
   const [melted, setMelted] = useState(false)
+
+  /* 存储水位（2026-09-09 经验对照 #2）：localStorage 约 5MB 上限，imageMap/题库 fallback
+     最先触顶。只读监测不自动清理；本页每次进入时重新估算。 */
+  const storage = useMemo(() => estimateStorage(), [])
+  const meterPct = storage ? Math.min(100, Math.round((storage.bytes / HARD_LIMIT) * 100)) : 0
+  const meterColor = !storage ? 'var(--mint)'
+    : storage.level === 'danger' ? 'var(--bad-ink)'
+    : storage.level === 'warn' ? '#B8860B'
+    : 'var(--teal-dk)'
 
   const goal = settings.dailyGoal ?? 20
 
@@ -86,6 +96,35 @@ export default function Settings() {
               数据存于云端，多设备登录同一账号实时同步。导出备份为可选保险，
               备份 JSON 可在任意设备的导入页（备份恢复）导入恢复。
             </p>
+            {storage && storage.level !== 'ok' && (
+              <div style={{
+                marginTop: 10, padding: '10px 12px', borderRadius: 12,
+                background: storage.level === 'danger' ? 'rgba(196,55,46,.08)' : 'rgba(255,224,102,.15)',
+                fontSize: 12.5, lineHeight: 1.8, color: storage.level === 'danger' ? 'var(--bad-ink)' : 'var(--ink-2)'
+              }}>
+                {storage.level === 'danger'
+                  ? `⚠ 本地存储已用 ${fmtBytes(storage.bytes)}，逼近浏览器上限，随时可能写入失败。请立即导出备份，并考虑清掉不用的旧书（书库页可删书，云端数据不受影响）。`
+                  : `本地存储已用 ${fmtBytes(storage.bytes)}，超过提醒线 ${fmtBytes(SOFT_LIMIT)}。建议先导出一份备份；题库继续增长前可清理不用的旧书。`}
+                {storage.top[0] && (
+                  <span style={{ display: 'block', marginTop: 4, color: 'var(--muted)' }}>
+                    占用最大：{storage.top[0].key}（{fmtBytes(storage.top[0].bytes)}）
+                  </span>
+                )}
+              </div>
+            )}
+            {storage && (
+              <div style={{ marginTop: 10 }} aria-label={`本地存储已用 ${fmtBytes(storage.bytes)}`}>
+                <div style={{ height: 8, borderRadius: 4, background: 'var(--copper)', overflow: 'hidden' }}>
+                  <div style={{
+                    width: `${meterPct}%`, height: '100%', borderRadius: 4,
+                    background: meterColor, transition: 'width .6s var(--smooth-ease)'
+                  }} />
+                </div>
+                <p style={{ fontSize: 11, color: 'var(--ink-3)', marginTop: 4 }}>
+                  本地缓存水位 {fmtBytes(storage.bytes)} / 上限约 {fmtBytes(HARD_LIMIT)}（云端数据不计入，仅本地缓存与离线兜底）
+                </p>
+              </div>
+            )}
             <div style={{ marginTop: 12 }}>
               <GiltBtn onClick={exportBackup}>{exported ? '✓ 已导出' : '封装记忆 · 导出全量备份 JSON'}</GiltBtn>
             </div>

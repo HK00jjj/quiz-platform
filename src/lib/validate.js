@@ -62,7 +62,7 @@ export class Validator {
     if (items.length === 1 && str(items[0].题型) === '异常') {
       if (items[0].序号 !== 1 && seqOf(items[0]) !== 1) this.err('序号1', '异常输入序号应为1')
       if (!str(items[0].题干).trim()) this.err('序号1', '异常输入题干为空')
-      return this.issues
+      return this.done()
     }
     // 简答方案对比 + 批内知识点查重：通用检查，任意 N 均查
     this.checkBatchRules(items)
@@ -84,6 +84,17 @@ export class Validator {
         else if (type === '填空题') this.checkFillBlank(it)
         else this.checkSubjective(it)
       }
+    }
+    return this.done()
+  }
+  /* 机读化收口（2026-09-09 经验对照 #6）：issues 本就是 {where, level, message} 结构
+     （reworkTalk 的报错回喂闭环消费方），这里只补一个数值 seq 字段——
+     消费方（导入页排序/筛重、AI 闭环按题号聚合）不用再解析「序号N」字符串。
+     纯附加字段，不改任何规则判定与文案，回归断言不受影响。 */
+  done() {
+    for (const i of this.issues) {
+      const m = /序号(\d+)/.exec(i.where)
+      if (m) i.seq = Number(m[1])
     }
     return this.issues
   }
