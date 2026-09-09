@@ -91,29 +91,27 @@ export function pickMatched(pool, ability, size, records, rng = Math.random, due
   if (!pool?.length) return []
   if (!size || size <= 0) return pool
   const target = targetDifficulty(ability)
-  /* 冷却期（2026-09-09 v4.15，LearnLoop 同款机制）：最近 COOLDOWN_N 条有效作答里
-     出现过的题加 COOLDOWN_PENALTY 惩罚——避免"难度匹配 + 洗牌"反复把刚做过的题
-     端回眼前（同题三遍判定制下最近 20 条 ≈ 最近 7~10 道）。用惩罚而非硬排除：
-     小池（域/题型筛选后仅几题）不会被打空，只是排到匹配更差的题之后。 */
+  /* 冷却期 + 族级薄弱度共用一个「最近窗口」（v4.15.1，审查整改）：
+     全量累计口径下，某族早期大量错误会让 weak 长期居高（30 旧错 + 10 新对仍 0.75），
+     与"掌握进度"语义脱节——改为只看最近 FAM_WINDOW=30 条有效作答（与 zoneAdvice 同口径），
+     旧错随作答积累自然"出窗遗忘"。冷却期（20 条）是同一序列的更短截断，一次排序两处复用。 */
+  const FAM_WINDOW = 30
   const COOLDOWN_N = 20
   const COOLDOWN_PENALTY = 0.3
-  const recentIds = new Set(
-    (records ?? [])
-      .filter((r) => typeof r.correct === 'boolean')
-      .sort((a, b) => a.timestamp - b.timestamp)
-      .slice(-COOLDOWN_N)
-      .map((r) => r.questionId)
-  )
-  /* 知识点薄弱度优先（v4.15 按 G2-① 改为「族级」统计口径）：
+  const recent = (records ?? [])
+    .filter((r) => typeof r.correct === 'boolean')
+    .sort((a, b) => a.timestamp - b.timestamp)
+    .slice(-FAM_WINDOW)
+  const recentIds = new Set(recent.slice(-COOLDOWN_N).map((r) => r.questionId))
+  /* 知识点薄弱度优先（v4.15 按 G2-① 改为「族级」统计口径；v4.15.1 收敛到近期窗口）：
      350+ 细粒度 kp 单点作答密度天然不足（实测具备首答资格的 kp 占比 0%），
      归并到知识域 K1~K27（题库现成的 knowledgeDomain 字段 = 同域近邻族的边界），
-     单族样本密度立即可用。该族客观作答 n≥3 时薄弱度 = 1−正确率（∈[0,1]），
+     单族样本密度立即可用。该族在窗口内客观作答 n≥3 时薄弱度 = 1−正确率（∈[0,1]），
      其题目获得最高 0.1 档的优先提升——"在薄弱知识域由浅入深"参与排序；
      n<3 视为样本不足不参与（宁可不动，不掺水）。 */
   const famOf = new Map(pool.map((q) => [q.id, q.knowledgeDomain ?? null]))
   const stat = new Map()
-  for (const r of records ?? []) {
-    if (typeof r.correct !== 'boolean') continue
+  for (const r of recent) {
     const fam = famOf.get(r.questionId)
     if (!fam) continue
     const s = stat.get(fam) ?? { n: 0, c: 0 }

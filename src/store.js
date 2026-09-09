@@ -163,7 +163,8 @@ async function attach(email) {
 
 const emptySession = {
   phase: 'idle', sessionMode: null, sessionQuestions: [], sessionIndex: 0,
-  sessionResults: [], lastGrade: null, lastRating: null, summary: { total: 0, correct: 0 }
+  sessionResults: [], lastGrade: null, lastRating: null, summary: { total: 0, correct: 0 },
+  qStartAt: 0
 }
 
 /* 统一入账（三遍判定制）：写 record + 摘要 + 会话结果；commitCard=true 时同步推进 FSRS 卡。
@@ -172,7 +173,11 @@ const emptySession = {
 function commitAnswer(q, { correct, rating, detail, grade, lastRatingValue, commitCard }) {
   const set = useStore.setState, get = useStore.getState
   const now = Date.now()
-  const record = { questionId: q.id, date: fmtDate(new Date(now)), timestamp: now, correct, detail }
+  /* v4.15.1 数据底座：记录作答时长（翻牌入场→确认的总时长，含 ~360ms 牌面动画）。
+     云端 answer_records 表尚无 ms 列（迁移 SQL 备在 chat-1/supabase/，待用户执行后
+     db.js 的 insert/rpc payload 再放行该字段）——本地 records 为真源，云端不丢对错语义。 */
+  const ms = Math.max(0, now - (get().qStartAt || now))
+  const record = { questionId: q.id, date: fmtDate(new Date(now)), timestamp: now, correct, detail, ms }
   /* §57 回滚按索引精确摘除（原 slice(-1) 会误删失败后新答的那笔——键盘流连答快，窗口变大） */
   const resultIndex = get().sessionResults.length
   const existing = get().cards.find((c) => c.questionId === q.id)
@@ -528,6 +533,7 @@ export const useStore = create((set, get) => ({
           set({
             sessionMode: mode, sessionQuestions: queue, sessionIndex: index,
             phase: 'answering', sessionResults: results, lastGrade: null, lastRating: null,
+            qStartAt: Date.now(),
             summary: { total: results.length, correct: results.filter(Boolean).length }
           })
           maybeSaveResume(get())  // 追加后的队列立刻存回断点，进度跨刷新稳定
@@ -546,6 +552,7 @@ export const useStore = create((set, get) => ({
     set({
       sessionMode: mode, sessionQuestions: queue, sessionIndex: 0,
       phase: queue.length > 0 ? 'answering' : 'done',
+      qStartAt: Date.now(),
       sessionResults: [], lastGrade: null, lastRating: null, summary: { total: 0, correct: 0 }
     })
     if (mode === 'relearn') {
@@ -599,7 +606,7 @@ export const useStore = create((set, get) => ({
       set({ phase: 'done' })
       if (get().sessionMode === 'relearn') clearResume()
     } else {
-      set({ sessionIndex: n, phase: 'answering', lastGrade: null, lastRating: null })
+      set({ sessionIndex: n, phase: 'answering', lastGrade: null, lastRating: null, qStartAt: Date.now() })
       maybeSaveResume(get())
     }
   },
