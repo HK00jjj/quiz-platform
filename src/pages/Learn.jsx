@@ -5,7 +5,7 @@ import { A } from '../assets'
 import { GiltBtn, EmptyState, burstParticles, FlameIcon } from '../components'
 import { IconRetry, IconShuffle, IconNew, IconFilter, IconLearn, IconImport } from '../components/CandyIcons'
 import { buildSession, lastResultMap, TYPES, DIFFICULTIES, domainLabel, filtersKey } from '../lib/stats'
-import { abilityOf, zoneAdvice, RANKS } from '../lib/ability.js'
+import { abilityOf, zoneAdvice, RANKS, PROMOTION_EXAM } from '../lib/ability.js'
 import { gradeObjective } from '../lib/validate'
 import { isDue } from '../lib/fsrs'
 import { todayStr, streakLength } from '../lib/dates'
@@ -55,25 +55,42 @@ function FilterModal({ title, filters, onToggle, onClose, onStart, count, startL
   )
 }
 
-/* 晋级赛弹窗（五局三胜）：随机抽 5 道客观题（含图题不进考池），逐局作答即时判分。
-   纯考试：不写 records / 不动 SRS / 不进 EWMA——考完由 onDone 把结果交回 Learn 结算。 */
-function ExamModal({ pool, target, onDone }) {
+/* 晋级赛弹窗（2026-09-09 晨改版：百分制——随机抽 100 道客观题（含图题不进考池、
+   考池不足按池缩容），答对 ≥90%（即 90 分）晋级）。逐题作答即时判分。
+   纯考试：不写 records / 不动 SRS / 不进 EWMA——考完由 onDone 把结果交回 Learn 结算。
+   进度持久化：百题考试耗时较长，每答一题写 localStorage（qp-exam-progress），
+   意外刷新/关闭后重开自动续考；交卷或放弃时清除。 */
+const EXAM_PROGRESS_KEY = 'qp-exam-progress'
+
+function ExamModal({ pool, target, size, passScore, onDone }) {
   const [deck] = useState(() => {
+    const saved = JSON.parse(localStorage.getItem(EXAM_PROGRESS_KEY) ?? 'null')
+    if (saved && Array.isArray(saved.ids)) {
+      const byId = new Map(pool.map((q) => [q.id, q]))
+      const rebuilt = saved.ids.map((id) => byId.get(id)).filter(Boolean)
+      /* 续考有效性：题都在、进度未越界且考题数与当前考制一致——题库变更/改制则重考 */
+      if (rebuilt.length === saved.ids.length && saved.ids.length === size && saved.round <= saved.ids.length) {
+        return { qs: rebuilt, resume: saved }
+      }
+    }
     const a = [...pool]
     for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1));[a[i], a[j]] = [a[j], a[i]] }
-    return a.slice(0, 5)
+    return { qs: a.slice(0, size), resume: null }
   })
-  const [round, setRound] = useState(0)
-  const [wins, setWins] = useState(0)
+  const [round, setRound] = useState(deck.resume?.round ?? 0)
+  const [wins, setWins] = useState(deck.resume?.wins ?? 0)
   const [input, setInput] = useState('')
   const [multi, setMulti] = useState([])
   const [verdict, setVerdict] = useState(null)
-  const q = deck[round]
+  const q = deck.qs[round]
   if (!q) return null
   const isChoice = q.type === '单选题' || q.type === '多选题'
   const isMulti = q.type === '多选题'
   const canSubmit = isMulti ? multi.length > 0 : input.trim().length > 0
 
+  function saveProgress(nextRound, nextWins) {
+    try { localStorage.setItem(EXAM_PROGRESS_KEY, JSON.stringify({ ids: deck.qs.map((x) => x.id), round: nextRound, wins: nextWins })) } catch { /* 存储满等异常不阻断考试 */ }
+  }
   function submit() {
     const text = isMulti ? multi.join('') : input
     let g
@@ -82,7 +99,13 @@ function ExamModal({ pool, target, onDone }) {
     if (g.correct) setWins((w) => w + 1)
   }
   function nextRound() {
-    if (round + 1 >= deck.length) { onDone({ pass: wins >= 3, wins }); return }
+    const nextWins = wins + (verdict?.correct ? 1 : 0)
+    if (round + 1 >= deck.qs.length) {
+      localStorage.removeItem(EXAM_PROGRESS_KEY)
+      onDone({ pass: nextWins >= passScore, wins: nextWins })
+      return
+    }
+    saveProgress(round + 1, nextWins)
     setRound((r) => r + 1); setInput(''); setMulti([]); setVerdict(null)
   }
 
@@ -90,9 +113,10 @@ function ExamModal({ pool, target, onDone }) {
     <div className="modal-veil">
       <div className="modal-box exam-box">
         <div className="exam-head">
-          <span>⚔️ 晋级赛 · 五局三胜</span>
-          <span className="exam-score">第 {round + 1}/5 局 · 已 {wins} 胜 · 冲击「{target.emoji} {target.name}」</span>
+          <span>⚔️ 晋级赛 · 百分制 {deck.qs.length} 题考 {passScore} 分</span>
+          <span className="exam-score">第 {round + 1}/{deck.qs.length} 题 · 已得 {wins} 分 · 冲击「{target.emoji} {target.name}」</span>
         </div>
+        <div className="rank-bar" style={{ marginBottom: 12 }}><span style={{ width: `${Math.round((round / deck.qs.length) * 100)}%`, background: target.color }} /></div>
         <div className="exam-stem">{q.stem}</div>
         {isChoice && (q.options ?? []).map((raw, i) => {
           const letter = raw.match(/^([A-E])[.、]/)?.[1] ?? 'ABCDE'[i]
@@ -125,9 +149,10 @@ function ExamModal({ pool, target, onDone }) {
           {!verdict ? (
             <GiltBtn size="sm" onClick={submit} disabled={!canSubmit}>提交本题</GiltBtn>
           ) : (
-            <GiltBtn size="sm" onClick={nextRound}>{round + 1 >= deck.length ? `查看结果（${wins} 胜）` : '下一局'}</GiltBtn>
+            <GiltBtn size="sm" onClick={nextRound}>{round + 1 >= deck.qs.length ? `交卷（${wins} 分）` : '下一题'}</GiltBtn>
           )}
-          <button className="exam-quit" onClick={() => onDone({ pass: false, wins })}>放弃本场（算失败）</button>
+          <button className="exam-quit" onClick={() => { localStorage.removeItem(EXAM_PROGRESS_KEY); onDone({ pass: false, wins, quit: true }) }}>放弃本场（算失败）</button>
+          <span style={{ fontSize: 11.5, color: 'var(--muted)' }}>每题自动存进度，刷新后可续考</span>
         </div>
       </div>
     </div>
@@ -181,10 +206,12 @@ export default function Learn() {
   /* 能力指数（自适应匹配）：EWMA 于每次作答即时更新，只喂客观题作答（主观题自评不算对错） */
   const ability = useMemo(() => abilityOf(records), [records])
   const advice = useMemo(() => zoneAdvice(records), [records])
-  /* 排位系统（LOL 式晋级赛，2026-09-09 深夜定稿）：
+  /* 排位系统（LOL 式晋级赛，2026-09-09 晨改版考制）：
      - 段位从黑铁起步（settings.rank 持久化官方段位），晋级只能一级一级考上去，不能跳段；
-     - 晋级赛触发：题库所有题自上次考试（settings.lastExamAt）后都刷过一遍 + 状态指数 ≥ 下一段位门槛；
-     - 五局三胜，随机抽题、只有客观题进考池（含图题不进——脱离配图没法判分）；
+     - 晋级赛触发：题库所有题自上次考试（settings.lastExamAt）后都刷过一遍（=彻底过一遍知识点）
+       + 状态指数 ≥ 下一段位门槛；
+     - 百分制考制：随机抽 100 道客观题（含图题不进——脱离配图没法判分；考池不足按池缩容），
+       答对 ≥90%（即 90 分）晋级一段；进度存 localStorage 可续考；
      - 通过 → 官方段位 +1；失败 → lastExamAt 重置 = 必须"再刷一遍题"才能再次触发；
      - 考试作答不写 records：不污染 EWMA 能力指数与复习计划，纯考试。 */
   const [examOpen, setExamOpen] = useState(false)
@@ -200,18 +227,25 @@ export default function Learn() {
     const p = Math.round(ability * 100)
     const threshold = next ? next.lo : null
     const objPool = questions.filter((q) => ['单选题', '多选题', '判断题', '填空题'].includes(q.type) && !q.image)
-    return { official, next, since, doneN, total: questions.length, covered, p, threshold, examReady: covered && threshold !== null && p >= threshold, objPool }
+    const examSize = Math.min(PROMOTION_EXAM.SIZE, objPool.length)
+    const passScore = Math.ceil(examSize * PROMOTION_EXAM.PASS_RATE)
+    let examSaved = null
+    try {
+      const s = JSON.parse(localStorage.getItem(EXAM_PROGRESS_KEY) ?? 'null')
+      if (s && Array.isArray(s.ids) && s.ids.length === examSize && s.round <= examSize) examSaved = s
+    } catch { /* 损坏进度视同无续考 */ }
+    return { official, next, since, doneN, total: questions.length, covered, p, threshold, examSize, passScore, examSaved, objPool, examReady: covered && threshold !== null && p >= threshold && objPool.length >= 10 }
   }, [questions, records, settings.rank, settings.lastExamAt, ability])
 
   function finishExam({ pass, wins }) {
     setExamOpen(false)
-    const { official, next } = rank
+    const { official, next, passScore, examSize } = rank
     if (pass && next) {
       updateSettings({ rank: next.name, lastExamAt: Date.now() })
-      setPromo({ kind: 'promo', title: `晋级成功！${official.emoji} ${official.name} → ${next.emoji} ${next.name}`, sub: '五局三胜拿下，段位只能一级一级考上去——继续刷，向着最强王者进发' })
+      setPromo({ kind: 'promo', title: `晋级成功！${official.emoji} ${official.name} → ${next.emoji} ${next.name}`, sub: `百分制 ${examSize} 题考得 ${wins} 分（≥${passScore} 过线）。段位只能一级一级考上去——继续刷，向着最强王者进发` })
     } else {
       updateSettings({ lastExamAt: Date.now() })
-      setPromo({ kind: 'demote', title: `晋级失败（${wins} 胜）：${official.emoji} ${official.name}`, sub: `差 ${5 - wins} 局。晋级条件重新计数——把题库再刷一遍，就能再次挑战「${next?.name ?? '下一段位'}」` })
+      setPromo({ kind: 'demote', title: `晋级失败（${wins} 分 / ${passScore} 分线）：${official.emoji} ${official.name}`, sub: `差 ${Math.max(0, passScore - wins)} 分。晋级条件重新计数——把题库再刷一遍，就能再次挑战「${next?.name ?? '下一段位'}」` })
     }
     if (promoTimer.current) clearTimeout(promoTimer.current)
     promoTimer.current = setTimeout(() => setPromo(null), 8000)
@@ -314,7 +348,7 @@ export default function Learn() {
             状态指数 {rank.p}
             {rank.next ? ` · 晋级「${rank.next.emoji} ${rank.next.name}」门槛 ${rank.next.lo}` : ''}
             {' · '}刷库进度 {rank.doneN}/{rank.total}
-            {rank.examReady ? ' · ✅ 晋级赛已就绪' : ` · 还需刷完 ${Math.max(0, rank.total - rank.doneN)} 道未刷题`}
+            {rank.examReady ? ` · ✅ 晋级赛已就绪（${rank.examSize} 题考 ${rank.passScore} 分）` : ` · 还需刷完 ${Math.max(0, rank.total - rank.doneN)} 道未刷题`}
           </p>
           {advice.level === 'too-easy' && (
             <p className="rank-hint">⚡ 近 30 题正确率 {Math.round(advice.recentAcc * 100)}%——题库对你已偏易，去导入更高水平源题继续上分</p>
@@ -323,8 +357,10 @@ export default function Learn() {
             <p className="rank-hint">🛟 近 30 题正确率 {Math.round(advice.recentAcc * 100)}%——题库偏难，可导入降阶源题先回血</p>
           )}
         </div>
-        {rank.examReady && rank.objPool.length >= 5 && (
-          <GiltBtn size="sm" onClick={() => setExamOpen(true)}>⚔️ 进入晋级赛</GiltBtn>
+        {rank.examReady && (
+          <GiltBtn size="sm" onClick={() => setExamOpen(true)}>
+            {rank.examSaved ? `⚔️ 续考晋级赛（第 ${rank.examSaved.round + 1}/${rank.examSize} 题，已得 ${rank.examSaved.wins} 分）` : '⚔️ 进入晋级赛'}
+          </GiltBtn>
         )}
       </div>
 
@@ -388,9 +424,9 @@ export default function Learn() {
         />
       )}
 
-      {/* 晋级赛考试弹窗：examReady 已保证 next 存在且考池 ≥5 题 */}
+      {/* 晋级赛考试弹窗：examReady 已保证 next 存在、考池 ≥10 题（不足 100 按池缩容） */}
       {examOpen && (
-        <ExamModal pool={rank.objPool} target={rank.next} onDone={finishExam} />
+        <ExamModal pool={rank.objPool} target={rank.next} size={rank.examSize} passScore={rank.passScore} onDone={finishExam} />
       )}
     </div>
   )

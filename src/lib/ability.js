@@ -93,6 +93,11 @@ export function rankOf(ability) {
 /* 定级赛门槛（用户指定：EWMA 能力指数 ≥0.85 才有资格开考） */
 export const PLACEMENT_ABILITY = 85
 
+/* 晋级赛考制（2026-09-09 晨改版：五局三胜 → 百分制）：
+   题库刷完一遍后开考，随机抽 SIZE 道客观题（考池不足按池缩容），
+   答对 ≥ SIZE×PASS_RATE（即百分制 90 分）晋级一段。 */
+export const PROMOTION_EXAM = { SIZE: 100, PASS_RATE: 0.9 }
+
 /* 换区建议（题库难度与用户水平的错位检测，Learn 页段位卡的副提示行）。
    样本闸（2026-09-09 用户反馈：原 8 题太少，题库几百题必须有量的积累才可信）：
    近 30 题、≥24 条有效判定。双条件闸防误报——「近期表现」与「EWMA 指数」同时越界：
