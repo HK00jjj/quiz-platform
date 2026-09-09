@@ -5,7 +5,7 @@ import { A } from '../assets'
 import { GiltBtn, EmptyState, burstParticles, FlameIcon } from '../components'
 import { IconRetry, IconShuffle, IconNew, IconFilter, IconLearn, IconImport } from '../components/CandyIcons'
 import { buildSession, lastResultMap, TYPES, DIFFICULTIES, domainLabel, filtersKey } from '../lib/stats'
-import { abilityOf, zoneAdvice, RANKS, PROMOTION_EXAM } from '../lib/ability.js'
+import { abilityOf, zoneAdvice, RANKS, PROMOTION_EXAM, MASTERY } from '../lib/ability.js'
 import { gradeObjective } from '../lib/validate'
 import { isDue } from '../lib/fsrs'
 import { todayStr, streakLength } from '../lib/dates'
@@ -221,9 +221,33 @@ export default function Learn() {
     const official = RANKS.find((r) => r.name === (settings.rank ?? '黑铁')) ?? RANKS[0]
     const next = RANKS[RANKS.indexOf(official) + 1] ?? null
     const since = settings.lastExamAt ?? 0
-    const answered = new Set(records.filter((r) => r.timestamp > since).map((r) => r.questionId))
-    const doneN = questions.filter((q) => answered.has(q.id)).length
+    /* 掌握度三闸（MASTERY 标准，2026-09-09 晨）：
+       覆盖率 100% + 逐题掌握率（本轮每题最近一次作答答对）≥95% + 知识点正确率（≥3 次作答者）≥85% */
+    const latest = new Map()
+    const kpStats = new Map()
+    for (const r of records) {
+      if (r.timestamp <= since) continue
+      const prev = latest.get(r.questionId)
+      if (!prev || r.timestamp > prev.timestamp) latest.set(r.questionId, r)
+    }
+    const doneN = questions.filter((q) => latest.has(q.id)).length
     const covered = questions.length > 0 && doneN === questions.length
+    const masteredN = questions.filter((q) => latest.get(q.id)?.correct === true).length
+    const itemRate = questions.length ? masteredN / questions.length : 0
+    const qKp = new Map(questions.map((q) => [q.id, q.knowledgePoint ?? '未标注']))
+    for (const r of records) {
+      if (r.timestamp <= since) continue
+      const kp = qKp.get(r.questionId)
+      if (!kp) continue
+      const s = kpStats.get(kp) ?? { n: 0, c: 0 }
+      s.n++; if (r.correct) s.c++
+      kpStats.set(kp, s)
+    }
+    const kpArr = [...kpStats.values()].filter((s) => s.n >= MASTERY.KP_MIN)
+    const kpTotal = kpArr.length
+    const kpOK = kpArr.filter((s) => s.c / s.n >= MASTERY.KP_ACC).length
+    const kpPass = kpTotal === 0 || kpOK === kpTotal
+    const masteryReady = itemRate >= MASTERY.ITEM_RATE && kpPass
     const p = Math.round(ability * 100)
     const threshold = next ? next.lo : null
     const objPool = questions.filter((q) => ['单选题', '多选题', '判断题', '填空题'].includes(q.type) && !q.image)
@@ -234,7 +258,7 @@ export default function Learn() {
       const s = JSON.parse(localStorage.getItem(EXAM_PROGRESS_KEY) ?? 'null')
       if (s && Array.isArray(s.ids) && s.ids.length === examSize && s.round <= examSize) examSaved = s
     } catch { /* 损坏进度视同无续考 */ }
-    return { official, next, since, doneN, total: questions.length, covered, p, threshold, examSize, passScore, examSaved, objPool, examReady: covered && threshold !== null && p >= threshold && objPool.length >= 10 }
+    return { official, next, since, doneN, total: questions.length, covered, masteredN, itemRate, kpTotal, kpOK, kpPass, masteryReady, p, threshold, examSize, passScore, examSaved, objPool, examReady: covered && masteryReady && threshold !== null && p >= threshold && objPool.length >= 10 }
   }, [questions, records, settings.rank, settings.lastExamAt, ability])
 
   function finishExam({ pass, wins }) {
@@ -345,11 +369,21 @@ export default function Learn() {
             </div>
           )}
           <p>
-            状态指数 {rank.p}
-            {rank.next ? ` · 晋级「${rank.next.emoji} ${rank.next.name}」门槛 ${rank.next.lo}` : ''}
-            {' · '}刷库进度 {rank.doneN}/{rank.total}
-            {rank.examReady ? ` · ✅ 晋级赛已就绪（${rank.examSize} 题考 ${rank.passScore} 分）` : ` · 还需刷完 ${Math.max(0, rank.total - rank.doneN)} 道未刷题`}
+            状态指数 {rank.p}{rank.next ? `（晋级门槛 ${rank.next.lo}）` : ''}
+            {' · '}覆盖 {rank.doneN}/{rank.total}
+            {' · '}逐题掌握 {Math.round(rank.itemRate * 100)}%（≥{Math.round(MASTERY.ITEM_RATE * 100)}）
+            {' · '}知识点达标 {rank.kpTotal === 0 ? '—' : `${rank.kpOK}/${rank.kpTotal}`}（≥{Math.round(MASTERY.KP_ACC * 100)}%）
           </p>
+          {!rank.examReady && (
+            <p className="rank-hint">
+              距晋级赛还差：{[
+                rank.covered ? null : `刷完 ${rank.total - rank.doneN} 道未刷题`,
+                rank.itemRate >= MASTERY.ITEM_RATE ? null : `错题重练（${rank.total - rank.masteredN} 题最近一次未答对）`,
+                rank.kpPass ? null : `${rank.kpTotal - rank.kpOK} 个知识点正确率未达 ${Math.round(MASTERY.KP_ACC * 100)}%`,
+                rank.threshold === null || rank.p >= rank.threshold ? null : `状态指数升到 ${rank.threshold}`
+              ].filter(Boolean).join('；') || '—'}
+            </p>
+          )}
           {advice.level === 'too-easy' && (
             <p className="rank-hint">⚡ 近 30 题正确率 {Math.round(advice.recentAcc * 100)}%——题库对你已偏易，去导入更高水平源题继续上分</p>
           )}
