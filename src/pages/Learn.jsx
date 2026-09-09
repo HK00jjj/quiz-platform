@@ -268,7 +268,7 @@ export default function Learn() {
     const { official, next, passScore, examSize } = rank
     if (pass && next) {
       updateSettings({ rank: next.name, lastExamAt: Date.now() })
-      setPromo({ kind: 'promo', title: `晋级成功！${official.emoji} ${official.name} → ${next.emoji} ${next.name}`, sub: `百分制 ${examSize} 题考得 ${wins} 分（≥${passScore} 过线）。段位只能一级一级考上去——继续刷，向着最强王者进发` })
+      setPromo({ kind: 'promo', title: `晋级成功！${official.emoji} ${official.name} → ${next.emoji} ${next.name}`, sub: `百分制 ${examSize} 题考得 ${wins} 分（≥${passScore} 过线）。段位只能一级一级考上去——继续刷，向着最强王者进发。题库已全部刷穿：去导入页发下一批源题，难度随新源题上台阶` })
     } else {
       updateSettings({ lastExamAt: Date.now() })
       setPromo({ kind: 'demote', title: `晋级失败（${wins} 分 / ${passScore} 分线）：${official.emoji} ${official.name}`, sub: `差 ${Math.max(0, passScore - wins)} 分。晋级条件重新计数——把题库再刷一遍，就能再次挑战「${next?.name ?? '下一段位'}」` })
@@ -391,6 +391,13 @@ export default function Learn() {
           )}
           {advice.level === 'too-hard' && (
             <p className="rank-hint">🛟 近 30 题正确率 {Math.round(advice.recentAcc * 100)}%——题库偏难，可导入降阶源题先回血</p>
+          )}
+          {/* 晋级→再导入联动（2026-09-09）：题库刷穿且掌握达标、但还考不了晋级赛
+             （指数未到门槛或刚晋完级）→ 提醒发新源题。措辞守 v4.10 红线：
+             段位只做提醒信号，难度仍由 kpProfile verdict + 新源题自身难度档决定，
+             不承诺"段位到了题自动变难"。导入后新题计入覆盖闸，晋级周期自动重开。 */}
+          {rank.next && rank.covered && rank.masteryReady && !rank.examReady && (
+            <p className="rank-hint">📚 题库已全部刷穿——去导入页发下一批源题，难度随新源题上台阶（导入后晋级周期自动重开）</p>
           )}
         </div>
         {rank.examReady && (
