@@ -131,6 +131,32 @@ const mk = (arr) => arr.map((c, i) => rec('z', c === 1, NOW - (30 - i) * 1000))
   t('K5 空记录 → ok', zoneAdvice([]).level, 'ok')
 }
 
+/* ── L：族级薄弱度窗口截断（v4.15.1：只看最近 30 条有效作答） ── */
+{
+  /* 观测设计：q1（K1，自身零作答，经验难度 0.3，匹配差 0.05）
+     vs q4（K2，综合档先验恰好 = target 0.25，完美匹配）。
+     族记录挂在 q2（同族 K1）上——族统计是全族共享的，q1 能"继承"q2 的薄弱度。
+     窗口内 K1 有 ≥3 条错 → q1 靠 -0.1 族加成反超（-0.05 < 0）；
+     窗口外（旧错被挤出）→ 无加成 → q4 回到第一。 */
+  const pool = [
+    { id: 'q1', difficulty: '基础', knowledgeDomain: 'K1' },
+    { id: 'q2', difficulty: '综合', knowledgeDomain: 'K1' },
+    { id: 'q4', difficulty: '综合', knowledgeDomain: 'K2' }
+  ]
+  /* L1 旧错出窗：30 条 q2 全错在窗口外，窗口内只有 3 条新对的 q2 记录
+     （27 条 ghost 错占位挤出窗口，ghost 不在池内不产生族统计）
+     → K1 窗口内 n=3 全对 weak=0 → 完美匹配的 q4 必胜（全量口径下 weak=1 会让 q1 反超） */
+  const oldWrongs = Array.from({ length: 30 }, (_, i) => rec('q2', false, NOW - (60 - i) * 1000))
+  const ghosts = Array.from({ length: 27 }, (_, i) => rec('ghost' + i, false, NOW - (25 - i) * 1000))
+  const fresh = [rec('q2', true, NOW - 2000), rec('q2', true, NOW - 1000), rec('q2', true, NOW)]
+  t('L1 族旧错滑出 30 条窗口后不再持续优先（返回完美匹配 q4）',
+    ids(pickMatched(pool, 0.5, 1, [...oldWrongs, ...ghosts, ...fresh])), ['q4'])
+  /* L2 正向对照：同样 30 条全错但都在窗口内 → weak=1 生效，q1 反超 q4 */
+  const inWindow = Array.from({ length: 30 }, (_, i) => rec('q2', false, NOW - (40 - i) * 1000))
+  t('L2 窗口内 n≥3 全错仍触发族优先（返回 q1）',
+    ids(pickMatched(pool, 0.5, 1, inWindow)), ['q1'])
+}
+
 console.log(`\n通过 ${pass} / ${pass + fails.length}`)
 if (fails.length > 0) { console.log(fails.join('\n')); process.exit(1) }
 console.log('ALL PASS')
