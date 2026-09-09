@@ -1,0 +1,2795 @@
+# 交接文档 · 糖果题库（quiz-platform）
+
+> 写给下一个接手的会话。读完这一份就能独立干活，不需要翻历史对话。
+> 最后更新：2026-09-09 午后，对应线上提交 `c69d947`。
+
+## 2026-09-09 午后增量（commit c69d947，bundle index-BDK1dvu1.js）· 晋级→再导入提醒联动
+
+用户确认实施此前可行性评估的方案：**以段位晋升为信号，提醒重新导入源题**。改动仅 `Learn.jsx` 两处（零数据/零后端/零规则协议变更）：
+
+1. **晋级成功 toast 补提示**：`finishExam` promo 分支 `sub` 末尾追加"题库已全部刷穿：去导入页发下一批源题，难度随新源题上台阶"。触发条件天然成立——能进晋级赛就必然 covered+masteryReady。
+2. **排位卡常驻提示**：`rank.next && rank.covered && rank.masteryReady && !rank.examReady` 时显示"📚 题库已全部刷穿——去导入页发下一批源题，难度随新源题上台阶（导入后晋级周期自动重开）"。覆盖两种状态：刚晋完级（指数低于新段位门槛）/ 已刷穿但指数未到门槛。examReady 时只显示考试按钮不显示本提示，无冲突。
+
+措辞守 **v4.10 红线**：段位只做提醒信号，不承诺"段位到了题自动变难"——难度仍由 kpProfile verdict + 新源题自身难度档决定。晋级失败路径不触发（只挂 promo 分支与 covered 状态）。
+
+六步链全过（build ✓ → purge 0 孤儿 → deploy commit `c69d947` → verify-deploy IDENTICAL → push-src 84/84 → verify-live ALL OK 121/121 + 三哈希 MATCH）；线上 bundle 特征串 3/3 HIT（难度随新源题上台阶 / 晋级周期自动重开 / 题库已全部刷穿：去导入页发下一批源题）。
+
+## 2026-09-09 深夜增量三（commit d2ed912，bundle index-BxEvvQAa.js）· 规则 v6.0 逐知识点严格决策（四点最严格门槛）
+
+用户指令"查源题知识点掌握状态必须非常严格，不容一点掺水"+ 四点全按最严格门槛落地。**难度决策的自变量从全局信号（段位/指数/配比）整体切换为逐知识点掌握画像**——这是对"本末倒置"评审的架构级修正：
+
+1. **逐源题决策替代全局配比**：`fetch_level.mjs` 升级 v4.10——输出 kpProfile（{kp, n, acc, fN 首答样本数, f 首答正确率, v verdict}），数据源 = 云端 answer_records join knowledge_point。verdict 四条件全过才判 mastered（**n≥3 且 acc≥85% 且 fN≥2 且 f≥80%**）；weak = n≥3 且（acc≤50% 或 f≤40%）；middle/unseen/样本不足一律**保持源题档**（不掺水）。AI 规则：mastered → 该题升一档或保持（脱离舒适区）；weak → 降一档 + 原解法入解析（不跳困难区）。配比表（v4.9 mix）与 v5.0"段位对齐"机制**退役**。实测：1227 kp → 0 mastered / 10 weak / 159 middle / 1058 unseen（指数 78=钻石 但 0 个 mastered——严格门槛生效的直接证据）。
+2. **pickMatched 知识点薄弱度优先**：cost = |empDifficulty − target| − 0.1×kpWeak（薄弱 kp = 作答 ≥3 次且正确率低者的题获得最高 0.1 档优先）——"在薄弱知识点上由浅入深"成为第一排序键。
+3. **段位/指数永久退出难度决策**：只管晋级赛考试。kp 掌握到位即出综合题，哪怕段位还是青铜——难度供给不设段位天花板。
+4. **empDifficulty 首答加权**：`REPEAT_DECAY = 0.5`，第 k 次作答权重 0.5^k——首轮答错、复刷全对的题难度显著高于复刷全对题，消除重复刷题"虚假变简单"，让"已掌握题自然退出匹配带"真实成立。
+
+规则文档升 **v6.0**（第0步/4.4/第八章三节改写 + 版本头，三副本 md5 `62c0352c…` 一致）。单测 23/23（新增 P5 薄弱优先、E4 首答主导）。六步链全过（IDENTICAL、SRC 84/84、ALL OK、特征串 3/3 HIT：`.15+.2*` / `.1*` / `Math.pow(s_,l)` 加权累加）。fetch_level.mjs 是本地脚本不部署（注意：它的凭据路径是 `Documents/Qoder/app/.env`，两份 .env 均有全键）。并行会话曾把 fetch_level.mjs/规则写成 v5.0 段位对齐方向（与本次用户意图相反），已整体覆盖为 v6.0——接手后若发现 v5.0 字样属历史残留。
+
+
+## 2026-09-09 上午增量（commit 8d4ac2a，bundle index-CJj59FwA.js）· 难度机制定稿（pickMatched 目标重设计）
+
+用户指出"什么段位对应什么难度、判定标准是什么"没有说清 → 定稿三件事：
+
+1. **难度判定标准（两级）**：① 结构判据（出题前可自检）：知识点数 × 解答步骤 × 情境条件 × 认知层级四轴，任一轴达高档即按高档（一票升档），已写入规则 4.4（v4.9 补强，三副本 md5 `40564778…`）；② 实证校准（v4.7 已有）：难度终审 = 首答正确率（≥85% 实为基础 / 60~85% 应用 / <60% 综合），倒挂进闸6 可疑清单。
+2. **段位 ↔ 难度连接口径**：难度值 = 1 − 首答正确率（对当前学习者），是"题×人"的函数；配比表的本质 = 让新题预期首答率落进段位训练带（黑铁 ~85% 强化区 → 王者 ~65% 挑战区），与 PRIOR_P 同源。
+3. **pickMatched 目标重设计（修复真实缺陷）**：旧公式 `clamp(1-ability, .25, .75)` 两处错——低段位 pass 目标 <0.6（挫败区，nearest-match 会把新手推向最难档题）；高段位锁死 0.75（高手无题可长）。新公式：**pass 目标随能力 0.85→0.65 线性下移**（`targetDifficulty = 0.15 + 0.2 × clamp((ability-0.2)/0.6, 0, 1)`），nearest-match 自动把命中标签带随能力上移（新手→基础带、高手→综合带，单测 P1/P1b 双向验证）。Learn 卡文案改"目标答对率 65~85%（随段位下移）"。指数增长不靠匹配练习（匹配钉住通过率会使指数钝化），靠全库复刷等非匹配作答——与晋级赛触发条件天然分工。
+
+单测 21/21（P1/P1b/P2 重写）。六步链全过（IDENTICAL、ALL OK、特征串 HIT）。
+
+
+## 2026-09-09 晨增量二（commit ba8b48b，bundle index-BixO6f95.js）· "彻底掌握"量化判定
+
+用户指出"彻底掌握题库知识点"无可判定标准 → 定义四道量化闸（`MASTERY = { ITEM_RATE: 0.95, KP_ACC: 0.85, KP_MIN: 3 }`，ability.js 导出），全部满足才亮晋级赛按钮：
+
+1. **覆盖率 100%**：本轮（自 settings.lastExamAt 起）每题至少作答一次（原有）。
+2. **逐题掌握率 ≥95%**：每题"本轮最近一次作答"必须答对（错题清零，留 5% 顽固题给百分制考试最终把关）。实现：records 按 timestamp 扫出每题最近一次作答（只算 > since 的），答对数/总题数。
+3. **知识点达标率 100%**：每个本轮作答 ≥3 次的知识点，本轮正确率 ≥85%（<3 次样本不足豁免）。按 questions 的 knowledgePoint 聚合作答。
+4. **状态指数 ≥ 下一段位门槛**（原有）。
+
+排位卡同步改为三仪表显示（覆盖 x/y · 逐题掌握 x%（≥95）· 知识点达标 k/k（≥85%）），未就绪时给出**差距清单**（"距晋级赛还差：错题重练（N 题最近一次未答对）；M 个知识点正确率未达 85%；状态指数升到 T"）。规则第八章同步判定标准，三副本 md5 一致。
+
+
+## 2026-09-09 晨增量（commit 0af417a，bundle index-Ddxl9sTi.js）· 晋级赛考制改版：百分制 100 题 90 分
+
+用户指令：五局三胜样本太少 → 改为**百分制考试**，且触发前提是"彻底掌握题库知识点"：
+
+1. **考制**：随机抽 **100 道客观题**（考池 = 无图客观题；不足 100 按池缩容，<10 不得开考），答对 ≥90%（`PROMOTION_EXAM = { SIZE: 100, PASS_RATE: 0.9 }`，ability.js 导出）即晋级一段。交卷判分 = 答对题数即百分制得分。
+2. **进度持久化**：百题考试必须防误关——每答一题写 `localStorage['qp-exam-progress']`（{ids, round, wins}），刷新/关闭后重开自动**续考**（按钮显示"续考晋级赛（第 X/100 题，已得 Y 分）"）；续考有效性校验 = 题全部能按 id 找回 + 题数与当前考制一致（题库变更/改制自动重考）；交卷或放弃时清除。
+3. **触发条件不变**：全库自 lastExamAt 起刷完一遍（彻底过一遍知识点）+ 指数 ≥ 下一段位门槛；失败仍重置覆盖。考试不写 records 不变。
+4. 规则文本第八章同步改版（百分制描述），三副本 md5 一致。单测 20/20 不变（考制在组件层，unit 测的是 ability/zone/rank 纯函数）。
+
+
+## 2026-09-09 深夜增量二（commit eb0fcb4，bundle index-Cmmt97g-.js）· 排位系统 v2（晋级赛 + AI 自动调取）
+
+用户三轮迭代后的定稿（推翻本日早些的"怪区横幅"与"定级赛"两版）：
+
+1. **晋级赛（不是定级赛）**：段位从**黑铁**起步（settings.rank，缺省即黑铁），晋级只能**一级一级考上去，不能跳段**。触发条件 = 题库所有题自上次考试（settings.lastExamAt）后**都刷过一遍** + 状态指数 ≥ 下一段位门槛（RANKS[].lo）；五局三胜，随机抽 5 道客观题（含图题不进考池）；通过 → 官方段位 +1；失败 → lastExamAt 重置 = 必须**再刷一遍题库**才能再次触发。考试作答**不写 records**（不污染 EWMA/SRS），弹窗组件 ExamModal 在 Learn.jsx（gradeObjective 判分，learn 页自含）。Learn 页新增常驻排位卡（段位徽章/晋级进度条/刷库进度/晋级按钮）+ 考后播报横幅（8s 自动消失）。原 zone-banner 横幅与 rankState/lastRank 对比 effect 已删除；candy.css 的 .zone-* 换成 .rank-*/.promo-*/.exam-*。
+2. **AI 自动调取水平（v4.9 核心）**：`Documents/Qoder/命题流水线/fetch_level.mjs`——AI 收到"源题："先跑此脚本（E2E 账号登录 Supabase 拉 answer_records，凭据从 Documents/Qoder/app/.env 自取），输出 状态指数/段位/**难度配比 mix**/认知重点 cogFocus/输出层级/近30题正确率/错位判定 skew+instruction。**段位↔难度配比表**（黑铁→王者 = 基础80/65/50/35/20/10/5/0%、应用20/30/40/45/50/50/40/30%、综合0/5/10/20/30/40/55/70%，认知重点 记忆→创造）。skew=too-easy/too-hard 时按 instruction 上浮/下调一档。**出题难度永远跟状态指数走，不跟官方段位走**（官方段位落后于实际水平是设计使然）。
+3. **规则 v4.9**：出题规则体系 v4.9（md5 `88e3472b…` 三副本同步）——2.2 第 0 步改"自动调取优先、声明备用、皆缺默认进阶"，第八章输入协议重写，纪律 3 补"不得为凑配比拔高源题"。用户使用路径简化为：**把源题发给 AI 即可，其余全自动**。
+4. Import.jsx：能力档条去掉 zoneNameOf（已删函数），"复制水平声明"降级为备用按钮（文案注明 AI 自动调取）。ability.js：RANKS/rankOf 保留，PLACEMENT_ABILITY/rankState 删除。
+
+单测 unit_test_ability_20260909.mjs 升至 **20/20**（Z 组改 30 题窗口 + rankOf 八段位边界）。fetch_level.mjs 实测：250 作答 → 指数 73 → 铂金/进阶/近30题 83%/skew ok。六步链全过（IDENTICAL、SRC OK、ALL OK、特征串 HIT）。
+
+
+## 2026-09-09 深夜增量（commit 3942465，bundle index-vmAdqORV.js）· 怪区提示（游戏化换区建议）
+
+用户提案"小怪太低就建议换高区打怪"的落地。用户原案"近 5 题全对 90%+"误报率过高（连对几道送分题即触发），改为**双条件闸**：
+
+1. **`ability.js` 新增 `zoneAdvice(records)`**：too-easy = 近 10 题（≥8 条有效）正确率 ≥85% **且** EWMA 能力指数 ≥0.85；too-hard = 近 10 题（≥8 条）≤45% **且** 指数 ≤0.45；其余 ok。同时新增 `tierOf`/`zoneNameOf`（<55 新手村 / 55~78 进阶平原 / >78 熟练之巅，取整百分比判定）——Import.jsx 的本地 tierOf 副本已删，改从 ability.js 统一导入（单一真源）。
+2. **Learn.jsx 怪区横幅**：advice.level ≠ ok 时在 hero 下方显示动画横幅（zone-hot 暖橙 ⚔️"这片怪区已经打不动你了"劝升源题 / zone-cool 冷蓝 🛟"这片怪区超出当前水平"劝降阶补基础），带近 N 题正确率 + 状态指数，CTA「去换怪区」直达 /import，✕ 可关闭（仅本次会话）。循环动画只挂 26px emoji（§5 红线），入场走全局 .rise。智能匹配练习卡片追加当前怪区名。
+3. **candy.css** `.zone-banner/.zone-hot/.zone-cool/.zone-emoji/.zone-actions/.zone-close` + `zone-bob` keyframes + 640px 折行适配。
+
+单测：unit_test_ability_20260909.mjs 增 Z1~Z7b 共 8 例（含"7 题不触发""近期 70% 不误报"反例），**19/19 PASS**。六步链全过（IDENTICAL、ALL OK、特征串 HIT）。
+
+
+## 2026-09-09 晚增量（commit 8f4bbf0，bundle index-C_niQngz.js）· v4.8 能力档联动（导入页）
+
+源题阶段难度匹配的网站端落地（规则侧 v4.8 已于本日完成，md5 b3763270…，三副本同步）。Import.jsx 三处改动：
+
+1. **题集模式面板加能力档条**：实时显示当前状态指数（复用 `lib/ability.js` 的 `abilityOf`，EWMA 半衰期 20）+ 建议能力档（<55 新手 / 55~78 进阶 / >78 熟练，取整百分比判定）；「📋 复制水平声明」一键复制 `我的水平：XX（状态指数 NN）`——声明是随源题发给 AI 的，**不写进输入框**（输入框只收 JSON，混入声明会破坏 parseItems）。
+2. **detectSetMode 能力档告警（非拦截）**：新手档导入时统计批内 `认知层级 ∈ {应用,分析,评价,创造}` 的题，占比 ≥30% 即追加告警：提示补"我的水平：新手"声明后重发，AI 会按层级适配降阶（源题原考点解法保留在解析中）。
+3. `tierOf` 为模块级纯函数；判定口径与规则 v4.8 第八章一致。
+
+部署：六步链全过（build → purge 0 孤儿 → deploy commit `8f4bbf0` → verify-deploy IDENTICAL → push-src → verify-live ALL OK）。
+
+
+## 2026-09-09 凌晨增量（commit f3ce99a）· 自适应难度匹配（合意困难选题）
+
+回应"n=1 方法论天花板"的突破尝试——**不测真实能力（n=1 不可测），只调下一题答对概率**，让作答正确率落在 60~80% 学习效率最优区：
+
+1. **新模块 `src/lib/ability.js`**：①`abilityOf` 用户能力指数（EWMA，半衰期 20 次客观作答，窗口 60，每次作答即时更新——比"每 500 题批量调整"响应快且平滑疲劳波动）；②`empDifficulty` 逐题经验难度（该题加权正确率反向，n 小按自评档先验收缩：基础 0.85/应用 0.70/综合 0.55，先验强度 2）；③`pickMatched` 组卷（|经验难度−目标难度| 升序取前 K=max(size, ceil(池×0.3)) 再随机抽——大池保随机、小池保匹配）。
+2. **接入点**：`stats.js buildSession` 的 **random 分支**改为智能匹配；learn（seq 认知阶梯）、review（FSRS 管辖）、wrong/relearn（定向）刻意不动。Learn 页"随机练习"入口改名"智能匹配练习"并显示状态指数。
+3. **验证**：ability 单测 11/11（EWMA 响应/平滑、收缩、匹配排序、边界）+ 既有组卷回归 18/18；六步链全过（IDENTICAL）。
+4. **设计边界（诚实声明）**：records 无 mode 字段，EWMA 无法区分"复习场景答错"与"能力下降"，靠半衰期平滑；经验难度 n<5 时噪声大，靠收缩兜底；目标区间 60~80% 是合意困难的经验值，未对个人校准——闸6 数据回流时用实际正确率分布复核 targetDifficulty 是否需要个性化。
+
+## 2026-09-08 深夜增量（commit 3abca70，bundle index-BAFWmEHe.js）· v4.7 反平庸化
+
+背景：区分度回流数据（234 条作答）显示正确率双峰极化（94 题 100%+46 题 ≤49%，中段仅 14 题）、难度标注倒挂——用户裁决"重点改机制"。五处改动：
+
+1. **validate.js 新增两项告警**：①`checkChoice` 反"四胞胎"同构检测（长度几乎一致 + 开头字相同≥3/同一连接词≥3 项 → 告警）；②批内查重与 `crossBatchCheck` 加"去修饰同名"检测（`kpNorm` 剥离 40+ 通用修饰词后比对，"电气互锁/机械互锁"类改名过闸 → 告警）。均告警级不拦截。单测 12/12 + 回归 10/10 全绿。
+2. **规则文件升 v4.7**（三副本 md5 `2d6de84a` 同步：命题流水线主副本 + electrical-question-gen skill 的 question-set-protocol.md，junction 生效）：解析反模板条款（第六章，替代预算指引）、选项节奏差异合法化（5.1.1/5.1.2）、"归属/匹配式+裁决匹配式"真命题干扰项通道（纪律 7/8、5.1.4、5.1.5③）、反改名过闸红线（2.2 第 4 步）、难度数据校准条款（4.4）、闸6 数据回流（附录 A）。
+3. **SOP 升六道闸**：闸2/闸4 评审清单加反模板与改名过闸检查项；原"闭环反馈"升级为闸6 数据回流（每 500 条作答或 10 批复跑）。
+4. **一键回流脚本**：`E:/workbuddy-cc/2026-09-08-21-39-09/run_quality_loop.mjs`（凭据自动读 Documents/Qoder/app/.env 的 E2E_EMAIL/E2E_PASSWORD，经环境变量传递）。
+5. 数据侧结论与可疑题清单见 `E:/workbuddy-cc/2026-09-08-21-39-09/区分度回流分析报告_20260908.html`；11 道送分题、7 道 0% 正确率题待回炉。
+
+## 2026-09-08 晚增量（commit 9769e75，bundle index-DZdKzHV_.js）
+
+源自"网站全方位分析报告"（E:/workbuddy-cc/2026-09-08-21-39-09/quiz-platform_深度分析报告_20260908.md）的改进落地：
+
+1. **R1 修复**：`validate.js` checkBatchRules 的"序号 1 查重豁免"加 batchMode 门——生成批（整批通道）保留豁免（第 1 题为原题），题集逐题通道全序号同口径批内查重。原实现豁免泄漏进题集通道，第 1 题与后续题知识点撞名静默放行。
+2. **新增 `crossBatchCheck(items, existing)`**（validate.js 导出，Import.jsx 两条通道接入）：跨批知识点撞名 + 题干近似改写告警（2-gram 重叠系数 ≥0.8、最短 6-gram 护栏；用重叠系数而非 Jaccard，防扩写稀释漏检与通用模板误报）。仅告警不拦截；内容哈希已在库内的题整题跳过（重导同批零噪音）。填补"跨批避重只靠台账/precheck 脚本、近似改写不查"的机器盲区。
+3. **模式误用引导**：默认通道报"数组应为21个元素"时追加一条告警指向题集模式开关。
+4. **RLS 核验结论（R4，一次性）**：用 publishable key（无登录态）实测——四表 INSERT 全部 42501 策略级拒绝；anon SELECT 四表均 0 行可见（库内有真实数据，说明 SELECT 也被策略挡住）。匿名 INSERT/读两个面确认关闭；UPDATE/DELETE 对不存在行返回 0 行受影响属不可判定（probe 行无法创建），如需 100% 终判可在 Supabase dashboard 跑 `select * from pg_policies;`——按标准 "authenticated only" 模板推断无缺口。
+5. **验证**：增量单测 7/7 + validate_回归 10/10 全绿（脚本：E:/workbuddy-cc/2026-09-08-21-39-09/unit_test_crossbatch_20260908.mjs）；六步链全过（verify-deploy IDENTICAL）。
+6. **待办**：dist/assets 堆积 55 个历史孤儿 index-*.js（历次 emptyOutDir:false 累积，purge-dist 只清 img 素材）；线上同构、功能无害但拖慢部署（109 blobs），建议某次部署前统一清理本地+线上。
+
+---
+
+---
+
+## 0. 三十秒上手（最要紧的四条）
+
+1. **权威源码在 `src` 分支，不在 `main`**。`main` 只有一个 README。线上产物在 `gh-pages` 分支。
+2. **本地没有 git**。所有推拉都走 GitHub Git Data API（blob→tree→commit→ref），脚本在 `scripts/`。
+3. **浏览器验证只用 Playwright CLI**：`npx playwright cli ...`。agent-browser 在这台机器上不可靠，已弃用。用完必须 `close`。
+4. **`app/src/components.jsx` 会被用户编辑器的陈旧缓冲区反复回写成旧版本**（实测同一轮内被覆盖两次）。所以关键组件已搬到 `app/src/components/CandyBoot.jsx`。**不要把东西搬回 components.jsx。**
+
+---
+
+## 1. 项目是什么
+
+电气自动化刷题站。视觉经历三次迭代：
+
+| 版本 | 状态 | 说明 |
+| --- | --- | --- |
+| 奥术典籍馆（哥特：暗金+墨绿青+羊皮纸+塔罗牌+Cinzel） | 已废弃 | 但它的 CSS 仍是底座，见 §3.1 |
+| 糖果题库（马卡龙果冻：奶白渐变+粉桃/薄荷/柠檬/薰衣草+果冻玻璃+大圆角+弹性缓动+气泡层+错误用酸橙绿） | **当前线上** | 用户明确要求回滚到这一版 |
+| 苹果明净版（Apple HIG / Liquid Glass） | 已废弃 | 用户看过后要求回滚；`app/src/theme/apple.css` 作为孤儿文件保留，无人 import |
+
+技术栈：**React 18 + Vite 5 + zustand + react-router(HashRouter) + @supabase/supabase-js，纯 CSS，无 Tailwind**。
+`vite base: '/quiz-platform/'`。开发用 demo 模式：`npm run dev -- --mode demo`（28 道覆盖七题型的假数据，不连云端）。
+
+- 本地工作区：`c:\Users\青丘白浅\Documents\QoderCN\2026-09-02\chat-1`
+- 项目根：`app/`（`app/src`、`app/public/img`、`app/dist`）
+- 部署工具：`scripts/`、根目录的 `verify-*.mjs`
+- 线上：https://hk00jjj.github.io/quiz-platform/
+- 仓库：`HK00jjj/quiz-platform`
+- Token：**不写在本文档里**。GitHub 的 push protection 会拦住含明文 token 的文件入库（实测：把 token 写进本文档后 `push-src` 直接报 `422 Repository rule violations found / Secret detected in content / token_type: GITH…`，重试三次全败）。
+  向用户索取，或从本地未入库的凭据文件里读。它是 fine-grained PAT，只需 `contents` 写权限；若仓库转公开请立即轮换。
+  下文命令里的 `<TOKEN>` 均指它。
+
+---
+
+## 2. 部署链路（六步，全部在仓库根目录跑）
+
+```powershell
+cd "c:\Users\青丘白浅\Documents\QoderCN\2026-09-02\chat-1"
+$t = '<TOKEN>'   # 见 §1：不要把它写进任何会入库的文件
+
+cd app; npm.cmd run build; cd ..          # ① 构建（Vite 自己会清空 dist，不要手动 Remove-Item）
+node scripts\purge-dist.mjs               # ② 清孤儿产物（保险：引用数 <25 会拒绝执行）
+node scripts\deploy-api.mjs $t "$PWD\app\dist" "<提交信息>"   # ③ 推 gh-pages
+Start-Sleep 22
+node verify-deploy.mjs $t "$PWD\app\dist" # ④ git blob SHA1 全量比对（缺失/不一致/多余 应全为 0）
+node scripts\push-src.mjs $t "$PWD\app" "$PWD\scripts" "$PWD\src-branch-README.md" "$PWD\verify-deploy.mjs" "$PWD\verify-live.mjs" "$PWD\HANDOFF.md"  # ⑤ 备份源码到 src 分支
+Start-Sleep 50
+node verify-live.mjs "$PWD\app\dist"      # ⑥ 线上 HTTP 逐文件 200 + 三哈希比对
+```
+
+### 已知怪癖（都会自愈，别慌）
+
+- **`push-src` 曾经只备份一部分工具**：旧版第 6 行只解构 4 个位置参数（多传的静默忽略），而且 `scripts/` 是一份 **8 个文件的硬编码白名单**。后果：`pull-src.mjs`、`purge-dist.mjs`、`candy-copy.mjs`、素材脚本、根目录的 `verify-deploy.mjs`/`verify-live.mjs` **从未进过 src 分支**——本地工作区一丢就恢复不出部署工具链。已修为：`...extras` 可变参 + 整个 `scripts/` 目录 walk。**记得把根目录的 verify 脚本和本文档作为额外参数传进去**（见上面的命令）。
+
+- **`push-src` 首跑报 `SRC BACKUP MISMATCH`** → GitHub 树回读缓存延迟。重跑一次会显示 `需上传 blob: 0` + `SRC BACKUP OK`。本项目已发生 6 次，每次都是这个原因。
+- **`verify-live` 在推送后 20~60 秒内报 `HAS FAILURES`** → GitHub Pages 传播延迟。等 45~95 秒重跑即 `ALL OK`。
+- **`purge-dist` 拒绝执行** → 它数产物里对 `img/` 的引用数，少于 25 就认为"你可能把素材删光了"而中止。这是保险，不是故障。
+- **终端守卫误报**：命令里出现 `Remove-Item`、`Stop-Process`，或命令过长时，会被丢进只读沙箱（报 `Please use PowerShell's Remove-Item cmdlet instead of CMD's rmdir`，即使命令里根本没有 rmdir），此时 node/npm 全部"拒绝访问"且静默失败。**对策：把长命令拆成两三条短的；永远不要在命令里带删除/杀进程。**
+
+### 发布前闸门（强烈建议保留这个习惯）
+
+构建后先对产物做静态断言，通过了才部署：
+
+```powershell
+$c = [IO.File]::ReadAllText((Get-ChildItem app\dist\assets\*.css | Select-Object -First 1).FullName)
+$j = [IO.File]::ReadAllText((Get-ChildItem app\dist\assets\*.js  | Select-Object -First 1).FullName)
+# 断言要用「抗压缩」的 token：类名、keyframes 名、界面文案
+# 反例（都曾因此误报）：'candy-hero::after'（压缩后是 :after）、'rgba(255,255,255,.38)'（压缩后转 hex-alpha）
+```
+
+本项目多次靠这个闸门拦下错误状态（包括一次编辑器污染导致的 Apple 版组件混入）。
+
+---
+
+## 3. 架构关键决策（改之前先读懂，别"顺手优化"）
+
+### 3.1 叠加主题层，不重写
+
+`app/src/theme/` 下三份 CSS，`main.jsx` 按此顺序 import：
+
+```
+global.css  (≈600 行，哥特原版：token、@font-face、.page-head、.panel、动画 keyframes)
+pages.css   (≈591 行，哥特原版：答题页九切片卷轴、三分区、判断题铜牌、步骤条)
+candy.css   (≈1000 行，当前主题：靠层叠覆盖上面两份)
+```
+
+**candy.css 是唯一的主题权威**。它的高杠杆手法是在 `:root` 重定义哥特 token（`--gold-text`、`--teal`、`--fault`、`--glow-*`、`--ink-parch`、`--muted`、`--ease-pop`），让几百条旧规则自动变色，而不是逐条改写。
+
+⚠️ `global.css` 里两个 Cinzel `@font-face` 指向**不存在**的 `public/fonts/cinzel-*.woff2`，每次加载白拿 2 个 404。candy.css 早已把 `.font-gothic` 覆写成 Nunito / Noto Sans SC，所以字体本来就没生效过。可以删，但注意 SearchReplace 锚点（见 §6）。
+
+### 3.2 `CandyBoot.jsx` 的存在理由（重要）
+
+用户的 IDE 里 `app/src/components.jsx` 有一个**苹果版的陈旧缓冲区**，会不定时自动回写，覆盖掉我的修改。实测：从 src 分支拉回糖果版 → 审计确认 `nav-emoji=True / launch-screen=False` → **一个调用之后又变回 Apple 版**。`app/index.html` 同样被回写成哥特原版。
+
+对策（已实施，别撤销）：
+
+- `app/src/components/CandyBoot.jsx` 承载 `Background`（气泡层）、`BottomNav`（三格 emoji 导航）、`BootRitual`（2 秒开机分镜）、`burstParticles`（糖豆爆裂）
+- `App.jsx` 从 CandyBoot 引这三个，只从 `components.jsx` 引 `TouchRitual`
+- `Practice.jsx` 从 CandyBoot 引 `burstParticles`
+- 因此 `components.jsx` 里的 `Background / BottomNav / BootRitual / burstParticles` 是**死代码**（Apple 版），无害但别用
+
+如果哪天确认编辑器缓冲区问题解决了，可以把 CandyBoot 并回 components.jsx，但要先用 §2 的闸门断言 `launchScreen=False`。
+
+### 3.3 `index.html` 是用户手动改回的哥特原版，**不要动**
+
+当前内容：`theme-color #0d1117`、标题「奥术典籍馆 · 窥秘人的修行之地」、`<link rel="preload" as="image" href="./img/p11.webp">`。
+我曾改成糖果版（`#FFF5F7` / 「糖果题库 · 刷题」/ 去掉 preload）并部署过，用户又改了回来。**尊重现状**；那条 p11 preload 警告会一直在 console 里，是无害的。
+
+### 3.4 多题库（书本）数据模型 —— 零表结构改动
+
+Supabase 四张表：`questions` / `review_cards` / `answer_records` / `settings`（key-value）。**没有 DDL 权限**，所以：
+
+- 书本映射存在 `settings` 表的 **`key='books'`** 行：
+  `{ activeBookId, order:[id], books:{id:{name,color,icon,subject,createdAt,lastOpenedAt}}, assign:{题目id→书本id} }`
+- 同时镜像到 `localStorage['quiz-platform.books.v1']`，**云端写失败自动降级本机**并提示
+- 隔离原理：`review_cards`/`answer_records` 以 `questionId` 为键 → **各书题目 ID 不重叠即天然隔离**，不需要 book_id 列
+- **关键设计**：store 里 `questions` 是**派生值** = `allQuestions.filter(q => assign[q.id] === activeBookId)`。所以 Learn 计数、题库页、组卷、答题全部自动变成书本作用域，**页面代码一行都不用改**
+- 迁移：首次加载若无 books，`migrateBooks()` 建一本「默认题库」把现有题目全归进去（只增不删）
+- **防回环**：`repo.subscribe` 监听了 `settings` 表，存书本会触发 reload；若 reload 又无条件再存就无限循环。用模块级 `lastBooksJson` 做幂等（`persistBooks` 第一行就 return）
+- 危险操作分级：`clearBookProgress`（只清 SRS 卡+做题记录，题目保留）/ `deleteBook`（删整本，UI 要求输入完整书名才解锁，且至少保留一本）
+- UI：`app/src/components/Bookshelf.jsx`，渲染在 `Settings.jsx` 最顶部
+- 已真机验证 9 步全通（切换/空态联动/题数恢复/新建/重命名/删除二次确认/主题库不受误伤）
+
+### 3.5 答题页（Practice）
+
+- 正面是 **p19 九切片羊皮纸卷轴**（`border-image: url('/quiz-platform/img/p19-soft.webp') 125 250 179 250 fill / 18px 36px 26px 36px stretch`），`.q-face` 自己铺 p4 无缝羊皮纸整块盖住被拉伸的中心切片
+- 三分区：`.zone-q`（题目）/ `.zone-a`（作答）/ `.zone-s`（答案，默认蜡封遮挡）
+- 答案用**墨迹显影**（`ink-write`：clip-path 自左向右）
+- 卡牌尺寸**高度优先**：`height: min(calc(100svh - 96px), 宽/0.5)`；移动端用 `svh` 不用 `dvh`
+- `.q-face-scroll` 必须 `scrollbar-gutter: stable both-edges`（只写 `stable` 会让内容中心偏左 3.5px）
+- 答案揭晓后的自动滚动：等 `seal === 'broken'`（蜡封 520ms 才卸载）+ 双 rAF，再一次性 `scrollTo`；**不自写 rAF 补间**（会与 CSS `scroll-behavior: smooth` 双重缓动）
+- ⚠️ **千万不要在 `.bank-item` 上加 `content-visibility: auto`**：它隐含 `contain: paint`，而 paint containment 是 3D 分组属性，会压平 `preserve-3d`、让 `backface-visibility` 失效（曾导致秘典页正反面同绘）
+- 这一页仍大量使用哥特位图：`A.cardBack`（翻牌封面=哥特卡背）、`A.roseWindow`、`A.cracks`、`A.waxSeal`（蜡封）、`A.gems`、`A.markRadio/markCheck`、`A.judgeCard`。**是待办 §7.3 的主战场**
+
+---
+
+## 4. 验证工具链
+
+### 4.1 Playwright CLI（唯一可靠）
+
+安装来源：`npx skills add microsoft/playwright-cli@playwright-cli -g -y`（skill 在 `~\.qoder-cn\skills\playwright-cli\SKILL.md`）。
+包名是 **`@playwright/cli`**，不是 `playwright-cli`。本地已有 playwright 1.62.1，所以用 **`npx playwright cli <cmd>`**。浏览器已下载到 `%LOCALAPPDATA%\ms-playwright\chromium-1234`。
+
+```powershell
+npx --yes playwright cli open                                    # 必须先 open，否则报 "browser 'default' is not open"
+npx --yes playwright cli resize 1280 900                         # 真实视口（390 844 测手机）
+npx --yes playwright cli goto 'http://127.0.0.1:5179/quiz-platform/#/settings'
+npx --yes playwright cli --raw eval "JSON.stringify({...})"       # 返回 JSON 字符串，断言首选
+npx --yes playwright cli run-code "async page => { ... }"         # 多步流程/帧采样/网络监听
+npx --yes playwright cli console                                  # 摘要含 Total messages / Errors / Warnings
+npx --yes playwright cli screenshot --filename=shots/x.png
+npx --yes playwright cli close                                    # 必须收尾
+```
+
+- 开发服务器：`127.0.0.1:5179`（先 `Test-NetConnection 127.0.0.1 -Port 5179` 确认活着）
+- console 输出**跨运行累积**，判断报错要看 Errors 数字是否为 0，不是看有没有输出
+- `run-code` 跑在 **Node 上下文**，没有 `setInterval` 等浏览器全局（踩过）；页面内的事要放进 `page.evaluate`
+- React 受控输入必须用原生 setter：
+  ```js
+  const d = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set
+  d.call(el, '文本'); el.dispatchEvent(new Event('input', { bubbles: true }))
+  ```
+- React 18 自动批处理：同一次 eval 里"先点选项再点提交"无效，必须拆成多次并中间等待
+
+### 4.2 帧采样探针（**照抄这个，别改**）
+
+```js
+// ✅ 正确：循环内只记录时间戳，不读任何样式
+const r = await page.evaluate(() => new Promise(res => {
+  const fr = []; let last = performance.now(), n = 0
+  function tick(t) { fr.push(+(t - last).toFixed(1)); last = t
+    if (++n < 120) requestAnimationFrame(tick)
+    else res({ max: Math.max(...fr), slow25: fr.filter(f => f > 25).length,
+               avg: +(fr.reduce((a,b)=>a+b,0)/fr.length).toFixed(1) }) }
+  requestAnimationFrame(tick)
+}))
+```
+
+⚠️ **在 rAF 循环里调 `getComputedStyle` 会自己造出假卡顿**：我第一次这么干，在 React 挂载新页面时强制同步样式重算 14 次，量出 `max: 175.8ms`；换成干净探针后同一场景是 `slowFrames: []`。要读样式就在采样结束后单独读一次。
+
+配合 `PerformanceObserver({entryTypes:['longtask']})` 和 `page.on('request')` 可以一次拿到慢帧、长任务、切页期间的网络请求。
+
+### 4.3 其它
+
+- **agent-browser**：已弃用。`open` 会因"守护进程留着指向已死浏览器的 restore 状态"而每条命令各耗 25 秒超时（20+ 条命令的脚本看起来就像永久死等）。正确收尾是 `agent-browser close --all`，**不是 `Stop-Process` 硬杀**。如果非要用，先跑 `agent-browser skills get core` 读官方故障排查。
+- **内置 Browser 子代理**（Agent 工具，`subagent_type: Browser`）：可用，但视口是 0×0，**只适合 DOM 文本/class 断言，不适合任何几何测量**。题库书架那 9 步功能验证就是它做的，效果很好。
+- 截图交给 `Read` 工具能拿到结构化描述，适合确认布局观感；精确数值一律用 `eval` 断言。
+
+---
+
+## 5. 性能基线（回归对照，2026-09-03 实测 @1280×900）
+
+| 场景 | max 帧间隔 | 慢帧(>25ms) | 备注 |
+| --- | --- | --- | --- |
+| 学习页空闲 120 帧 | 6.2ms | 0 | avg 6.0ms |
+| 学习 → 导入 | 18.0ms | 0 | |
+| 导入 → 设置（首次） | 60.6ms | 1 | 修前 **224.3ms / 3** |
+| 设置 → 学习 | 18.3ms | 0 | 修前 48.5ms / 1 |
+| 学习 → 设置（第二次起） | 6.2ms | 0 | |
+| 导航点击到路由变化 | 101~116ms | — | 修前有硬编码 **300ms** 延迟 |
+| console | **Errors: 0** | — | Warnings 里有 React Router v7 future flag ×2 和 p11 preload ×1，都无害 |
+
+### 已经修掉的两个频闪根因（别改回去）
+
+1. **`.page-wrap` 的 `page-in` 动画**：`from { opacity:0; filter: blur(6px); transform: translateY(10px) }`，450ms，**在整个页面上动模糊半径** → 每帧迫使整页重新光栅化。叠加 `.rise`（`rise-in .5s`）在四张入口卡上 .08/.16/.24/.32s 的错峰级联。
+   → candy.css 末尾：`.page-wrap, .rise { animation: none !important }`
+2. **卡片类元素的大面积 `backdrop-filter: blur(20px)`**：`.panel, .entry-card, .book-card, ...` 共用一条规则。设置页一次挂载 5 个 `.panel` + 3~4 个 `.book-card` = **9 层实时背景模糊在同一帧创建** → 224ms。
+   → candy.css 末尾追加同选择器列表：`backdrop-filter: none !important; background: rgba(255,255,255,.84) !important`
+   → 保留了底部导航（1 层常驻、iOS 标准材质）和答题页 `.pile-counter`（两个小元素）的模糊
+
+**动效纪律**（`fixing-motion-performance` + `animate` skill 的硬规则，本项目一律遵守）：
+只动 `transform`/`opacity`；**绝不动 `background-position`**（哥特版的鎏金扫光就是这么每帧重绘的）；不在大面积上动画 `filter`/`blur`；blur 只做静态、不连续动画；`infinite` 动画只跑在小面积元素上（64px 实体、66px 糖环），且关键帧大部分时间静止（天平 4.6s 周期里前 72% 完全不动）；一次性效果优先于循环；高频操作（切页、导航）只能"几乎察觉不到或干脆没有"；所有新增动效都要有 `prefers-reduced-motion` 降级。
+
+---
+
+## 6. 已知陷阱（每一条都真踩过）
+
+| 症状 | 原因 | 做法 |
+| --- | --- | --- |
+| SearchReplace 反复"匹配失败" | 凭记忆拼锚点；或文件已被编辑器回写 | **先 Read 再改**。同一文件连续失败 3 次就换 `edit_file` |
+| 产物断言明明规则在却报 False | 压缩器把 `::after` 规范成 `:after`、把 `rgba()` 转 hex-alpha、把同声明的规则合并成 `.a,.b{...}` | 断言只用**类名 / keyframes 名 / 界面文案**，或运行时读 `getComputedStyle` |
+| 中文断言全是 False | `Get-Content -Raw` 在 PS 5.1 按 ANSI 解码 | 用 `[IO.File]::ReadAllText($path)` |
+| codemod 把已确认的版本改回旧文案 | `scripts/candy-copy.mjs` 的 MAP 里留着上一轮的映射"以备再用"，重跑就全执行了 | **MAP 只能包含当前这一轮的方向**，历史映射整段删掉；跑前先 `--dry` 逐条核对；跑后做正反两向断言 |
+| 短词映射误伤长词 | `['典籍馆','X']` 会把品牌名「奥术典籍馆」改成「奥术X」 | 长句排在短词之前；能精确就不要用短词 |
+| `display:none` 的 `<img>` 仍在发请求 | 隐藏不等于不加载 | **必须从 JSX 里删掉**（已对 `.step-node img` 和 `.entry-card .art img` 做过） |
+| node/npm 全部"拒绝访问"、输出 0 字节 | 命令被丢进只读沙箱（含 `Remove-Item`/`Stop-Process` 或过长） | 拆短命令；不带删除/杀进程 |
+| `pull-src` 把文件写到工作区根 | 仓库路径**没有 `app/` 前缀**（push-src 把 `app/<x>` 映射到根） | 拉回时要还原：`README.md`→`src-branch-README.md`、`scripts/` 原位、其余加 `app/` 前缀 |
+| `pull-src` 传到一半 `UND_ERR_SOCKET` | 拉 100+ blob 时对端偶发断连 | 已内置 4 次重试（`get()`） |
+| 页面永久卡死、`open` 死等 | 外链 Google Fonts `@import` 是渲染阻塞资源，不可达网络下 load 永不触发 | 已移除，改系统字体栈。**不要再引入任何外链字体** |
+| 秘典页正反面同绘、牌背文字镜像 | `content-visibility: auto` 隐含 `contain: paint`，压平 `preserve-3d` | 见 §3.5，别加回去 |
+| `border: var(--card-border)` 构建报错 | esbuild 对 border 简写里的 `var(` 报 `Unexpected "var("` | 写全 `border: 0.5px solid var(...)` |
+| `A.gems[x]` 取值崩 | 素材键被批量改名/删除 | 改 `assets.js` 时**保留全部键名与数据结构** |
+
+| 推送报 `422 Secret detected in content` | 待入库文件里有明文 token（GitHub push protection） | 凭据绝不写进 `app/`、`scripts/`、`HANDOFF.md` 等任何会入分支的文件；用 `<TOKEN>` 占位，运行时用 argv 传 |
+| `push-src` 多传的参数被静默忽略 | 旧版只解构 4 个位置参数 | 已改 `...extras`；改完记得看回读校验的文件数是否真的涨了 |
+
+---
+
+## 7. 待办清单（用户明确要求过，按建议顺序）
+
+### 7.1 收藏题集（第五个入口）★ 最顺，建议先做
+- favorites 直接放进书本 payload（`books[id].favorites: [questionId]`），天然随书本隔离
+- 解析区加一个星标按钮；`lib/stats.js` 的 `buildSession` 加 `mode: 'fav'`
+- 学习页加入口卡（注意 `.entry-card:nth-child(n)::before` 的 emoji 序号，加第五张要补 `:nth-child(5)`，已有 🔖）
+
+### 7.2 音效（八音盒 / 铃铛 / 气泡）
+- **建议用 WebAudio 合成，不要装 Howler.js、不要找音频素材**：振荡器 + 衰减包络即可做出八音盒/铃铛质感，零素材零依赖
+- 触发点：答对（success）、答错（error，配酸橙绿）、翻牌、开机分镜
+- 必须尊重 `prefers-reduced-motion` 与首次交互后才能起 AudioContext 的浏览器策略
+
+### 7.3 清 7MB 哥特素材（`app/dist` 现在 82 文件 / 7.6MB，其中 `img/` 76 个约 7.0MB）
+- **注意：糖果版仍在用一批位图**，不能全删：`p19-soft`（卷轴九切片）、`p4`（无缝羊皮纸）、`p44`（分隔条）、`p2`/`p6`（秘典页卡面）、`judge-true/false`（判断题铜牌）、`mark-radio/check`（选项标记）、`waxSeal`、`cracks`、`nav-*`
+- 真正能删的：Login 的 `starryBg/loginGate/vortex/magicOrb`、Learn 的 `hallVision/sealedDeck/cardPile/magicBook/cardTower/emptyShelf`（**JSX 已移除，只剩 assets.js 里的键**）、Settings 的 `balance/memoryFlask/sigilBadge/furnace`（同上）、`bgTexture`、`p33 navBar`、`p11`（index.html 的 preload 仍指向它，用户要保留）
+- 步骤：先盘点 `A.*` 的全部引用点 → 删掉无引用的键 → 删 `app/public/img/` 对应文件 → `purge-dist` 会因引用数 <25 拒绝执行，需要给它加一个 `--all-img` 开关
+- **答题页那批要不要整体糖果化**（卡背→糖纸、蜡封→糖封、裂纹→糖霜裂）用户尚未拍板，问过再说
+
+### 7.4 哥特文案残留（`scripts/candy-copy.mjs` 加映射即可，注意 §6 的规矩）
+- 学习页入口卡：「污染重阅 / 被酸糖低语侵蚀的符文，等待重新解读净化」「随机翻阅 / 全库无放回抽取 20 卷 · 模拟考试手感」「学习新篇 / 首次解读建立甜蜜值印记」「全部题库 / 可按题型…切牌筛选」
+- 导入页说明里被早期「卷」正则改坏的句子：「21 卷批执行完整规则…超过 21 卷拨大秘库逐题检测」
+- 筛选弹窗：「🃏 全部题库 · 切牌筛选」「返回阅览厅」「开始解读」
+- Stats 页整页：「星 界 观 测 台」「尝味师的成长档案 · 酸糖见证每一次做题」
+
+### 7.5 Stats 页（星界观测台）
+- 入口（📊 星象悬浮按钮）已按用户要求删除，`/stats` 路由保留，可直接访问 `#/stats`
+- 它是**哥特残留最重的一页**：`A.idCardFrame`、`A.avatar`、`A.portraitFrame`、`A.badgeFrame`×2
+- 要么糖果化后给个新入口，要么整页下线
+
+### 7.6 设置页四个实体造型偏抽象
+- 64×64 的纯 CSS 糖果天平/糖果罐/徽章/熔炉，截图被读成"带 T 的天平"和"一圈彩色圆点"
+- 想更"像"就放大到 ~88px 并加细节（吊绳、罐口高光、炉膛格栅）
+
+### 7.7 死代码与残留
+- `.fab-stats`、`.nav-veil` 的 CSS 规则（`pages.css`/`candy.css`/`global.css` 里都有，已无元素使用）
+- `app/src/theme/apple.css`（孤儿，无人 import，故意保留以便一行 import 复活苹果版）
+- `components.jsx` 里的 Apple 版 `Background/BottomNav/BootRitual/burstParticles`（死代码）
+- **工作区根有一份重复源码树**（`src/`、`public/`、`index.html`、`package.json` 等约 134 个文件），是早期一次路径映射写反的 `pull-src` 留下的。没有任何工具读它。删目录需要 `Remove-Item`，会被只读沙箱拦，**需要用户明确许可**
+- `src-branch-README.md` 大部分仍在描述哥特版（只有「多题库数据模型」一节是新的），需要整体重写
+
+---
+
+## 8. 当前状态快照（2026-09-03）
+
+| 项 | 值 |
+| --- | --- |
+| gh-pages HEAD | `61687bb`（82 文件 / 7.6MB，`verify-deploy` 缺失 0 / 不一致 0 / 多余 0） |
+| src HEAD | 与 gh-pages 同源（`push-src` 回读 137/137 零差异） |
+| 线上 | `verify-live` 82/82 全 200 + index.html/JS/CSS 三哈希 MATCH → `LIVE RESULT: ALL OK` |
+| console | Errors **0** |
+| 开发服务器 | `127.0.0.1:5179`，demo 模式 |
+
+### 本轮（最后一次会话）做完的事
+1. 题库书架（多书本数据隔离）：`lib/db.js` 加 `saveBooks`/`deleteQuestions`、`store.js` 加书本状态机与 6 个动作、`components/Bookshelf.jsx`、Settings 置顶、candy.css 书架样式 —— 9 步真机验证全通
+2. 清掉糖果版里残留的哥特文案 35 处（`炼 金 工 坊`→`糖 果 抽 屉`、`参悟目标`→`每日目标`、`典籍馆尚无题库`→`题库还是空的`、`封印记忆`→`封装记忆`、`炼金熔炉`→`糖果熔炉`…）
+3. 开机仪式 2 秒四段分镜（糖豆弹入 → 螺旋展开成糖纸 → 两侧剥开 → 气泡升起），实测阶段推进 `s0×4 > s1×3 > s2×3 > s3×2 > GONE`
+4. 设置页四个纯 CSS 糖果实体（天平/糖果罐/徽章/熔炉），`toolImgs: 0`
+5. 导入页三步糖果流程条（`st1/st2/st3` → 🍬/📥/🍯，当前步外圈旋转糖环，已完成连线能量流动），`stepImgs: 0`
+6. 学习页横幅换成纯 CSS 糖果橱窗（去掉哥特巫师图 `A.hallVision`），并中和哥特层 `.learn-vision::after` 的 `rgba(13,17,23,.85)` 近黑遮罩
+7. 删掉切页时的哥特玫瑰彩窗烟雾 `.nav-veil`（用 `A.roseWindow`）+ 硬编码 300ms 导航延迟
+8. 删掉学习页 📊「星象」悬浮入口
+9. 修掉两个频闪根因（整页 blur 动画、9 层 backdrop-filter），见 §5
+10. 补回糖豆爆裂 `burstParticles`（一度因 components.jsx 被回写成 Apple 版而只剩振动）
+
+### 提交时间线（都在 gh-pages，可随时回滚）
+`dd426b3` 糖果版 → `2b340ad` 题库书架 → `f3c86ba` 文案清理 → `c916584` 开机分镜+四实体+流程条 → `bf4ae7a` .tool 特异性+去 img 请求 → `ba67428` 补回糖豆爆裂 → `8c63366` 导入页过场哥特残留 → `f51e35f` 删 nav-veil+星象入口 → `70096cd` 杀整页 blur 动画 → **`61687bb` 去 backdrop-filter（当前）**
+
+苹果版在 git 里完整可恢复：gh-pages `a7f5203`/`7d60e29`，src `31e30d0`/`cf385cc`/`b9338e1`。
+回滚方法：`node scripts/pull-src.mjs <token> <src分支的完整SHA>`（会覆写 `app/**` 与 `scripts/**`，只覆写不删除），然后重新构建部署。
+⚠️ 取 SHA 时不要用 `Select-String` 抓短 SHA（曾抓到 8 个候选导致 ref 更新 422），要取完整 40 位。
+
+---
+
+## 9. 用户偏好与沟通方式（很重要）
+
+- **中文回复**。技术术语和代码标识符保持原文。
+- 用户会**明确否定**不满意的方案（例："判断题做错了，还原，我只要你把正确和错误分别放在最中间"）。被否定时**完全还原**，不要保留自己那版的残余，也不要争辩。
+- 用户多次要求：**调用合适的 skill**，"效果不好就下载安装新 skill"。已经装了 `playwright-cli`。已加载并实际用过的：`impeccable`、`apple-design`、`baseline-ui`、`frontend-ui-engineering`、`animate`、`fixing-motion-performance`、`systematic-debugging`、`find-skills`、`agent-browser`、`ui-radar`。
+- 用户在意**减少调用次数**："确保质量效果的前提下，减少调用次数"。能并行就并行，能一次跑完构建+部署+验证就一次跑完。
+- 用户会自己动文件（`index.html`、`verify-books.ps1`、以及那个要命的 `components.jsx` 缓冲区）。**每次动手前先审计基线**，别假设上一轮的状态还在。审计模板：
+  ```powershell
+  $x=[IO.File]::ReadAllText("$PWD\app\src\components.jsx")
+  "emojiNav=$($x.Contains('nav-emoji')) svgNav=$($x.Contains('nav-ico')) launchScreen=$($x.Contains('launch-screen')) bubbles=$($x.Contains('bubble-layer'))"
+  ```
+  期望：`emojiNav=True svgNav=False launchScreen=False bubbles=True`（若 svgNav=True 说明又被回写成 Apple 版了）
+- 报告风格：给**实测数字**而不是"已优化"；主动交代自己犯的错和怎么发现的；诚实标注未验证/降级验证的部分；不要把猜测写成结论（本项目有过一次误判：把切页频闪归因于导入页封印过场，真因是 `.nav-veil` 和整页 blur）。
+
+---
+
+## 10. 快速自检（接手后第一件事）
+
+```powershell
+cd "c:\Users\青丘白浅\Documents\QoderCN\2026-09-02\chat-1"
+# 1) 基线是否被编辑器污染
+$x=[IO.File]::ReadAllText("$PWD\app\src\components.jsx"); "emojiNav=$($x.Contains('nav-emoji')) svgNav(应False)=$($x.Contains('nav-ico'))"
+"main.jsx: $((Get-Content app\src\main.jsx | Select-String 'theme/').Line -join ' | ')"   # 期望末尾是 candy.css
+# 2) 开发服务器是否活着
+"dev: $((Test-NetConnection 127.0.0.1 -Port 5179 -WarningAction SilentlyContinue).TcpTestSucceeded)"
+# 3) 远端两个分支的 HEAD
+$t='<TOKEN>'; $h=@{Authorization="token $t";'User-Agent'='ps'}
+$r='https://api.github.com/repos/HK00jjj/quiz-platform'
+"gh-pages: $((Invoke-RestMethod "$r/git/refs/heads/gh-pages" -Headers $h).object.sha)"
+"src     : $((Invoke-RestMethod "$r/git/refs/heads/src" -Headers $h).object.sha)"
+# 4) Playwright 是否可用
+npx --yes playwright cli open; npx --yes playwright cli goto 'http://127.0.0.1:5179/quiz-platform/#/settings'
+npx --yes playwright cli --raw eval "document.querySelectorAll('.book-card').length"; npx --yes playwright cli close
+```
+
+四项都正常，就可以直接接 §7 的待办往下做。
+
+---
+
+## 11. 本轮更新（2026-09-03 第二轮会话）· 覆盖 §8 快照
+
+**gh-pages HEAD：`13c2057`（父提交 `61687bb`，82 文件 / 7.59 MB，verify-deploy 缺失 0 / 不一致 0 / 多余 0 = IDENTICAL）**
+
+> 新会话的工作区变成了 `2026-09-03\chat-1`（空目录），而工程在 `2026-09-02\chat-1`。
+> **编辑类工具不能修改工作区外的文件**（读可以、写会报 `can not edit the file outside the projects`）。
+> 解法：在新工作区里建两个目录联接，改的仍是原文件本体，不用搬 7.6MB 工程、不用重装依赖、不丢会话上下文：
+> ```powershell
+> New-Item -ItemType Junction -Path "<新工作区>\app"     -Target "<旧工作区>\app"
+> New-Item -ItemType Junction -Path "<新工作区>\scripts" -Target "<旧工作区>\scripts"
+> ```
+> 之后所有 SearchReplace 走 `<新工作区>\app\src\...` 路径即可。根级文件（HANDOFF.md 等）没被联接覆盖，
+> 要改就用「Write 到新工作区 + `[IO.File]::AppendAllText` 追加」，别在 PowerShell 里写长中文串。
+
+### 11.1 做完的事
+
+**§7.1 收藏题集（第五个入口）已上线**，全部按待办里的设计落地：
+- `favorites` 挂在 `books[id].favorites`，随既有 books payload 一起存 → 零新增存储通道、天然按书隔离、复用 `lastBooksJson` 幂等防回环
+- `store.js`：`toggleFavorite(qid)`（返回切换后状态）、`reloadAll` 里裁掉已删题目的死收藏、`deleteQuestion` 同步摘掉各书收藏、`startSession` 把 `favIds` 传给 `buildSession`
+- `stats.js`：`buildSession` 加 `case 'fav'`
+- `Practice.jsx`：解析区标题行右侧 ☆/★ 胶囊（蜡封未启时也能点，不必先答题）；只在「收进来」时发糖豆
+- `Learn.jsx`：第五张入口卡 `🔖 收藏题集`（`nth-child(5)` 的 emoji 早就备好了）
+- `clearBookProgress` **故意不清收藏**——收藏是选题意图，不是学习进度
+- demo 数据给了 `b_demo1.favorites = ['demo_2','demo_5','demo_9','demo_14']`，一进 demo 就能看到非空态
+
+**用户提的 8 项，全部真机验证过：**
+
+| # | 问题 | 根因 | 修法 | 实测 |
+| --- | --- | --- | --- | --- |
+| 1 | 答对答错分不清 | 对 `#2FA98A`(hue157) vs 错 `#6E9B2E`(hue85)，**两个都是绿的**；`--glow-red` 竟是酸橙绿；而「✗我答错了」按钮用暖橙 `--danger`，同一语义跨两个色系 | 新增 `--ok-ink:#1B7F63` / `--bad:#FF8A7A` / `--bad-dk:#F2564A` / `--bad-ink:#C4372E` / `--bad-wash` / `--glow-bad`，并**重定义 `--fault`/`--fault-lt`/`--glow-red`** 让哥特层旧规则自动变色；逐条覆盖 verdict-banner / answer-scroll-box / opt-row.wronged / fill-item / judge-card.j-false / crack-veil / pile-counter / gem-dot.bad / entry-card.hot / tag.red | 对 `rgb(27,127,99)` vs 错 `rgb(196,55,46)`，色相 157° vs 5°；两个文字色白底 **4.9:1 / 5.3:1** 都过 AA |
+| 2 | 四个图标整体偏上 + 文案还是哥特 | `pages.css` 给 `.entry-card .art` 定了 150px 高，哥特插图按 §6 从 JSX 删了但**高度没人收** → 卡高 335px 里 150px 是纯空白，图标全挤顶部 | `.art` 从 JSX 删净 + candy.css `display:none` 双保险 + `.entry-card` 改 flex column `justify-content:center` | 卡高 **335→185**（-45%），上下留白 18/17 对称；文案改成 错题重练 / 随机练习 / 新题上手 / 挑题练习 |
+| 3 | 基础·应用·综合小标是哥特版 | `.diff-pill` 在**三层 CSS 里没有任何规则**，裸奔成「哥特宝石位图 `A.gems`(p40-1/2/3) + 11px 灰字」 | 删 `<img class="gem">`，改纯 CSS 糖果胶囊；难度→ASCII 类名走 `stats.js` 新导出的 `DIFF_CLS`（基础=薄荷/应用=柠檬/综合=葡萄）；Bank.jsx 的 `.tarot-gem` 同步换成 `.diff-pill.tiny` | `diff-pill d-base`，`pillImgs:0`，页面内 `img.gem/.tarot-gem` 计数 **0** |
+| 4 | 题干首字放大看着累 | `global.css` 的 `.drop-cap::first-letter{float:left;font-size:2.1em;font-family:Cinzel}` | JSX 去掉 `drop-cap` 类 + candy.css 把该伪元素全属性打成 `inherit/none` 当保险 | `.drop-cap` 计数 **0**，题干 18px |
+| 5 | 填空 `I/O` 输入正确却判错 | **`SPLIT=/[、，,;；|/\s]+/` 把 `/` 和空格当分隔符切用户输入，而切标准答案用的是 `/[，,、;；|]/` 不切它们** → `I/O` 被切成 2 段、答案仍 1 段，`got.length===blankCount` 恒假 | 分隔符去掉 `/` 与空白；新增 `loose()`（全角→半角、删全部空白、转小写）；新增 `splitExpected()` 用题干空数当裁判优先按 `\|` 切；UI 各空改用 `\n` 拼接（单行 input 不可能出现换行，无歧义哨兵）；grade 返回 `expectedParts` 数组 | 自建 13 例回归测试 **5/13 → 13/13**（见 `scripts/t-fill.mjs`） |
+| 6 | 单选多选选项不随机，用户记位置 | 无洗牌逻辑 | `shuffledOrder()` + 按「题目id#序号」存进 `shuffleRef`（**绝不在渲染里现算**，否则任何 setState 都会重排、用户点到的选项会跳位）；**内部一律用原始字母跑判分与对错高亮，只有显示字母跟着洗牌走**，所以 `gradeObjective` 与 `.right/.wronged/.missed` 判定链路一行没改；揭晓答案用 `mapLetters()` 换算 | q1 `[一,二,四,三]`、q2 `[四,一,三,二]` 每题独立洗牌；q2 正确项「说法一」落在 **B**，揭晓答案就是 **`B`** —— 不再出现「答案是D、位置在A」 |
+| 7 | 做完后用时还在走 + 图标哥特 | 计时 `useEffect` 的 deps 是 `[]`，组件活着就一直 tick；`.settle-rose` 是 110px 旋转玫瑰窗（`spin-slow 24s infinite`），`.settle-card::before` 是内描金线，`.settle-pct/.settle-grid b` 是 Cinzel，candy.css 只覆盖过 border | deps 改挂 `[phase]`（`done` 直接 return 停表，点「再练错题」回 answering 重新起表 + `setElapsed(0)`）；玫瑰窗 `<img>` 从 JSX 删掉换纯 CSS `.settle-medal`；文案 参悟总结→本轮成绩、灵知契合度→正确率、窥见/侵蚀→答对/答错、最高连击→最高连对、🕯复习错题→🍓再练错题、返回阅览厅→返回学习页；答题中两个计数器 🗂/🕯 → ✓/✗ | 相隔 2800ms 两次读 `.settle-grid` 完全相同（`17秒` 不动）= `timerFrozen:true`；`.settle-card img` 计数 **0**；内描金线 `display:none` |
+| 8 | 知识域显示 K1-K27 看不懂 | `Learn.jsx` 的 `DOMAINS_ALL` 与 `Bank.jsx` 的 domains 直接把 `K#` 当文案渲染（`domainLabel` 早就有，只是这两处没用） | 两处都加 `text: domainLabel`，**chip/option 的 value 仍是 K#**（筛选逻辑与 settings 里存的过滤器都认它），只有显示换成中文 | 27 个 chip 全是中文域名，`/^K\d+$/` 命中数 **0** |
+
+### 11.2 顺手修掉的两个既有缺陷（不在用户清单里，但会咬人）
+
+1. **`store.js` 的 `updateSettings` 是唯一没有 `!DEMO` 卫兵的云端写动作**（`deleteQuestion`/`resetAll`/`clearBookProgress`/`submitAnswer`/`persistBooks` 都有）。旧写法 `await repo.saveSettings(merged)` 无卫兵无 try：demo 没有 auth session → 吃 401 抛出 → 下面 `set({settings})` 永远跑不到。**表现就是「挑题练习」里点题型/知识域/难度 chip 完全没反应、题数不变，还往 console 丢 2 个 error。** 生产环境网络抖动也会让整个设置静默失效。已改成「先乐观更新本机 → DEMO 直接 return → try/catch 写云端并置 syncError」，与 `persistBooks` 同套路。修后筛选生效（`开始练习（28 题）` → `（4 题）`），console 零新增 error。
+2. **`.entry-card.wide .count-gem` 用 `transform: translateY(-50%)` 居中失败**：`.count-gem` 的 `breathe` 关键帧里带 `transform`，**动画优先于声明**，实测徽章比中线高 15px（正好是徽章高的一半）。改用**独立的 `translate: 0 -50%` 属性**（与 transform 分开合成）→ 偏移归 0，且呼吸动画保住。以后要在带关键帧动画的元素上做位移，一律用 `translate`/`rotate`/`scale` 独立属性。
+
+### 11.3 新增陷阱（都真踩过，补进 §6 的表格用）
+
+| 症状 | 原因 | 做法 |
+| --- | --- | --- |
+| **Read 工具读到的文件内容和磁盘不一致** | Read 可能返回 **IDE 的陈旧缓冲区**。实测 `app/src/assets.js` 被 Read 成苹果明净版（`const img = () => undefined`、注释写「明净版已归零/Lucide」），而磁盘上是好版本（`const img = (name) => ...`），两者**恰好都是 3924 字节** | 判断文件真伪一律用磁盘读：`[IO.File]::ReadAllText` 或 Grep。**别只凭 Read 的结果就断言"文件被污染了"**——我这轮就误报了一次，还差点因此推翻一份好产物 |
+| 编辑类工具报 `can not edit the file outside the projects` | 工作区换了目录，工程还在旧目录 | 建目录联接（见本节开头）。硬链接不行：SearchReplace 可能「写新文件+改名」，会把链接打断而原文件没更新 |
+| PowerShell 中文输出全是乱码 | 控制台代码页不是 UTF-8 | 命令开头加 `[Console]::OutputEncoding=[Text.Encoding]::UTF8`（比 §6 说的「改用 ReadAllText」更彻底：ReadAllText 只管读进来对不对，这条管打印出去对不对） |
+| PowerShell 变量莫名失效、`Test-Path` 全 False | **PS 变量名不区分大小写**：`$R` 存路径、`$r` 存 URL，后者把前者覆盖了 | 别用只差大小写的变量名。我这轮因此误报过 5 个「文件不存在」 |
+| `run-code` 里 `console.log` / `return` 看不到输出 | playwright cli 的 `run-code` 不回传 | 把结果 `page.evaluate` 写到 `window.__p`，再用 `--raw eval "JSON.stringify(window.__p)"` 读回；多步流程整段写进文件用 `run-code --filename=<绝对路径>`，顺便绕开 PowerShell 引号地狱 |
+| 改了 `store.js` 之后答题会话凭空消失 | Vite 对 store 这类无 HMR 边界的模块会**整页重载**，zustand 内存态全丢 | 改完 store 后重新走一遍进入答题页的流程，别指望原状态还在 |
+| 生成中文时个别字被写成同形近字 | 实测 `绝`→`绠`、`徽`→`徐` 真的落到了文件里 | 写完中文注释后回读校验：`$t.Contains('绝')` 之类逐个断言，别只看 diff |
+| `page.goto` 到只有 hash 不同的地址 | HashRouter 下**不触发整页重载**，store 状态会留着 | 想测「干净首屏」得真刷新；本轮就因此把已选中的筛选 chip 又点了一次、反而关掉了 |
+
+### 11.4 新增工具（已随 push-src 进 src 分支）
+
+- **`scripts/audit-src.mjs <TOKEN>`**：把本地 `app/**` + `scripts/**` 跟 src 分支逐文件比 **git blob SHA1**，输出「一致 / 不一致 / 本地缺失」。这是**接手后第一件事该跑的检查**，比 §10 那几条特征串断言彻底得多——一次就能确认有没有文件被编辑器缓冲区换成别的版本。本轮实测：一致 143 / 不一致 5（正好是我改的 5 个）/ 缺失 1（`verify-books.ps1` 是路径映射没覆盖，不是真缺）。
+- **`scripts/t-fill.mjs`**：填空题判分回归测试，直接 `import` 真实源码（不复制逻辑，免得测了自己写的假实现），13 例覆盖斜杠 / 空格 / 大小写 / 全角 / 多空 / 答案本体含逗号 / 该判错就判错。`node scripts/t-fill.mjs` 即可，不需要浏览器。
+
+### 11.5 范围外发现（用户没提，我没动，等拍板）
+
+- **Bank.jsx（题库页，可达）哥特文案成片**：`🃏 禁 书 库` / `封印的题库在此陈列，窥视需谨慎` / `🔮 找找想品的糖` / `题型·切牌` `知识域·切牌` `难度·切牌` / `✦ 轻触拆开 ✦` / `◆ 题目全录` `◆ 题面` `◆ 甜蜜答案` / `确认销毁` `收回成命` `合上糖纸` / `酸了`。归 §7.4。
+- **Stats.jsx（孤儿页，入口已摘、`#/stats` 仍可直达）**：`🕯 周做题量`、`🃏 分题型契合度`、`🔮 星象命运之盘`、`星 界 观 测 台`。闸门断言里 `🕯` 仍为 True 就是它。归 §7.5。
+- **Login.jsx / Settings.jsx** 各有一处 `🔮`（`开启糖果之门`、`甜蜜值备份`）。
+- **答题页 `.rate-btn` 三档自评的边框色是 绿/黄/蓝绿**（忘记=绿框），与「错=红」并排看仍有点乱。属于 #1 的邻居但用户指的是对错反馈，没敢一并改。
+- **第五张入口卡在 1280×900 下位于折叠线以下**（页面总高略超 900）。想让它进首屏就得压 `learn-vision` 糖果橱窗的高度，用户没提，没动。
+
+### 11.6 待办清单变化
+
+- **§7.1 收藏题集 → 已完成**（本轮）
+- §7.4 哥特文案残留 → 学习页四张入口卡 + 筛选弹窗 + hero 副标题**已清**；导入页说明、Stats 页整页、Bank 页整页**仍在**
+- §7.5 Stats 页 / §7.3 清 7MB 素材 / §7.2 音效 / §7.6 设置页实体造型 / §7.7 死代码 → **未动**
+- §7.7 里「工作区根那份重复源码树」仍在（`2026-09-02\chat-1\src`、`public`、`index.html` 等），删目录要 `Remove-Item`，会被只读沙箱拦，仍需用户明确许可
+- **新增待办**：`.diff-pill` / `.settle-*` 这类「candy.css 从没覆盖过、一直在吃哥特层样式」的选择器可能还有别的，值得系统扫一遍（本轮是靠用户报障才发现的）
+
+---
+
+## 12. 第二轮补充（2026-09-04）· 题库页去哥特 + 三档自评配色
+
+**gh-pages HEAD：`1f7afd2`（父提交 `13c2057`，82 文件 / 7.59 MB）。src HEAD：见 push-src 输出。**
+
+### 12.1 用户拍板的配色方案（已实施）
+
+- **对 = 绿、错 = 红 保留**（§11 的 `--ok-ink #1B7F63` / `--bad-ink #C4372E` 不动）
+- **三档自评：忘记 = 红、模糊 = 黄、记得 = 绿**，用糖果主题色，与判分双通道同源
+
+| 按钮 | 实测 color | 实测 border | 备注 |
+| --- | --- | --- | --- |
+| 忘记 `.r-forget` | `rgb(196,55,46)` | `rgb(242,86,74)` | 与「答错了」的 `rgb(196,55,46)` **完全同值**，语义打通 |
+| 模糊 `.r-hazy` | `rgb(138,109,0)` | `rgb(255,212,59)` | 文字色从 `#A88A00`(3.3:1) 提到 `#8A6D00`(4.9:1) 过 AA |
+| 记得 `.r-remember` | `rgb(27,127,99)` | `rgb(95,212,176)` | 文字色从 `#2FA98A`(3.0:1) 提到 `--ok-ink`(4.9:1) |
+
+副标题也一并改成大白话（**这三个选项直接驱动 FSRS 间隔算法，选错会影响复习排期**）：
+`被答错了` → `完全想不起来`、`正确率游离` → `犹豫了一下才对`、`正确率铭刻` → `一眼就答出来了`。
+（这条用户没点名要求，是我判断原文案语义含糊且「被答错了」是病句才改的，不满意可单独还原这三行。）
+
+### 12.2 题库页（`#/bank`）去哥特全清单
+
+文案：`🃏 禁 书 库`→`🍬 糖 果 书 架`、`封印的题库在此陈列，窥视需谨慎`→`导入的题目都收在这里，点开卡片看详情`、
+`🔮 找找想品的糖 / 知识点…`→`🔍 搜题干或知识点…`、`题型/知识域/难度 · 切牌`→去掉「· 切牌」、
+`共 N 题题库 · 筛选后 N 题`→`共 N 题 · 筛选后 N 题`、`按导入时间自新至旧陈列`→`按导入时间从新到旧排列`、
+`✦ 轻触拆开 ✦`→`轻点看详情`、`◆ 题目全录`→`题目信息`、`◆ 题面`→`题干`、`◆ 甜蜜答案`→`答案`、
+`◆ 题库解析`→`解析`、`◆ 做题记录（近 N 次）`→`做题记录（最近 N 次）`、`甜蜜值`→`掌握度`、
+`已品尝/尚未做题`→`已掌握/还没做过`、`间隔 N 日`→`间隔 N 天`、`酸了`→`答错过`、
+`确认销毁`→`确认删除`、`收回成命`→`取消`、`🗑 删除此题`→`🗑 删除`、`合上糖纸`→`收起`、
+`先去导入页导入题库，封印入库后此处方能陈列。`→`去导入页把题库导进来，这里就会陈列出来。`
+
+结构：**哥特题型印章位图 `A.seals`（p34-1~7）从 JSX 删掉**，改成 `.type-candy` 文字胶囊放进 `.tarot-tags` 签条行。
+顺手删掉 `<select>` 上那行哥特内联样式（`color: var(--teal-lt); background: rgba(21,29,36,.9)`）——
+candy.css 的 `select` 规则带 `!important`，那行内联早就是死代码。
+
+**必须同时做的字色可读化**（只换文案不换字色的话新文案照样看不见）：
+`pages.css` 给牌面文字用的是哥特暗底配色 —— `.tarot-stem` 是 `#d8ca9f` 浅米黄 **+ 黑色 text-shadow**，
+`.tarot-scroll` 是 `#cbbb90`，`h6` 是 `var(--gilt)` 金色，而 candy.css 早把 `.tarot-face` 底色换成了浅色果冻。
+浅字压浅底 = 几乎读不出来。已在 candy.css 末尾统一接管：
+`.tarot-stem`→`--ink`(实测 `rgb(74,74,74)`) 且 `text-shadow:none`、`.tarot-scroll`→`--ink-2`、
+`h6`→`#D14767`、`.tarot-kv b`→`--muted`、`.tarot-ans`→`--ok-ink`、`.tarot-orb` 三态改糖果三色、
+`.tarot-hint`→`--muted`（原先想用 `--ink-3`=#999，但那行字只有 `clamp(7.5px,4.2cqw,10px)`，
+2.8:1 在 10px 上不够，提到 `--muted`≈5.0:1）。
+
+### 12.3 p34-1~7 现在是纯死重（想清就得动 assets.js）
+
+`A.seals` 的唯一使用点已删，但 `assets.js` 里 `seals: [1..7].map(i => img(\`p34-${i}.webp\`))` 这个键还在，
+**purge-dist 因此仍判定它们「被引用」，7 个文件继续留在 dist 里**（本轮 purge 的孤儿清单与上轮完全一致、仍是 20 个，剩余仍 76 个）。
+§6 那条「改 assets.js 时保留全部键名与数据结构」的前提是**有代码在读**（`A.gems[x]` 取 undefined 会崩）；
+`A.seals` 现在没人读了，删键是安全的。真要瘦身就：删 `seals` 键 → 删 `public/img/p34-*.webp` → 重构建 → purge-dist 会多清 7 个。
+**归 §7.3，本轮没做。**
+
+### 12.4 新增陷阱（补进 §6 的表格用）
+
+| 症状 | 原因 | 做法 |
+| --- | --- | --- |
+| 拿 demo 假数据的文案做产物闸门断言，永远 False | `DEMO = import.meta.env.MODE === 'demo'`，`npm run build` 时 MODE 是 production，`if (DEMO) { ... }` 整块被 **tree-shake**，`demoData()` 里所有字符串根本不进产物 | 闸门断言只用**真实 UI 文案**；demo 专属文案只能在 dev/demo 模式下于浏览器里断言 |
+| 断言 hex 颜色 `#8A6D00` 报 False，但规则确实在 | 压缩器把**普通声明**里的 hex 小写化（`#8a6d00`），但 **`:root` 自定义属性的值原样保留大写**（所以 `--bad-ink:#C4372E` 是大写）。同一次断言里两种大小写并存 | hex 断言一律 `.ToLower().Contains()`；或者干脆断言运行时 `getComputedStyle` |
+| `IndexOf('r-hazy')` 读到的是哥特原版色值 `#6d560a` | `pages.css` 里本来就有一条 `.rate-btn.r-hazy`，candy.css 的规则在**后面**且带 `!important`，同特异性后来居上 | 查「最终生效的是哪条」要看**最后一个**匹配或直接读计算样式，别看第一个 |
+| 源码里 `var(--sour)` 还有 7 处，以为改漏了 | 那是被末尾追加规则**覆盖掉的旧声明**。§3.1 的房型风格就是「追加在文件末尾以同特异性后来居上，不去改前面那条」；压缩器还会把同选择器规则合并，所以产物里 `#6E9B2E` 已经是 **0 次** | 判断有没有改干净要看**产物**与**计算样式**，不是数源码里剩几处 |
+
+### 12.5 范围外残留（本轮没动，等拍板）
+
+- **Stats.jsx（孤儿页，入口已摘、`#/stats` 仍可直达）**：`星 界 观 测 台`、`🕯 周做题量`、`🃏 分题型契合度`、`🔮 星象命运之盘`、`已品尝 N 卷`、`甜蜜值契合度`、`观星台尚无记录`。闸门里 `🕯`/`已品尝` 仍为 True 就是它。归 §7.5：**要么糖果化后给新入口，要么整页下线**。
+- **Login.jsx**：`🔮 开启糖果之门`、`甜蜜值密文`、`✦ 糖果题库 v1.0 · 尝味师专用 · 纯网页端 · 云端甜蜜值同步 ✦`
+- **Settings.jsx**：`🔮 甜蜜值备份`、导出文件名 `典籍馆甜蜜值备份_YYYY-MM-DD.json`（**「典籍馆」是哥特品牌名，漏网了**）、页脚同一行 v1.0 文案
+- **Import.jsx**：`甜蜜值回流受阻，请重试`、`甜蜜值凝聚`
+- **Learn.jsx / App.jsx**：`✦ 今日已做题，甜蜜值延续中`、`🔄 延续甜蜜值`、加载态 `甜蜜值凝聚中…`
+- 注：**「甜蜜值」本身是糖果语汇、不是哥特**，所以我没批量清它；只把 Bank 那个 kv 标签改成「掌握度」，因为它表达的是 SRS 掌握程度而不是什么"值"。要不要全站把「甜蜜值」换成「学习进度/熟练度」之类，是个口味问题，等你说。
+- **答题页仍在用的哥特位图**（§7.3 主战场，未动）：`A.cardBack`(p6 牌背)、`A.waxSeal`(wax-1~3)、`A.cracks`、`A.markRadio/markCheck`、`A.judgeCard`、`A.roseWindow`（结算页那处已删，`card-flip-cover` 里还有一张）、`A.emptyShelf`/`A.emptyTable`/`A.emptyCandle`（三个空状态插图）、`A.titleDecor`(p45，被 `.page-head` 的 `background-image:none !important` 掐掉、不发请求)。
+- `Practice.jsx` 第 4 行 `import { A, TYPE_SEAL_INDEX }`，`TYPE_SEAL_INDEX` 现在**没人用了**（Bank 那处已删），是个死导入，会被 tree-shake，无害。
+
+---
+
+## 13. 第三轮（2026-09-04）· 全站去哥特收尾 + dist 瘦身 35%
+
+**gh-pages HEAD：`b91f8cb`。本轮两个提交：`989d66d`（四页文案与位图清理 + 删 25 个死键）→ `b91f8cb`（四处暗底配色）。**
+**dist：82 文件 / 7.59 MB → 46 文件 / 4.90 MB（-36 文件 / -2.69 MB / -35%）；img：76 个 7.00 MB → 40 个 4.32 MB。**
+
+### 13.1 用户拍板并实施
+
+- **对=绿、错=红 保留**（§11 的双通道不动）
+- **三档自评：忘记=红 `rgb(196,55,46)` / 模糊=黄 `rgb(138,109,0)`+柠檬边 / 记得=绿 `rgb(27,127,99)`**。
+  「忘记」的红与「答错了」的红**完全同值**，语义打通。文字对比度顺带从 3.0~3.3:1 提到 4.9:1 过 AA。
+- 三档副标题改大白话（`被答错了`→`完全想不起来`、`正确率游离`→`犹豫了一下才对`、`正确率铭刻`→`一眼就答出来了`）。
+  **这三个选项直接驱动 FSRS 间隔算法**，原文案语义含糊、「被答错了」是病句，选错会影响复习排期。用户没点名要这条，不满意可单独还原三行。
+
+### 13.2 系统扫描：不再靠用户当探针
+
+前两轮的去哥特都是**用户报障才发现**的（`.diff-pill`、`.settle-*`）。这轮改用三个可复跑的扫描口径，把可达页面一次扫干净：
+
+| 扫描口径 | 抓什么 | 本轮战果 |
+| --- | --- | --- |
+| 逐键统计 `A\.<key>` 在 src 的出现次数 | assets.js 里的死键 | **25 个键零引用**，删掉后 purge-dist 清出 56 个孤儿文件 |
+| grep `color: '#` / `'rgba` 的内联样式 | JSX 里硬编码的哥特色 | Settings 3 处（`#d6c79b` 1.9:1、`#d98ba0` 2.6:1、`rgba(156,132,82,.55)` 1.6:1）、Import 4 处（`#d9c26a` 1.8:1、深棕底、深金洗） |
+| grep `Cinzel` 在 pages/global.css | 还在吃 404 字体 + 暗底配色的选择器 | 可达页只剩 **`.stepper .val`**（设置页每日目标 30px 数字，约 2.2:1）；其余 6 处全在孤儿页 Stats.jsx |
+| grep 某个哥特色值（如 `d98ba0`）反查全部落点 | candy.css 从没覆盖过的规则 | `.rework-box h4`、`.rework-box li.err-i`、`.furnace-zone .panel-title` |
+
+**统计 `A.<key>` 时必须排掉注释里的字面量假阳性**：我自己写的注释里有 `A.seals`/`A.gems`/`A.hallVision`，
+一度让 `seals=1`、`gems=2` 看起来"还在用"。逐个看落点行才确认是注释。
+另外要确认全站没有 `A[key]` 动态取值或解构 —— 注意 **PowerShell `-match` 默认不区分大小写**，
+`A\[` 会把 `RARITY_META[` 里的 `A[` 匹配上，必须用 `-cmatch`。
+
+### 13.3 四页文案与位图清理
+
+- **Login**：`🔮 开启糖果之门`→`🍬 进入糖果题库`、`邮箱 / 窥秘名`→`邮箱`、`甜蜜值密文`→`密码`、
+  `隐藏/显示密文`→`隐藏/显示密码`、`✗ 密文错了，这颗糖有点酸～再试试？`→`✗ 密码不对，再试一次？`、`尝 味 师 登 入`→`登 录`。
+  **五个哥特位图从 JSX 删净**（p11 星空 / p12 漩涡 / p7 青铜门 / p13 魔法球 / p44 分隔条）。
+  ⚠️ 其中 `.login-vortex`(p12) 与 `.login-orb`(p13) 是 candy.css `display:none !important` 的 `<img>` ——
+  正是 §6 那条「隐藏不等于不加载」，**登录页每次都在白下这两张图**。`.login-bg` 那个 div 要留（糖果渐变底挂在它上面）。
+  §7.3 声称这四个"JSX 已移除，只剩 assets.js 里的键"是**错的**，实测全在 JSX 里活着。
+- **Import**：`检测 & 封印`→`检 测 & 入 库`、`题库导入仪式`→`题库导入`、`甜蜜值凝聚`→`粘贴题库`、`封印入库`→`收进书架`、
+  `已封印入库`→`已入库`、`检测并封印`→`检测并入库`、`记忆回溯完成`→`备份恢复完成`、`做题记录一并回溯`→`一并恢复`、
+  `甜蜜值回流受阻`→`云端写入受阻`、`已导入 N 题`→`检测到 N 题`、`发回给 AI 净化`→`修正`。
+  **修好 §7.4 记的那句被「卷」正则改坏的说明**：`21 卷批执行完整规则…超过 21 卷按大秘库逐题检测`
+  → `21 题及以内按整批规则校验（题型配比 / 难度层段 / 元数据映射等 9 类）；超过 21 题只逐题检测`
+  （与 `validate.js` 的 `batchMode = items.length <= 21` 实际行为对齐）。
+  **删掉两个 `A.roseWindow` 哥特玫瑰窗**（过场动画那个还挂着 `spin-slow 10s linear infinite` 永久旋转，违反 §5）与 `A.warnRune` 警告符文。
+  告警框从哥特暗金（`#d9c26a` 浅金字，约 1.8:1，等于看不见）改成糖果柠檬通道（`#8A6D00`，约 4.9:1）。
+- **Settings**：导出文件名 **`典籍馆甜蜜值备份_`→`糖果题库备份_`**（「典籍馆」是哥特品牌名，漏网最久的一处）、
+  `🔮 甜蜜值备份`→`💾 数据备份`、`解除契约 · 退出登录`→`退出登录`；三处硬编码哥特内联色改 token（见 13.2）。
+- **Bank**：见 §12.2（上一轮已做）。
+
+### 13.4 assets.js 删掉 25 个死键
+
+删：`cardFrame parchment bgTexture loginGate hallVision starryBg vortex magicOrb magicBook sealedDeck cardPile cardTower
+warnRune stepDone stepActive stepWait balance memoryFlask sigilBadge furnace navBar seals gems navIcons abyss`
+留：`cardBack idCardFrame avatar portraitFrame roseWindow astrolabe trophy badgeFrame emptyShelf emptyTable emptyCandle
+milestone achIcons divider titleDecor markRadio markCheck judgeCard waxSeal cracks`
+
+§6 那条「改 assets.js 时保留全部键名与数据结构」的**前提是有代码在读**（`A.gems[x]` 取 undefined 会崩）。
+这 25 个已逐个 grep 确认零引用、且全站无 `A[key]` 动态取值，所以删键安全。
+`divider` 虽然只被 `components.jsx` 里那个**没人 import 的死 `Divider` 组件**用着，仍保守保留（归 §7.7）。
+`p2`/`p4` 的键删了但**文件保留** —— 它们被 CSS 直接 `url()` 引用，文件级清理由 purge-dist 判定，它扫全部源码含 CSS。
+
+purge-dist 实际清掉 56 个孤儿，**在用的变体一个没误删**：`p19-soft`（`p19` 被清）、`crack-1s/2s/3s`（`crack-1/2/3` 被清）、
+`mark-*-n`（`mark-*` 被清）、`wax-1/2/3`、`judge-true/false`、`p44/p45`。
+`p11` 因为 index.html 的 preload 仍算被引用而保留（符合 §3.3 用户要求）。
+
+### 13.5 冒烟实测（demo 模式，Playwright）
+
+| 页面 | `<img>` 数 | 裂图 | 实际发出的图片请求 |
+| --- | --- | --- | --- |
+| 学习页 | 0 | 0 | `p11.webp`（只有 index.html 那条 preload） |
+| 导入页 | 0 | 0 | **空** |
+| 设置页 | 0 | 0 | **空** |
+| 题库页（28 张卡） | 0 | 0 | **空**（原先是 28 个印章 + 28 颗宝石） |
+| 答题页 | 4 | 0 | `wax-1/2/3.webp`、`p20.webp`（牌背中心玫瑰窗） |
+
+`page.on('console'/'response'/'requestfailed')` 全程监听：**errors 数组为空**，零 console error、零 HTTP≥400、零请求失败。
+返工框实测：`bg rgba(242,86,74,0.12)`、`border rgb(242,86,74)`、标题与错误行 `rgb(196,55,46)`、16 条 li 全部渲染。
+设置页实测：stepper 数字 `Nunito` + `rgb(209,71,103)` + `text-shadow:none`；危险区边框/标题/说明三处同为 `rgb(196,55,46)`；
+邮箱 `rgb(74,74,74)`、页脚 `rgb(153,153,153)`；面板标题 `📚 题库书架 / ⚖️ 每日目标 / 💾 数据备份 / 🏅 尝味师凭证 / 🔥 危险区 · 糖果熔炉`。
+
+### 13.6 新增陷阱
+
+| 症状 | 原因 | 做法 |
+| --- | --- | --- |
+| `IndexOf` 查产物里某选择器，读到的是哥特原版色值 | 三层 CSS 打包后同一选择器会出现多次（pages.css 原版 + candy.css 覆盖版），`IndexOf` 取到**第一个** | 用 **`LastIndexOf`**，或直接读运行时 `getComputedStyle`。**§12.4 刚记下这条，同一轮里我自己又踩了一次** |
+| 给 `.success-box` 加 `!important` 会把告警框改坏 | Import 的告警框是 `className="success-box"` **再叠内联 style** 实现的柠檬变体；`!important` 会压掉内联 | 覆盖 pages.css 的普通规则**不需要** `!important`（同特异性靠后置层叠就赢，内联仍能赢我）。只有原规则自带 `!important` 时才需要（如 `.furnace-zone` 的 border-color） |
+| 拿 demo 假数据的文案做产物闸门断言永远 False | `if (DEMO) {...}` 在 production 构建里被整块 tree-shake | 见 §12.4 |
+
+### 13.7 剩余残留（都在孤儿页或已确认保留）
+
+- **Stats.jsx（入口已按用户要求摘掉、`#/stats` 仍可直达）**：`星 界 观 测 台`、`🕯 周做题量`、`🃏 分题型契合度`、
+  `🔮 星象命运之盘`、`已品尝 N 卷`、`甜蜜值契合度`、`观星台尚无记录`，内联 `#d98ba0`×2，
+  以及 `A.idCardFrame/avatar/portraitFrame/badgeFrame×2/astrolabe/trophy/milestone×3/achIcons×8/emptyCandle` ≈ 16 个位图。
+  **它一个人占了剩余 40 张图里的一大半。** §7.5 那两个选项（糖果化后给新入口 / 整页下线）仍未拍板；
+  若下线，dist 还能再瘦一大截。
+- **`甜蜜值` 全站保留**（App.jsx 加载态、Learn 横幅与按钮、Login/Settings 页脚、Import）—— 它是糖果语汇不是哥特，用户未要求改。
+- **答题页仍在用的哥特位图**：`A.cardBack`(p6 牌背)、`A.roseWindow`(p20，牌背中心)、`A.waxSeal`(wax-1~3 蜡封)、
+  `A.cracks`(crack-1s~3s 裂纹)、`A.markRadio/markCheck`(选项符文框)、`A.judgeCard`(判断题尖拱铜牌)。
+  §7.3 说的"答题页那批要不要整体糖果化（卡背→糖纸、蜡封→糖封、裂纹→糖霜裂）"**用户仍未拍板**，问过再动。
+- **`components.jsx` 里没人 import 的死 `Divider` 组件**（连带 `A.divider` / p44.png）、`Practice.jsx` 第 4 行的死导入 `TYPE_SEAL_INDEX`。归 §7.7。
+- **`global.css` 两个 Cinzel `@font-face`** 仍指向不存在的 `public/fonts/cinzel-*.woff2`，每次加载白拿 2 个 404（§3.1 记过，仍在）。
+- `Login.jsx` 在 demo 模式下进不去（`init` 直接置 signed-in），**本轮对它的改动只有构建与代码审查覆盖，没有浏览器实测**。
+
+---
+
+## 14. 第四轮（2026-09-04）· 筛选弹窗 / 导入卷轴框 / 导航绿点
+
+**gh-pages HEAD：`55a6e54`（父 `b91f8cb`），46 文件 / 4.91 MB，verify-deploy 缺失0/不一致0/多余0。**
+
+用户报了三个视觉问题，根因是**同一个**：candy.css 的选择器清单和 JSX 实际类名对不上。
+
+### 14.1 幽灵选择器审计（本轮最有价值的产出）
+
+candy.css 有两条**同样名单**的分组规则：L121 的果冻玻璃拟态（`background: var(--jelly) !important` + `backdrop-filter: blur(20px)`），
+和 L983 的性能补丁（同一批选择器 `backdrop-filter: none !important` + `background: rgba(255,255,255,.84) !important`）。
+拿词边界正则把名单里每个类名在 `src/**/*.{js,jsx}` 里精确数一遍（避免 `panel` 把 `panel-title`/`import-panel` 也算进去）：
+
+| 选择器 | JSX 出现次数 | |
+| --- | --- | --- |
+| `.panel` | 17 | ✅ |
+| `.entry-card` | 6 | ✅ |
+| `.ach-card` | 2 | ✅（Stats 页） |
+| `.book-card` | 2 | ✅ |
+| `.settle-card` / `.empty-state` / `.filter-group` | 各 1 | ✅ |
+| **`.modal-card`** | **0** | ❌ 幽灵 —— JSX 用的是 `.modal-box`（出现 2 次），**不在名单里** |
+| **`.import-panel`** | **0** | ❌ 幽灵，从来没存在过 |
+| **`.setting-card`** | **0** | ❌ 幽灵，从来没存在过 |
+| **`.stat-card`** | **0** | ❌ 幽灵（Stats 页用的是 `.stat-section` + `.panel deep`） |
+
+可复跑的检查命令（PowerShell，注意引号别嵌套、`-match` 默认不区分大小写）：
+
+```powershell
+cd app\src
+$all=(Get-ChildItem -Recurse -Include *.jsx,*.js | ForEach-Object { [IO.File]::ReadAllText($_.FullName) }) -join ' '
+foreach($s in @('panel','modal-card','modal-box','import-panel','setting-card','stat-card')){
+  $p='(?<![\w-])'+[regex]::Escape($s)+'(?![\w-])'
+  "{0,-14} {1}" -f $s, ([regex]::Matches($all,$p)).Count
+}
+```
+
+**结论**：`.modal-box` 从来没被 candy.css 覆盖过，一直在吃 `global.css` L308-312 的哥特样式。
+这也解释了为什么导入页/设置页看起来是正常的 —— 它们用的是 `.panel`（17 次，被覆盖到了），
+只有筛选弹窗用了名单外的 `.modal-box`。**这类 bug 不会报错、不会 404、console 干净，只能靠核对类名清单发现。**
+
+### 14.2 三处修复与实测
+
+| 用户报的 | 哥特原值（出处） | 改成 | 运行时实测 |
+| --- | --- | --- | --- |
+| 图一 弹窗黑底 | `.modal-veil{background:rgba(6,8,12,.72)}`、`.modal-box{background:var(--panel);border:2px solid var(--copper);box-shadow:0 20px 60px rgba(0,0,0,.6),var(--glow-gold)}`、`.modal-box::before` 内描金线、`.modal-close{background:var(--bg-1);color:var(--gold-text)}`（global.css L308-312） | 糖果果冻玻璃：遮罩粉洗 + 保留 blur，盒子半透奶白 + 奶粉边 + 24px 圆角 + 粉投影 + 内白高光 | `veilBg rgba(255,214,224,.5)` / `veilBlur blur(5px)` / `boxBg rgba(255,255,255,.9)` / `boxBorder 2px rgb(255,214,224)` / `boxRadius 24px` / `innerGoldLine none` / 关闭钮白底 `rgb(209,71,103)` / 标题 `rgb(209,71,103)` |
+| 图二 输入框边框不搭 | `.scroll-zone{border:1.5px solid rgba(139,115,50,.55);background:rgba(19,26,33,.7)}`（pages.css L479，candy.css 只管过 `.q-face` 里的输入框） | 常态奶粉边 + 半透白底 + 16px 圆角；`.drag-on` 薄荷；`.err` 草莓红（与判分双通道同源） | `border 2px solid rgb(255,214,224)` / `bg rgba(255,255,255,.55)` / `radius 16px`；内部 textarea `rgb(255,250,251)` + 同色边，内外协调 |
+| 图三 学习项右上角绿点 | `CandyBoot.jsx` L62 `{it.key==='learn' && wrongCount>0 && <span className="dot"/>}` + candy.css L224 `background:var(--sour-dk)` 酸橙绿 + `candy-pulse` 永久动画 | JSX 删掉 + CSS `display:none` 双保险 | `dots: 0`、`anyDot: 0`，导航三项 `🍬学习 / 📦导入 / ⚙️设置` |
+
+绿点是 `wrongCount > 0` 的错题提醒，删它的理由：学习页「错题重练」卡已经有草莓红计数徽章（信息重复），
+且它用的 `--sour-dk` 酸橙绿与 §11 建立的「错=草莓红」双通道不同源。
+`BottomNav` 的 `wrongCount` prop 保留在签名里（App.jsx 仍在传），无害。
+
+**删掉这个绿点之后，`--sour` / `--sour-dk` / `--glow-sour` 已经没有任何活的使用点**（只剩被末尾规则覆盖掉的旧声明）。
+§11 那句「不动 --sour 本体：.nav-item .dot 那个装饰绿点还在用它」的前提已经不成立，下一轮清死代码时可以连 token 一起收。
+
+### 14.3 !important 的取舍（延续 §13.6）
+
+- `.modal-veil` / `.modal-box` / `.modal-close` / `.scroll-zone*` **一律不加 `!important`**：
+  global.css 与 pages.css 的原规则都没带，同特异性靠后置层叠就赢，而且这些元素都没有内联样式。
+- **唯一例外是 `.modal-box h3 { color:#D14767 !important }`**：`Learn.jsx` 的 FilterModal 标题写了内联
+  `style={{ color: 'var(--gold-text)' }}`，内联会压普通规则，必须用 `!important` 才盖得住。
+  （`--gold-text` 虽已被 candy.css 重定义为糖果色，但字重与色值不如直接对齐 `.panel-title`/`.zone-label`/`.settle-title` 统一。）
+
+### 14.4 一个容易误判的现象：用户截图可能是旧构建
+
+用户三张截图里，导入页还显示 `甜蜜值凝聚 / 封印入库 / 检测并封印 / 已导入 — 题`，
+而这些在 `989d66d` 就已改成 `粘贴题库 / 收进书架 / 检测并入库 / 检测到 N 题`。
+截图时间（本地 00:47~00:52）正好卡在部署与 GitHub Pages 传播完成之间，是**缓存/传播延迟**，不是改动丢失。
+本轮 dev 上实测 `stepLabels: ["粘贴题库","导入检测","收进书架"]`、`btns: ["🔍 检测并入库",…]`、`h1: "🍬 检 测 & 入 库"` 全部正确。
+
+**教训**：用户报"某处没改"时，先确认他看的是哪个构建（对比截图里的文案与自己提交记录），
+别急着怀疑自己的改动被编辑器缓冲区回写了 —— 但也要真的去查（本项目确实有回写历史，见 §3.2 / §11.3）。
+最快的判别法：让用户硬刷（Ctrl+F5），或自己跑 `verify-live.mjs` 比对线上三哈希。
+
+### 14.5 剩余待办（未变 + 本轮新增）
+
+- **新增**：candy.css 那两条分组规则里的 4 个幽灵选择器（`.modal-card` / `.import-panel` / `.setting-card` / `.stat-card`）应删掉，
+  并把 `.modal-box` 正式补进名单；本轮是用末尾追加规则绕过的，名单本身还没修。归 §7.7。
+- **新增**：`--sour` / `--sour-dk` / `--glow-sour` 三个 token 已无活的使用点，可删。归 §7.7。
+- 其余见 §13.7（Stats.jsx 孤儿页去向、答题页哥特位图是否整体糖果化、死 Divider 组件、Cinzel @font-face 的 2 个 404）。
+
+---
+
+## 15. 第五轮（2026-09-04）· 最后两个吃哥特暗底的按钮组
+
+**gh-pages HEAD：`471e385`（父 `55a6e54`），46 文件 / 4.9 MB，verify-deploy 缺失0/不一致0/多余0。**
+
+用户报「设置页每日目标的 `+` / `−` 是纯黑填充，与糖果主题不搭」。根因：**pages.css L598**
+
+```css
+.stepper button { ... border: 2px solid var(--copper); border-bottom-width: 4px;
+                  background: var(--bg-1); color: var(--gold-text); ... }
+```
+
+`--bg-1` 是哥特近黑底 token，candy.css 从没覆盖过 `.stepper button`。
+**边框看着是粉的、只因为 `--copper` 被重定义过 —— 底色一直漏网**，所以截图里是"粉圈 + 黑心"。
+
+顺手把同类扫干净，又揪出一个：`.tarot-foot button`（题库页卡片背面的「🗑 删除 / 收起」），
+pages.css L461 给的是 `background: rgba(15,20,26,.88); color: #9c8452`（暗底铜字）。
+
+两处统一成 `.rate-btn` 那套糖果按钮语言：**白底 + 奶粉边 + 保留 4px 厚底 + 糖果色字**；
+销毁类动作（`.tarot-foot button.danger`）走草莓红通道，与全站「错 / 危险」同色，hover 反白。
+按 §14.3 的原则**不加 `!important`**（pages.css 原规则没带，两处都没有内联样式）。
+
+### 15.1 实测
+
+| 元素 | 原值 | 实测现值 |
+| --- | --- | --- |
+| `.stepper button`（±） | `background: var(--bg-1)` 近黑 | `bg rgb(255,255,255)`、`color rgb(209,71,103)`、`border rgb(255,214,224)`、`border-bottom-width 4px` |
+| `.stepper .val`（数字） | — | `rgb(209,71,103)`（上一轮 §13 已修，与按钮同色系） |
+| `.tarot-foot button.danger` | `rgba(15,20,26,.88)` + `#9c8452` | `bg rgb(255,255,255)`、`color rgb(196,55,46)`、`border rgb(255,138,122)` = `--bad` |
+| `.tarot-foot button`（收起） | 同上 | `bg rgb(255,255,255)`、`color rgb(209,71,103)`、`border rgb(255,214,224)` |
+
+console 全程 0 errors。
+
+### 15.2 全站暗底扫描的完整结论（可复跑，别再逐个等用户报）
+
+扫描口径：在 `pages.css` + `global.css` 里搜 `var(--bg-1)` / `var(--bg)` / `var(--panel)` /
+`background` 后跟暗色 `rgba(0~49, …)` / `#0…` / `#1…`，共 25 处命中。逐个核对 candy.css 是否接管：
+
+**已被覆盖（不用管）**：
+- `.entry-card`(L44)、`.entry-card .count-gem`(L59)、`.entry-card.hot .count-gem`(L62) → 果冻分组 + §11 规则
+- `.chip`(L79)、`.chip.on`(L83) → candy.css L599-600
+- `.pile-counter`(L356) → candy.css L546 `var(--jelly) !important`
+- `.settle-card`(L364) → 果冻分组
+- `.panel`(global L147)、`.panel.deep`(global L161，暗色渐变) → 果冻分组带 `!important`，
+  **`!important` 压过更高特异性的普通声明**，所以 `.panel.deep` 也是白的
+- `.bank-search input`(L375，`rgba(19,38,35,.55)` + `#cfe6de`) 与 `.deck`(L382，`rgba(21,29,36,.8)`)
+  → candy.css L176 的 `.rune-input, .rune-textarea, input, textarea, select` 带 `!important` 全接管
+- `.tarot-orb`(L441) → §12 规则
+- `.learn-vision::after`(L39 近黑遮罩) → §8 第 6 条已中和
+- `.btn.teal`(global L195 深青渐变 + `#06201c` 近黑字) → candy.css L152 已换成薄荷渐变
+- `.tag`(global L292) → candy.css L917；滚动条 track(global L63) → candy.css L89
+- `.fab-stats`(L66/L72) → 死代码，JSX 里已无此元素（§7.7）
+
+**本轮修掉的**：`.stepper button`、`.tarot-foot button`
+
+**剩下 4 处已逐个查实，全是死规则或已被接管，无真问题：**
+
+| global.css | 选择器 | 结论 |
+| --- | --- | --- |
+| L81 | `.bg-vignette`（暗角 radial-gradient） | JSX 里 **0 次出现** → 元素不存在，死规则 |
+| L105-106 | `.nav-veil`（切页法阵帷幕，暗色渐变） | 只出现在 `App.jsx` L28 一段解释「为何删掉它」的**注释**里 → 死规则（§7.7 已记） |
+| L213-217 | `.bottom-nav { background-color: rgba(16,20,26,.96) }` | `CandyBoot.jsx` L58 在用，但 candy.css L192「糖霜托盘三格」已接管 → 截图里就是浅粉底 |
+| L238-241 | `.nav-center .nav-icon-wrap`（暗青渐变圆） | JSX 里 **0 次出现**（糖果版底部导航是三格均分，没有中央凸起项）→ 死规则 |
+
+所以本轮之后，**可达页面上已没有任何吃哥特暗底的元素**。四条死规则归 §7.7 清死代码时一并删。
+
+### 15.3 又一次：用户截图是旧构建
+
+用户这张图里每日目标的数字还是**青绿色**（`--teal-lt`），而 §13 那轮（`b91f8cb`）已经把它改成
+`#D14767` 粉色并实测到 `rgb(209,71,103)`。本轮 dev 上复测仍是 `rgb(209,71,103)`。
+所以截图又是缓存 / Pages 传播延迟。**连续两轮都出现这个现象**，下次收到"某处没改"的截图，
+第一件事是比对截图里的文案与自己的提交记录，或直接跑 `verify-live.mjs` 看线上三哈希。
+
+---
+
+## 16. 第六轮（2026-09-04）· 收藏题集整体撤除
+
+**gh-pages HEAD：`01dd0f4`（父 `471e385`），46 文件 / 4.9 MB，verify-deploy 缺失0/不一致0/多余0。**
+**CSS 107.47 → 105.68 kB，JS 477.79 → 475.81 kB。**
+
+用户一句话：「去掉收藏题集，用不上」。按 §9 的规矩 **完全还原、不留残余、不争辩** —— 不是藏起来，是整条链路删干净。
+
+### 16.1 撤除清单（§7.1 / §11.1 那套实现全撤）
+
+| 文件 | 撤掉的东西 |
+| --- | --- |
+| `lib/stats.js` | `buildSession` 的 `case 'fav'` |
+| `store.js` | `toggleFavorite` 动作；`migrateBooks` 里的 `favorites: []`；demo 两本书的 `favorites` 数组；`reloadAll` 里的收藏死引用裁剪循环；`deleteQuestion` 里各书收藏的同步摘除；`startSession` 的 `favIds` 传参与 `books/activeBookId` 解构 |
+| `pages/Learn.jsx` | 第五张 `.entry-card.wide` 入口卡；`favArr` / `favCount` 及其 `useMemo`；`books` / `activeBookId` 两个 selector |
+| `pages/Practice.jsx` | 解析区的 `.zone-head` 包裹层与 `.fav-star` 星标按钮；`favList` / `isFav` / `onFav`；`books` / `activeBookId` / `toggleFavorite` 三个 selector |
+| `theme/candy.css` | `.entry-card.wide` 及其 `::before` / `.wide-txt` / `h3` / `p` / `.count-gem` / `.fav-on` / `:not(.fav-on)` / 560px 断点；`.zone-head`；`.fav-star` 全族；为它们加的那个 `prefers-reduced-motion` 块 |
+
+**完整实现留在 gh-pages 提交 `13c2057`**（含真机验证数据），哪天想要直接从那里取回，不用重写。
+
+### 16.2 故意保留的三样（都不属于收藏功能）
+
+1. **`.entry-card .art { display: none }`** 与 **`.entry-card { display:flex; flex-direction:column; justify-content:center }`**
+   —— 这两条是用户单独提的第 2 项「四个图标整体偏上」的修复（卡高 335→185，-45%），只是碰巧和收藏同一轮写的。删掉会让 150px 空洞复活。
+2. **`.entry-card:nth-child(5)::before { content: '🔖' }`**（candy.css L575）
+   —— 这是**本轮之前就存在**的旧规则（§7.1 当时就记着"已有 🔖"），不是我加的。现在无元素命中，无害，保留原状。
+3. **`Practice.jsx` 解析区那行 `<h5 className="zone-label">◇ 解析</h5>`**
+   —— 原来是 `answered || showAnswer ? '◇ 解析' : '◇ 解析'`（两个分支完全相同的遗留三元）。撤星标时顺手保留了收成一行后的版本，只留注释说明。
+
+### 16.3 数据残留（无害，但要知道）
+
+如果撤除前已经在**真实账号**下点过星标，云端 `settings` 表 `key='books'` 那行的 JSON 里会留着
+`books[id].favorites: [...]` 字段。现在**没有代码读它、也没有代码清它**，就是一段死数据：
+
+- 不影响任何功能（`scopeQuestions` / `assign` / SRS 全都不看这个字段）
+- 不会让 payload 变大到有意义的程度（几个题目 id）
+- `reloadAll` 的裁剪循环已随功能撤除，所以里头的死 id 也不会被清 —— 但既然没人读，无所谓
+- 真要清的话：设置页「危险区」清空数据会重建 books；或手动导出备份、删掉字段、再导入
+
+demo 模式下从来没写过云端，`localStorage['quiz-platform.books.v1']` 里可能还留着上一次演示写的
+`favorites`，同样无害（清浏览器存储即消失）。
+
+### 16.4 验证（撤除后逐项复测，确认没伤到别的功能）
+
+| 检查 | 实测 |
+| --- | --- |
+| 产物里收藏相关文案 | `收藏题集` / `还没有收藏` / `只练这` / `已收藏` / `收藏这题` **全 False** |
+| 产物里收藏相关类名 | `fav-star` / `entry-card.wide` / `zone-head` / `wide-txt` **全 False** |
+| 该留的还在 | `entry-card .art`=True、`justify-content:center`=True、`错题重练`=True、`挑题练习`=True、`🔖`=True |
+| 学习页 | `.entry-card` **4 张**、`.entry-card.wide` **0 个**、标题 `错题重练/随机练习/新题上手/挑题练习`、高度 `[185,185,185,185]` 齐平、2×2 无空洞、`justify-content:center` |
+| 答题页解析区 | `.fav-star` **0**、`.zone-head` **0**、`◇ 解析` 的父元素回到 `zone zone-s`（包裹层已撤）、蜡封正常 |
+| **答题主流程回归** | 选项洗成 `[A.说法二, B.说法一, C.说法三, D.说法四]` → 点「说法一」→ `rowCls` 正确标在 **B**、`答对了` `rgb(27,127,99)`、**揭晓答案 `B`**（原始 A→显示 B 的映射未被撤坏） |
+| 三档自评 | `忘记完全想不起来 / 模糊犹豫了一下才对 / 记得一眼就答出来了` 仍在（§13 的改动未受影响） |
+| console | 全程 **0 errors** |
+
+即：#1 配色、#3 难度胶囊、#4 首字、#6 选项随机化与答案字母映射、#7 结算页、#8 知识域、以及 §13/§14/§15 的各项，**撤除收藏后全部复测通过**。
+
+### 16.5 又一次：Read 工具给的是陈旧缓冲区
+
+撤 CSS 时要拿准确锚点，`Read candy.css` 报「total 987 行」，而磁盘实测 **1304 行**
+（`.stepper .val` 在 L1223）。**Read 返回的是我这轮所有 candy.css 改动之前的版本。**
+改用 `[IO.File]::ReadAllLines` 打印行号 + 内容才拿到真文本。
+
+这是 §11.3 那条陷阱的**第二次发作**，而且这次更狠：上次是内容不同、字节数恰好相同（容易误判成"文件被污染"），
+这次是**行数直接差了 317 行**。结论加强：
+
+> **这个项目里，凡是要拿精确文本做 SearchReplace 锚点，一律用 `[IO.File]::ReadAllLines` / Grep 从磁盘取，
+> 不要用 Read 工具。** Read 只适合看那些本轮没改过、且 IDE 里没打开的文件。
+
+顺带：本轮又出现一次中文形近字替换（把「捞回来」写成了另一个字），在 diff 里当场发现并修掉了。
+累计已观测到六例，全是形近字替换。**不在这里列具体字，因为连「举例说明这件事」的那一行本身也会被同样损坏**
+（写的时候想举 A→B，落盘变成 B→C，反而成了误导）。六例全部落在注释或文档里，未影响代码语义。
+结论：**写中文注释/文档后必须回读校验（用 `$t.Contains('预期词')` 硬断言），别只看 diff 就过。**
+
+---
+
+## 17. 第七轮（2026-09-04）· 对/错配色两层同步 + 纠正 §4.1 的 Playwright 用法
+
+**gh-pages HEAD：`39833c7`（父 `01dd0f4`），46 文件 / 4.9 MB，verify-deploy 缺失0/不一致0/多余0。**
+
+### 17.1 用户要求与根因
+
+用户：「答对的颜色配置好看一些，答错改成图二那种，只是绿色换成红色」。
+图二是答对态（通体一致的绿），图一是答错态。对比后根因很清楚：
+
+**`candy.css` L399 的 `.zone-s.revealed` 是无条件薄荷绿**：
+
+```css
+.zone-s.revealed { border-style: solid !important; border-color: var(--mint) !important;
+                   background: rgba(127, 232, 200, .1) !important; }
+```
+
+答错时里面的判定横幅、答案框、选项全被 §11 的规则改红了，**外层解析区却还是绿的** → 红绿混装。
+所以"答错改成图二那种只是绿换红"= 让外层跟着判定结果走，答错成为答对那套处理的红色镜像。
+
+### 17.2 改动
+
+- `Practice.jsx`：新增 `verdictOk = objective ? !!lastGrade?.correct : lastRating === '记得'`，
+  给 `<section className="zone zone-s …">` 按判定补挂 `ok` / `bad`。
+  **主观题仅展开参考答案、尚未自判时（`showAnswer` 但 `!answered`）不挂**，保持中性。
+  仍用 `lastGrade` 而不是下面才声明的 `grade`（const 有 TDZ，会整页崩溃）。
+- `candy.css` 末尾：`.zone-s.revealed.ok` / `.bad`；`.answer-scroll-box` 与 `.bad` 改成同结构只差色相的极浅渐变洗底；
+  `.opt-row.right` / `.wronged` / `.missed` 各加一圈 `0 0 0 3px` 同色柔光环（box-shadow 不参与布局，不会撑动牌面）。
+- **答对的绿顺带调饱和**：描边从 `--mint`(#7FE8C8，压在浅底上偏粉气发灰) 换成 `--mint-dk`(#5FD4B0)，
+  洗底 `.10`→`.14`，答案框从纯白改成极浅薄荷渐变。
+- `.missed`（多选漏选的正确项）**继续用薄荷不用红** —— 它是"你没选但它是对的"，属于正向信号。
+
+### 17.3 实测（同一轮里对/错各答一题）
+
+| 层 | 答对 | 答错 |
+| --- | --- | --- |
+| `.zone-s` class | `zone zone-s revealed ok` | `zone zone-s revealed **bad**` |
+| 解析区边框 | `rgb(95,212,176)` | `rgb(242,86,74)` |
+| 解析区底色 | `rgba(127,232,200,.14)` | `rgba(242,86,74,.1)` |
+| 判定横幅 | `答对了` `rgb(27,127,99)` | `答错了` `rgb(196,55,46)` |
+| 答案框左栏 | `rgb(95,212,176)` | `rgb(242,86,74)` |
+| 答案框底 | `linear-gradient(rgba(127,232,200,.12), #fff…)` | `linear-gradient(rgba(242,86,74,.13), #fff…)` |
+| 答案框 h5 | — | `rgb(196,55,46)` |
+| 选项柔光环 | `.right` `rgba(127,232,200,.24) 0 0 0 3px` | `.wronged` `rgba(242,86,74,.22) 0 0 0 3px` |
+| 揭晓答案 | `D`（说法一洗到 D 位） | `C`（说法一洗到 C 位） |
+
+两态都是**整屏一个色系**，`✓ 答对` 绿 / `✗ 答错` 红、三档自评 红/黄/绿 全部对齐。console 全程 0 errors。
+（单选题答错时正确项不带 `.right` 类，是既有行为：`.missed` 只对多选题生效，不是本轮回归。）
+
+### 17.4 ⚠ 纠正 §4.1：Playwright CLI 有原生命令，别再手搓
+
+本轮验证脚本连续失败 2 次后调了 **`playwright-cli` skill**，发现 §4.1 记的那套做法绕了远路。
+**以下才是正确用法，覆盖 §4.1 里"run-code 不回传所以要写 window.__p 再 eval 读回"那一段：**
+
+```powershell
+# 状态清理：原生命令，不用 page.evaluate 手搓
+npx playwright cli localstorage-clear          # 还有 localstorage-list/get/set/delete
+npx playwright cli reload                       # 真重载（hash-only goto 不会重建文档！）
+npx playwright cli sessionstorage-clear / cookie-clear / state-save / state-load
+
+# 交互：click 直接吃 CSS 选择器或 Playwright 定位器，不用 run-code 包一层
+npx playwright cli click '.entry-card:nth-child(4)'
+npx playwright cli click "getByText('说法一')"
+npx playwright cli click "getByRole('button', { name: '开始练习（4 题）' })"
+npx playwright cli fill e5 "文本" --submit      # e5 是 snapshot 里的 ref
+npx playwright cli select e9 "option-value"
+npx playwright cli find "开始练习"               # 在 snapshot 里搜文本/正则，比整份 snapshot 省得多
+npx playwright cli snapshot --depth=4           # 限制深度
+npx playwright cli console warning              # 按级别过滤
+
+# 读数：--raw eval 一直是可靠的，这个没变
+npx playwright cli --raw eval "JSON.stringify({...})"
+```
+
+**四个关键坑（本轮全踩过）**：
+
+1. **`click` 是 strict 模式**：`.modal-box .btn` 命中 2 个元素会**直接报错并把两个精确定位器都列出来**
+   （`getByRole('button', { name: '开始练习（4 题）' })` / `{ name: '返回' }`）。
+   这比 `document.querySelector` 静默取第一个安全得多 —— 报错信息本身就是答案，照着改选择器即可。
+2. **`run-code` 里 `console.log` 和 `return` 都不回传**。以前我因此发明了"写 `window.__p` 再 `--raw eval` 读回"的中转，
+   **其实完全没必要**：用原生 `click` + `--raw eval` 分步走就行，可读性和可调试性都好得多。
+   `run-code` 只在真的需要 `page.on(...)` 监听或帧采样时才用（§4.2 那个探针仍是照抄别改）。
+3. **自己写 `page.evaluate` 包装器极易丢参数**：`const ev = (fn) => page.evaluate(fn)` 之后再 `ev(fn, arg)`，
+   第二个参数被静默吞掉 → 页内 `arg === undefined` → `findIndex` 恒返回 -1 → `r[-1].click()` 崩。
+   **不要包 `page.evaluate`**，直接用 CLI 的 `click`/`eval`。
+4. **`page.goto` / `cli goto` 到只有 hash 不同的地址不重建文档**（HashRouter SPA），
+   zustand 内存态与 localStorage 里的旧 resume / 旧筛选全部留着，
+   上一次选中的筛选 chip 会被这次点击**反向关掉**（实测 `开始练习（4 题）` 变成 `共 28 题`）。
+   要干净首屏必须 `localstorage-clear` + `reload`。
+
+### 17.5 用户新增的长期工作准则（已存记忆）
+
+> 在确保质量的前提下减少调用次数；**完成不了的任务、或同一任务失败 2 次以上（完成了但效果不理想也算），
+> 马上调用合适的 skill，没有就安装一个，不要蛮干。**
+
+本轮就是照这条办的：验证脚本第 2 次失败后立刻调 `playwright-cli` skill，
+一次就拿到 `localstorage-clear` / `reload` / strict `click` / 定位器语法，比继续自己试省得多。
+**下个会话遇到连续失败，第一反应是查 skill 列表，不是第三次重试。**
+
+---
+
+## 18. 第八轮（2026-09-04）· 撤回 §17 的过度装饰 + 答错只红三处
+
+**gh-pages HEAD：`a8994ab`（父 `39833c7`），46 文件 / 4.9 MB，verify-deploy 缺失0/不一致0/多余0。**
+**CSS 106.28 → 105.76 kB。**
+
+### 18.1 用户两次收窄需求，最终形态
+
+- 第一次：「答对的颜色配置好看一些，答错改成图二那种，只是绿色换成红色」
+  → 我理解成"整个解析区跟着判定变色 + 给答对加饱和度/渐变/柔光环"（§17），**做过头了**。
+- 第二次：「答错只要题目选项选错那一栏变红和答案变红就行了，**整个框框背景不要变**，
+  答对的那张图片上显示的就很干净」→ 撤回 §17 全部三样装饰。
+- 第三次（附截图三支箭头）：「答错只改我在图片中标记的箭头这三处变成红色，其余不动」
+
+**最终形态：答错时只有三处红，其余与答对态完全一致。**
+
+| 箭头 | 元素 | 实现 | 实测（答错） | 实测（答对） |
+| --- | --- | --- | --- | --- |
+| ① | 选错那一栏的选框圆圈 + 整栏 | `.opt-row.wronged` / `::before`（§11 已有，无需新增） | 底 `rgba(242,86,74,.14)`、边 `rgb(242,86,74)` | `.right` 底 `rgba(127,232,200,.22)`、边 `rgb(95,212,176)` |
+| ② | 参考答案的字母 | **新增 `.ans-line` 类** + `.answer-scroll-box.bad .ans-line` | `rgb(196,55,46)` 红 | `rgb(74,74,74)` 深灰 |
+| ③ | 【题库解析】小标 | `.answer-scroll-box.bad .lab` | `rgb(196,55,46)` 红 | `rgb(110,110,110)` 灰 |
+
+**两态完全相同、不随判定变化的部分**（这就是"框框背景不要变"）：
+
+| 元素 | 答对 | 答错 |
+| --- | --- | --- |
+| `.zone-s` class | `zone zone-s revealed` | `zone zone-s revealed`（**不挂 ok/bad**） |
+| 解析区底色 | `rgba(127,232,200,.1)` | 同值 |
+| 解析区边框 | `rgb(127,232,200)` | 同值 |
+| 答案框底色 | `rgba(255,255,255,.72)` | 同值 |
+| 答案框渐变 | `none` | `none` |
+| 解析正文 `<p>` | `rgb(74,74,74)` | 同值（**没被染红**） |
+| 选项柔光环 | 无（只剩基础阴影 `rgba(255,182,193,.18) 0 2px 10px`） | 无 |
+
+只有这些随判定变：判定横幅文字色、答案框 4px 左栏、答案框 h5、`.ans-line`、`.lab`、选项栏配色。
+
+### 18.2 ⚠ 撤回覆盖规则时会把更老的规则放出来（本轮最重要的坑）
+
+我把 §11 那条
+
+```css
+.answer-scroll-box.bad { border-left-color: var(--bad-dk) !important; background: var(--bad-wash) !important; … }
+```
+
+里的 `background` 删掉（因为用户说"框框背景不要变"），结果实测 **`boxBg = rgba(168, 224, 99, 0.12)`——酸橙绿**！
+
+原因：candy.css **L519 还有一条更早的** `.answer-scroll-box.bad { background: rgba(168,224,99,.12) !important }`
+（那是 §1 之前"错误用酸橙绿"旧设计的遗留），一直以来都被我末尾那条同特异性规则压着。
+**我一删末尾的 `background`，它就重新生效了** → 红字配绿底，正是用户最初报的"红绿混装"。
+
+修法：末尾那条**必须显式写回中性白** `background: rgba(255,255,255,.72) !important`
+（与答对态 L513 完全同值），不能靠"不写就等于没有"。
+
+> **教训：这个项目的 candy.css 是"末尾追加、同特异性后来居上"的层叠结构（§3.1），
+> 所以任何一条末尾规则都是它下面同选择器旧规则的"盖子"。撤回盖子上的某个属性时，
+> 必须去查同选择器在前面还有几条规则、它们的那个属性是什么值——不能假设"删掉=回到中性"。
+> 而且这类回归静态断言查不出来（产物里两个色值都在），只能靠运行时 `getComputedStyle`。**
+
+同类风险点（§13 扫出来的 7 处 `var(--sour)`）：`.opt-row.wronged`(L446)、`.judge-card.j-false`(L484)、
+`.fill-item.wronged`(L494)、`.answer-scroll-box.bad`(L519)、`.gem-dot.bad`(L560)、
+`.entry-card.hot .count-gem`(L584)、`.nav-item .dot`(L226)。
+**以后要撤回其中任何一条的某个属性，都得先确认 L 号那条旧规则的对应值。**
+
+### 18.3 ⚠ 开发服务器端口变了，§4.1 的「127.0.0.1:5179」已失效
+
+本轮验证时 `127.0.0.1:5179` 直接 `ERR_CONNECTION_REFUSED`——上一轮会话那个带 `--port` 起的进程早没了。
+重新 `npm.cmd run dev -- --mode demo` 后 Vite 落在**默认 5173**，而且：
+
+```
+netstat -ano | Select-String ':5173'
+  TCP    [::1]:5173    [::]:0    LISTENING    6636
+127.0.0.1:5173 = False      ← IPv4 被拒
+localhost:5173 = True       ← 走 IPv6 ::1
+```
+
+**`vite.config.js` 里没有 `server` 段**，所以 Vite 只绑 IPv6 回环 `::1`。
+→ **Playwright 的 URL 必须写 `http://localhost:5173/quiz-platform/`，写 `127.0.0.1` 会 `ERR_CONNECTION_REFUSED`。**
+（要固定成 IPv4 + 指定端口就 `npm run dev -- --mode demo --port 5179 --host 127.0.0.1`。）
+
+排查手法记一下：`goto` 报 CONNECTION_REFUSED 后，后面所有 `click` 会连锁报 "does not match any elements"，
+**别去怀疑选择器**，先 `netstat -ano | Select-String ':<port>'` 看它到底绑在哪个地址上。
+
+### 18.4 撤回清单（§17 加的三样全删）
+
+- `.zone-s.revealed.ok` / `.zone-s.revealed.bad` —— 删；`Practice.jsx` 里的 `verdictOk` 与
+  section 上的 `ok`/`bad` 类也一并删（不留残余）
+- `.answer-scroll-box` / `.answer-scroll-box.bad` 的 `linear-gradient` 洗底 —— 删，回到纯白
+- `.opt-row.right` / `.wronged` / `.missed` 的 `0 0 0 3px` 柔光环 —— 删，回到基础阴影
+
+**教训（已写进 candy.css 注释）：用户说「好看一些」不等于「加更多装饰」。**
+图二（答对）本来就干净，我却给它叠了饱和度、渐变、柔光环三层，反而脏了。
+下次遇到审美类要求，先给最小改动让用户看，别一次堆三层。
+
+### 18.5 本轮按用户新准则的执行情况
+
+用户本轮新增长期准则（已存主要记忆）：*确保质量的前提下减少调用；完成不了或失败 2 次以上（含效果不理想）立即调 skill*。
+
+- 效果不理想 → 用户连续两次收窄需求，第三次直接画箭头。已按最小改动落地。
+- 失败 2 次 → dev 服务器连不上连续失败 2 次后，没有第三次重试，而是按 `systematic-debugging` Phase 1
+  取证（`netstat` + `Test-NetConnection` 双地址对比 + 读 `vite.config.js`），一次定位到 IPv6-only 绑定。
+
+---
+
+## 19. 第九轮（2026-09-04）· 标签页去哥特 + 登录页重做 + 弹窗遮罩去红
+
+**gh-pages HEAD：`a01b100`（父 `a8994ab`），45 文件 / 4.61 MB，verify-deploy 缺失0/不一致0/多余0。**
+
+### 19.0 ⚠ §3.3 的禁令已被用户本人解除
+
+§3.3 原文写着「`index.html` 是用户手动改回的哥特原版，**不要动**……我曾改成糖果版并部署过，用户又改了回来。尊重现状」。
+**本轮用户主动要求改**（「图一这里还是哥特那一版的东西，改一下」，图一是浏览器标签页）。
+所以那条禁令作废，`index.html` 现在是可以改的。下个会话别再拿 §3.3 当挡箭牌。
+
+### 19.1 图一 · 浏览器标签页（`app/index.html` + `app/public/favicon.svg`）
+
+| 项 | 原值 | 现值 |
+| --- | --- | --- |
+| `<title>` | 奥术典籍馆 · 窥秘人的修行之地 | **糖果题库 · 电气自动化刷题** |
+| `theme-color` | `#0d1117`（哥特近黑） | **`#FFF5F7`** |
+| `favicon.svg` | `#0d1117` 黑底 + `#c9a84c` 金纹同心圆加十字线 | **棒棒糖**：`#FF8FA3` 粉桃糖头 + `#5FD4B0` 薄荷糖棍 + `#FFF6F8` 奶白双臂螺旋 + `#FFD6E0` 内圈 |
+| `preload p11.webp` | 有（`fetchpriority="high"`） | **删除** |
+
+favicon 用纯几何矢量（圆 + 矩形 + 两条贝塞尔），符合 craft-floor「SVG 做几何是一等媒介，模仿图画才是禁区」；
+motif 与站内 `.ch-lolli` 同源，不是新发明的词汇。
+
+**删 p11 preload 的依据**：`A.starryBg` 键已在 §13 删除，`p11.webp` 此后**只被这一条 preload 引用**，
+即"高优先级预加载一张永不被使用的图"。删掉后 purge-dist 立刻把它清了：
+**dist 46→45 文件、4.90→4.61 MB**，且 §3.1/§3.3 记了多轮的那条 p11 console 警告随之消失。
+累计本会话：**82 文件 / 7.59 MB → 45 文件 / 4.61 MB（-45% 文件数、-39% 字节）**。
+
+`index.html` 是 §3.2 记录的编辑器缓冲区回写高危文件，改完立刻用 `[IO.File]::ReadAllLines` 磁盘回读校验过，
+构建后又校验了 `dist/index.html`，两处都正确、没有被回写。
+
+### 19.2 图二 · 登录页（调 `impeccable` skill 的 `bolder` 通道做的）
+
+用户评价「太简陋」。**根因是我自己造成的**：§13 把五个哥特位图（星空/漩涡/青铜门/魔法球/铜质分隔条）从 JSX 删净后
+**没有补任何东西**，页面只剩标题 + 两个输入框 + 一个按钮 + 页脚。
+
+`bolder.md` 的判断一针见血：*"一个寡淡的区块，通常是悄悄放弃了这个系统自己最强的那些手法"*。核对后确认登录页放弃了三样：
+
+| 系统自有手法 | 别处 | 登录页 |
+| --- | --- | --- |
+| 气泡层 `<Background />` | 加载态（App.jsx L72）、已登录 Shell（L43） | **漏了**（L81-88 的未登录分支只返回 BootRitual + Login） |
+| `.ch-lolli` 棒棒糖 + `.ch-candy` 糖豆 | Learn 页糖果橱窗 | 无 |
+| `.divider` 糖果渐变分隔条 | `.zone-rule`、各页分隔 | 无（原本是哥特铜质花纹条 `A.divider`） |
+
+**修法：不发明新词汇，把这三样补回去。**
+
+- `App.jsx` 未登录分支加 `<Background />`
+- `Login.jsx` 加 `.login-hero`（内含 `.ch-lolli` + `.ch-candy c1/c2/c3`，**类名原样复用**）与 `.login-divider`
+- `candy.css`：`.login-stage` 改 `background: transparent`（否则它那层不透明渐变会盖住 z-index:0 的 `.bubble-layer`，
+  因为它在 DOM 里更靠后）；`.login-hero` 重排 `.ch-*` 的百分比位置（原值是给 Learn 那条 150px 全宽横幅排的，
+  放进 300px 宽的 hero 会挤成一团）；棒棒糖用 `margin-left:-29px` 居中而**不用 translate/transform**
+  ——`.ch-lolli::before` 自带旋转动画，任何 transform 都会和它打架（§12.2 那个坑）；
+  `.login-title` 给到展示级字号 `clamp(30px,8.6vw,40px)`；`.login-foot` 从哥特米金色改 `var(--muted)`（craft-floor 要求正文 ≥4.5:1）
+- 420px 断点缩放 hero；`prefers-reduced-motion` 关掉糖豆与棒棒糖动画
+
+**实测**：`document.title` = 糖果题库 · 电气自动化刷题；`.bubble` 9 个、`.bubble-layer` 存在；
+`.login-stage` 背景 `rgba(0,0,0,0)` 透明；hero 292×118；棒棒糖 58×92 且左边距 117（hero 中心 146 = 117+29，**精确居中**）；
+三颗糖豆位于 (16,24,49px) / (240,10,34px) / (207,80,28px)，与棒棒糖占据的 x∈[117,175] **零重叠**；
+标题 40px；分隔条渐变就位；页脚 `rgb(110,110,110)`（≈5:1）；
+**`img` 计数 0、图片请求 `[]` —— 整页零位图零请求**。截图确认：卡片顶部四个糖果元素带柔光、背景粉→薄荷渐变 + 悬浮气泡散景。
+
+### 19.3 图三 · 「整个页面都变红了」= 我上一轮造成的
+
+§14 我把 `.modal-veil` 从哥特近黑 `rgba(6,8,12,.72)` 改成了**粉洗** `rgba(255,214,224,.5)`。
+叠在本就粉彩的页面背景上 → 整屏推成发红。这是判断失误：当时只想着"别用黑的"，没算叠加结果。
+
+改成**去饱和暖灰轻压暗** `rgba(58,44,48,.2)` + `blur(6px)`（原 5px）：
+
+| | 合成到 `#FFF0F5` 上的结果 | R−G 差 | 观感 |
+| --- | --- | --- | --- |
+| 旧粉洗 `.5` | `rgb(255,227,234)` | **28** | 明显偏粉红 |
+| 新暖灰 `.2` | `rgb(216,201,206)` | **15** | 中性蟹壳灰，不带红相 |
+
+靠磨砂（blur 6px）而不是靠颜色拉开层次，白底弹窗反而更跳。实测：`veilBg rgba(58,44,48,0.2)`、`veilBlur blur(6px)`、
+弹窗 `rgba(255,255,255,.9)` + `rgb(255,214,224)` 边 + 24px 圆角、标题 `rgb(209,71,103)`；截图确认背景是中性磨砂、无红偏色。
+
+> **教训：改遮罩/叠色时必须在目标底色上算一遍合成结果，不能只看色值本身"是不是粉色"。**
+> 半透明色叠在已经偏粉的背景上会把饱和度推高一个档。
+
+### 19.4 impeccable 机械检测器结果（DEGRADED 模式）
+
+`node <skill>/scripts/detect.mjs` 报 **DEGRADED**：缺 `htmlparser2`/`css-select`/`css-tree`/`domutils`，
+自定义属性、选择器匹配与计算对比度都未评估，它自己声明"findings are an undercount, not a clean bill of health"。
+没有去装这些依赖 —— 对比度已用运行时 `getComputedStyle` 实测（比静态检测更强）。
+
+5 条发现**全部落在本轮没碰过的既有代码上，且全部被 craft-floor 的「committed visual world 优先」豁免**：
+
+| 行 | 发现 | 豁免理由 |
+| --- | --- | --- |
+| candy.css L515 | `.answer-scroll-box` 的 `border-left: 4px` | 既有设计（本轮只覆盖过它的 `border-left-color`）；bolder.md「Scope is sovereign」不许动没被点名的邻居 |
+| L43 / L68 | `--ease-pop: cubic-bezier(0.34,1.56,0.64,1)` | 糖果主题的**签名弹性缓动**，§1 把「弹性缓动」列为该主题定义特征 |
+| L723 / L742 | `balance-wobble` / `jar-jiggle` | 设置页糖果天平/糖果罐既有动画（§8 第4项），用户已验收 |
+
+**本轮新增的登录段（candy.css L1300+）、弹窗段（L1195+）、Login.jsx、App.jsx、index.html 零发现。**
+
+### 19.5 环境现状（覆盖 §4.1 与 §18.3）
+
+- **demo 开发服务器：`http://127.0.0.1:5173/quiz-platform/`**，启动命令
+  `npm.cmd run dev -- --mode demo --port 5173 --host 127.0.0.1`。
+  **必须带 `--host 127.0.0.1`**：不带的话 Vite 只绑 IPv6 回环 `[::1]`，Playwright 用 `127.0.0.1` 会 `ERR_CONNECTION_REFUSED`（§18.3）。
+- 本轮为验登录页另起过一个**非 demo** 服务器在 5180（`npm run dev -- --port 5180 --host 127.0.0.1`）——
+  **demo 模式下 `init()` 直接置 signed-in，登录页根本进不去，想验登录页必须起非 demo 实例**。该实例已随会话结束失效。
+- 后台起 dev 服务器会**顶掉上一个后台 dev 进程**（两次 `is_background` 调用先后拿到 terminal_id 1、2，5173 那个被顶死了）。
+  要同时留两个就得显式指定不同 `--port`，且别指望旧的还活着，用前先 `Test-NetConnection` 探一下。
+- `§4.1` 里「开发服务器 `127.0.0.1:5179`」彻底作废，以本节为准。
+
+### 19.6 本轮同时完成的收尾
+
+- §18 的三处红（选错栏 / 答案字母 `.ans-line` / `.lab`）与撤回 §17 的过度装饰，已随本轮一起上线并复测通过。
+- 长期记忆整理：删掉 2 条重复的「Read 陈旧缓冲区」记忆；把「答题反馈配色规范」补全为
+  **答错只红三处 + 容器背景一律不变**（防止下个会话又把 §17 那套做回来）；新增 playwright-cli 原生命令用法一条。
+- 用户新增主要行为准则（已存记忆）：*确保质量前提下减少调用；完成不了 / 失败 2 次以上 / 效果不理想 → 立即调 skill，没有就装一个，不要蛮干。*
+  本轮与上一轮各触发一次（上轮 `playwright-cli`，本轮 `impeccable`），都一次解决问题。
+
+---
+
+## 20. 第十轮（2026-09-04）· 答错配色第四次收窄：钉死「框框」的歧义
+
+**gh-pages HEAD：`e14af9f`（父 `a01b100`），45 文件 / 4.61 MB，verify-deploy 缺失0/不一致0/多余0。**
+**CSS 105.76 → 106.68 kB。**
+
+### 20.1 连续两轮做反的根因：一个词指了两层
+
+答题页解析区是**两层嵌套**：
+
+```
+<section class="zone zone-s revealed">      ← 外层「◇解析」大区块（用户口中的「解析」）
+  <div class="answer-scroll-box ok|bad">    ← 内层白色答案框（用户口中的「框框」）
+    <h5>参考答案 / 正确答案</h5>
+    <p>{答案字母}</p>
+    <p class="lab">【题库解析】</p>
+    <p>{解析正文}</p>
+  </div>
+</section>
+```
+
+- §17 用户说「答错改成图二那种，只是绿色换成红色」→ 我把**两层全**改红了。
+- §18 用户说「整个框框背景不要变」→ 我以为「框框」是**外层大区块**，于是把外层改回不变、
+  反而去染红了内层的字体（`.ans-line`、`.lab`）。**两层都做反了。**
+- §20 用户给出四条精确口径，才明确：**「框框」= 内层白色答案框，「解析背景」= 外层大区块。**
+
+> **教训（已写进 candy.css 注释）：用户说「框」「盒子」「背景」这类词时，凡是该处存在嵌套容器，
+> 先确认指的是哪一层再动手。这个页面就是两层，我猜错了两次，代价是两轮完整的构建+部署+验证。**
+
+### 20.2 最终口径与实测（用户四条，逐一对应）
+
+| # | 用户原话 | 落点 | 实测（答错） | 实测（答对） |
+| --- | --- | --- | --- | --- |
+| ① | 选择那一栏需要变红 | `.opt-row.wronged`（§11 已有） | 底 `rgba(242,86,74,.14)`、边 `rgb(242,86,74)` | `.right` 底 `rgba(127,232,200,.22)`、边 `rgb(95,212,176)` |
+| ② | 解析背景变红 | **`.zone-s.revealed.bad`（本轮新增）** | class `zone zone-s revealed bad`、底 `rgba(242,86,74,.1)`、边 `rgb(255,138,122)` | class `zone zone-s revealed`（**无 bad**）、底 `rgba(127,232,200,.1)`、边 `rgb(127,232,200)` |
+| ③ | 参考答案字体不变色、背景还是白色、只变那条边框 | `.answer-scroll-box.bad` 只留 `border-left-color` | 底 `rgba(255,255,255,.72)`、`backgroundImage:none`、左栏 `rgb(242,86,74)`；h5 `rgb(27,127,99)`、答案字母 `rgb(74,74,74)`、`.lab` `rgb(110,110,110)`、解析正文 `rgb(74,74,74)` | 底同值、左栏 `rgb(95,212,176)`；h5 `rgb(27,127,99)`（**与答错态同值**，证明字体真的没随判定变色） |
+| ④ | 其他维持原来的颜色 | 不动 | `答错了` 横幅 `rgb(196,55,46)`、三档自评红/黄/绿、`.crack-veil` 裂纹 | `答对了` `rgb(27,127,99)` |
+
+本轮**撤销**的 §18 改动：`.answer-scroll-box.bad .ans-line`、`.answer-scroll-box.bad .lab` 两条红字规则，
+以及 `Practice.jsx` 里只为染红答案字母而加的 `className="ans-line"`（实测 `ansLineClassLeft: false`，死类已清）。
+`.zone-s` 的 `bad` 类**只挂 bad 不挂 ok** —— 答对态必须一行不碰。
+
+console 全程 0 errors。
+
+### 20.3 ⚠ 同一个陷阱第二次发作：删覆盖规则会放出更老的规则
+
+§18.2 记过一次（`.answer-scroll-box.bad` 的酸橙绿底）。本轮**同一模式再次出现**：
+
+要把「正确答案」标题改成"不变色"，最直觉的做法是**删掉** §11 那条
+
+```css
+.answer-scroll-box.bad h5 { color: var(--bad-ink) !important; }   /* L1041 */
+```
+
+但 **L522 还压着一条原始糖果版** `.answer-scroll-box.bad h5 { color: #6E9B2E !important; }`（橄榄绿）。
+一删 L1041，橄榄绿立刻回潮 → 答错时标题变橄榄绿。
+
+修法：**不删，改成显式与答对态同值** `color: var(--ok-ink) !important`（后面那条同特异性、位置更靠后，赢）。
+
+> 这次是**动手前先查**才发现的（§18.2 的教训生效了），没有再次上线后才暴露。
+> **规则：在 candy.css 里"撤销"任何一条末尾覆盖时，先 `Select-String` 同选择器在前面还有几条、
+> 它们对应属性的值是什么。删掉 ≠ 回到中性，往往 = 回到某个更老的糖果/哥特值。**
+
+已知同类风险点（§13 扫出的 7 处 `var(--sour)`）：`.opt-row.wronged`(L446)、`.judge-card.j-false`(L484)、
+`.fill-item.wronged`(L494)、`.answer-scroll-box.bad`(L519)、`.gem-dot.bad`(L560)、
+`.entry-card.hot .count-gem`(L584)、`.nav-item .dot`(L226)；本轮又加一处 `.answer-scroll-box.bad h5`(L522)。
+
+### 20.4 关于「解析区红底会不会太淡」
+
+`rgba(242,86,74,.1)` 是刻意与薄荷版 `rgba(127,232,200,.1)` **严格对称**（同透明度、同明度关系的浅色 token）。
+合成到卡片底色 `rgb(255,248,250)` 上约为：
+
+| | 合成结果 | 与底色的偏离 |
+| --- | --- | --- |
+| 薄荷 `.1`（答对） | `rgb(242,246,245)` | G−R = +4，很淡 |
+| 草莓 `.1`（答错） | `rgb(254,232,232)` | R−G = +22，比薄荷明显 |
+
+也就是说**红色版其实比绿色版更容易看出来**（因为底色本身偏粉，红同相叠加、绿是异相）。
+但两版都属于"极浅洗底"，主要靠 `.zone-s` 那圈 `var(--bad)` #FF8A7A 实色边框 + 内部红字/红栏来传达状态。
+**若用户觉得不够红，改一个数就行**：`.zone-s.revealed.bad` 的 `background` alpha 从 `.1` 提到 `.16`~`.2`。
+
+### 20.5 本轮中止的任务
+
+用户先要求「把出题的那个完整 skill 打包一下」，我调 `create-plugin` 建好了骨架
+（`.qoder-plugin/plugin.json` + `assets/` + `skills/electrical-question-gen/{SKILL.md,rules/,validator/}`，
+共拷入 7 个文件），随后用户改口「不要打包了」，**该目录已删除，未产出任何交付物**。
+
+顺带查实并**更正上一轮的一个错误结论**：`electrical-question-gen` 附录D 引用的离线校验器
+（`validate_questions.ps1` 14668 B、`question-batch.schema.json` 2882 B、`sample-valid.json` 12036 B、
+`sample-invalid.json` 11801 B、`README.md` 4885 B）**确实存在**，位于
+`C:\Users\青丘白浅\Documents\Qoder\命题流水线\validator\`，不在 skill 目录内 ——
+上一轮我只在 skill 目录下找，误报"四个文件全不存在"。
+附录D 第 1 条的网页校验器路径 `app\src\core\validator.ts` **仍然是错的**，实际是 `app/src/lib/validate.js`。
+
+上一轮已完成的 skill 规则 vs `validate.js` 比对结论（20 项一致、5 处差异）用户明确表示**不要修**，保持现状。
+
+---
+
+## 21. 第十一轮（2026-09-04）· 入库序改全局单调（修好被打通的刷题顺序）
+
+**gh-pages HEAD：`8487391`（父 `e14af9f`），45 文件 / 4.61 MB，verify-deploy 缺失0/不一致0/多余0。**
+**CSS 哈希未变（`index-blmfZRBh.css`）——本轮纯逻辑改动，一行样式没碰。**
+
+### 21.1 问题：`seq` 存的是批内序号，跨批次会重复
+
+用户问「题目是按照入库时间顺序排列吗？」，查出来两处排序、口径不同：
+
+| 位置 | 排序依据 |
+| --- | --- |
+| 糖果书架 `Bank.jsx` L38 | `importedAt` 降序（新→旧），页面文案「按导入时间从新到旧排列」准确 |
+| 组卷 `stats.js` L149/156/161 | **`a.seq - b.seq`** —— 与入库时间无关 |
+
+而 `seq` 是命题协议里的**批内序号**：`validate.js` L226 `const q = { id: hashId(...), seq, ... }`，
+`seq = seqOf(raw)` 直接取 JSON 的 `序号` 字段，每批都是 1~21。`db.js` L52 云端读取还是 `.order('seq')`。
+
+**后果**：导入 N 批后库里有 N 个 `seq:1`、N 个 `seq:2`……。`buildSession` 的
+`learn`（学新题）/ `wrong`（错题重练）/ `relearn`（挑题练习）三条路径全部 `sort by seq`，
+于是刷题顺序变成「**各批的第1题 → 各批的第2题 → …**」，而不是「第一批21题 → 第二批21题」。
+
+这与命题设计直接冲突：按协议每批 21 题是以 1 道原题为圆心的同心圆，
+序号 2~9 基础 / 10~16 应用 / 17~21 综合是**围绕同一知识点的认知阶梯**。
+按 seq 横切等于把阶梯打散成「所有批次的基础题混在一起、再所有批次的应用题混在一起」，
+上一题讲热继电器、下一题跳 D/A 转换器。同 `seq` 之间的先后 Postgres 还**不保证**（并列值顺序未定义）。
+
+（`review` 到期复习按 `a.dueAt` 排、`random` 走 shuffle，这两条不受影响。）
+
+### 21.2 修法：入库前把批内序号改写成全局单调值
+
+新增 `validate.js` 的 `assignGlobalSeq(incoming, existing)`：
+
+```js
+export function assignGlobalSeq(incoming, existing) {
+  const byId = existing instanceof Map ? existing : new Map((existing ?? []).map((q) => [q.id, q]))
+  let maxSeq = 0
+  byId.forEach((q) => { if (Number.isFinite(q?.seq) && q.seq > maxSeq) maxSeq = q.seq })
+  return (incoming ?? []).map((q) => {
+    const old = byId.get(q.id)
+    if (old && Number.isFinite(old.seq)) return { ...q, seq: old.seq }   // 已在库 → 沿用原 seq
+    const local = Number.isFinite(q.seq) && q.seq > 0 ? q.seq : 0
+    return { ...q, seq: maxSeq + local }                                 // 新题 → 已有最大 + 批内序号
+  })
+}
+```
+
+`store.js` 的 `importBank` 在 `parseBank` 之后、`persistAfterImport` / `upsertQuestions` 之前调用它，
+`existing` 从 `Set<id>` 升级成 `Map<id, q>`（顺带供 `added` 统计复用，少遍历一次）。
+
+**三个刻意的取舍：**
+
+1. **必须在 `parseBank`（即校验）之后调用。** 校验器的 `diffBand(seq)`（2~9基础/10~16应用/17~21综合）、
+   「综合层允许认知层级=分析」的唯一例外（`seq>=17 && seq<=21`）、「拓展题≤2空」「空位居句首」（`seq>=2`）、
+   「序号应为 N」（`seqOf(it) !== i+1`）—— **全部读的是原始 JSON 的 `seqOf(raw)`，不是 `q.seq`**。
+   提前改写会让整套难度层段判定失效。这条已写进函数注释。
+2. **备份恢复那条分支（`importBank` L256-267）故意不重排。** 备份里带的本来就是存好的全局序，
+   再套一次 `maxSeq +` 会把整批推到库尾、毁掉原顺序。
+3. **已在库里的题沿用原 seq**（`if (!map[q.id])` 的同款思路）。否则重复导入同一批，
+   每导一次整批就往后推一段，序号无意义地膨胀。
+
+零表结构变更：`seq` 列本来就存在，只是值的语义从「批内序号」变成「全局入库序」。
+
+### 21.3 回归测试 `scripts/t-seq.mjs`（16 例，全过）
+
+比照 `t-fill.mjs` 的做法**直接 import 真实源码**，不复制逻辑（复制的话测的就不是上线的东西）。
+
+覆盖：空库首批原样 1..21 / 第二批接 22..42 / 重复导入不重排 / **三批 63 题按 seq 排序 = A→B→C 完整分段**
+（这条就是本次改动的目的本身）/ 全局 seq 恰为 1..63 无重复无空洞 / 部分重复（库里只有前 5 题）/
+新题严格大于所有已有 seq / `existing` 传 Map 与传数组等价 / `existing` 为 undefined·null 不炸 /
+`seq` 缺失或为 -1 时退化成 `maxSeq+0` 不产生 NaN / `incoming=undefined` 返回空数组 /
+删题后 maxSeq 回落 / 不可变性（不就地改入参、返回新对象）。
+
+同时跑 `t-fill.mjs` 回归 **13/13 通过** —— `validate.js` 被改过，确认填空判分没受影响。
+
+### 21.4 ⚠ 这个修复是「只向前生效」的
+
+**云端已有的题不会被重排。** 已经导入的那些批次，`seq` 仍是重叠的 1~21，
+它们之间照旧交错；改动只保证**从现在起新导入的批次**整批排在所有旧题之后。
+
+要修存量数据是可行的，但没做（用户只选了方案 2，未要求迁移）：
+`qp.importedAt.v1`（localStorage）里同一批的题共享同一个毫秒时间戳，而现有 `seq` 恰好就是批内序号，
+所以可以「按 importedAt 分组 → 组间按时间戳升序 → `newSeq = 组序 × 1000 + 原 seq`」重建。
+**前提是那台浏览器的 localStorage 还在**——这正是下面 21.5 的脆弱点。
+
+### 21.5 顺带查实的两个既有隐患（本轮未修，用户未要求）
+
+1. **`qp.importedAt.v1` 只存 localStorage、不上云。** `db.js` 里没有对应列。
+   清缓存 / 换浏览器 / 换设备 → map 变空 → 书架页所有 `?? 0` → **sort 静默失效**退回按 seq 排，
+   而页面文案仍写着「按导入时间从新到旧排列」，不报错、也无法重建。
+   彻底解决要给 `questions` 表加 `imported_at` 列（就是上一轮我列的方案 3）。
+2. **`importBank` 没有 DEMO 卫兵。** `store.js` L273 `await repo.upsertQuestions(questions)` 与
+   L261 的备份分支都**裸调云端**，对比 `deleteQuestion` L280 有 `if (!DEMO)`。
+   也就是说 demo 模式下真去导入，会写进生产 Supabase 库。
+   **本轮因此刻意不在浏览器里测导入路径**，改用 16 例单测覆盖。
+   （§11 修过 `updateSettings` 缺 DEMO 卫兵，这是同一类问题的第二处，建议一并补。）
+
+### 21.6 附带的一处文案修正
+
+`Bank.jsx` L125 卡片背面的 `<b>编号</b>` 改成 `<b>入库序</b>`。
+`q.seq` 已经不是协议里的批内序号了，第三批的第 1 题会显示「第 43 题」，
+沿用「编号」会让人以为数据乱了。**这是语义跟随，不是美化。**
+
+---
+
+## 22. 第十二轮（2026-09-04）· 五个练习入口的排序口径 + 修两个组卷 bug + 部署脚本加重试
+
+**gh-pages HEAD：`b8a99d3`（父 `8487391`），45 文件 / 4.61 MB，verify-deploy 缺失0/不一致0/多余0。**
+**CSS 哈希未变（`index-blmfZRBh.css`）——纯逻辑改动。**
+
+### 22.1 五个入口的真实口径（用户逐条问过后核对的结果，别再凭印象答）
+
+| 入口 | 代码 | 筛选口径 | 排序 | 题量 |
+| --- | --- | --- | --- | --- |
+| **开始今日练习**（hero） | `Learn.jsx` L86-93 **四选一优先链** | 见下 | 见下 | 见下 |
+| **错题重练** | `run('wrong',{size:0})` | `lastResultMap(records).get(id) === false`，即**最近一次**答错（后来答对就出局，不是"曾经错过"） | `a.seq - b.seq` | 全部 |
+| **随机练习** | `run('random',{size:20})` | **不排除做过的、不排除错题**，从筛选后全库抽 | Fisher-Yates | 20 |
+| **新题上手** | `run('learn')` | `cards` 里没有复习卡的题 = **从未做过三档自评**（不是"从未点进去过"） | `a.seq - b.seq` | **全部（故意不封顶）** |
+| **挑题练习** | modal → `run('relearn',{size:0,…筛选})` | 题型 / 知识域 / 难度 | `a.seq - b.seq` | 全部 |
+
+hero 优先链（`Learn.jsx` L86 注释原文「到期复习 → 错题 → 新题 → 随机（按交接要求保留）」）：
+
+```
+dueCount > 0   → review  「N 道题到期，该复习了」   size:20
+wrongCount > 0 → wrong   「N 道错题等着重练」       size:20
+newCount > 0   → learn   「N 道新题还没做过」       无 size = 全部
+都没有          → random  「今天也来练几道，保持手感」 size:20（本轮补上，原来漏了）
+```
+
+**所以「开始今日练习」不等于间隔重复** —— 只有今天真有到期题时才走 FSRS，否则逐级降级。
+
+`take(list, size)` = `size > 0 ? list.slice(0, size) : list`，**`size:0` 与不传都等于"全部"**。
+`startSession`（`store.js` L427-430）传的是 `size: opts.size ?? 0, now: Date.now()` —— `now` 一定会传，
+这点很关键：`isDue(card, now)` 是 `card.dueAt <= now`，**漏传 now 会让 review 静默返回空会话**（已写成测试 A6 钉住）。
+
+### 22.2 FSRS 在用，而且是完整的 FSRS（不是 SM-2）
+
+`lib/fsrs.js`，注释「与线上算法完全一致，保证复习数据兼容」：17 个权重 `w[0..16]`、
+`DECAY=-0.5`、`FACTOR=19/81`、`REQ=0.9`（目标保留率 90%）、幂遗忘曲线
+`R=(1+FACTOR·elapsed/S)^DECAY`、间隔反解 `I=S/FACTOR·(R^(1/DECAY)−1)`、
+`S0=w[rating−1]`、`D0=clampD(w[4]−(rating−3)·w[5])`、难度更新带 `w[7]` 均值回归、
+回忆后稳定性含 hard/easy 乘子 `w[15]/w[16]`、遗忘走 `nextForgetStability`。
+三档自评映射 **忘记=1(Again)、模糊=2(Hard)、记得=3(Good)**。
+有老卡兼容分支：缺 `stability/difficulty` 的旧卡用 `S=max(1,intervalDays)`、`D=5` 兜底。
+
+**两处死代码**（不影响功能，别以为是 bug 去"修"）：
+- `rating === 4` 的 easy 乘子 `w[16]` **永远不会触发** —— 三档最多映射到 3，没有 Easy
+- `easeFactor: 2.5` 是 SM-2 遗留字段，`reviewCard` 里恒定赋 2.5、**不参与任何计算**
+
+### 22.3 本轮修的两个 bug
+
+**A. `buildSession` 的 `review` 是五条路径里唯一没走 `take()` 的分支**，hero 传的 `size:20` 被静默丢掉 ——
+几天没练、积压 200 张到期卡就会一次性塞 200 题进会话。
+修法：外面套 `take(..., opts.size)`。按 `dueAt` 升序取前 N = **拖欠最久的优先**，
+剩下的明天继续到期、不会丢（Anki 的每日复习上限同理）。`take` 对 `size<=0` 返回全部，不传 size 的调用方行为不变。
+
+**B1. hero 降级到 `random` 时漏传 size** —— 同一条链上 `review`/`wrong` 都传 20、「随机练习」卡片也传 20，
+只有它没传，于是 `take(list, undefined)` 返回**全库打乱**。补 `{ size: 20 }`。
+
+**B2（`learn` 不封顶）故意没改。** 理由：正常节奏是一次导一批 21 题，"全部新题"就是 21 道正好；
+出现几百题会话只在一次性导入很多批时，而那种情况下"把新题全过一遍"可能本来就是用户要的；
+且 hero 文案会显示「N 道新题还没做过」，**点之前就知道是几道 = 知情同意**。
+要封顶是产品决策，不是修 bug，所以留给用户拍板。
+
+### 22.4 新增回归测试 `scripts/t-session.mjs`（18 例，全过）
+
+`buildSession` 之前**一个测试都没有**，而它的排序口径是用户明确关心过的行为。18 例覆盖：
+review 遵守 size / 排序是 dueAt 升序（拖欠最久优先）/ size:0 与不传都返回全部 /
+只取已到期的 / **不传 now 返回空**；learn 排除已有复习卡 + 按 seq + 遵守 size；
+wrong 只取最近一次答错（翻正的不计、翻错的要计）+ **按 seq 而非错题产生时间**；
+random 恰好 N 道 + 无凭空 id + 不排除做过的；relearn 全量按 seq + 题型筛选 + 知识域筛选；未知 mode 返回空。
+
+三套回归现状：**t-session 18/18、t-seq 16/16、t-fill 13/13（共 47 条断言）**。
+
+### 22.5 ⚠ 附带修的：`lib/` 里的相对 import 必须带 `.js` 扩展名
+
+`t-session.mjs` 第一次跑就挂：
+
+```
+Error [ERR_MODULE_NOT_FOUND]: Cannot find module '.../app/src/lib/fsrs'
+  imported from .../app/src/lib/stats.js
+```
+
+根因：`stats.js` 写的是 `import { isDue } from './fsrs'`（**无扩展名**）。
+Vite 能解析，**Node 的 ESM 加载器要求完整文件名**。
+`t-seq.mjs` / `t-fill.mjs` 之所以一直能跑，是因为 `lib/validate.js` **零依赖**。
+
+已把 `stats.js` 的两条改成 `'./fsrs.js'` / `'./dates.js'`。**打包结果完全一致**（Vite 两种写法同样解析），
+但从此 `lib/stats.js` 可以在 Node 里直接测。
+
+**还没改的**：`db.js` 有 `'./supabase'`、`'./dates'`；`store.js` 有 6 条无扩展名 import。
+`store.js` 不用管（它用 `import.meta.env`，Node 里本来跑不起来）；
+`db.js` 目前没测试需要它，要测再改。**以后新增 lib/ 模块一律写全扩展名。**
+
+### 22.6 ⚠ 部署脚本原来完全没有重试，一次网络抖动就废掉整轮上传
+
+本轮部署**连续失败 2 次**。第一次我用 `Select-Object -Last 3` 截断了输出，
+只看到 `}` 和 `Node.js v24.19.0`，**没读到真实报错就又重试了一次** —— 违反 systematic-debugging Phase 1。
+第二次改成完整捕获才拿到根因：
+
+```
+blobs: 40 / 45          ← 45 个 blob 全部上传成功
+new tree: 60b151b0...   ← tree 也建好了
+[TypeError: fetch failed]
+  cause: ConnectTimeoutError (attempted address: api.github.com:443, timeout: 10000ms)
+  code: UND_ERR_CONNECT_TIMEOUT
+```
+
+**卡在最后创建 commit 那一次请求**，前面几分钟的上传全白费。
+
+关键点：`req()` 里的 `AbortSignal.timeout(300000)` 管的是**整体超时**，
+**管不到 undici 那个默认 10 秒的 connect timeout**。而当时的诊断显示
+`Test-NetConnection api.github.com:443 = True`、`Invoke-WebRequest https://api.github.com = HTTP 200` ——
+**连接是间歇性的**，同一时刻 PowerShell 通、Node 不通。（`hk00jjj.github.io` 的 Pages CDN 当时 HTTPS 直接操作超时。）
+
+修法：给 `deploy-api.mjs` 的 `req()` 加**指数退避重试**（`1s→2s→4s→8s→15s` 上限，带 0~400ms 抖动，共 5 次），
+只对「网络层错误（`TypeError` / `UND_ERR*` / `ETIMEDOUT` / `ECONNRESET` / `ECONNREFUSED` / `EAI_AGAIN` / `ENOTFOUND` /
+`socket hang up` / `fetch failed`）+ HTTP 429/5xx」重试；**HTTP 4xx 属业务错误，直接抛不重试**。
+
+**为什么重放是安全的**（四种调用逐一核过）：
+- `POST /git/blobs`、`POST /git/trees` 是**内容寻址**的，同内容得同 sha
+- `POST /git/commits` 的 `author/committer date` 在调用 `req()` **之前就已求值固定**，
+  同 body 必然得到同一个 commit sha（commit sha 就是其内容的哈希）
+- `PATCH /git/refs` 设成同一个 sha 幂等
+
+**实证**：重跑后 `new tree: 60b151b05837f155181afd0d76d453b40f2deb94` 与崩溃那次**完全相同**，退出码 0，
+`new commit: b8a99d3`。
+
+**其它脚本的重试现状**（本轮查实）：
+
+| 脚本 | 有 fetch | 有重试 |
+| --- | --- | --- |
+| `push-src.mjs` | ✅ | ✅ **本来就有**（难怪它一直稳，只偶发首跑 MISMATCH） |
+| `deploy-api.mjs` | ✅ | ✅ 本轮补上 |
+| `verify-deploy.mjs` | ✅ | ❌ 走 API，只读，失败重跑即可 |
+| `verify-live.mjs` | ✅ | ❌ **走 Pages CDN，而 CDN 正是最容易超时的那个**，建议下一轮补 |
+
+### 22.7 挂起：C（存量数据 seq 迁移）的只读试算办法
+
+`assignGlobalSeq`（§21）**只向前生效**，云端已有批次的 `seq` 仍重叠。
+迁移唯一的批次分组信号是 `qp.importedAt.v1`，而它**只在用户浏览器的 localStorage、不上云**，
+所以试算只能在用户那台浏览器里跑。已给用户这段**只读**片段（F12 Console 粘贴，不写任何数据）：
+
+```js
+(()=>{const m=JSON.parse(localStorage.getItem('qp.importedAt.v1')||'{}');const k=Object.keys(m);
+if(!k.length)return console.log('⚠ 空的 —— 这个浏览器没有导入时间记录，存量迁移做不了');
+const g={};k.forEach(id=>{(g[m[id]]=g[m[id]]||[]).push(id)});const b=Object.keys(g).sort((a,c)=>a-c);
+console.log('有时间戳的题:',k.length,'| 批次数:',b.length);
+console.log('各批题数:',b.map(t=>g[t].length).join(' , '));
+console.log('最早:',new Date(+b[0]).toLocaleString(),'最晚:',new Date(+b[b.length-1]).toLocaleString())})()
+```
+
+拿到批次数与覆盖率后再决定要不要做写入。**写入必须在应用内做**（需要已登录的 Supabase 会话），
+且要先备份、先出预览、再确认 —— 不要在 Console 里手搓写操作。
+
+---
+
+## 23. 第十三轮（2026-09-04）· 出题→入库全链路死代码审查与清理
+
+**gh-pages HEAD：`640621b`（父 `8487391`）。dist 45 文件/4.61 MB → `verify-deploy` 27/27 缺失0/不一致0/多余0。**
+
+### 23.0 总量账（本会话累计）
+
+| | 会话初 | 现在 |
+| --- | --- | --- |
+| dist 文件数 | 82 | **27** |
+| dist 体积 | 7.59 MB | **3.14 MB** |
+| JS bundle | ~490 kB | **462.17 kB** |
+| `public/img` | 96 个 / 8806 KB | **21 个 / 2627 KB** |
+| `assets.js` 键 | 45 | **10（零引用 0）** |
+
+审查用了 `code-review-and-quality` skill（五轴 + 严重度分级 + Dead Code Hygiene「先列清再问后删」）。
+机械部分写成两个可复跑脚本，判断部分人工读，**不靠印象下结论**。
+
+### 23.1 新增两个审计脚本（已入 src 分支）
+
+- **`scripts/audit-pipeline.mjs`** —— 死导出 / 多余 export / 未用 import / 幽灵选择器候选 / 零引用资源键 / 孤儿图片 / 文件规模
+- **`scripts/audit-adjudicate.mjs`** —— 幽灵裁决（**剥注释但保留行号** + 识别动态拼接类名）/ 死 state / 三方规则常量并排
+
+**两个必须记住的方法论坑（都当场栽过）：**
+
+1. **语料必须 walk 全部 src 文件，不能硬编码清单。** 第一版漏了 `components/Bookshelf.jsx`，
+   差点把 `.book-*` 一族 **25 个选择器全误判为死代码**（实际 `Settings.jsx` L4 import、L55 渲染 `<Bookshelf />`）。
+2. **必须剥注释再比对，否则注释里的字面量会假装成引用。** 两个方向都栽过：
+   - 假阳性：candy.css 注释里写着 `.ans-line`、`.ch-*`、`fonts.googleapis.com`，被当成选择器匹配出 `ans-line`/`ch-`/`googleapis`/`com`
+   - **假阴性（更危险）**：`A.divider` 唯一的"引用"是 `Login.jsx` L65 注释里的「A.divider(p44.png)」字样，
+     审计因此报告 assets.js「零引用 0 个」，把已经死掉的 `divider` 漏了过去
+3. **动态拼接的类名要单独识别**：`'nav-item tone-' + it.tone` → `.tone-mint`/`.tone-lav`；
+   `'diff-pill tiny d-' + cls` → `.d-base`/`.d-apply`/`.d-adv`；`'f' + (k+1)` → `.f1`/`.f2`/`.f3`（`Practice.jsx` L399 蜡封三帧）；
+   `.boot-veil.s1/.s2/.s3` 是开机仪式三段状态类。**这些全是活的，第一版正则不含空格所以全误报了。**
+
+### 23.2 已删（可安全删除档，全部执行）
+
+| 项 | 规模 | 依据 |
+| --- | --- | --- |
+| **`app/src/theme/apple.css` 整个文件** | 587 行 / 35450 B | `main.jsx` 只 import `global.css`(L4)/`pages.css`(L5)/`candy.css`(L7)，**apple.css 无人 import** —— 不进打包、不参与层叠。它里面那 20 个"幽灵"是因为整个文件都死 |
+| **`app/src/pages/Stats.jsx` 整页** | 320 行 | 入口（📊 星象）§7.5 已按用户要求摘掉，页面成了只能手打 URL 的孤儿，且独占剩余哥特位图一大半。`App.jsx` 同步删 import(L15)、Route(L48)、activeKey 的 `'/stats'` 映射。**`#/stats` 现由 `path="*"` 重定向回首页，实测 hash 变 `#/`，不 404** |
+| `stats.js` 12 个死导出 | **172 → 88 行** | `titleFor`/`achievementsOf`/`dailyCounts`/`weekBars`/`byType`/`domainMastery`/`levelOf`/`levelProgress`/`nextTitleFor`/`RARITY_META`/`accuracyOf`/`uniqueDays`，以及内部专用的 `LEVEL_SPAN`/`TITLES`。全部只被 Stats.jsx 用。**只留 `lastResultMap`**（App.jsx 错题角标 + store.js + `buildSession('wrong')` 在用）。`daysAgoStr` import 随之删除（只有 weekBars 用） |
+| `dates.js` `streakSet` | 7 行 | Stats.jsx 专用 |
+| `assets.js` **10 个死键** | 20 → 10 键 | `idCardFrame`/`avatar`/`portraitFrame`/`astrolabe`/`trophy`/`badgeFrame`/`emptyCandle`/`milestone`/`achIcons`（九个随 Stats 下线）+ `divider`（随 RuneDivider 删） |
+| `components.jsx` `RuneDivider` | 死组件 | 外部 0 引用、文件内 0 使用 |
+| `Practice.jsx` L4 `TYPE_SEAL_INDEX` | 死 import | 全文件未使用；assets.js 里那个导出也一并删 |
+| **`public/img` 75 个孤儿图** | **8806 → 2627 KB** | 大头：`p12.png 765K`、`p19.webp 433K`、`p5.webp 399K`、`crack-1/2/3.webp 767K`（assets.js 用的是 `crack-*s.webp` 小图版）、`p11.webp 300K`、`p34-1~7.webp 294K`（七个内容完全相同的哥特题型印章）、`p42-*`/`p43-*`（Stats 的里程碑与成就图标）、`nav-*.webp`（导航早改 emoji）、`abyss-*`/`seal-*`/`mark-*-off/on.webp` |
+
+**`p44.png`（divider）故意没删** —— 它仍被某个 CSS 的 `url(.../img/p44.png)` 引着（`.divider` 幽灵规则），
+purge-dist 的复核闸也因此正确地保留了它。**等幽灵选择器那轮清完 CSS 才能删。**
+
+### 23.3 ⚠ `purge-dist.mjs` 的魔数闸门被合法清理绊倒，已换成语义不变式
+
+删掉 10 个死资源键后真实引用数降到 **21**，而脚本里写着 `if (refs.size < 25) ABORT`，
+于是它把一次**完全正确**的清理拦了下来（`RESULT: ABORT —— 只解析到 21 个引用，明显异常`）。
+
+那个阈值是当年"正则去匹配了 bundle、误删 86 个文件"事故后加的，但**用固定数字守这件事本身就会烂** ——
+资产每被合法清理一次，它就离误报近一步。换成两条不依赖数字的闸：
+
+1. `refs.size === 0` → 中止（walk 或正则整体失效）
+2. **真正的防误删闸**：把全部源码与 index.html **剥掉注释**后拼成一大块，
+   任何"孤儿"文件名若仍出现在里面，说明引用正则漏了它 → 中止并列出漏掉的文件名。
+   原有的 `missing`（引用了但 dist 里没有 → 会 404）检查保留。
+
+改后：`源码引用 21 个素材，清除孤儿 75 个（省 6178KB），剩余 21 个 / 2.57 MB，RESULT: DIST CLEAN`；
+二次跑「清除孤儿 0 个」= 已收敛。
+
+### 23.4 #12 ps1 退役 + #13 改协议：**协议你自己已经改好了，我做的是同步与退役**
+
+查的时候发现 **`question-protocol.md` 已经是 483→484 行的区间弹性版**（我早先读的是 458 行固定版）：
+第三章第2条有完整配比表 + 三条硬约束 + 四种知识点类型推荐配比，
+**第三章第3条认知阶梯也重写成"层内题型随全局配比联动"的弹性版**（L237-241），
+**A类② (L412) 与 附录C Q9 (L476) 都已同步**，修订说明第 9 条也写了。改得比我建议的彻底。
+
+**但同步方向反了**：SKILL.md L14 规定「修订 `规则体系.md` 后必须同步本文件」，
+实际是 **skill 副本被改、上游 `规则体系.md` 还停在固定配比旧版**（459 行 vs 484 行）。
+**这个风险是实的：下次谁按纪律"从上游同步"，就会把区间版覆盖回固定版。**
+
+已做三件事：
+
+1. **重写附录D**（两份都改）：
+   - 第1条改成「唯一现役校验器（网页端）」，**并修正了错误路径** —— 原写 `app\src\core\validator.ts`，实际是 `app\src\lib\validate.js`（`Validator` 类）
+   - 第2条改成「离线 PowerShell 校验器已于 2026-09-04 退役」，写明退役原因是它实现的是修订前的固定配比、会拒掉网站端放行的合规批次
+   - 第4条补上「**它也不校验层段内的题型构成**（第三章第3条的层内弹性分配），该项属生成方自律」
+   - L58 术语表的「外部校验器」条目同步改写
+2. **`validator\` 整个目录移入 `命题流水线\_已废弃_20260904_validator\`**（沿用已有的 `_已废弃_20260822\` 命名惯例），
+   含 `validate_questions.ps1`(14668B)、`question-batch.schema.json`(2882B)、`sample-valid.json`(12036B)、`sample-invalid.json`(11801B)、`README.md`(4885B)。**是移动不是删除**，需要时还能取回。
+3. **`规则体系.md` 从 `question-protocol.md` 整体重建** = 后者全文 + 末尾那句 57 字交互句，
+   并保留它原有的 **UTF-8 BOM**。校验：`规则体系.md 去掉尾句 -ceq question-protocol.md` → **一致 ✓**（大小写敏感逐字符比较），行数 484 vs 486（差 2 = 空行 + 尾句）。
+
+**遗留给用户拍板的一件事**：现在两份文件内容一致了，但**"哪份是上游"仍含糊** ——
+SKILL.md L14 说上游是 `规则体系.md`，而这次实际是反方向同步的。建议明确一下，否则还会再漂。
+
+### 23.5 三方规则实现的现状（审查①的最终结论）
+
+| 载体 | 配比口径 | 状态 |
+| --- | --- | --- |
+| `question-protocol.md` | 区间弹性 | ✅ 用户已改 |
+| `规则体系.md` | 区间弹性 | ✅ 本轮同步 |
+| `app/src/lib/validate.js` | 区间弹性 + 计算+简答≤5 | ✅ |
+| `validate_questions.ps1` | ~~固定~~ | **已退役移走** |
+| `question-batch.schema.json` | 不含配比 | 随 ps1 一起退役 |
+
+**四份实现收敛成一份事实源（validate.js）+ 两份同源文档。** 剩下已知的宽严差只有 schema 那 3 处，已随退役作废。
+
+仍未修的规则差异（上一轮已报、用户说不动，本轮维持）：
+层段内题型分布不校验、简答分点下限 2 不校验、填空「空位不居句首」两个校验器都只约束拓展题（口径其实一致）、解析 375 字按题型而非"含计算"判定。
+
+### 23.6 明确没做的（按 skill 的严重度分级，都是 Nit/Optional 或需分批）
+
+1. **幽灵选择器没动** —— 删掉 Stats.jsx 后 `pages.css` 的幽灵从 16 涨到 **67**（新增 `id-card`/`portrait`/`ring-wrap`/`ach-grid`/`cal-*`/`week-bars`/`domain-bars`/`type-bars`/`sigil-*`/`rarity-tag`/`oath-badge` 等），
+   `candy.css` 23 个、`global.css` 26 个。**这是本轮最大的遗留项，但必须单独一轮做**：
+   三层 CSS 是"末尾追加、同特异性后来居上"结构，§18.2 与 §20.3 已经两次证明
+   **删掉一条覆盖规则会放出更老的规则**（酸橙绿 background、橄榄绿 h5）。
+   要一批一批删、每批真机 `getComputedStyle` 验证，不能当纯删除做。
+2. **12 个多余 `export` 关键字没摘**（`fsrs.js DAY`、`stats.js filterQuestions/OBJECTIVE_TYPES/DOMAIN_NAMES`、
+   `supabase.js SUPA_URL/SUPA_KEY`、`validate.js hashId/parseItems/normalizeAnswer/TYPE_LIST/validateItems`、`store.js DEMO`）——
+   纯 Nit、零功能影响，逐个改动只增加风险。其中 `DAY` 与 `filterQuestions` 建议**保留** export（测试可直接 import，
+   `t-session.mjs` 现在自己重定义了 `const DAY = 86400000`，改成 import 更好）。
+3. **`importBank` 两条分支的重复没抽**（备份恢复 / 21题批，各 6 行相似的 persist→existing→added→upsert→reload）——
+   skill 的原则是"第三次出现才抽象"，现在两处，抽出来省不了多少。
+4. **`Bank.jsx` L26 `importedAt` 的 useMemo 依赖是 `[]`** —— 实际路径 Import→Bank 会重新挂载，碰不到。Nit。
+
+### 23.7 验证
+
+- 三套回归 **t-session 18/18、t-seq 16/16、t-fill 13/13** 全过（stats.js 被大幅删改后重跑，组卷逻辑完好）
+- 构建 ✓，purge-dist 二次跑孤儿 0 = 收敛
+- **真机五路由冒烟**：Learn / Bank / Import / Settings / Practice 全部 `badImg: 0`、`fail: []`（资源级 404 为零）；
+  答题页 `imgs: 8, broken: []`、`.crack-veil` 正常、判定横幅「答错了」正常；
+  **`#/stats` 实测重定向到 `#/`**；console 全程 0 errors
+- 上线：gh-pages `640621b`、verify-deploy **27/27** 全零差异
+
+### 23.8 补：verify-live / verify-deploy 也加了重试（§22.6 的遗留项本轮清掉）
+
+`push-src` 成功后 `verify-live` 立刻挂在 `UND_ERR_CONNECT_TIMEOUT`——正是 §22.6 表格里预判的那一条
+（「`verify-live.mjs` 走 Pages CDN，而 CDN 正是最容易超时的那个，建议下一轮补」）。
+
+修法与 §22.6 同：给两个脚本各包一层**带指数退避的全局 fetch**（1s→2s→4s→8s→15s 上限，共 5 次，
+只重试网络层错误与 429/5xx，4xx 业务错误直接放行给调用方判断）。
+包 `globalThis.fetch` 而不是逐个改调用点，是为了**所有现有与将来新增的请求自动获得重试**。
+两个脚本都是只读的，重放无副作用。
+
+**补丁当场生效**：重跑时打印 `retry 1/4: ECONNRESET https://hk00jjj.github.io/quiz-platform/img/p4.webp`，
+重试后 `27/27 个 200 OK`、三哈希 MATCH、`LIVE RESULT: ALL OK`。
+
+一个细节：`verify-live.mjs` 的 `head()` 里**本来就有一个 3 次重试循环**，但它没兜住这次——
+抛出的异常来自 L55 那个取哈希的 GET（没有重试）。现在两层叠加，最坏情况 15 次尝试，无害。
+
+**至此四个联网脚本全部具备重试**：`push-src.mjs`（原有）、`deploy-api.mjs`（§22.6）、
+`verify-deploy.mjs`、`verify-live.mjs`（本节）。
+
+### 23.9 工作区联接现状（下个会话要用）
+
+当前会话工作区 `2026-09-03\chat-1` 里有五个 junction 指向真实工程与外部资料，
+**编辑类工具只能改工作区内的路径，所以跨目录改文件一律走这些联接**：
+
+| 联接 | 指向 | 用途 |
+| --- | --- | --- |
+| `app` | `2026-09-02\chat-1\app` | 应用源码 |
+| `scripts` | `2026-09-02\chat-1\scripts` | 部署与测试脚本 |
+| `oldroot` | `2026-09-02\chat-1` | 根级的 `verify-*.mjs` / `HANDOFF.md` / `src-branch-README.md` |
+| `skill-eqg` | `.qoder-cn\skills\electrical-question-gen` | 出题 skill（SKILL.md + rules/） |
+| `pipeline` | `Documents\Qoder\命题流水线` | 规则体系.md 上游与已退役的 validator |
+
+---
+
+## 24. 第十四轮（2026-09-04）· 书库回到导航 + 糖果书架页重做
+
+**gh-pages HEAD：`0a982a9`（父 `640621b`），27 文件 / 3.14 MB，verify-deploy 缺失0/不一致0/多余0。**
+**CSS 106.68 → 108.62 kB，JS 462.17 → 463.89 kB。**
+
+### 24.1 用户两问的回答
+
+1. **「网站检测入库还有一个糖果书库入口吗？」** —— **还在**，`Import.jsx` L162：
+   `<GiltBtn onClick={…navigate('/bank')}>前往糖果书架</GiltBtn>`（导入成功后的绿色结果框里）。
+   本轮**没有删它** —— 现在有两个入口（导航 + 导入成功后的一键直达），后者在"刚导完想立刻看看"这个场景下仍然顺手。
+2. **「在导航器里导入设置之间新建一个书库界面」** —— 已插入 `CandyBoot.jsx` 的 `NAV_ITEMS`，
+   位置严格在 `import` 与 `settings` 之间：`{ key:'bank', label:'书库', icon:'📚', to:'/bank', tone:'lemon' }`。
+   `App.jsx` 的 `activeKey` 里 `'/bank': 'bank'` 一直都在（§23 只删了 `/stats`），所以高亮立即生效。
+
+**导航从 3 项回到 4 项。实测 `["🍬学习","📦导入","📚书库","⚙️设置"]`，`#/bank` 上第三项 className 为 `tone-lemon active`。**
+
+### 24.2 新增 `.nav-item.tone-lemon.active`（candy.css）
+
+原来只有 L220 `.nav-item.active`（粉色默认＝学习）、L222 `tone-mint`（导入）、L223 `tone-lav`（设置），
+**没有第四色**，直接挂 `tone: 'lemon'` 会退化成粉色默认、与「学习」撞色。
+
+```css
+.nav-item.tone-lemon.active { background: rgba(255, 224, 102, .26); color: #8A6D00; }
+```
+
+文字**不用 `--lemon-dk`(#FFD43B)** —— 浅黄压在奶白底上对比度不够；`#8A6D00` 约 4.9:1，
+与答题页「模糊」档、Import 告警框同源（craft-floor 要求正文 ≥4.5:1）。实测 `lemonFg = rgb(138,109,0)` ✅
+
+### 24.3 「太简陋」的具体来源与重做
+
+**根因**：筛选区是**三个浏览器原生 `<select>` 套在哥特青铜框 `.deck` 里**
+（`pages.css` L382：`border: 1px solid rgba(139,115,50,.5)`、L386 `.deck .val { color: var(--teal-lt) }`）——
+糖果主题里最刺眼的东西，而且系统自己的糖果胶囊 `.chip`/`.chip.on`（candy.css L595-600，FilterModal 在用）它一个没用。
+按 `bolder` 的原则「放大系统已有的词汇，不发明新的」重做：
+
+| 原来 | 现在 |
+| --- | --- |
+| 3 个原生 `<select>` + 哥特青铜 `.deck` | **题型 8 chip / 难度 4 chip / 排序 3 chip**，直接复用 `.chip-row`+`.chip`+`.chip.on`，零新组件 |
+| 知识域也在 `<select>` 里 | **保留下拉**（27 项做成 chips 会撑爆版面），但换成 `.deck-candy`：`appearance:none` + **data-URI 自绘粉桃 ▾**（原生箭头在浅色底上几乎看不见）、`border-radius:999px` 胶囊、focus 时薄荷光环 |
+| 只有一行灰字 `共 N 题 · 筛选后 M 题` | **新增掌握度概览条五格**：总题数 / 已掌握 / 复习中 / 没做过 / 答错过 |
+| 排序固定「按导入时间从新到旧」 | **三种排序**：最近导入（原行为，默认）/ 入库序（命题批次先后）/ 最该复习（没做过→复习中→已掌握） |
+
+**概览条的口径刻意与卡片上的 `.tarot-orb` 完全一致**（有卡且 `intervalDays>=3` = 已掌握、有卡但 <3 天 = 复习中、
+无卡 = 没做过），免得同一页出现两套掌握度定义；「答错过」用 `lastResultMap`，与「错题重练」同源。
+**配色不引入新色相**：薄荷=已掌握、柠檬=复习中、薰衣草=没做过、草莓=答错过，全是既有 token。
+数字用 `font-variant-numeric: tabular-nums`，五格宽度不随位数跳。
+
+**排序的次级键**：三种排序都以「最近导入」作次级键（`… || byNew(a,b)`）。
+因为存量数据的 `seq` 跨批次可能并列（§21 的迁移只向前生效），不给次级键的话并列项先后不确定。
+
+实测：`chips: 15`（题型8+难度4+排序3）、`chipOn: ["全部","全部","最近导入"]`、`selOpts: 12`、
+概览 `28总/12已掌握/6复习中/10没做过/6答错过`（**12+6+10=28 自洽**）、`cards: 28`。
+交互：点「入库序」+「判断」→ `chipOn:["判断","全部","入库序"]`、`筛选后 4 题`、`cardTypes:["判断"]`、
+meta 文案变成「按入库序（命题批次先后）」；点回「全部」→ 卡片按 seq 升序 1,2,3,4。console 全程 0 errors。
+
+### 24.4 一次假警报（我的测量错，不是代码错）
+
+排序验证时我打印题干前 14 字，看到 `["…第 3","…第 1","…第 1"]` 以为升序坏了。
+实际是 **`.slice(0,14)` 正好切在数字第一位** —— 「第 1」是「第 10」和「第 17」被截断的结果。
+demo 数据 `seq: i` 是 1..28 唯一，判断题落在 i=3/10/17/24，**真实顺序 3,10,17,24 严格升序，排序一直是对的**。
+
+> 教训：打印字符串做断言时，截断长度必须留够，否则会把正确结果读成错误。
+> 更稳的做法是断言数值序列而不是截断后的文本。
+
+### 24.5 本轮给幽灵选择器欠账又加了一笔
+
+`Bank.jsx` 不再渲染 `.deck`，所以 **`pages.css` L379-386 的 `.deck-row` / `.deck` / `.deck:hover` / `.deck h5` / `.deck .val` 全部变成幽灵**（5 条）。
+`.bank-search .crystal`（L374）本来就是幽灵。§23.6 记的「pages.css 67 个幽灵」现在约 **72 个**。
+**仍然按 §23.6 的判断：幽灵清理必须单独一轮做**，因为三层 CSS 是"末尾追加、同特异性后来居上"，
+§18.2 与 §20.3 已两次证明删掉一条覆盖规则会放出更老的规则。
+
+另外 `A.titleDecor`（p45.png）仍被 `Bank.jsx` 的 `.page-head` 用着，所以它和 p45.png 都还活着，不在孤儿清单里。
+
+---
+
+## 25. 第十五轮（2026-09-04）· 书库牌背去哥特：一起藏了很久的对比度事故
+
+**gh-pages HEAD：`2da8f37`（父 `0a982a9`）。dist 27 → 26 文件 / 3.14 → 3.05 MB，verify-deploy 26/26 缺失0/不一致0/多余0。**
+**CSS 108.62 → 109.02 kB。**
+
+用户只说了五个字「与糖果主题风格不搭」，指的是**书库卡片翻面后的详情面**。
+按用户要求加载 `design-qa` skill 做视觉审查（它的硬规矩：*不能只凭代码路径、记忆或文字描述下 QA 结论，
+必须把 source truth 与 rendered implementation 放进同一个比对上下文*）。
+
+### 25.1 根因：一层从没被覆盖的哥特内面板
+
+`pages.css` L420：
+
+```css
+.tarot-face.back .face-in { background: rgba(7,12,16,.82); border-color: rgba(201,168,76,.3); … }
+```
+
+candy.css **只接管了外层** `.bank-item .tarot-face.back` 的糖果渐变（L617），
+而 `inset: 8%` 的这层内面板**盖住了外层 84%×84% 的面积** —— 糖果渐变只剩一圈边，等于没生效。
+实测（修前）：`faceInBg = rgba(7,12,16,0.82)`、`faceInBorder = rgba(201,168,76,0.3)`。
+
+**而这同时是一起对比度事故，不只是审美问题。** L1146-1152 早已把牌背文字改成给浅底设计的深色，
+压在这层近黑底上：
+
+| 文字 | 色值 | 压近黑底的对比度 | WCAG AA |
+| --- | --- | --- | --- |
+| `.tarot-scroll` 正文 | `--ink-2` #6E6E6E | **≈2.5:1** | ✗ |
+| `.tarot-scroll h6` 小标 | #D14767 | **≈3.2:1** | ✗ |
+| `.tarot-ans` 答案 | `--ok-ink` #1B7F63 | **≈2.5:1** | ✗ |
+
+也就是说：**上一轮"Bank 去哥特"把文字改浅底深色时，没有一并把底改掉，反而把原本能读的暗底暗字变成了暗底深灰字。**
+这类"改了一半"的迁移比完全没改更糟 —— 完全没改时至少是统一的暗色方案。
+
+修法（与弹窗 `.modal-box` 同源，一处同时解决"不搭"与"读不清"）：
+
+```css
+.tarot-face.back .face-in {
+  background: rgba(255, 255, 255, .82) !important;
+  border: 1.5px solid var(--candy-pink-lt) !important;
+  border-radius: var(--r-sm) !important;
+  box-shadow: 0 6px 20px rgba(255, 143, 163, .2), inset 0 1px 0 var(--jelly-hi) !important;
+}
+```
+
+透明度取 `.82` 而非 1：让外层粉→薄荷→薰衣草渐变透一点上来当底色，四周仍留一圈可见渐变边框。
+**按 §5 的性能纪律不叠 `backdrop-filter`** —— 一页最多 50 张卡、每张两个 `.face-in`，
+大面积 blur 正是当年 224ms 频闪的来源；`.modal-box` 当时也是同样理由放弃 blur。
+
+修后实测对比度：正文 5.1:1、h6 5.2:1、答案 5.4:1、键值 5.1:1 与 9:1 —— **全部过 AA**。
+
+### 25.2 顺带查出的三处（用户问"有没有漏看的其他哥特残留"）
+
+| 发现 | 判定 | 处理 |
+| --- | --- | --- |
+| **`.tag` 文字 `#8A6A3A` 哥特铜棕** | ✅ 真残留，而且是 **candy.css L921 自己写的**：粉边 `rgba(255,182,193,.9)` + 白底却配铜棕字，而它的兄弟 `.tag.teal`(薄荷 #2FA98A)/`.tag.red`(草莓 `--bad-ink`) 都是糖果色 —— 三态里只有基础态没迁 | 改 `var(--pink-ink)`，实测 `rgb(194,56,90)`。tag 三色现在是**粉/薄荷/草莓**，与全站同一套 |
+| **`.bank-item:hover .tarot-face`** = pages.css L405 的 `0 16px 34px rgba(0,0,0,.55)` 黑阴影 + `rgba(184,150,58,.22)` 金泛光 | ⚠️ **它没带 `!important`，被 candy.css L615 带 `!important` 的糖果阴影压住了** —— 哥特残留其实没生效，**但代价是 hover 完全没有反馈**（L615 对 hover 与非 hover 一视同仁）。craft-floor 要求 hover 态 | 补 `.bank-item:hover .tarot-face { box-shadow: 0 14px 32px rgba(255,143,163,.42) !important }`。只动 box-shadow，**不给 `.tarot-face` 加 transform** —— 3D 翻面靠 `.tarot-inner` 的 rotateY，在 face 上叠 transform 会干扰 `backface-visibility`。实测 hover 阴影已生效 |
+| **`.page-head` 的 `backgroundImage` 实测是 `none`**，可 Bank.jsx L56 明明写了 `url(${A.titleDecor})` | ✅ candy.css **L331 `.page-head { background-image: none !important }` 一直在否决它** —— p45.png「被引用却从不显示」，白占 dist 98 KB | 删掉 Bank.jsx 的内联样式 → `titleDecor` 变零引用键 → 删键 → purge-dist 自动清掉 p45.png |
+
+### 25.3 ⚠ 新的一类死素材：「被引用但被 CSS 否决」
+
+p45.png 这个案例暴露了**引用式审计的盲区**：
+
+- `assets.js` 里有 `titleDecor: img('p45.png')` → 审计脚本判定"活着"
+- `Bank.jsx` 里有 `style={{ backgroundImage: url(${A.titleDecor}) }}` → purge-dist 也判定"被引用"，保留它
+- **但 candy.css 用 `!important` 把那条样式否决了** → 它永远不会被画出来
+
+**两个脚本都对，结论都错。** 这类死素材只能靠"量运行时计算样式"发现：
+`getComputedStyle(el).backgroundImage === 'none'` 而 JSX 里明明设了值 → 说明被 CSS 否决了。
+
+> **规则：查孤儿素材不能只看引用链，还要看引用它的那条样式有没有被 `!important` 盖掉。
+> 尤其在这个项目 —— candy.css 的整个手法就是"末尾追加 + !important 覆盖哥特层"，
+> 被否决的内联样式与旧规则会很多。**
+
+### 25.4 两处假警报（量了才知道，猜一定猜错）
+
+| 疑似 | 实测 | 结论 |
+| --- | --- | --- |
+| `.tarot-scroll` 的 `borderTopColor: rgb(110,110,110)` 看着像深灰边框 | `borderTopWidth: 0px`、`borderTopStyle: none` | **不可见**，只是 `currentColor` 的残影 |
+| `.bank-search input:focus` 用 `var(--glow-teal)`，以为是哥特青光 | candy.css **L65 已把 `--glow-teal` 重定义为薄荷光** `0 0 12px rgba(127,232,200,.5)…` | 已经是糖果的 —— 这正是 §3.1「在 :root 重定义哥特 token 让几百条旧规则自动变色」那个高杠杆手法的成果 |
+
+**这两条如果只看 CSS 文本一定会误报成哥特残留。** 必须量计算样式。
+
+### 25.5 新增 `--pink-ink` token 与一笔明确的债
+
+`#D14767` 在 candy.css 里有 **14 处**，但它压白底只有约 **4.0:1，不够 WCAG AA 的 4.5:1**。
+新增 `--pink-ink: #C2385A`（约 5.2:1，色相几乎相同、只深一档），本轮用于 `.tag` 与 `.tarot-scroll h6`。
+
+**债（未还，需单独一轮）**：其余 12 处 `#D14767` 没有一次性迁移。理由是它们并非都压在白底上 ——
+例如 `.nav-item.active`（L220）是粉底、`.chip:hover`（L599）是粉洗底，那些场景 4.0:1 未必不合格，
+盲目全局替换可能把本来协调的地方改坏。**要迁移得逐处看底色**，属于 §23.6 那批"必须分批 + 真机验证"的活。
+
+### 25.6 Design QA 结论
+
+- **Source truth**：已验收的糖果界面（弹窗 `.modal-box`，本次修改正是照它做的）；项目无 DESIGN.md
+- **Rendered implementation**：`#/bank` 翻面后的 `.bank-item.flipped`
+- **同一比对上下文**：两张 `--hires` 元素截图 2× 放大后横向拼成 `shots/qa-compare.png`（1630×898）再判读
+- **判定：Pass with warnings** —— 牌背与基准面同属一套（奶白果冻底 / 奶粉边 / 大圆角 / 粉色文字），
+  五个必需保真面（字体排版、间距节奏、颜色 token、图像素材、文案）均无哥特残留
+- **两处 info 级差异，均有意为之**：圆角 16px(`--r-sm`) vs 弹窗 24px(`--r-lg`) —— 按元素尺寸缩放，
+  craft-floor 也要求卡片圆角留在 12~16px；底透明度 .82 vs .9 —— 刻意让外层渐变透上来当边框
+- 三套回归 **t-session 18/18、t-seq 16/16、t-fill 13/13**；审计复核 **0 DEAD / 0 UNUSED / assets.js 9 键零引用 0**
+- console 全程 0 errors
+
+---
+
+## 26. 第十六轮（2026-09-04）· 全站视觉升级：图标系统化 + 景深 + 按压物理 + 滚动入场
+
+**gh-pages HEAD：`0ef3882`（父 `2da8f37`）。dist 26 文件 / 3.05 MB，verify-deploy 26/26 缺失0/不一致0/多余0。**
+**CSS 109.02 → 111.40 kB，JS 463.82 → 467.35 kB。**
+
+用户反馈「特效、动画、图标、颜色、交互方式都不够惊艳」，要求加载视觉/设计/美术类 skill 一起改。
+加载了 `high-end-visual-design`（技法源）；`impeccable` 的 craft-floor 仍作为红线（本轮它否决了一项技法，见 26.3）。
+
+### 26.1 六项升级
+
+| # | 项 | 实现 | 文件 |
+| --- | --- | --- | --- |
+| 1 | **图标系统化** | 新建 `components/CandyIcons.jsx`：8 个自绘 SVG（24×24、1.7px 圆头细线、`currentColor` 主色 + 一条 opacity .55 辅色线做"糖霜高光"）。导航 4 个（棒棒糖/礼盒/糖罐/滑杆）+ 入口卡 4 个（循环/洗牌/四角星/漏斗）。**不用 Lucide/FontAwesome/Material（skill 禁用粗描边图标库），不用 emoji（craft-floor：emoji 不能充当图标系统）**。导航图标靠 `currentColor` 继承 tone 色，不活跃时 L215 的 grayscale 滤镜对 SVG 同样成立 | `CandyIcons.jsx`（新）、`CandyBoot.jsx`、`Learn.jsx` |
+| 2 | **背景景深** | `.candy-orbs`：三枚 fixed 径向渐变光斑（粉/薄荷/薰衣草），26/32/38s 极慢 alternate 漂移。**不用 `filter: blur`** —— 渐变自身已足够柔，而大面积 blur 正是当年 224ms 频闪的来源；只动 transform，GPU 合成 | `candy.css`、`App.jsx`（markup 放 Shell，在气泡层之前，同 z-index 下 DOM 顺序决定绘制顺序） |
+| 3 | **Double-Bezel 同心双环** | `.entry-card` 用 box-shadow 叠「5px 奶白外壳 + 1.5px 奶粉发丝线 + 环境阴影 + 内高光」，**不需要额外 DOM 包裹** | `candy.css` |
+| 4 | **磁吸按压物理** | `.btn/.chip/.nav-item/.entry-card/.rate-btn/.deck-candy/.tarot-foot button` 的 `:active { transform: scale(.965) }` + `transition-duration: .09s`，回弹交给果冻缓动 | `candy.css` |
+| 5 | **滚动插值入场** | `useScrollReveal()` hook（`CandyBoot.jsx`）：IntersectionObserver 加 `.is-in`，进入后 unobserve 只跑一次；SPA 路由切换后新节点才挂载，用 MutationObserver 兜底扫描。**按 §5 纪律不用 blur 做入场**，「重」感靠 24px 位移 + 0.75s + `cubic-bezier(.32,.72,0,1)`。书库卡从 `row-in` 挂载动画（50 张一次全播、stagger 上限 360ms）换成它 | `CandyBoot.jsx`、`App.jsx`、`Bank.jsx`、`candy.css` |
+| 6 | **入口卡图标位** | `.entry-ico` 右上角 34px 糖霜小方块，四色 `.ico-red/.ico-yellow/.ico-mint/.ico-lav` | `Learn.jsx`、`candy.css` |
+
+`prefers-reduced-motion` 下 `.reveal` 直接可见、光斑停摆。
+
+### 26.2 一次构建失败（JSX 根节点）
+
+把 `{/* 注释 */}` 放在 `Bank.jsx` map 回调的 `return (` **根位置**，与 `<div>` 成为两个并列子节点 → JSX return 只能有一个根 → 编译报错、dist 不更新。
+第一次修的时候又在新注释里**嵌套了 `{/* */}`**，`*/` 提前闭合注释、后面变成代码，二次报错。
+教训已写进 Bank.jsx 注释：**JSX 注释只能放在元素内部；return 的根位置要么单一元素、要么用 Fragment；普通说明放 return 之前当 JS 注释，且 JS 注释里不能再出现星号斜杠。**
+
+### 26.3 craft-floor 否决了一项技法
+
+`high-end-visual-design` 推荐固定层 feTurbulence 噪点纹理做"物理纸感"，但 `impeccable` 的 craft-floor 明确判它业余
+（"feTurbulence grain read as amateur"）。两个 skill 冲突时**取更严的红线**：本轮不加噪点，景深只靠径向光斑。
+
+### 26.4 刻意保留 / 遗留
+
+- 入口卡**中央的大 emoji**（🍮/🍋/🍭/🍡）是 CSS `::before` 的装饰插画而非功能图标，保留 —— 它们是糖果味的一部分，截图观感良好。
+- 「开始今日练习」按钮里还有一个小 emoji（Learn.jsx hero），未替换，属遗留。
+- 导航图标不活跃时是灰的（grayscale 滤镜），激活才上 tone 色 —— 这是既有行为，保留。
+
+### 26.5 验证
+
+- 构建 ✓、purge `DIST CLEAN`、产物标记全在（`candy-orbs`/`orb-drift-a`/`.reveal`/`.entry-ico`/SVG path/`is-in`）
+- 真机：学习页与书库页截图确认新导航图标、双环卡片、光斑背景、滚动入场；**console 0 errors**
+- 上线：gh-pages `0ef3882`、verify-deploy 26/26 全零差异
+
+---
+
+## 27. 第十七轮（2026-09-04）· 用户指认的三处视觉残留
+
+**gh-pages HEAD：`f888417`（父 `0ef3882`）。dist 26 文件 / 3.05 MB，verify-deploy 26/26 缺失0/不一致0/多余0。**
+
+用户给了三张截图说「修改这三个地方」。三处的根因各不相同：
+
+### 27.1 入口卡右上角的"探出的环" = count-gem 与 entry-ico 同角叠放
+
+`pages.css` L57：`.entry-card .count-gem { position: absolute; top: 10px; right: 10px; … }`，
+而 §26 新加的 `.entry-ico` 是 `top: 13px; right: 13px` —— **同一个角**。
+count-gem 的白底 + 薄荷边 + `breathe` 呼吸光晕从图标后面探出来，就是截图里那个错位彩色环。
+
+处理：**删掉 4 个 `<span className="count-gem">`**。理由：数字在描述文字里已经有了
+（"答错过的 6 道"、"抽 20 道"、"N 道还没做过"、"共 N 道"），纯属冗余；
+顺带去掉了 4 个 `infinite breathe` 动画（§5 纪律：infinite 只跑小面积，能少则少）。
+`.count-gem` 的 CSS 留着（变幽灵，归入 §23.6 那批待清）。
+
+### 27.2 书库卡正面的灰块 = `.front .face-in` 的哥特暗底，上轮漏修
+
+`pages.css` `.tarot-face .face-in` 给内面板设了 `rgba(8,13,17,.34)` 暗底（给哥特暗卡设计的）。
+§25 只修了 `.tarot-face.back .face-in`，**漏了 `.front`** —— 34% 黑叠在白色牌面上就是一块灰。
+浏览器 `elementFromPoint` 实测确认：命中链是 `tarot-stem → face-in(bg rgba(8,13,17,.34)) → tarot-face front(白)`。
+
+修法：`.bank-item .tarot-face.front .face-in { background/border-color/box-shadow: transparent/transparent/none !important }`。
+正面不需要内面板底色，深色文字压白底对比度才够。实测 `faceInBg = rgba(0,0,0,0)`。
+
+> 教训：**修「某层的覆盖」时要穷举该选择器的所有变体**（`.front` / `.back` / `:hover` / `.flipped`…）。
+> §18.2、§20.3、§25、§27.2 四次踩的都是同一类坑：candy.css 的覆盖只写了一半变体。
+
+### 27.3 学习页顶栏 / hero 的 emoji 换成自绘 SVG
+
+| 位置 | 原 | 现 |
+| --- | --- | --- |
+| 「延续甜蜜值」按钮 | 蓝色 `🔄`（与粉色主题撞色，截图里最刺眼） | `<IconRetry />` |
+| 「开始今日练习」CTA | `📖` | `<IconLearn />` |
+| 「今 日 复 习」两侧 | `🍬` / `🍭` | 两个 `<IconNew />` 薄荷小星形 |
+| 空态「去导入」 | `🍬` | `<IconImport />` |
+
+补了 `.btn svg { vertical-align: -.18em; margin-right: 6px }` 与 `.tag svg { 13px; vertical-align: -2px }` 做基线对齐。
+保留：`✦ 糖果题库 ✦` 与 `✦ 今日已做题…` 的 `✦` 是排版符号不是图标；`FlameIcon` 本就是组件。
+
+### 27.4 一次运行时抓到的漏 import
+
+第一版把 `<IconLearn />`/`<IconImport />` 用进了 JSX 但**没加进 import 行**，
+dev 直接 `ReferenceError: IconLearn is not defined` 崩掉整个 Learn 页。
+构建（esbuild）不报未定义变量（它只做打包），**只有运行时才暴露** —— 所以视觉改动必须真机过一遍，不能只信构建通过。
+
+### 27.5 验证
+
+- 三套回归未受影响（本轮只动 JSX 标记与 CSS，未碰逻辑）
+- 真机：学习页与书库页截图确认三处均修复；console **0 errors**
+- 上线：gh-pages `f888417`、verify-deploy 26/26 全零差异
+
+---
+
+## 28. 第十八轮（2026-09-04）· 学习页 hero 重排（用户指认「太丑」）
+
+**gh-pages HEAD：`cd8f7a9`（父 `f888417`）。dist 26 文件 / 3.05 MB，verify-deploy 26/26 全零差异。**
+
+两处根因：
+
+1. **品牌行还是哥特金 + ✦ 排版符**（`.brand.gold-title.font-gothic`）→ 去掉两个哥特类与 ✦，
+   换糖果粉（`--gold-text`=#E8607F）+ 自绘棒棒糖图标 `.brand svg`。
+2. **hero 是一条 ~200px 高的空渐变带** + 4 个散点 + 一个居中浮动 caption 胶囊（「糖果橱窗 · 选一个今天的口味」），
+   大片留白像没做完 → 改成**左文右糖**：左边真标题「今天想练点什么？」+ 副标「N 道题在架上 · 已连续学习 N 天」，
+   右边糖豆聚成一簇（`.ch-candy.c1/c2/c3` 与 `.ch-lolli` 的 left 改 right 重排到右侧），带高 `min-height:132px`。
+   `.cap` 胶囊的 span 从 JSX 删除（其 CSS 变幽灵，归入 §23.6 待清批）。
+
+验证：真机截图确认左文右糖布局与粉色品牌行；console 0 errors；verify-deploy 26/26 全零差异。
+---
+
+## 29. 第十九轮（2026-09-04）· 修书库卡翻牌时"消失很久"
+
+**gh-pages HEAD：`d326530`（父 `cd8f7a9`）。dist 26 文件 / 3.05 MB，verify-deploy 26/26 全零差异。**
+
+用户报：书库卡每次翻牌会消失很久才重新出现。
+
+**根因（不是翻面动画本身）**：§26 的 `useScrollReveal` 用 `classList.add('is-in')` 标记入场，
+但 **React 重渲染时会用 JSX 的 `className` 整体覆盖 DOM 的 class 属性**，把 IO 加的 `is-in` 抹掉。
+翻牌改变 `openId` → 该卡重渲染 → `is-in` 丢失 → `.reveal { opacity:0; transform:translateY(24px) }` 生效
+→ 卡片消失；随后 MutationObserver 触发重扫、IO 回调补回 `is-in` → 再花 0.6~0.75s 淡入。
+所以是"先消失、再淡入"，而不是翻面过程本身慢。
+
+> 通用教训：**任何由非 React 代码（IO / 直接 DOM 操作）往 React 管理的元素上加的 class，
+> 都会在下一次重渲染时被 JSX 的 className 覆盖。** 这类状态要么进 React state，
+> 要么用 React 不管理的 data 属性承载。
+
+**修法**：IO 改打 `data-in` 属性（`setAttribute('data-in','')`），CSS 选择器 `.reveal.is-in` → `.reveal[data-in]`
+（含 `prefers-reduced-motion` 分支）。React 只更新它自己设的属性，不会碰 `data-in`。
+
+实测：翻牌后 `hasAttribute('data-in')=true`、`opacity=1`、`transform=none`、
+`className="bank-item reveal flipped"`（无 is-in 但 data-in 存活）→ 不再消失。
+
+### 顺带修正 §26 的一处描述
+
+§26.1 第 5 条说"IntersectionObserver 加 .is-in"，现改为 data-in；§26 的其它结论不受影响。
+---
+
+## 30. 第二十轮（2026-09-04）· 进站"卡一下"（GPU 光栅掉帧，最佳努力修复）
+
+**gh-pages HEAD：`7ee4b28`（父 `d326530`）。dist 26 文件 / 3.05 MB，verify-deploy 26/26 全零差异。**
+
+用户报：进站时棒棒糖圆形旋转过程会卡一下。
+
+**取证**：用 `addInitScript` 在文档创建前注入 Long Task 观测器（`PerformanceObserver` + `longtask`），
+覆盖整个进站 7s —— **结果为 0 个长任务**。说明卡顿不在主线程 JS 阻塞，而在 **GPU 光栅/合成**：
+开机幕布掀开那一刻，旋转棒棒糖头（`.ch-lolli::before`，`lolli-spin` infinite）与三枚大光斑
+（`.candy-orbs i`，46/40/26vmax 径向渐变）才首次被光栅化，造成一次性掉帧。
+（Chrome 会跳过完全被遮挡内容的首次绘制，所以幕布后的页面直到掀幕才真正光栅化。）
+
+> 取证方法备忘：`playwright cli eval` 装的观测器会被 `reload` 销毁；`addInitScript` 只在**新 document**
+> 生效，同 URL 的 `goto` 是同文档导航不触发 —— 必须先 `goto about:blank` 再进目标页。
+
+**修复（最佳努力）**：
+1. `.ch-lolli::before { will-change: transform }` —— 进站时就把旋转头 promote 成合成层（光斑本来就有）。
+2. 三枚光斑 46/40/26vmax → **34/30/20vmax**，缩小首帧光栅面积。
+
+**若用户复测仍卡**，下一个杠杆按序：① 去掉光斑漂移（改静态，径向渐变只光栅一次）；
+② 光斑减为两枚；③ 彻底移除 `.candy-orbs`。这三步都会牺牲一点"景深"特效，需用户拍板。
+---
+
+## 31. 第二十一轮（2026-09-04）· 清新活力批 P0+P1（去脏去雾）
+
+**gh-pages HEAD：`031fbb1`（父 `7ee4b28`）。dist 26 文件 / 3.05 MB，verify-deploy 26/26 全零差异。**
+
+用户问"颜色搭配还有需要改进的吗？想要清新活力、增强刷题沉浸感"。诊断四条：
+① 底色带粉雾（#FFF5F7 起笔、52% 才转薄荷）→ 不清；② 灰字中性灰偏脏且 #999 仅 2.8:1；
+③ 21 处 #D14767 里 15 处是白底粉字仅 4.0:1；④ 缺沉浸反馈（颜色不参与进度）。
+
+**本轮只做不争议的 P0+P1**（沉浸加法留待用户点头，见下）：
+- 15 处白底/浅底粉字 `#D14767` → `var(--pink-ink)`(#C2385A, AA)。
+  **保留**：L1396 data-URI SVG 描边（CSS 变量进不去 data URI）、4 处注释 prose。
+  用按行号的一次性脚本 `tmp-recolor.mjs` 替换（已删），避免全局 replace 误伤注释/SVG。
+- 灰字 token 改带冷色温 slate：`--ink #434A51`、`--ink-2/--muted #646C76`、`--ink-3 #757D87`（原 #999 不达标）。
+- 奶白提纯：`--cream/--parchment-0 #FFFCFD`、`--parchment-1 #FFFCFE`。
+- 页面底色去粉雾：`160deg, #FFFCFD 0%, #F1FFFA 42%, #F4F1FF 100%`（薄荷站 52%→42%，"清"上来；两处同改）。
+
+**沉浸感菜单（已给用户、待拍板，勿擅自做）**：
+A 路由级房间光（预置染色光斑层按路由 opacity 交叉淡入，合成器级）；
+B 糖浆进度带（视口顶 3px，scaleX 按 sessionIndex/sessionQuestions 填充，渐变粉→柠檬→薄荷→薰衣草）；
+C 知识域色环（K1–K27 mod 6 映射六色，标签/chip/卡边统一携带）；
+D tinted elevation 三级带色温的白；E 夜间可可模式（平行 token，中型重构）。
+另：柑橘 accent（#FF7A45 小面积点睛）属口味项，也待拍板。
+
+验证：真机截图确认清透度提升、糖果味未丢；console 0 errors；verify-deploy 26/26 全零差异。
+---
+
+## 32. 第二十二轮（2026-09-04）· 糖果派对派（多色混搭、主次分明）
+
+**gh-pages HEAD：`da658a2`（父 `031fbb1`）。dist 26 文件 / 3.05 MB，verify-deploy 26/26 全零差异。**
+
+用户给定方向：三四种马卡龙色同时出现（粉+黄+薄荷+淡紫）要糖果屋/彩糖针/节日派对的热闹童趣；
+**关键约束：各色面积不均等 —— 主色占六成、其余点缀，否则显花显廉价。**
+
+落地三件事（全部在 candy.css 末尾追加 + 两处 markup）：
+
+1. **背景渐变改权重**：`body { linear-gradient(160deg, #FFF8FA 0%, #FFF0F4 58%, #F0FFFA 82%, #F4F1FF 100%) !important }`
+   粉族 0–58% 占主（约六成），薄荷 58–82%、薰衣草 82–100% 压缩成点缀尾段。
+   原来的均等三段正是"显花"的来源；用更浅的粉保住 §31 的清透。
+2. **彩糖针 `.candy-sprinkles`**：12 根 3×11px 圆头小棒、四色循环（`4n+1/2/3/4n` → 粉/柠檬/薄荷/薰衣草深档）、
+   **静态零动画**（不占每帧合成成本，遵守 §5 纪律）、fixed z-0 与光斑同层、opacity .45、散在四角边缘。
+   markup 在 App.jsx Shell（光斑 div 之后）。只当"撒在桌面上的糖针"，不当图案。
+3. **hero 补第四色**：`.ch-candy.c4` 薰衣草小球（right 44% / top 56% / 22px），四色同框但粉球（46px）最大。
+   markup 在 Learn.jsx hero。
+
+既有的多色点缀（入口卡四色 icon chip、书库概览五色 cell、导航 tone）面积本就小，符合"点缀"定位，未动。
+
+验证：真机截图确认粉底占主、糖针若隐若现、四色同框不花；console 0 errors；verify-deploy 26/26 全零差异。
+
+---
+
+## 33. 第二十三轮（2026-09-05）· 对比度收尾 + 健壮性修复——附一次纠正了三处误判的全量复审
+
+**gh-pages HEAD：`fadc51c`（父 `da658a2`）。dist 26 文件 / ~3.06 MB，verify-deploy RESULT: IDENTICAL。console 0 errors。**
+
+本轮由新账户（ZCode）执行：先加载 9 门技能，再按陷阱 #4（下结论前算计算样式）对既有判断做**全量复审**，
+产出确认/修正/撤回/新发现四类裁决。核心教训：**静态审计必须跑完三层级联再下结论，单次 grep 会造出假阳性。**
+
+### 撤回（复审抓出的假阳性）
+- `.rate-btn` 粉字：基类 `color:#D14767` 永不渲染——r-forget/r-hazy/r-remember 三个变体各带 `!important` 颜色。死样式，归幽灵清单。
+- 「焦点可见性缺口」：candy 层 `input:focus` 已有薄荷环（!important），按钮未摘默认 outline，`.book-card:focus-visible` 是现成范本。
+- 「字体是大头」：fonts/ 只 2 个 woff2 共 23KB（swap + unicode-range，范本级）。真正大头是 img/ 约 2.4MB 哥特位图。
+
+### 新发现（漏判）
+- **§31 的 token 提纯整块未落盘**：--ink/--ink-2/--ink-3/--cream/--parchment-0/1 在磁盘上全是 §31 之前的旧值
+  （脚本做的 15 处替换活了，编辑器里做的 :root 原位编辑被陈旧缓冲区吞掉——与 §7 同一事故模式；§31 的 commit message
+  声称已改，但 §32 构建用的本地文件已回退）。唯一真实违规：--ink-3 #999（placeholder 与 .tarot-hint 7.5-10px 小字，2.79:1）。
+- `.chip` 基色 #B0707F 3.77:1；`.zone-label`/`.panel-title`/`.filter-group h4` 吃 --gold-text #E8607F 3.28:1
+  （16px/900 够不到 large-text 线）；Learn 12px「连续学习」内联与 FilterModal h3 18px/700 同病。本轮全修。
+
+### 本轮改动
+- **对比度**（candy.css 原位改，穷举变体）：白/奶白底 `#D14767` → `var(--pink-ink)` 共 12 处
+  （.btn.ghost/.nav-item.active/.zone-label/.type-candy/.seal-lock/.chip:hover/.settle-title/.settle-praise/
+  .stepper .val/.modal-close/.modal-box h3/.stepper button/.tarot-foot button；L1029 豁免注释同步改写）。
+  `.chip` 基色 → #A0526D（5.25:1，保住「未选=弱化」层级）。token 按 §31 原值补齐：
+  --ink #434A51 / --ink-2·--muted #646C76 / --ink-3 #757D87 / --cream #FFFCFD / --parchment-0/1 #FFFCFD/E。
+  --gold-text 小字三处 → --pink-ink（hero 大标题 19-25px/900 与 .brand 走 large-text/logotype 豁免保留）。
+  index.html theme-color → #FFF8FA（对齐 §32 渐变起点）。
+- **图标**：CandyIcons 新增 IconReveal（放大镜）/IconScroll（卷轴）；Practice 的查看解析/展开参考答案/
+  再练错题（🍓→IconRetry）全换 SVG。结算奖章 emoji 属庆祝内容，保留。
+- **按压物理**：.opt-row/.judge-card/.stepper button/.modal-close 追加进既有磁吸按压规则（不新建体系）。
+- **健壮性**：① Shell 顶部 .sync-toast（role=status，点击即收）——syncError 此前唯一显示点在登录页，
+  答题/切书/设置里 10 处 set 全部无感；② deleteQuestion 云端失败 → syncError + 提前返回，Bank 空 catch 删除；
+  ③ submitAnswer 云端失败补齐 cards/records 回滚（按 questionId+timestamp 精确摘除，防快速连答误伤）；
+  ④ judge 卡冗余同值分支合并；⑤ deploy-api.mjs 指向 2026-08-28 旧工作区的默认路径改为显式报错。
+- **a11y**：Bank 翻牌卡 role=button + tabIndex + Enter/Space（照抄 Bookshelf 范本）。
+
+### 验证
+- 回归：validate.regression 16/16、t-session 18/18。build+purge RESULT: DIST CLEAN（素材 20 个 / 2.47MB）。
+- 真机：计算样式抽查 .nav-item.active/.type-candy/.zone-label=rgb(194,56,90)、.chip=rgb(160,82,109)、
+  .brand=rgb(232,96,127)（豁免项原样）全中；改前/改后三页截图对比无回归；console 0 errors。
+- **RLS 探测（只读）**：anon key 直查 questions/answer_records 返回 `[]`（RLS 过滤匿名请求的 PostgREST 行为），
+  云端读取未裸奔、登录墙是真的；写路径未测（不动生产数据）。
+- 进站 longtask=0（dev 模式），与 §30 commit message 的观测一致：卡顿属 GPU 光栅而非长任务。
+
+### 待拍板（只列未动）
+- 哥特位图 ~2.4MB（牌背 p6/玫瑰窗 p20/蜡封/裂纹/radio-check 符文框/尖拱铜牌）：删=最大体积杠杆+主题统一，需用户拍板。
+- 死样式/幽灵：.rate-btn 基色、.fab-stats、.cap、.count-gem、.drop-cap、L74/L239 旧渐变（被 L1575 否决）。
+- 两套 burstParticles 并存（components.jsx 旧版供 Login/Import/Learn/TouchRitual，CandyBoot 版供 Practice）。
+- JS chunk 508.78 kB 触发 Vite >500KB 警告（supabase-js 是大头），可考虑代码分割。
+
+---
+
+## 34. 第二十四轮（2026-09-05）· 导航托盘的派对装点（用户指名：四板块背景太空）
+
+**gh-pages HEAD：`02418ca`（父 `fadc51c`）。verify-deploy RESULT: IDENTICAL。console 0 errors。**
+
+用户反馈导航四板块（学习/导入/书库/设置）背景太空、缺节日派对的热闹童趣。在「糖霜托盘」既有隐喻里
+做加法，三件套全部**静态零动画**（不占每帧合成成本），零 JSX 改动，candy.css 尾部追加：
+
+1. **四色糖霜裱花边**（.bottom-nav::before）：radial 半圆连排挂在托盘上沿，四层 112px 瓦片里
+   圆心错位 28px → 粉/薄荷/柠檬/薰衣草循环（生日蛋糕裱花的样子）。lemon/lav 无 -lt token，用字面量 #FFF3C4/#E9DDFF。
+2. **每槽 tone 软垫**（.nav-item.tone-*::before）：13~16% 同 tone 色砖（inset 3px 5px），托盘内部不再空。
+   层序技巧：.nav-item 设 z-index:0 自建层叠上下文 + ::before z-index:-1 → 软垫落在按钮底色之上、文字之下。
+   激活态本身已有同 tone 底色，`.nav-item.active::before` 置 transparent 防双层叠色。
+3. **激活彩糖针**（.nav-item.active::after）：三粒 6px 静态小点（mint-dk 基点 + lemon-dk/lav-dk box-shadow 错位），
+   撒在图标左上方。初版 5px/.85 透明度太隐身，真机放大后改深色 token 拉满对比。
+
+不活跃灰图标（用户刻意保留项）未动；hover 沿用既有 translateY(-2px)；reduced-motion 无需新增降级（纯静态）。
+
+**本轮事故与自检（又是真机截图救的）**：初稿给 .bottom-nav 写了 `position: relative`，
+把 global 层的 `position: fixed`（钉视口底）按同特异性后到覆盖掉，导航掉进文档流末尾——
+整页截图当场发现，删掉该行即愈（fixed 本身就是定位元素，::before 直接锚它）。教训入注释。
+
+验证：桌面 1280 + 手机 390 双端截图、导航元素特写、激活项 4× 放大（PowerShell System.Drawing 裁切，
+注意 bash 单引号包 PS 命令防 $ 被 bash 吞）；::after 计算样式实测 mint-dk/lemon-dk/lav-dk 三点几何正确；
+console 0 errors。裁切脚本用到的坑：sharp 未装进 app/node_modules，别再试。
+
+---
+
+## 35. 第二十五轮（2026-09-05）· 判断题卡片改裁决色（用户截图指名）
+
+**gh-pages HEAD：`429c5f0`（父 `02418ca`）。verify-deploy RESULT: IDENTICAL。console 0 errors。**
+
+**问题**：判断题 answered 后把 selected 挂在「正确答案那张卡」上，颜色跟**选项身份**走——
+错误卡永远红脸（j-false.selected → 红边红字红✗球，L1066-1075），用户选「错误」答对也红，
+读起来像答错。选择题 opt-row 则早有裁决通道（.right 薄荷 / .wronged 草莓红 / .missed 虚线薄荷）。
+
+**修复**（与 opt-row 同语义，判断题从此不特殊）：
+- Practice.jsx answered 分支：我的选择对→right、错→wronged；漏掉的正确项→missed；没点过也非答案→dimmed。
+  答题**前**的 selected 仍为身份色（粉/红，那是「我正选着它」不是裁决），dimmed 不变。
+- candy.css 尾部追加 §35：.right 薄荷边+薄荷✓球+标签 #1F5D4C；.wronged 红边+草莓✗球+标签 --bad-ink；
+  .missed 虚线薄荷+✓薄荷球+标签 #2FA98A。追加在文件尾，等特异性压过 L472-491 旧身份色块。
+- §18-§20 的「答错只红三处」口径不受影响：红色仍只出现在「我选错的选择面」上，
+  答对态其余区域照旧不染色（解析区薄荷绿原本就有）。
+
+**验证**：demo 真机双路径——选错→我选卡红✗+正确项虚线薄荷✓（judge-wrong.png）；
+选对→我选卡薄荷绿✓、另一张 dimmed（judge-right.png）；console 0 errors。
+playwright 坑补充：css 选择器 `.opt-row` 多匹配会撞 strict mode，用 `.opt-row >> nth=0`；
+dev server 在会话间隔仍会死（本次又死了一次），重启后再跑。
+
+---
+
+## 36. 第二十六轮（2026-09-05）· 答错红色范围再收窄（用户截图圈定两处）
+
+**gh-pages HEAD：`81047af`（父 `429c5f0`）。verify-deploy RESULT: IDENTICAL。console 0 errors。**
+
+用户在 §35 之后的截图上再圈：答错时红色只允许出现两处——① 我选错的判断/选项卡 ② ◇解析 大区块
+（含红色「答错了」横幅）；箭头指的**题目区**要维持未做题时的状态颜色；被其遮挡的**答案框**用白色背景。
+
+**根源与修复**（candy.css 尾部 §36，两行）：
+- 题目区的持续红雾来自 `.crack-veil` 径向红晕（L1076）——裂纹位图其实早就 display:none（L388），
+  这层只剩红晕在染整个卡面。→ `background: none`，答错态题面即回到未答色。
+  §18-§20 时代的「裂纹蔓延」仪式至此名存实亡（位图隐藏+红晕撤除），JSX 里的 crack-veil 挂载点保留
+  （flash 状态还驱动它，将来要恢复加回背景即可）。
+- `.answer-scroll-box.bad` 底色从 .72 半透白（会透出解析区红）提到纯白 #fff。
+  L1049-1052 的「必须显式写 background 挡旧橄榄绿」约束仍满足。
+- `card-flash-bad` 的一次性 0.9s 阴影脉冲**保留**（提交瞬间的反馈，自愈、不进入持续状态；
+  用户圈的是持续态颜色）。若仍嫌闪，candy 层一条 `animation:none` 即可再撤。
+
+**验证**：demo 判断题选错路径截图（judge-wrong-narrow.png）：题面白净、错误卡红、
+解析区红边粉底红横幅、答案框纯白；console 0 errors。
+
+## 37. 第二十七轮（2026-09-05）· 答错时正确答案卡不再变绿（用户截图指名）
+
+**需求**：判断题答错时，「正确答案」那张卡不得变绿提示，维持未答奶白色。
+
+**接手实况**：上一账户 09:30 已在源码改好（Practice.jsx 不再给正确答案卡挂 `missed` 类，
+candy.css 删除 `.judge-card.missed` 规则并留注释；多选漏选的绿提示一并撤除），
+但 dist 还是 09:17 旧产物——**改了没构建、没部署、文档没记录**，会话中断。用户 09:26 截图即旧版行为。
+
+**本轮补完**：
+- `vite.config.js` 加 `build.emptyOutDir: false`（WorkBuddy 沙箱给 node 注入 safe-delete 垫片，
+  rmSync→回收站，Vite 清 dist 被拦截崩；dist 清理本就由 purge-dist 负责，语义等价）。
+- 重建 dist（10:26）→ dev 真机验证 → 完整部署链路。
+
+**WorkBuddy 环境三坑**（Qoder 无此问题，换环境必看）：
+1. build 崩于 emptyOutDir → 上面的 `emptyOutDir:false`。
+2. `npm.cmd` 被守卫拦 → 直接 `node node_modules/vite/bin/vite.js --mode demo --port 5173 --host 127.0.0.1`。
+3. agent-browser 自带 Chrome152 在沙箱 exit 3 起不来（脱沙箱也一样）→ 系统 Chrome
+   `--headless=new --remote-debugging-port=9223 --user-data-dir=$TEMP/xxx about:blank` 后台拉起，
+   `agent-browser --cdp 9223 <cmd>` 连接（--cdp 是全局参数，必须放子命令前）。
+   React 受控 input/textarea 直接 `.value=` 不进状态，要用原型 setter + dispatchEvent('input')。
+
+**验证**：demo 判断题选错：选错卡 `wronged` 草莓红；正确答案卡仅 `j-false` 基础色
+rgb(255,217,210)，无 right/missed 类、无绿框；截图 shots/s37-judge-wrong-viewport.png；console 0 errors。
+
+**部署**：gh-pages `0fa3356`（26 文件，verify-deploy IDENTICAL）；src `1bbe5a5`（80/80 回读零差异）；
+verify-live 26/26 200 + 三哈希 MATCH，ALL OK。
+
+**经验**：接手时凡「声称已改」先查 dist mtime vs 源码 mtime——本条就是源码改好但停在半路的案例。
+
+## 38. 第二十八轮（2026-09-05）· 题图移出题干，随解析显示（用户截图指名）
+
+**需求**：图片不要出现在题干位置；只能点击解析后，随答案一起显示。
+
+**改动**（全在 Practice.jsx，零 CSS）：
+- `Stem` 组件删掉题图渲染（原 L25-28 的 imgId/imgUri/diagram 三件套），题干只剩文字。
+  题图唯一渲染点 = 解析区 `fbImgUri`。
+- 解析区题图挂上 `seal === 'broken'` 条件——原代码 `fbImgUri && <img>` 没判揭示态，
+  蜡封未开时就渲染（隐性提前漏题），一并修掉。现在与答案同一时刻显影。
+
+**真机验证**（demo 注入 `qp.imgmap.v1` 把 demo_1..28 全映射到 tpl_din_wiring，每题带图）：
+- 答题前：`.zone-q img` 无、`.zone-s > img` 无、全页无 `img[alt="DIN插头接线"]` ✓
+- 点「查看解析」（doCheck→breakSeal，520ms 蜡封卸载）后：解析区图出现（高 238px 可见）、题干仍无图 ✓
+- 截图 shots/s38-img-reveal-only.png；console 0 errors。
+
+**真机操作坑（下次省时间）**：
+- `.opt-row` 点击后 React 状态要一拍才落位；同帧连点「选选项+提交」会因 canSubmit=false 静默无效
+  （doCheck 直接 return，按钮 disabled）。分两次 eval、中间 sleep 1s。
+- 客观题流程：选项 → 查看解析（内部已调 breakSeal，没有独立的蜡封点击）；评分按钮出现即进反馈态。
+- demo 池 id 规律 `demo_1..28`（store.js demoData）。
+
+**部署**：gh-pages `026b94e`（27 文件，IDENTICAL）。
+
+## 39. 第二十九轮（2026-09-05）· 节日派对感增强（用户口径：缺热闹童趣感）
+
+**设计决策**（boldness 集中一处，其余安静）：结算页是天然的「节日时刻」，
+signature = 结算彩带雨；hero 彩旗给第一印象；入口卡 hover 给生命。CTA/进度珠刻意不动（避免过载）。
+
+**改动**：
+- Learn.jsx：candy-hero 顶部加 `.ch-bunting`（9 面三角旗，四色马卡龙循环、高低错落，纯静态零动画守 §34 纪律）。
+- Practice.jsx：settle-card 内加 `.confetti-drop`（14 片糖纸屑）。
+- candy.css 尾部 §39 段：彩旗样式；`.entry-card` 果冻 hover（translateY -5px + ico 弹转，全 transform only，
+  :active 按压回位）；彩带雨 keyframes（一次性 1.6s forwards 落定 opacity:0，每片 left/--dx/delay 写死 nth-child 零 JS）；
+  reduced-motion 降级（彩带 display:none、hover 动效全停）。
+
+**红线自查**：只动 transform/opacity ✓；无新增 infinite ✓（彩带是一次性 forwards）；无大面积 blur ✓；
+颜色全部取自现有糖果 token ✓；reduced-motion 覆盖 ✓；console 0 errors ✓。
+
+**真机验证**：首页彩旗 9 面四色可见（截图 s39-hero-bunting.png）；跑完整轮 demo 会话到结算页，
+14 片彩带 `confetti-fall 1.6s` 真实执行（getAnimations finished@1600ms），空中瞬间截图 s39-confetti-midair.png。
+
+**部署**：gh-pages `f5f4e6f`（IDENTICAL）。
+
+## 40. 第三十轮（2026-09-05）· 马戏团元素融入糖果风（用户口径：加马戏团元素，要融合协调）
+
+**设计决策**：每屏一个马戏团重音，零动画全静态（守 §34 纪律）。关键翻译——
+马戏团惯用的红白条纹在本站改用**粉白条纹**（--candy-pink token）：红是「答错」裁决色（§35 语义），
+不可被装饰侵占。这也是「融合协调」的核心手段：只用现有糖果 token，马戏团只借形不借色。
+
+**改动**（Learn.jsx + candy.css §40 段，零 JS）：
+- hero：`.ch-circus` 粉白条纹小帐篷（58×40，条纹圆顶 + 柠檬尖旗），放糖豆簇右侧。
+- `.btn.lg::after`：帐篷斜纹底边（repeating-linear-gradient 45° 粉白）。
+  ⚠ L148 有 `.btn::before,.btn::after{display:none!important}` 全局隐藏，
+  用 `.btn.lg::after`（特异性 0,2,1>0,1,1 + !important）压回，仅 lg 主按钮生效。
+- `.settle-medal`：叠加 `repeating-conic-gradient` 柠檬放射纹（0.5 透明度）垫在 emoji 下，
+  多重 background 实现，不动伪元素不碰 DOM。
+
+**真机验证**：帐篷 58×40 条纹 + 柠檬旗 + CTA 条纹计算样式全中（s40-hero-circus.png）；
+跑完整轮到结算，奖章 conic 放射 rays-ok + 彩带共存（s40-settle-medal.png）；console 0 errors。
+
+**部署**：gh-pages `96af8f2`（IDENTICAL）。
+
+## 41. 第三十一轮（2026-09-05）· 整轮撤回 §40 马戏团元素（用户反馈：太丑了）
+
+**撤回内容**（§40 三处全撤，恢复 §39 派对状态）：
+- Learn.jsx 删 `.ch-circus` 帐篷挂载；
+- candy.css 删整个 §40 段（帐篷/`.btn.lg::after` 条纹底边/`.settle-medal` 放射纹）。
+§39（彩旗/果冻 hover/彩带雨）保留未动。
+
+**验证**：grep `ch-circus|§40` 源码零残留；真机 circusGone=true、bunting 9 面保留、
+CTA ::after display:none；部署 gh-pages `b93e18f`（IDENTICAL）。
+
+**教训（给下轮设计）**：装饰性「主题移植」（马戏团帐篷这类具象物件）与糖果插画风不兼容——
+hero 已有糖豆/棒棒糖的软糖质感，硬几何条纹帐篷显突兀。之后加装饰先做单件小样截图给用户拍板，再全量铺。
+
+## 42. 第三十二轮（2026-09-05）· 撤回 hero 彩旗串（用户逐项反馈）
+
+**撤回**：Learn.jsx 删 `.ch-bunting` 挂载；candy.css 删彩旗 CSS 块（§39 注释同步更新）。
+§39 其余两项保留：入口卡果冻 hover、结算彩带雨。
+
+**验证**：grep 零残留；真机 buntingGone / hover transition 保留 / 4 颗糖豆完好；
+部署 gh-pages `7254df3`（IDENTICAL）。
+
+**现态装饰清单**（§39 剩余）：入口卡果冻 hover + 结算彩带雨。hero 回归纯糖豆+棒棒糖。
+
+## 43. 第三十三轮（2026-09-05）· 修加载页「抖动一下」（用户截图指名）
+
+**根因**（实测定位，非猜测）：加载态内容恰好 `minHeight:100vh` 无滚动条；ready 后首页内容
+1350px 超一屏 → 滚动条出现 → 视口宽度被压掉（无头 8px / 真机约 17px）→ 整页瞬间重新居中 =
+肉眼可见的横向抖动。经典 scrollbar reflow 问题。
+
+**修法**：`global.css` 加 `html { scrollbar-gutter: stable; }`（槽位常驻，滚动条出现与否不改布局宽度；
+移动端覆盖式滚动条环境无副作用）。一行修，零 JS。
+
+**验证**：修复前 clientW 512→504 跳变；修复后加载态/加载后恒定 504，gutter=stable；
+部署 gh-pages `75a43f1`（IDENTICAL）。
+
+**排查线索记录**：`orb-spin` 是 transform 旋转无嫌疑；`.bubble-layer` position:fixed 无嫌疑；
+`<Background />` 气泡 12 颗中 9 颗（intensity>1 才全出）也无嫌疑——别在这三处再浪费时间。
+
+## 44. 第三十四轮（2026-09-05）· 筛选 chip「取消后恢复选中」+ 选中态重构（用户截图指名）
+
+**Bug 根因（生产环境竞态，demo 复现不了）**：
+`updateSettings` 乐观更新本机 → 异步写云端；**任何** realtime 事件都会触发
+`scheduleReload(400ms) → reloadAll → repo.loadAll()`，而 reloadAll **无条件**
+`setState({ settings: data.settings })` 用云端值覆盖本机。当云端读到的比本机旧
+（写云端在途/失败后由别的表事件触发 reload/多端竞态）→ 刚取消的 chip 被「复原」。
+
+**修法**（store.js）：`settingsLocalUntil` 时间戳——updateSettings 时置 `now+5s`；
+reloadAll 应用 settings 前检查：窗口内保留本机值，过期恢复云端优先（多端同步不受影响）。
+
+**选中态重构**（candy.css .chip.on，用户口径：原粉光晕+实心底突兀、与主题割裂）：
+去 `--glow-pink` 外发光 → 糖霜渐变底（#FFF0F4→#FFE4EC）+ 内高光 + 微投影；
+加 `.chip.on::before` 小糖珠「●」做选中记号（--candy-pink-dk）；.chip 加 transition。
+⚠ `.chip` 同时用于弹窗分组页签（.ach-tabs）与筛选项（.filter-group .chip-row），
+真机点测试时注意区分，别像我一样点了半天页签还以为 toggle 坏了。
+
+**验证**：demo 逐步点击 false→true→false→true 奇偶一致（无恢复）；
+新样式计算样式全中（糖霜渐变/内高光/●糖珠），截图 s44-chip-style.png；console 0 errors。
+部署 gh-pages `b2cd7d5`（IDENTICAL）。
+
+## 45. 第三十五轮（2026-09-05）· 判断题未选态两卡统一（用户截图指名）
+
+**根因**：§35 时代的红系块（candy.css 后段）把 j-false 未选态也染了色（橙粉边 #FFD9D2 + 红球），
+与前段 j-true 的中性粉不一致；前段更早的绿系 j-false 规则（#DFF3B8 边/绿球/绿标签）全是被后段
+覆盖的死规则——双源三色，谁最后改谁生效。
+
+**修法**（语义对齐 §35/§37：红=我的选择错误/裁决，装饰性差异不得进入未选态）：
+- 未选：j-false 边框、✗ 球体与 j-true 完全同色（--candy-pink-lt 边 / #FFC9D4→#FF8FA3 球），
+  唯一区别是符号 ✓/✗；hover 也统一为粉系。
+- 选中「错误」：仍转红系（bad-dk 边 + bad-ink 标签），裁决语义不变。
+- 删除前段死绿规则（含 content:'✗' 迁移——⚠ 删绿规则时差点把 ✗ 符号一起删掉，已迁入 §45 块）。
+
+**验证**：真机两卡 borderTopColor 相等（rgb(255,214,224)）、球体渐变相同、✗ 保留；
+选中错误后 border rgb(242,86,74) / 标签深红；截图 s45-judge-uniform.png。
+部署 gh-pages `560df4b`（IDENTICAL）。
+
+## 46. 第三十六轮（2026-09-05）· 「无法解析」补返工话术 + 导入检测审计（用户双图对比指名）
+
+**Bug1（用户报）**：JSON 语法解析失败（图二「导入内容无法解析」）分支写死 `rework:false`，
+不出「一键复制返工话术」按钮——但语法错误恰恰最需要返工（报错含 line/column 定位）。
+→ Import.jsx parse-error 分支改 `rework:true`。真机验证按钮出现 ✓。
+
+**Bug2（审计发现，边界）**：`extractArray`/`parseBackup` 用**全局** `replace(/```/g)` 剥围栏——
+题干/解析里合法出现的代码段围栏会被一起删掉 → JSON 内容破坏 → 整批「无法解析」（用户这次贴的
+内容里就有大量 `P(tanφ1-tanφ2)` 类公式文本，若含围栏必踩）。
+→ 改 `stripFences()` 锚定剥首尾；两处调用点统一。node 单测 5 场景全过
+（内容含围栏/语法错误/无数组/正常围栏批/备份含围栏）。
+
+**审计结论（其余检查过没改的）**：21 题批配比区间/难度层段/元数据映射/填空空数比对/
+多选字母序/解析标记顺序/备份过滤均无逻辑问题；`batchMode=items.length<=21` 的「非21整批也走批规则」
+是有意设计。已知遗留小项：`"序号":` 计数正则对无引号变体不敏感（仅影响「检测到 N 题」估算，无害）。
+
+**验证 + 部署**：真机贴语法错误 JSON →「导入内容无法解析」+ 复制按钮出现；
+node 单测全过；gh-pages `b98b18d`（IDENTICAL）。
+## 47. 第三十七轮（2026-09-05）· 移动端布局优化（用户口径：手机版没电脑端好看）
+
+**诊断**（390×844 真机截图，shots/m-home|m-practice|m-bank.png）：
+① pages.css L42 在 ≤560px 把入口卡降为**单列**，首屏变 4 连近满屏大卡，信息密度骤降——最破的一项；
+② hero 副标在 56% 占幅里折出「…4 / 天」孤字尾行；
+③ 答题页答对/答错角标偏大挤压题数行。书库页/答题页主体其实尚可，不动。
+
+**修法**（candy.css §47 块，@media ≤560px，全布局/字号级零装饰）：
+- 入口卡回 **2 列**（170px/卡）+ 卡内紧凑（图标 clamp 缩小/h3 15px/描述 11px）；
+- hero 副标放宽到 64% + `text-wrap:balance` 均衡折行；
+- pile-counter 角标缩号收紧。
+
+**验证**：390 视口 2 列生效（cols=2, cardW=170），截图 m47-home-2col.png；无横向溢出；
+console 0 errors。部署 gh-pages `aa2f71f`（IDENTICAL）。
+
+## 48. 第三十八轮（2026-09-05 · 新账户首轮）· 三遍判定制：手动三档自评下线（用户拍板四口径）
+
+**需求**：客观题每题在本批内随机出现 3 次，三次全对=记得 / 有对有错=模糊 / 全错=忘记，自动折算 FSRS 评分；
+复习排期算法不动，界面撤掉手动三档按钮。
+**用户口径**（AskUserQuestion 四问）：① 全部五种模式适用 ② 会话总题数=题数×3 接受
+③ 中途退出按已答折算（全对→记得/有对有错→模糊/全错→忘记/没答→不提交）④ 主观题保留自判两键（单次出现）。
+
+**实现**：
+- `lib/stats.js` 新增 `expandTriple(list)`：客观题 ×3、主观题 ×1，shuffle 随机穿插；`startSession` 组卷后扩充队列
+  （返回值仍报原始题数，页面计数口径不变；relearn 断点续练存扩充后 id 序列，恢复按原样重建）。
+- `store.js`：`submitAnswer` 重构为统一入账 `commitAnswer(q,{correct,rating,detail,grade,lastRatingValue,commitCard})`——
+  客观题前两次 commitCard=false 只记 record，第 3 次完成时 `confirmObjective` 扫描同 id 已有结果折算 rating 推卡
+  （云端失败回滚按「卡是否动过」保持对称，§33 纪律）。`rateObjective` 删除。
+  新增 `flushPendingRatings()`：`next()` 答完与 `abortSession()` 中断时补交未满 3 次的题（用 `repo.persistCard`）。
+- `lib/db.js`：`persistAnswer(record, null)` 跳过卡 upsert；新增 `persistCard(card)`。
+- `Practice.jsx`：三档按钮删除，改为「第 N / 3 次作答」计数（扫当前 index 前同 id 次数）+「确认，下一题」大按钮；
+  主观题自判两键不动。
+- CSS：`.rate-btn`/`.rate-row` 整套死样式清除（pages.css L279-292 基础层 + candy.css L530-544 权威层 +
+  candy.css L1514 磁吸按压组选择器摘除 `.rate-btn:active`）。元素已不存在，无「删覆盖放老值」风险。
+
+**验证**（demo 真机，系统 Chrome+CDP）：
+- 随机练习 20 题原批 → 队列 42（14 客观×3 + 0~?，扩充生效）；计数横幅「第 N 题 / 共 42 题」。
+- 三档按钮 0 个；「第 1/3」「第 2/3」「第 3/3」计数随穿插出现递增；同一填空题跨多次穿插计数正确。
+- 主观题（简答/计算）单次出现、自判两键正常；判断题/单选/填空/多选四客观题型全流程通畅。
+- 全程 console 0 errors；中途 ✕ 退出（flushPendingRatings）无 crash 正常回首页。
+- `node scripts/t-session.mjs` 18/18 ALL PASS；build 过（CSS 120.1kB→118.4kB，死样式清除收益）。
+- 评级折算逻辑（every/some）为纯函数代码审查覆盖；demo 不写云端，persistCard/persistAnswer(null) 走线上后由 verify-deploy 保障。
+
+## 49. 第三十九轮（2026-09-05）· §48 代码审查修复（自查三连）
+
+**Bug1（真 bug，relearn 断点续练 × flush 交互）**：挑题练习答 1~2 次后退出 → flushPendingRatings 按已答折算推卡；
+再进同一批断点续练答满第 3 次 → confirmObjective `results.length>=3` 再次推卡 → **FSRS 同题同日双推进**。
+修法：模块级 `flushedIds` Set——flush 推卡时登记；`maybeSaveResume` 持久化 flushedIds、resume 恢复时重建；
+confirmObjective 对已 flush 的题 `commitCard = length>=3 && !flushedIds.has(id)`（只记 record）。
+新会话 startSession 时清零（relearn resume 路径在恢复处单独重建）。
+
+**清理**：`submitAnswer` action 重构后已无任何调用方 → 删除（死代码纪律 §23）。
+
+**防护**：Practice.jsx `confirmAndFlip` 复用 `flying` 翻牌锁做双击防护——连点会造成重复 record + 卡二次推进
+（老版 rate() 同样裸奔，属预存模式，这次一并封上）。
+
+**已知可接受降级**：旧版本（§48 之前）遗留的 relearn resume 队列未扩充，恢复后 confirm 恒 length=1 不推卡，
+由退出/答完时 flush 兜底提交——一次性边缘，不修。
+
+**验证**：t-session 18/18；重建部署 gh-pages `5a02dba`（IDENTICAL），src 80/80，verify-live ALL OK。
+
+## 50. 第四十轮（2026-09-05）· 答题页点阵 → 糖浆进度条（用户拍板方案 B + 口径「圆润、糖浆一点点灌满」）
+
+**背景**：三遍判定制后会话动辄 200+ 题（题数×3），旧 .gem-row 一题一点密度爆表（用户截图 260 点铺两行）。
+按 §41-42 铁律先出三方案小样（糖霜双味条/糖珠轨道/糖果珠链，等比例用真实 token 绘制）拍板，用户选 B 并加口径。
+
+**实现**：
+- `Practice.jsx`：.gem-row 点阵换 .syrup-bar（role=progressbar + aria-valuenow）；pct = results.length/总题数；
+  fill width `calc(pct% - 6px)`，knob left `clamp(15px, pct%, calc(100% - 15px))`（0% 与 100% 不出轨道）。
+- `candy.css` 末尾 §50 块：胶囊轨道（奶粉槽 + 内阴影）、薄荷糖浆填充（顶部高光 = 糖浆光泽）、
+  填充前沿 18px 圆液滴（灌满感的关键）、28px 粉糖珠滑标（径向渐变 + 白描边 + 外圈糖霜环 + 高光点）；
+  width/left .55s 果冻缓动一次性过渡（微区域、无 infinite、无 blur）；reduced-motion 跳变。
+- 死样式清理：.gem-dot 三处（pages.css 基础层 5 规则 + candy.css 权威层 4+1 规则）——元素已删，无「删覆盖放老值」风险。
+
+**验证**（demo 真机 390×844，系统 Chrome+CDP）：
+- 结构：syrup-bar 在、gem-dot 0 个、radius 999px；未答时 fill=0px、knob 钳在 15px。
+- 答题推进：1/38 fill 0.97px（糖浆刚冒头）→ 7/38 fill 35.8px / knob 41.8px，同步右移。
+- console 0 errors；桌面宽度无断点依赖（flex:1 流式，小样 1120 宽已拍板背书）。
+- 部署 gh-pages `b36feaa`（IDENTICAL），src 80/80，verify-live ALL OK。
+
+## 51. 第四十一轮（2026-09-05）· 糖浆进度条配色二轮（用户反馈「配色有点丑」→ 拍板方案 3）
+
+§50 薄荷糖浆+粉珠绿粉撞色突兀。按铁律先出 4+1 配色小样（草莓/薰衣草/柠檬/蜜桃）拍板，
+用户选 **方案 3：柠檬糖浆 + 蜜桃珠**。仅改 candy.css §50 块色值：
+轨道 #FFF7DC / 边 #F5E6A3；糖浆 #FFEC8C→--lemon-dk；液滴 #FFF3B8→--lemon-dk；
+珠 #FFE9DD→--danger(#FFB088)→#F49262，外圈糖霜环 rgba(255,224,102,.3)。结构与动效零改动。
+
+**验证**：demo 真机 6/42 计算样式全中（fill 渐变 255,236,140→255,212,59 / bar 255,247,220 / knob 蜜桃径向）；
+console 0 errors。部署 gh-pages `6c3aeb1`（IDENTICAL），src 同步，verify-live ALL OK。
+
+## 52. 第四十二轮（2026-09-05）· 全站节日点缀层：圣诞×马戏「玩具糖偶」（用户逐条规格 + 两轮小样拍板）
+
+**规格**（用户全文给出）：只加不改（整层非交互、点击穿透）/ 只待空地（页框四缘，不进阅读区）/
+只取现有色板（树莓粉/深薄荷/香槟金/淡紫）/ 单件 20-40px、每屏 ~20 单位、透明度 .7-.85 / 糖偶质感。
+用户两轮反馈迭代：v1 → ①更协调热闹不乱 ②加密度 ③加小动物/蛋糕/游乐设施/圣诞树/帐篷 → v2 拍板。
+
+**实现**：
+- 新组件 `components/FestiveDecor.jsx`（挂 Shell，登录前不挂）：22 个纯 SVG 小物——
+  灯串/三角旗/圣诞帽/雪花×4/圣诞树/马戏帐篷/摩天轮/蛋糕/兔/熊/气球×2/姜饼人/冬青/拐杖糖/礼盒/彩屑×3。
+- `candy.css` §52 块：fixed 层 z-5（内容之上、导航 z-40/弹窗之下）、pointer-events:none、aria-hidden；
+  动画仅 transform/opacity（灯呼吸 2.4s/雪落 9-13s/气球 3.8-4.4s/轮慢转 26s），无 blur；
+  reduced-motion 全静止；@media ≤560px 撤 9 个静态散件减密度（移动端防挤卡）。
+- 红线自查：无新大面积 infinite（元素均 <80px）、不动 transform/opacity 以外属性、零 JS 监听。
+
+**验证**：demo 真机 1280×800——首页/答题页截图氛围到位；开始按钮点击穿透正常；
+层 pointerEvents=none / z=5 / 22 子元素；console 0 errors。
+部署 gh-pages `183857d`（IDENTICAL），src 同步，verify-live ALL OK。
+
+## 53. 第四十三轮（2026-09-05）· §52 修正：答题页挡字（用户截图反馈）
+
+小旗/灯串/圣诞帽按学习页 hero 定位，答题卡直抵页顶 → 小旗压题干、彩屑圆点飘进作答框。
+修法：FestiveDecor 加 compact prop（App 传 inPractice），`is-compact` 撤顶部三件 + 彩屑三件
+（candy.css §52b），只留页缘固定小物。首页/书库等不受影响。
+
+**验证**：真机答题页 lights/bunting/hat/cstar/cdot/cbar 全 display:none，题干/作答框零遮挡，
+console 0 errors；首页点缀不变。
+
+## 54. 第四十四轮（2026-09-05）· §53 口径修正：答题页只撤小旗
+
+用户口径「答题界面去掉小旗就行了，其他不用保留」——compact 从撤 6 件收窄为只撤 .fbunting，
+灯串/圣诞帽/彩屑在答题页全部恢复。candy.css §52b 一条规则 + FestiveDecor 注释同步。
+真机复验：bunting display:none、lights/hat/cdot block；console 0 errors。
+
+## 55. 第四十五轮（2026-09-05）· 字体沉浸感（用户「看的有点晕」→ 三方案小样拍板选 B 清爽雅黑）
+
+诊断三个病灶：题干 600 加粗、阅读面字重偏高、1-6px 字距；另抓到主观题作答框用等宽字体
+（global.css .rune-textarea 13px monospace → 中文落默认宋体渲染）。
+修法（candy.css §55 权威层，方案 B=字体不动只修排版）：
+题干 500/.3px/行高 2/字号 clamp(16,3.4cqw,19)；作答框弃等宽改正文字体 15px/行高 1.9/400；
+选项 400/.2px、判断标签 1px/500、解析 1.95/.3px/400；practice-count 与 hero 副标字距减半。
+品牌大字（登录 8px 字距/结算 6px）是造型，不动。
+
+**验证**：真机计算样式全中（stem 500/.3px/38px/19px，opt 400）；console 0 errors。
+部署 gh-pages `f219c41`（IDENTICAL），verify-live ALL OK。
+
+## 56. 第四十六轮（2026-09-05）· 刷题沉浸感一期：糖豆雨降频 + 键盘流（用户从盘点清单选 3+6）
+
+**糖豆雨降频**：原每答必 burst（doCheck 16 粒 + flipToNext 14 粒双重刺激）→ 只在「本次作答把连击推到 ≥3」时撒一次
+（doCheck 内 combo+1>=3 门控）；flipToNext 改纯翻牌，不再重复 burst/pulse；错题凝视脉冲保留在 doCheck 与 commitSelf(!ok)。
+
+**键盘流**（Practice.jsx，Hooks 挂在早退 return 之前——Rules of Hooks）：
+- 1-5 / A-E 选选项（多选同键 toggle）、1/2 选判断卡；焦点在输入框时数字是内容不劫持
+- Enter：客观题=查看解析 / feedback=确认下一题；主观题自判=我答对了，Shift+Enter=我答错了
+- 填空单行输入框 Enter=提交；主观多行 textarea Enter 留给换行、Ctrl+Enter 展开
+- 实现走「点真实 DOM 按钮/选项行」，零触碰 React state（复用判分/翻牌全链路）
+- 牌底各状态加一行 .kbd-hint 提示（candy.css §56，11px/--ink-2）
+
+**验证**：E2E 四路径全通——单选 Digit1→Enter、填空 input+Enter、主观 Ctrl+Enter→Enter=答对、
+判断 Digit1→Enter（新会话复测）；糖豆雨门控为纯逻辑分支（代码审查）；console 0 errors。
+
+## 57. 第四十七轮（2026-09-05）· §48+§56 二次严格审查（用户点名三遍判定制+沉浸一期）
+
+**逐轴复核通过（无需改）**：expandTriple 纯函数/不改原数组；confirmObjective 扫描与 resume results 平行；
+flushedIds 恢复/清零/持久化闭环；flush 满三次跳过、中断折算口径；persistAnswer(card=null)/persistCard 回滚对称；
+键盘流 DOM-click 复用判分链路、effect 挂在早退 return 前（line 136 < 172，Rules of Hooks 合规）、
+卸载时移除监听、输入框焦点不劫持数字、flying 防双击；糖豆雨门控 combo+1>=3 口径正确；
+startSession 返回值仅用于 n>0（resume/fresh 口径差异无实际影响）。
+
+**修复 2 处**：
+① 回滚误删（预存缺陷被键盘流放大）：persistAnswer 失败回调原用 sessionResults.slice(-1)——
+   失败回调晚到时会误删「失败之后新答的那笔」。改按捕获时的 resultIndex 精确摘除（filter index）。
+② 键盘流只认主键盘 Digit1-5 → 补 Numpad1-5（小键盘党）。
+
+**已知可接受项（不改）**：
+- 切页/关标签时未 flush（仅在应用内导航触发）——浏览器关闭丢 1-2 次未折算记录，量级极小
+- 主观题连对不撒糖豆（与客观题不对称）——自判场景仪式感本就低，刻意
+- 云端失败双发时多笔回滚的索引仍可能交叠——需失败连发+中途新答两个条件叠加，概率极低
+- buildSession 旧格式 resume（§48 前遗留）一次性降级——已由 flush 兜底
+
+**验证**：t-session 18/18；构建过；部署 gh-pages `79f83d0`（IDENTICAL），src 同步，verify-live ALL OK。
+
+## 58. 第四十八轮（2026-09-05）· 返工复制后缺「重新导入」出口（用户反馈）
+
+红色返工框里只有「一键复制返工话术」，复制完去 AI 修正后回来没有清场重导的按键，流程断头。
+修法（Import.jsx）：返工按钮行加 ghost 按钮「🧹 清空，重新导入」——清空 textarea + result + copied，
+并 focus 回输入框直接可粘贴修正后的 JSON。顺手修连带 bug：copied 状态在 detect() 开始时不重置，
+下一次报错会错误显示「✓ 已复制」。textarea 挂 taRef 供聚焦。
+
+**验证**：demo 真机——坏 JSON 触发解析失败 → 两按钮齐全；点清空后 textarea 空/返工框消失/
+焦点回到输入框/检测按钮回到 disabled；console 0 errors。
+
+## 59. 第四十九轮（2026-09-06）· 登录口重做（用户截图反馈「重新做一下」→ 三方案小样拍板选 A）
+
+原登录口病灶：输入框双层框嵌套 + emoji 图标（✉️🔒👁）。
+**方案 A「糖霜胶囊」实施**：
+- 双层合并为单层果冻胶囊（白底/1.5px 粉边/999px 圆角/内阴影），聚焦 border 转 mint + 4px 柔光环
+- emoji 图标换 Login.jsx 内联 1.7px 线性 SVG（信封/锁/眼），聚焦时图标同色变薄荷——纯 CSS :focus-within 零 JS
+- CTA 去 🍬 前缀；标题/hero/成功光芒爆发仪式全保留
+- **陷阱**：candy.css 全局兜底规则（.rune-input,.rune-textarea,input,textarea,select）给所有 input 上了
+  2px 粉框+奶油底，胶囊内层复现双层框——§60 里对 .login-input input 显式中和（border:none/bg:transparent）
+
+**验证**：非 demo dev server（supabase 配置硬编码，getSession 本地读无会话即匿名）真机截图——
+3 个 SVG 图标、emoji 清零、胶囊 999px、聚焦 border mint rgb(127,232,200)/icon rgb(95,212,176)、
+内层 input border 0/透明；console 0 errors。部署 gh-pages `4edbc9d`（IDENTICAL），src 同步，verify-live ALL OK。
+
+## 60. 第五十轮（2026-09-06）· 挑题断点增量续练（用户报「379/260 对不上」→ 三方案拍板选 1）
+
+**根因**：弹窗 379 是实时重算的当前匹配数；进入后走 relearn 断点恢复（filtersKey 匹配即恢复旧队列 260），
+旧会话把后来新导入的题全部挡在外面——两本账对不上。
+
+**方案 1「增量续练」实施**（store.js startSession relearn 分支）：
+断点恢复后用当前 filters 重算 fresh 列表，不在断点队列里的题经 expandTriple 追加到队尾
+（老题保持断点进度，新题接着练）；追加后的队列立刻 maybeSaveResume 回存。
+新增 `peekRelearnResume(fKey)`（只读 localStorage，供弹窗提示）。
+Learn.jsx：FilterModal 加 note prop；挑题弹窗显示「断点续练：剩余 R 题，新增 N 题将排在末尾」
+（新增 0 时显示「将从第 X 题继续」）。relearnCount 改从 relearnList memo 取。
+
+**验证**（demo 真机，模拟「新题」=从断点删除 demo_4 全部 3 副本再进入）：
+弹窗 note「剩余 54 题，新增 1 题将排在末尾」；进入后共 57 题（54+demo_4×3 补回）；
+断点回存确认队列 57、demo_4 恢复 3 份；console 0 errors；t-session 18/18。
+
+## 61. 第五十轮（2026-09-07）· 全站主题中性化：青瓷薄荷（用户「粉色太多太少女」→ 四方案小样拍板选 2 + 粉色适量分布）
+
+**策略（三层）**：
+① `:root` token 重映射——--candy-pink 系（#FFB6C1/#FF8FA3/#FFD6E0）→ 薄荷家族（#A8D8C4/#5FAE8F/#D3EADF），
+   --line/--cream/--shadow-candy/--glow-pink/--gold-text(#E8607F→#2E6E58)/--copper 同步冷移，var() 引用全站自动跟随；
+② 散落硬编码粉 159 处按映射表脚本替换（选项选中态/书脊/罐子/标题字/登录胶囊等结构 UI）；
+   糖浆进度条（柠檬+蜜桃，§51 用户拍板）与判分红绿语义色（--bad/--ok）不动；
+③ 节庆点缀层 FestiveDecor.jsx 不改（粉帽/拐杖糖/气球/姜饼人就是「适量粉点缀」本体）；
+   CandyBoot 开机彩豆数组换薄荷主导 + 一粒粉；Bookshelf 书封色板为用户自选项保留原马卡龙板。
+
+**验证**：真机首页/答题页截图——薄荷主色清爽中性、粉只剩节庆点缀、糖浆条作暖点缀保留；
+console 0 errors；t-session 18/18。部署 gh-pages `75471a8`（IDENTICAL），src 同步，verify-live ALL OK。
+
+## 62. 第五十一轮（2026-09-07）· 文案去少女化：「甜蜜值」→「成长值」（用户拍板方向 2）
+
+6 处用户可见文案替换（成长系）：加载页「甜蜜值凝聚中…→成长档案加载中…」；开机副标两处
+「尝味师的甜蜜修行地→电气工程师的成长训练营」；学习页横幅「甜蜜值延续中→成长值累积中」与
+按钮「延续甜蜜值→继续累积」；登录/设置页脚「云端甜蜜值同步→云端成长档案同步」。
+注释层甜蜜字样保留（不影响用户）。横幅与按钮为 doneToday 二选一分支，各自已验证。
+
+**验证**：真机横幅文案、全页无「甜蜜值」残留；console 0 errors。
+部署 gh-pages `48ae280`（IDENTICAL），src 同步，verify-live ALL OK。
+
+## 63. 第五十二轮（2026-09-07）· 设置页头像去糖果化（用户截图反馈「图标与主题不搭」）
+
+设置页「尝味师凭证」卡的头像原为薄荷圆底 + 🍬 糖果 emoji（.candy-badge::after content）——红粉糖果
+与青瓷薄荷中性主题冲突。改为**人形剪影头像**（::before 肩弧 + ::after 头圆，纯 CSS 白色 92% 透明度），
+badge 加 position:relative。molten 熔炉区、🥅 标题小图标等其余装饰不动。
+
+**验证**：真机设置页——::before/::after 白底生效、🍬 清零、剪影头像与主题一致；console 0 errors。
+部署 gh-pages `07c2571`（IDENTICAL），src 同步，verify-live ALL OK。
+
+## 64. 第五十三轮（2026-09-07）· 键盘流补 ↑↓ 指针（用户反馈：↑↓ 要先点一下界面才「能用」）
+
+根因：↑↓ 此前未绑行为，用户感知到的「时灵时不灵」实为浏览器原生滚屏受焦点漂移影响。
+**实装**（Practice.jsx 键盘 effect + candy.css §64b）：
+- ↑↓：客观题未作答时在选项/判断卡间移动**指针**（window 级监听，零焦点依赖），kbd-cursor 薄荷描边高亮，
+  scrollIntoView(nearest) 长列表跟随；1-5 直选同步移动指针；指针随切题重置
+- Enter 两段式：未选中时 Enter=选中指针所在项，已选中时 Enter=提交（↑↓ 移动 → Enter 选中 → 再 Enter 提交）
+- **测试陷阱**：dev HMR 窗口期监听器叠加/同步连发事件时 kIdx 闭包不更新，均为测试伪影；
+  真实按键（间隔>100ms，生产 bundle）单步步进精确
+- **修复 1 个实现 bug**：Enter 提交按钮 find 条件带 !disabled，未选时按钮禁用被过滤，两段式永不触发——
+  改为按文案找按钮、以 disabled 区分提交/选中
+
+**验证**：真机判断题全链——↓↓ 指针到「错误」→ Enter 选中（selected=1，phase 仍 answering）→
+再 Enter 提交（feedback「答对了」）；单选步进 2→3 线性；console 0 errors。
+部署 gh-pages `cd64d09`（IDENTICAL），src 同步，verify-live ALL OK。
+
+### §64b 补充（同轮）：尝味师徽章重绘
+用户反馈人形剪影版「背景太重、图案不贴题」。重绘：圆底轻量化（#FBFDFC→#E1F0E9 浅渐变 + 1.5px 灰绿描边，去重投影），图案换**螺旋棒棒糖**（repeating-conic 薄荷/白螺纹 + 白描边 + 奶油棒杆，-12° 微倾；与登录 hero .ch-lolli 同 motif）。真机截图验证后部署 gh-pages `07e8a37`，src 同步，verify-live ALL OK。
+
+### §65 补充（同日）：题干区羊皮纸化
+用户反馈题干区粉白底（rgba(255,245,247,.78)——§61 漏网硬编码）刺眼。换羊皮纸暖米轻渐变（rgba(252,247,236,.92)→rgba(247,239,221,.84)）+ 暖沙描边 #E6DAC2 + 中性暖投影；另清 3 处粉白 tint 残留（登录/背景大渐变首段 #FFF5F7→#F4FAF6、.nav-veil → 冷白绿）。真机验证后部署 gh-pages `8627de4`，src 同步，verify-live ALL OK。
+
+### §65c 补充（同日）：蜡封印纹去🍬
+用户指认「答案已封印」行的蜡封图标仍是红粉糖果 emoji（.seal-wax::after content:🍬——与设置页头像同批漏网）。换**火漆印纹**：深薄荷四角星压印（clip-path 八边形星）+ 内圈虚线齿环（::before dashed 圆环），纯 CSS。真机验证后部署 gh-pages `799a5a5`，src 同步，verify-live ALL OK。
+
+### §66 补充（同日）：loadAll 分页解除 1000 行上限
+容量分析确认瓶颈：PostgREST 单请求默认 1000 行静默截断（题库/卡片/记录三表裸 select）。修法：db.js 新增 fetchAllPaged(table, orderCol, pageSize=1000)——按唯一键 order + range 翻页至不足一页（翻页必须按唯一键排序，seq/answered_at 会重复致边界漂移漏行）；loadAll 三表切换。行为等价性：<1000 行时单请求即返回与旧版一致。验证：anon 直连实测（RLS 拒匿名读返回空集，通路无报错）+ 构建过；翻页边界待数据自然超 1000 行后生效，无需回归。部署 gh-pages `74f1273`，src 同步，verify-live ALL OK。
+
+### §67 补充（同日）：记录增长防患性 memo 化
+三处（App.jsx 一处是**全树重渲染级 bug**）：① App.jsx 错题角标原 selector 在 useStore 内跑 lastResultMap（O(全部记录)）且返回新 Map 引用——store 任意变化（含答题计时）都触发 Shell 全树重渲染+O(N) 重算，改为订阅 records 引用 + useMemo；② Learn.jsx doneToday/dueCount/wrongCount 三处 O(N) filter 包 useMemo；③ Learn.jsx now=Date.now() 每渲染变化致 relearnCount（O(N) buildSession）useMemo 实际每次失效——挂载期固定。真机验证到期 12/新题 10/连胜 4 天数字与改前一致，console 0 errors。部署 gh-pages `fcb82fc`，src 同步，verify-live ALL OK。
+
+### §68 补充（同日）：答题页雪花减速
+用户反馈答题时雪花飘落分散注意力（只动答题页）。candy.css §68：.festive-layer.is-compact 下 .fflake 落速 45s、.ff2/55s、.ff3/40s、.ff4/60s（原 9~13s 的 4~5 倍，接近凝滞但仍活着），负 delay 保留、其他页面不变。真机计算样式验证 45s 生效、console 0 errors。部署 gh-pages `c4f9002`，src 同步，verify-live ALL OK。
+
+### §68c 补充（同日）：分页加载瞬时抖动加固
+用户遇到「云端同步失败」toast——实测 Supabase 可达（REST 200 但响应 1.7s 偏慢），判定为瞬时抖动（分页后请求数变多，单页失败即整体失败的新暴露面）。加固：fetchAllPaged 每页失败自动重试 2 次（600ms/1200ms 退避），3 连败才抛。写入路径（persistAnswer 等）本身已有本地回滚不丢数据。部署 gh-pages `6f49807`，src 同步，verify-live ALL OK。
+
+### §69c 补充（同日·重要）：§66 分页改造自带的阻断性 bug 修复（用户报告「题目都不见了」后定位）
+真相：§66 改 fetchAllPaged 时，loadAll 的 return 块仍残留旧写法 q.data.map——fetchAllPaged 返回的是行数组（无 .data 包装），undefined.map 必炸 → **登录后加载 100% 失败**（toast 反复弹 + 前端拿到空数据 = 题目「不见」）。云端数据全程完好（实测 questions=672 / cards=62 / records=118）。修复：return 改为 q.map/c.map/r.map 直读；toast 透出真实错误（本次即靠它 10 分钟内定位）。真机登录验证：672 题恢复、到期 22、无 toast、console 0 errors。另：凭据断链已修复（用户找回密码，已写回 app/.env 的 E2E_PASSWORD——该密码已在聊天中暴露，建议用户尽快改密）。部署 gh-pages `4e67706`，src 同步，verify-live ALL OK。
+
+### §70 补充（同日）：键盘指针退场——双高亮 bug 修复
+用户反馈：鼠标/数字选中后，键盘指针（黑框）仍可移动并与选中框叠加显示（两个视觉并存）。修复语义：**指针只服务于「未选中」的预选导航**——新增 hasPick（单选 choice≠null / 多选 multi.length>0 / 判断 judge≠null）：hasPick 时指针视觉隐藏 + ↑↓ 停用 + Enter 只执行提交。修复过程中避免了一个 TDZ 崩溃（hasPick 初稿插在 choice/multi/judge 声明之前，自查发现已移正）。真机验证：↑↓ 出指针 → 鼠标点选 → 指针消失、仅剩绿色选中；选中后 ↓ 指针不再出现；console 0 errors。部署 gh-pages `f5c7d20`，src 同步，verify-live ALL OK。
+
+### §70c 补充（同日·二次反馈）：↑↓ 语义重构——移除指针中间态
+§70 首版修复（选中后指针隐藏+↑↓ 停用）不合用户预期：用户要「↑↓ 随时可用且永远只有一个选中视觉」。重构：**移除 kIdx/hasPick/kbd-cursor 整个指针体系**，↑↓ 直接把选中切到上一项/下一项（按 DOM selected 定位当前位置，window 级；单选/判断=改选，多选=勾选/取消该行）；数字/鼠标行为不变。三种输入方式任一时刻唯一绿色选中视觉，黑框物理消失。hint 改「键盘 1-5 直选 · ↑↓ 切换选项 · Enter 确认」。真机验证：↓↓ 选中 A→B、鼠标点 D 唯一选中、↑ 回移 C、kbd-cursor 零残留、console 0 errors。教训：交互语义要先对齐用户心智模型再实现（首版按工程师直觉做了「指针预选」中间态）。部署 gh-pages `071b904`，src 同步，verify-live ALL OK。
+
+### §70d 补充（同日·三次反馈）：黑框真因=浏览器 focus outline
+§70c 重构后用户仍见黑框（数字/↑↓ 后停留在先前交互的选项上，鼠标点别处即消失）→ 真因：**浏览器默认 focus outline**——键盘流的程序 click() 不移动焦点，轮廓滞留在早前真实交互的元素上。修复：答题控件（.opt-row/.judge-card/.q-face-foot button）focus/:focus-visible 一律 outline:none（选中绿框本身即视觉锚点）。真机（含真实键击 press）：outlineOnSelected=none、kbd-cursor 0、单选唯一选中、多选 A+B 并存正常。部署 gh-pages `5837590`（首次上传中断已续传），src 同步，verify-live ALL OK。
