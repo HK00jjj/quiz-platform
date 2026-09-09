@@ -10,6 +10,12 @@
 //   ⑤ 批内知识点查重的"序号 1 豁免"收敛到 batchMode 门——题集逐题通道全序号同口径查重；
 //   ⑥ 新增 crossBatchCheck：导入时与库内已有题做知识点撞名 + 题干近似重复（2-gram 重叠系数）
 //      告警，填补"跨批避重只靠台账/precheck 脚本、近似改写不查"的机器盲区（仅告警，保真优先不拦截）。
+// 2026-09-09 v4.12 自适应换挡机器核对（verdict 复算闸）：
+//   ⑨ validateItems 新增第三参 ctx={records,questions}（不传则闸不激活，Node 回归脚本行为不变）；
+//      传入时逐题复算知识点 verdict（与 fetch_level.mjs / 《规则》2.2 第 0 步三处同口径），
+//      核对 AI 声明的「源题难度」+「适配决策」与复算结论及最终难度档的一致性：
+//      mastered→禁降阶（升一档或保持）/ weak→降一档（已在基础档则保持）/ middle·unseen→严格保持源题档；
+//      声明与复算不符、或换挡动作与声明不符 → 错误拦截；字段缺席 → 批级告警（兼容历史批，不再静默放行）。
 // 2026-09-08 v4.7 反平庸化（机制整改）：
 //   ⑦ checkChoice 新增"四胞胎同构"告警：长度几乎一致+句式同构（开头字相同/同一连接词≥3项）→ 告警，
 //      治"为过长度均衡而模板化写作"——均衡性查太悬殊，此检查查太整齐；
@@ -60,7 +66,8 @@ export class Validator {
   issues = []
   err(where, message) { this.issues.push({ where, level: '错误', message }) }
   warn(where, message) { this.issues.push({ where, level: '告警', message }) }
-  run(items, batchMode) {
+  run(items, batchMode, ctx) {
+    this.ctx = ctx ?? null
     if (items.length === 1 && str(items[0].题型) === '异常') {
       if (items[0].序号 !== 1 && seqOf(items[0]) !== 1) this.err('序号1', '异常输入序号应为1')
       if (!str(items[0].题干).trim()) this.err('序号1', '异常输入题干为空')
@@ -104,6 +111,7 @@ export class Validator {
         }
       }
     }
+    if (this.ctx) this.checkAdaptive(items)
     return this.issues
   }
   checkBatchRules(items, batchMode) {
@@ -343,9 +351,107 @@ export class Validator {
     }
     if (n < 3) this.warn('配比', `结构化数据刺激启发式检出${n}道（规则要求≥3道），请人工确认是否达标`)
   }
+
+  // ── v4.12 自适应换挡机器核对（verdict 复算闸）──
+  /* verdict 复算口径与 fetch_level.mjs / 《出题规则》2.2 第 0 步三处同口径（改一处必须同步三处）：
+     只计客观题作答（单选/多选/判断/填空），逐知识点"总对 + 首答"双轨：
+     mastered：n≥3 且 acc≥85% 且首答样本≥2 且首答≥80%（四条件缺一不可）；
+     weak：n≥3 且（acc≤50% 或 首答≤40%）；unseen：n=0；middle：其余（含 n<3 样本不足）。
+     核对逻辑：AI 每题声明「源题难度」（基础/应用/综合）+「适配决策」（升档/保持/降档），
+     本闸复算 verdict 后逐题核对三层一致性——
+     ① 声明自洽：决策动作换算出的目标档 === 输出「难度」字段（升档=源+1 / 保持=源 / 降档=源−1；
+        综合+升档、基础+降档本身非法）；
+     ② 声明与复算一致：mastered 禁降阶；weak（源档≥应用）必须降档；middle/unseen 必须保持；
+     ③ 降档落实：降档题解析须含「层级适配」标注（源题原解法已由【推导】段强制承载）。
+     违反 = 错误拦截；字段缺席 = 告警（兼容历史批重导与备份恢复，不再静默放行）。 */
+  static ADAPT_DIFFS = ['基础', '应用', '综合']
+  static ADAPT_DECISIONS = ['升档', '保持', '降档']
+  static ADAPT_LV = { 基础: 0, 应用: 1, 综合: 2 }
+  static V = { N_MIN: 3, ACC_UP: 0.85, F_UP: 0.8, FN_MIN: 2, ACC_DOWN: 0.5, F_DOWN: 0.4 }
+  static verdictOf(s) {
+    const { N_MIN, ACC_UP, F_UP, FN_MIN, ACC_DOWN, F_DOWN } = Validator.V
+    if (s.n === 0) return 'unseen'
+    if (s.n < N_MIN) return 'middle' // 样本不足：宁可不动，不掺水
+    const f = s.fN ? s.fC / s.fN : 0
+    if (s.c / s.n >= ACC_UP && s.fN >= FN_MIN && f >= F_UP) return 'mastered'
+    if (s.c / s.n <= ACC_DOWN || f <= F_DOWN) return 'weak'
+    return 'middle'
+  }
+  checkAdaptive(items) {
+    const { records, questions } = this.ctx
+    // 画像只认客观题作答（v4.11 去污）：qid → {kp, obj}，来自库内已有题（新批无作答，不进统计）
+    const metaOf = new Map()
+    for (const q of questions ?? []) {
+      if (q && typeof q.id === 'string') metaOf.set(q.id, { kp: str(q.knowledgePoint).trim(), obj: isObjType(q.type) })
+    }
+    const recByQ = new Map()
+    for (const r of records ?? []) {
+      if (!r || typeof r.correct !== 'boolean' || typeof r.questionId !== 'string') continue
+      const m = metaOf.get(r.questionId)
+      if (!m || !m.obj || !m.kp) continue
+      if (!recByQ.has(r.questionId)) recByQ.set(r.questionId, [])
+      recByQ.get(r.questionId).push({ correct: r.correct, t: typeof r.timestamp === 'number' ? r.timestamp : 0 })
+    }
+    const kpStats = new Map()
+    for (const [qid, rs] of recByQ) {
+      rs.sort((a, b) => a.t - b.t)
+      const s = kpStats.get(metaOf.get(qid).kp) ?? { n: 0, c: 0, fN: 0, fC: 0 }
+      for (const r of rs) { s.n++; if (r.correct) s.c++ }
+      s.fN++; if (rs[0].correct) s.fC++
+      kpStats.set(metaOf.get(qid).kp, s)
+    }
+    const verdictFor = (kp) => Validator.verdictOf(kpStats.get(kp) ?? { n: 0, c: 0, fN: 0, fC: 0 })
+    const statsDesc = (kp) => {
+      const s = kpStats.get(kp)
+      if (!s || s.n === 0) return '该知识点无客观作答记录（unseen）'
+      const f = s.fN ? Math.round((s.fC / s.fN) * 100) : 0
+      return `客观作答 n=${s.n}、总对率 ${Math.round((s.c / s.n) * 100)}%、首答 ${f}%`
+    }
+    const LV = Validator.ADAPT_LV, DIFFS = Validator.ADAPT_DIFFS, DECS = Validator.ADAPT_DECISIONS
+    let declared = 0
+    for (const it of items) {
+      if (str(it.题型) === '异常' || !TYPE_LIST.includes(str(it.题型))) continue
+      const w = whereOf(it)
+      const src = str(it.源题难度).trim(), dec = str(it.适配决策).trim()
+      if (!src && !dec) continue
+      declared++
+      if (!DIFFS.includes(src)) this.err(w, `“源题难度”应为 基础/应用/综合 之一，实际“${src || '空'}”`)
+      if (!DECS.includes(dec)) this.err(w, `“适配决策”应为 升档/保持/降档 之一，实际“${dec || '空'}”`)
+      if (!DIFFS.includes(src) || !DECS.includes(dec)) continue
+      const d = str(it.难度)
+      // ① 决策动作自洽：目标档换算 + 输出难度核对（难度非法时 checkCommon 已报，此处跳过比对）
+      if (dec === '升档' && src === '综合') this.err(w, '源题难度已是「综合」，禁止声明升档（无可升之档）')
+      if (dec === '降档' && src === '基础') this.err(w, '源题难度已是「基础」，禁止声明降档（无可降之档）')
+      if (DIFFS.includes(d)) {
+        const expect = LV[src] + (dec === '升档' ? 1 : dec === '降档' ? -1 : 0)
+        if (DIFFS[expect] !== undefined && LV[d] !== expect) this.err(w, `“适配决策：${dec}”与输出难度“${d}”不符（源题难度“${src}”换挡后应为“${DIFFS[expect]}”）`)
+      }
+      // ② 声明与复算 verdict 一致（kp 为空时 checkCommon 已报，跳过复算）
+      const kp = str(it.知识点).trim()
+      if (kp) {
+        const v = verdictFor(kp)
+        if (v === 'mastered' && dec === '降档') {
+          this.err(w, `知识点「${kp}」复算为 mastered（${statsDesc(kp)}）——已掌握知识点禁止降阶，应升档或保持`)
+        } else if (v === 'weak' && src !== '基础' && dec !== '降档') {
+          this.err(w, `知识点「${kp}」复算为 weak（${statsDesc(kp)}）——weak 禁止保持/升档，应声明「适配决策：降档」`)
+        } else if ((v === 'middle' || v === 'unseen') && dec !== '保持') {
+          this.err(w, `知识点「${kp}」复算为 ${v}（${statsDesc(kp)}）——样本不足/未作答，应严格保持源题档（适配决策：保持）`)
+        }
+      }
+      // ③ 降档落实：解析须带「层级适配」标注（源题原解法由【推导】段承载，checkAnalysis 已强制）
+      if (dec === '降档' && !str(it.解析).includes('层级适配')) {
+        this.err(w, '降档题解析须含「层级适配」标注并完整写入源题原考点解法（2.2 第 0 步）')
+      }
+    }
+    if (declared === 0 && items.length > 0) {
+      this.warn('自适应闸', `本批 ${items.length} 题均未声明「源题难度/适配决策」，换挡合规未做机器核对——v6.2 起《出题规则》要求逐题带出（历史批/备份重导可忽略本告警）`)
+    } else if (declared < items.filter((it) => TYPE_LIST.includes(str(it.题型)) && str(it.题型) !== '异常').length) {
+      this.warn('自适应闸', '本批部分题目未声明「源题难度/适配决策」，对应题目的换挡未做核对——请逐题补全声明')
+    }
+  }
 }
 
-export const validateItems = (items, batchMode) => new Validator().run(items, batchMode)
+export const validateItems = (items, batchMode, ctx) => new Validator().run(items, batchMode, ctx)
 
 // 返工话术（数量中性，2026-09-08）：生成批与题集批通用——元素总数与序号由
 // 各模式的守恒规则约束，话术不再硬编码"21 元素"。

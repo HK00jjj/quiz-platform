@@ -78,7 +78,10 @@ export default function Import() {
       setResult({ tone: 'red', title: '题集导入 · 导入内容无法解析', issues: errors.map((m) => ({ where: '顶层', level: '错误', message: m })), rework: true })
       return
     }
-    const issues = validateItems(items, false)
+    /* v4.12 自适应换挡机器核对：传入 records + 全库题，校验器复算 kpProfile verdict
+       逐题核对 AI 声明的「源题难度/适配决策」（不传 ctx 则闸不激活） */
+    const st = useStore.getState()
+    const issues = validateItems(items, false, { records: st.records, questions: st.allQuestions })
     const errs = issues.filter((i) => i.level === '错误')
     if (errs.length > 0) {
       showResult(issues, null, '题集导入 · ')
@@ -191,7 +194,7 @@ export default function Import() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginTop: 4, padding: '10px 12px', borderRadius: 12, background: 'rgba(168,216,196,.18)' }}>
           <span style={{ fontSize: 13, color: 'var(--muted)' }}>
             📊 当前状态指数 <b style={{ color: '#2E6B52' }}>{Math.round(ability * 100)}</b> · 建议能力档 <b style={{ color: '#2E6B52' }}>{tier}</b>
-            <span style={{ fontSize: 12 }}>（&lt;55 新手 / 55~78 进阶 / &gt;78 熟练）</span>
+            <span style={{ fontSize: 12 }}>（&lt;55 新手 / 55~78 进阶 / &gt;78 熟练 · 含主观自评，仅展示；出题换挡只认客观题画像）</span>
           </span>
           <GiltBtn tone="ghost" onClick={copyTier}>{tierCopied ? '✓ 已复制' : '📋 复制水平声明'}</GiltBtn>
           <span style={{ fontSize: 12, color: 'var(--muted)' }}>发源题给 AI 时无需手动声明——AI 会自动调取云端掌握画像（fetch_level 脚本）；此按钮仅在 AI 无法访问云端时备用</span>
