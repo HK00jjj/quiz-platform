@@ -86,7 +86,39 @@ export function buildSession(questions, cards, records, opts) {
         .sort((a, b) => a.dueAt - b.dueAt).map((c) => byId.get(c.questionId)), opts.size)
     case 'wrong': {
       const last = lastResultMap(records)
-      return take(filtered.filter((q) => last.get(q.id) === false).sort((a, b) => a.seq - b.seq), opts.size)
+      const primary = filtered.filter((q) => last.get(q.id) === false).sort((a, b) => a.seq - b.seq)
+      /* v4.16 同 kp 同构变式（engram 机制，迁移效应 d=0.58 vs 0.28）：
+         每道错题后补一道**同 knowledgePoint 的其他题**（细粒度 kp 下同题组即同构变式，
+         kpNorm 反同构闸反证了同 kp 多题的存在），练的是"同一结构的fresh实例"而非原题重现。
+         候选口径：同 kp、非错题本身、最近一次没答错（未做过 > 做对过）；
+         每个变式只被推荐一次；错题在前变式在后（先修复再迁移）。
+         opts.variants === false 可关闭（回归保护口径）。原题答对才消考试错号，
+         变式不计入消号——它不写任何豁免，只是多练一道真题。 */
+      if (opts.variants === false || primary.length === 0) return take(primary, opts.size)
+      const lastAll = last
+      const used = new Set()
+      const byKp = new Map()
+      for (const q of filtered) {
+        if (!q.knowledgePoint) continue
+        if (lastAll.get(q.id) === false) continue
+        const arr = byKp.get(q.knowledgePoint) ?? []
+        arr.push(q)
+        byKp.set(q.knowledgePoint, arr)
+      }
+      const variants = []
+      for (const wq of primary) {
+        const bucket = (byKp.get(wq.knowledgePoint) ?? [])
+          .filter((v) => v.id !== wq.id && !used.has(v.id))
+          .sort((a, b) => (
+            (lastAll.has(a.id) ? 1 : 0) - (lastAll.has(b.id) ? 1 : 0)  // 未做过优先
+            || a.seq - b.seq
+          ))
+        if (bucket.length > 0) {
+          variants.push(bucket[0])
+          used.add(bucket[0].id)
+        }
+      }
+      return take([...primary, ...variants], opts.size)
     }
     case 'random':
       /* 自适应匹配（2026-09-09）：随机练习从纯 shuffle 改为"合意困难"选题——
