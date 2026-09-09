@@ -141,8 +141,15 @@ export const PROMOTION_EXAM = { SIZE: 100, PASS_RATE: 0.9 }
    ① 覆盖率 100%：本轮（自 lastExamAt 起）每题至少作答一次；
    ② 逐题掌握率 ≥95%：每题"本轮最近一次作答"必须答对（错题清零，留 5% 顽固题给考试把关）；
    ③ 知识点达标率 100%：每个本轮作答 ≥KP_MIN 次的知识点，正确率 ≥KP_ACC（<3 次样本不足豁免）；
-   ④ 状态指数 ≥ 下一段位门槛（原有）。 */
-export const MASTERY = { ITEM_RATE: 0.95, KP_ACC: 0.85, KP_MIN: 3 }
+   ④ 状态指数 ≥ 下一段位门槛（原有）；
+   ⑤ 持久性闸（2026-09-09 午后 v6.1，防突击）：每题最近一次作答距今 ≥LATEST_AGE_DAYS 天——
+      刷完立即开考只测短期回忆，隔 3 天再考才含巩固语义；新导入的题同理需沉淀 3 天。 */
+export const MASTERY = { ITEM_RATE: 0.95, KP_ACC: 0.85, KP_MIN: 3, LATEST_AGE_DAYS: 3 }
+
+/* 晋级失败错题重练（2026-09-09 午后 v6.1，取代"失败全库重刷"）：
+   考试错题存 localStorage（ExamModal 上报），在练习中答对一次即消；
+   全部消完即可再次开考——lastExamAt 不再因失败重置，覆盖/掌握进度保留。 */
+export const EXAM_WRONGS_KEY = 'qp-exam-wrongs'
 
 /* 换区建议（题库难度与用户水平的错位检测，Learn 页段位卡的副提示行）。
    样本闸（2026-09-09 用户反馈：原 8 题太少，题库几百题必须有量的积累才可信）：
