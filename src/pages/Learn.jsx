@@ -430,7 +430,7 @@ export default function Learn() {
         <div className="entry-card rise" style={{ animationDelay: '.16s' }} onClick={() => run('random', { size: 20 })}>
           <span className="entry-ico ico-yellow" aria-hidden="true"><IconShuffle /></span>
           <h3>智能匹配练习</h3>
-          <p>按你的水平挑 {randomCount} 道（目标答对率 60~80%）· 状态指数 {rank.p} · 段位 {rank.official.name}</p>
+          <p>按你的水平挑 {randomCount} 道（目标答对率 65~85%，随段位下移）· 状态指数 {rank.p} · 段位 {rank.official.name}</p>
         </div>
         <div className="entry-card rise" style={{ animationDelay: '.24s' }} onClick={() => newCount > 0 && run('learn')}>
           <span className="entry-ico ico-mint" aria-hidden="true"><IconNew /></span>
