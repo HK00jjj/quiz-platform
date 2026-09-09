@@ -47,10 +47,20 @@ function shuffle(list, rng) {
   return a
 }
 
-/* 目标难度分：能力越强 → 目标越难；clamp 到 [0.25, 0.75] 保证永远留有
-   答错空间（0.25≈85% 答对、0.75≈55% 答对）——合意困难区。 */
+/* 目标难度（2026-09-09 重设计，v4.9 口径）：pass 目标随能力从 0.85 线性下移到 0.65。
+   原理：难度是"题×人"的函数——empDifficulty 是该题对该用户的通过率预测，
+   nearest-match 会自动把命中的标签带随能力上移（新手命中基础带、高手命中综合带）；
+   pass 目标本身则随能力下移：新手在 85% 通过率的强化区练基本功（85% rule），
+   高手在 65% 的挑战区上分。
+   旧公式 clamp(1-ability, .25, .75) 的两处缺陷（2026-09-09 诚实复盘）：
+   ① 低段位（指数<0.6）pass 目标被压到 0.6 以下，nearest-match 会把新手推向
+      其最难档的题（通过率 40~50%）——掉进挫败区，违反合意困难；
+   ② 高段位锁死 0.75，已掌握综合题的高手在匹配练习里无题可长。
+   指数增长不依赖匹配练习（匹配会把通过率钉在目标带上，指数会钝化），
+   而依赖全库复刷等非匹配作答——晋级赛触发本就强制全库复刷，训练与测量分工。 */
 export function targetDifficulty(ability) {
-  return Math.min(0.75, Math.max(0.25, 1 - ability))
+  const t = Math.min(1, Math.max(0, (ability - 0.2) / 0.6))
+  return 0.15 + 0.2 * t
 }
 
 export function pickMatched(pool, ability, size, records, rng = Math.random) {
