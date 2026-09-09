@@ -1,7 +1,18 @@
 # 交接文档 · 糖果题库（quiz-platform）
 
 > 写给下一个接手的会话。读完这一份就能独立干活，不需要翻历史对话。
-> 最后更新：2026-09-09 深夜三，对应线上提交 `d2ed912`。
+> 最后更新：2026-09-09 午后，对应线上提交 `c69d947`。
+
+## 2026-09-09 午后增量（commit c69d947，bundle index-BDK1dvu1.js）· 晋级→再导入提醒联动
+
+用户确认实施此前可行性评估的方案：**以段位晋升为信号，提醒重新导入源题**。改动仅 `Learn.jsx` 两处（零数据/零后端/零规则协议变更）：
+
+1. **晋级成功 toast 补提示**：`finishExam` promo 分支 `sub` 末尾追加"题库已全部刷穿：去导入页发下一批源题，难度随新源题上台阶"。触发条件天然成立——能进晋级赛就必然 covered+masteryReady。
+2. **排位卡常驻提示**：`rank.next && rank.covered && rank.masteryReady && !rank.examReady` 时显示"📚 题库已全部刷穿——去导入页发下一批源题，难度随新源题上台阶（导入后晋级周期自动重开）"。覆盖两种状态：刚晋完级（指数低于新段位门槛）/ 已刷穿但指数未到门槛。examReady 时只显示考试按钮不显示本提示，无冲突。
+
+措辞守 **v4.10 红线**：段位只做提醒信号，不承诺"段位到了题自动变难"——难度仍由 kpProfile verdict + 新源题自身难度档决定。晋级失败路径不触发（只挂 promo 分支与 covered 状态）。
+
+六步链全过（build ✓ → purge 0 孤儿 → deploy commit `c69d947` → verify-deploy IDENTICAL → push-src 84/84 → verify-live ALL OK 121/121 + 三哈希 MATCH）；线上 bundle 特征串 3/3 HIT（难度随新源题上台阶 / 晋级周期自动重开 / 题库已全部刷穿：去导入页发下一批源题）。
 
 ## 2026-09-09 深夜增量三（commit d2ed912，bundle index-BxEvvQAa.js）· 规则 v6.0 逐知识点严格决策（四点最严格门槛）
 
