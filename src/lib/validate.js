@@ -1,6 +1,8 @@
-// 导入校验与解析（与线上规则 1:1，含 21 题批十一类规则与返工话术）
-// 版本纪律（2026-09-08 双层规则后修订）：PROTOCOL_VERSION 为生成模式协议版本，与《规则体系》
-// （生成模式）头部一致；题集模式协议独立演进（现为 2026-09-08-题集模式-v4.6），不再强绑定。
+// 导入校验与解析（与线上规则 1:1，题集逐题通道 + 返工话术）
+// 2026-09-09 v4.14 死代码清理（用户批准去除包）：生成模式已于 2026-09-09 物理删除、题集通道
+//   唯一化后，21 题生成批整批通道（配比/层段/数据刺激/序号语义豁免）在 UI 不可达——相关分支
+//   与 PROTOCOL_VERSION 死常量整体移除；validateItems 第二参保留占位（旧 Node 脚本多传的
+//   实参被忽略），classifyImport 收敛为 backup/parse-error/items 三分支。
 // 2026-09-08 通用性整改（v4.6 同步）：
 //   ① 序号 17~21"综合+分析"豁免与填空"序号 1"豁免收敛到整批通道（batchMode 门），逐题通道全序号同口径；
 //   ② 批内知识点查重 + 简答方案对比检测升级为通用检查（任意 N 均查，不再限 21 元素整批）；
@@ -20,7 +22,6 @@
 //   ⑧ 批内查重与 crossBatchCheck 新增"去修饰同名"告警（kpNorm 剥离高频通用修饰词），
 //      反"电气互锁/机械互锁"式改名过闸；均为告警级，人工确认实质重复还是真细分。
 import { DIAGRAM_IDS } from './diagrams.js'
-export const PROTOCOL_VERSION = '2026-09-08'
 export const TYPE_LIST = ['单选题', '多选题', '判断题', '填空题', '简答题', '计算分析题', '综合设计/故障诊断题']
 const DIFFS = ['基础', '应用', '综合']
 const COG = ['记忆', '理解', '应用', '分析', '评价', '创造']
@@ -45,13 +46,6 @@ const whereOf = (item) => {
   const s = seqOf(item)
   return s < 0 ? '序号?' : `序号${s}`
 }
-function diffBand(seq) {
-  if (seq >= 2 && seq <= 9) return '基础'
-  if (seq >= 10 && seq <= 16) return '应用'
-  if (seq >= 17 && seq <= 21) return '综合'
-  return null
-}
-
 // 题目 id：内容哈希（与线上一致，保证去重与云端主键兼容）
 export function hashId(stem, type, answer) {
   const s = stem + '\n' + type + '\n' + answer
@@ -64,26 +58,17 @@ export class Validator {
   issues = []
   err(where, message) { this.issues.push({ where, level: '错误', message }) }
   warn(where, message) { this.issues.push({ where, level: '告警', message }) }
-  run(items, batchMode) {
+  run(items) {
     if (items.length === 1 && str(items[0].题型) === '异常') {
       if (items[0].序号 !== 1 && seqOf(items[0]) !== 1) this.err('序号1', '异常输入序号应为1')
       if (!str(items[0].题干).trim()) this.err('序号1', '异常输入题干为空')
       return this.issues
     }
-    if (batchMode && items.length !== 21) this.err('顶层', `数组应为21个元素，实际${items.length}个`)
-    if (batchMode && items.length === 21) {
-      items.forEach((it, i) => { if (seqOf(it) !== i + 1) this.err(`元素${i + 1}`, `序号应为${i + 1}，实际“${str(it.序号)}”`) })
-      this.checkQuota(items)
-    }
-    if (batchMode) {
-      this.checkLayerComposition(items)
-      if (items.length === 21) this.checkDataStimulus(items)
-    }
-    // 简答方案对比 + 批内知识点查重：通用检查，任意 N 均查（2026-09-08 起不再限于整批通道）
-    this.checkBatchRules(items, batchMode)
+    // 简答方案对比 + 批内知识点查重：通用检查，任意 N 均查
+    this.checkBatchRules(items)
     for (const it of items) {
       const type = str(it.题型)
-      if (type === '异常' && !batchMode) {
+      if (type === '异常') {
         /* 异常元素机器化放行（2026-09-08）：占位守恒语义——仅查序号有效与题干非空，
            其余检查跳过；入库管道 toItem 对"异常"本就 SKIP，无需导入前人工移除。 */
         if (seqOf(it) < 0) this.err(whereOf(it), '异常元素缺少有效序号')
@@ -92,25 +77,17 @@ export class Validator {
       }
       this.checkCommon(it)
       if (TYPE_LIST.includes(type)) {
-        this.checkMetaMapping(it, batchMode)
+        this.checkMetaMapping(it)
         this.checkAnalysis(it)
         if (type === '单选题' || type === '多选题') this.checkChoice(it)
         else if (type === '判断题') this.checkJudgement(it)
-        else if (type === '填空题') this.checkFillBlank(it, batchMode)
+        else if (type === '填空题') this.checkFillBlank(it)
         else this.checkSubjective(it)
-        if (batchMode) {
-          const seq = seqOf(it)
-          if (seq >= 2) {
-            const band = diffBand(seq)
-            const d = str(it.难度)
-            if (band && d !== band) this.err(whereOf(it), `难度应为“${band}”（按拓展题层段），实际“${d}”`)
-          }
-        }
       }
     }
     return this.issues
   }
-  checkBatchRules(items, batchMode) {
+  checkBatchRules(items) {
     // B类语义下沉为机器检查（2026-09-04）：简答方案对比式设问 + 批内知识点重复。
     // 2026-09-08 通用化：任意 N 均查；方案对比正则为启发式（存在漏检），降为告警级，
     // 漏检与误判由独立评审（SOP 闸4）与人工抽检兜底。
@@ -123,9 +100,7 @@ export class Validator {
     const seen = new Map()
     const normSeen = new Map()
     for (const it of items) {
-      /* 批内查重的"序号 1 豁免"是生成批（整批通道）"第 1 题为原题"的配套，须有 batchMode 门：
-         泄漏进题集逐题通道会让第 1 题与后续题知识点撞名静默放行（2026-09-08 通用化收尾）。 */
-      if (batchMode && seqOf(it) < 2) continue
+      /* 批内查重全序号同口径（生成批"第 1 题为原题"豁免随整批通道退役而移除） */
       const k = str(it.知识点).trim()
       if (!k) continue
       if (seen.has(k)) this.err(whereOf(it), '知识点「' + k + '」与序号' + seen.get(k) + '重复，批内须避重')
@@ -153,12 +128,10 @@ export class Validator {
     if (!str(it.题干).trim()) this.err(w, '“题干”为空')
     if (it.image != null && !(typeof it.image === 'string' && DIAGRAM_IDS.includes(it.image.split('|')[0]))) this.err(w, `“image”须为已注册模板ID（${DIAGRAM_IDS.join('/')} ）或省略`)
   }
-  checkMetaMapping(it, batchMode) {
+  checkMetaMapping(it) {
     const d = str(it.难度), cog = str(it.认知层级), seq = seqOf(it)
     if (!META_MAP[d] || !COG.includes(cog)) return
-    /* 序号 17~21"综合+分析"豁免是生成批（整批）通道的层段配套设计，须有 batchMode 门：
-       泄漏进题集逐题通道会让恰排 17~21 的违规标注静默放行（2026-09-08 通用性整改）。 */
-    if (batchMode && d === '综合' && cog === '分析' && seq >= 17 && seq <= 21) return
+    /* 生成批 17~21"综合+分析"豁免已随整批通道退役移除，全序号同口径 */
     if (!META_MAP[d].includes(cog)) this.err(whereOf(it), `认知层级“${cog}”与难度“${d}”映射不一致`)
   }
   checkAnalysis(it) {
@@ -241,16 +214,13 @@ export class Validator {
     const ans = str(it.答案)
     if (ans !== '正确' && ans !== '错误') this.err(whereOf(it), `判断题答案应只填“正确”或“错误”，实际“${ans}”`)
   }
-  checkFillBlank(it, batchMode) {
+  checkFillBlank(it) {
     const w = whereOf(it)
     const stem = str(it.题干), ans = str(it.答案)
     const blanks = [...stem.matchAll(/\{([^{}]*)\}/g)].map((m) => m[1])
     const parts = ans ? ans.split('|') : []
-    /* "序号 1 不查空位/空数"是生成批"第 1 题为原题"的配套豁免，须有 batchMode 门：
-       整批通道保留 seq>=2 限定；题集逐题通道的第 1 题是普通源题，全序号同口径
-       （2026-09-08 通用性整改）。 */
-    const extended = batchMode ? seqOf(it) >= 2 : true
-    if (extended && stem.trimStart().startsWith('{')) this.err(w, '空位居句首，违反挖空规则')
+    /* 全序号同口径（生成批"第 1 题为原题"豁免随整批通道退役而移除） */
+    if (stem.trimStart().startsWith('{')) this.err(w, '空位居句首，违反挖空规则')
     if (blanks.length !== parts.length) {
       this.err(w, `题干{}空数${blanks.length}与答案竖线分段数${parts.length}不一致`)
     } else {
@@ -260,7 +230,7 @@ export class Validator {
         if (bt.length > 10) this.warn(w, `第${i + 1}空答案“${bt}”超过10字`)
       })
     }
-    if (extended && blanks.length > 2) this.err(w, `拓展填空题应<=2空，实际${blanks.length}空`)
+    if (blanks.length > 2) this.err(w, `填空题应<=2空，实际${blanks.length}空`)
   }
   checkSubjective(it) {
     const w = whereOf(it)
@@ -283,73 +253,9 @@ export class Validator {
       }
     }
   }
-  checkQuota(items) {
-    const rest = items.slice(1)
-    const counts = new Map()
-    for (const it of rest) {
-      const t = str(it.题型)
-      counts.set(t, (counts.get(t) ?? 0) + 1)
-    }
-    const c = (t) => counts.get(t) ?? 0
-    // 区间弹性校验（2026-09-04 修订：固定配比→区间+硬约束）
-    const ranges = [
-      ['多选题', 2, 3], ['判断题', 2, 3], ['填空题', 1, 2],
-      ['简答题', 1, 3], ['计算分析题', 2, 3], ['综合设计/故障诊断题', 1, 1]
-    ]
-    for (const [t, min, max] of ranges) {
-      const n = c(t)
-      if (n < min || n > max) this.err('配比', `${t}为${n}道，应在${min === max ? min : min + '~' + max}道区间内`)
-    }
-    const single = c('单选题')
-    const others = c('多选题') + c('判断题') + c('填空题') + c('计算分析题') + c('简答题') + c('综合设计/故障诊断题')
-    if (single + others !== 20) this.err('配比', `拓展题总数应为20道，实际单选${single}+其余${others}=${single + others}道`)
-    if (single < 6 || single > 11) this.err('配比', `单选题为${single}道，应在6~11道区间内`)
-    // 硬约束：计算+简答≤5
-    const calcPlusShort = c('计算分析题') + c('简答题')
-    if (calcPlusShort > 5) this.err('配比', `计算+简答=${calcPlusShort}道（>5），违反硬约束`)
-    // 硬约束：客观题≥14
-    const objective = single + c('多选题') + c('判断题') + c('填空题')
-    if (objective < 14) this.err('配比', `客观题仅${objective}道（<14），违反客观题>=14红线`)
-  }
-  // A类⑨ 层内题型构成（2026-09-06 新增）：判断/填空在基础层，多选在应用层，简答/综合在综合层，计算按总数分配
-  // 以 seqOf>=2 判定拓展题（不假设首元素为原题，兼容局部粘贴）
-  checkLayerComposition(items) {
-    let calcTotal = 0, calcInAdv = 0
-    const band = (s) => (s >= 2 && s <= 9 ? '基础' : s >= 10 && s <= 16 ? '应用' : s >= 17 && s <= 21 ? '综合' : null)
-    for (const it of items) {
-      const s = seqOf(it)
-      if (s < 2) continue
-      const t = str(it.题型), w = whereOf(it), b = band(s)
-      if (b === null) continue
-      const map = { 判断题: '基础', 填空题: '基础', 多选题: '应用', 简答题: '综合', '综合设计/故障诊断题': '综合' }
-      if (map[t] && map[t] !== b) {
-        this.err(w, `${t}应全部位于${map[t]}层（序号${map[t] === '基础' ? '2~9' : map[t] === '应用' ? '10~16' : '17~21'}）`)
-      }
-      if (t === '计算分析题') { calcTotal += 1; if (b === '综合') calcInAdv += 1 }
-    }
-    // 层内分配：计算=2→全部在应用层；计算=3→应用层2+综合层1
-    const expectAdv = Math.max(0, calcTotal - 2)
-    if (calcTotal >= 2 && calcTotal <= 3 && calcInAdv !== expectAdv) {
-      this.err('层段', `计算分析题共${calcTotal}道，综合层（序号17~21）应有${expectAdv}道，实际${calcInAdv}道`)
-    }
-  }
-  // A类⑩ 结构化数据刺激≥3道（启发式检测，仅告警，需人工确认；仅整批 21 元素时运行）
-  checkDataStimulus(items) {
-    const UNIT = /\d+(?:\.\d+)?\s*(?:kV|kA|kW|kVA|kΩ|mA|mH|ms|mm²|mm2|r\/min|rpm|MPa|kPa|℃|°C|V|A|Ω|W|Hz|Pa|μF)\b/g
-    const TABLE_HINT = /(实测数据|测量数据|数据表|参数表|记录表|工况表|时序表|如下表|数据如下|参数如下)/
-    let n = 0
-    for (const it of items) {
-      if (seqOf(it) < 2) continue
-      const stem = str(it.题干)
-      if (TABLE_HINT.test(stem)) { n += 1; continue }
-      const units = stem.match(UNIT)
-      if (units && units.length >= 2) n += 1
-    }
-    if (n < 3) this.warn('配比', `结构化数据刺激启发式检出${n}道（规则要求≥3道），请人工确认是否达标`)
-  }
 }
 
-export const validateItems = (items, batchMode) => new Validator().run(items, batchMode)
+export const validateItems = (items) => new Validator().run(items)
 
 // 返工话术（数量中性，2026-09-08）：生成批与题集批通用——元素总数与序号由
 // 各模式的守恒规则约束，话术不再硬编码"21 元素"。
@@ -439,7 +345,7 @@ function toQuestions(list) {
    - 新题整批连续排在所有旧题之后，批内相对次序（也就是认知阶梯）原样保留
    - existing 传 Map<id,q> 或数组都行
 
-   ⚠ 必须在校验之后调用：校验器（diffBand / 综合层「分析」例外 / 拓展题≤2空 / 序号应为N）
+   ⚠ 必须在校验之后调用：校验器（映射一致性 / 拓展题≤2空）
    用的全是原始 JSON 的序号 seqOf(raw)，不是这里的 q.seq。提前改写会让全部难度层段判定失效。
    同理，备份恢复路径不能用它——备份里带的本来就是存好的全局序。 */
 export function assignGlobalSeq(incoming, existing) {
@@ -631,8 +537,7 @@ export function crossBatchCheck(items, existing) {
 export function classifyImport(text) {
   const backup = parseBackup(text)
   if (backup) return { kind: 'backup' }
-  const { items, errors } = parseItems(text)
+  const { errors } = parseItems(text)
   if (errors.length) return { kind: 'parse-error', errors }
-  const batchMode = items.length <= 21
-  return { kind: 'batch', issues: validateItems(items, batchMode), batchMode }
+  return { kind: 'items' }
 }
