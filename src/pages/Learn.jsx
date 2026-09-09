@@ -203,7 +203,9 @@ export default function Learn() {
       : `断点续练：将从第 ${resumePeek.savedCount - resumePeek.remaining + 1} 题继续`
   }, [resumePeek, relearnList])
   const randomCount = Math.min(20, questions.length)
-  /* 能力指数（自适应匹配）：EWMA 于每次作答即时更新，只喂客观题作答（主观题自评不算对错） */
+  /* 能力指数（自适应匹配）：EWMA 于每次作答即时更新。数据源是全部带对错字段的
+     作答记录——客观题为机器判分，主观题自评也写 correct（记得=true/忘记=false），
+     同样计入指数与掌握度；自评宽松会抬高指数，这是已知边界（store.submitSubjective）。 */
   const ability = useMemo(() => abilityOf(records), [records])
   const advice = useMemo(() => zoneAdvice(records), [records])
   /* 排位系统（LOL 式晋级赛，2026-09-09 晨改版考制）：
