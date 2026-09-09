@@ -400,7 +400,7 @@ export default function Learn() {
             当前段位：{rank.official.name}{rank.next ? '' : ' · 已到顶'}
           </h4>
           <p>
-            状态指数 {rank.p}（仅展示，不作晋级门槛）
+            状态指数 {rank.p}（仅展示，不作晋级门槛 · 口径含主观自评，出题画像只认客观题）
             {' · '}覆盖 {rank.doneN}/{rank.total}
             {' · '}逐题掌握 {Math.round(rank.itemRate * 100)}%（≥{Math.round(MASTERY.ITEM_RATE * 100)}）
             {' · '}知识点达标 {rank.kpTotal === 0 ? '—' : `${rank.kpOK}/${rank.kpTotal}`}（≥{Math.round(MASTERY.KP_ACC * 100)}%）
