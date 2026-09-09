@@ -29,13 +29,23 @@ export function abilityOf(records) {
   return Math.min(1, Math.max(0, a))
 }
 
+/* 逐题经验难度（2026-09-09 v4.10：首答加权口径，不容掺水）。
+   首答权重 1、之后每次按 0.5 衰减——首答（第一次接触该题）主导难度判定，
+   重复刷题无法把没学懂的题"刷成"易题：首答答错后即使连对四次，
+   其经验难度仍高于首答答对后连错三次的题（P6 单测锁定该语义）。
+   贝叶斯收缩不变：n 小向自评难度档先验收缩（基础 0.85/应用 0.70/综合 0.55）。 */
+const REPEAT_DECAY = 0.5
 export function empDifficulty(q, records) {
-  let n = 0, c = 0
-  for (const r of records ?? []) {
-    if (r.questionId === q.id && typeof r.correct === 'boolean') { n++; if (r.correct) c++ }
-  }
+  const rs = (records ?? [])
+    .filter((r) => r.questionId === q.id && typeof r.correct === 'boolean')
+    .sort((a, b) => (a.timestamp ?? 0) - (b.timestamp ?? 0))
+  let wn = 0, wc = 0
+  rs.forEach((r, k) => {
+    const w = Math.pow(REPEAT_DECAY, k)
+    wn += w; if (r.correct) wc += w
+  })
   const prior = PRIOR_P[q.difficulty] ?? 0.7
-  const p = (c + PRIOR_W * prior) / (n + PRIOR_W)
+  const p = (wc + PRIOR_W * prior) / (wn + PRIOR_W)
   return 1 - p
 }
 
@@ -67,7 +77,26 @@ export function pickMatched(pool, ability, size, records, rng = Math.random) {
   if (!pool?.length) return []
   if (!size || size <= 0) return pool
   const target = targetDifficulty(ability)
-  const scored = pool.map((q) => ({ q, cost: Math.abs(empDifficulty(q, records) - target) }))
+  /* 知识点薄弱度优先（2026-09-09，v4.10 口径）：组卷代价 = 难度匹配 + 薄弱度惩罚。
+     该 kp 客观作答 n≥3 时薄弱度 = 1−正确率（∈[0,1]），其题目获得最高 0.1 档的
+     优先提升——"在薄弱知识点上由浅入深"成为第一排序因素，防止在已掌握 kp 上
+     舒适区打转。n<3 视为样本不足不参与（宁可不动，不掺水）。 */
+  const kpOf = new Map(pool.map((q) => [q.id, q.knowledgePoint ?? null]))
+  const stat = new Map()
+  for (const r of records ?? []) {
+    if (typeof r.correct !== 'boolean') continue
+    const kp = kpOf.get(r.questionId)
+    if (!kp) continue
+    const s = stat.get(kp) ?? { n: 0, c: 0 }
+    s.n++; if (r.correct) s.c++
+    stat.set(kp, s)
+  }
+  const weak = new Map()
+  for (const [kp, s] of stat) if (s.n >= 3) weak.set(kp, 1 - s.c / s.n)
+  const scored = pool.map((q) => {
+    const kpWeak = weak.get(q.knowledgePoint ?? null) ?? 0
+    return { q, cost: Math.abs(empDifficulty(q, records) - target) - 0.1 * kpWeak }
+  })
   scored.sort((a, b) => a.cost - b.cost)
   /* 候选池 K 随题库规模缩放：大池（400 题、size=20 → K=120）在最优 30% 内保留随机
      避免每次同序；小池（4 题、size=2 → K=2）匹配语义主导，不退化为纯随机。 */
