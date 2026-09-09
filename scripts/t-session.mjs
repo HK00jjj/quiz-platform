@@ -97,6 +97,40 @@ t('E3 relearn 知识域筛选：不在 K1 的返回空',
 /* ── 未知 mode ── */
 t('F1 未知 mode 返回空数组（不炸）', buildSession(questions, [], [], { mode: 'nope', now: NOW }), [])
 
+/* ── G：wrong 分支同 kp 变式（v4.16，engram 迁移机制） ── */
+const rec = (qid, correct, ts) => ({ questionId: qid, correct, timestamp: ts })
+const kpQs = [
+  { id: 'w1', seq: 1, type: '单选题', stem: 's', difficulty: '基础', knowledgeDomain: 'K1', knowledgePoint: 'A' },
+  { id: 'w2', seq: 2, type: '单选题', stem: 's', difficulty: '基础', knowledgeDomain: 'K1', knowledgePoint: 'A' },
+  { id: 'w3', seq: 3, type: '单选题', stem: 's', difficulty: '基础', knowledgeDomain: 'K1', knowledgePoint: 'A' },
+  { id: 'w4', seq: 4, type: '单选题', stem: 's', difficulty: '基础', knowledgeDomain: 'K2', knowledgePoint: 'B' },
+  { id: 'x1', seq: 5, type: '单选题', stem: 's', difficulty: '基础', knowledgeDomain: 'K3', knowledgePoint: 'C' },
+  { id: 'x2', seq: 6, type: '单选题', stem: 's', difficulty: '基础', knowledgeDomain: 'K2', knowledgePoint: 'B' }
+]
+const kpRecs = [
+  rec('w1', false, NOW - 2 * DAY),   // 错题，同 kp 有 w2(未做)/w3(做对)
+  rec('w3', true, NOW - DAY),
+  rec('w4', false, NOW - DAY)        // 错题，同 kp 只有 x2(未做)
+]
+t('G1 错题后补同 kp 变式：未做过优先（[w1,w4] → +w2,+x2）',
+  ids(buildSession(kpQs, [], kpRecs, { mode: 'wrong', size: 0, now: NOW })), ['w1', 'w4', 'w2', 'x2'])
+t('G2 size 截断先保错题本体，变式靠后被裁（size:2 → 只剩错题）',
+  ids(buildSession(kpQs, [], kpRecs, { mode: 'wrong', size: 2, now: NOW })), ['w1', 'w4'])
+t('G3 variants:false 关闭变式，行为与 v4.15 完全一致',
+  ids(buildSession(kpQs, [], kpRecs, { mode: 'wrong', size: 0, now: NOW, variants: false })), ['w1', 'w4'])
+{
+  const kpRecs2 = [...kpRecs, rec('x2', false, NOW)]  // x2 也答错 → 退出候选池
+  t('G4 变式候选不收最近答错的题（w4 无候选，只补 w2）',
+    ids(buildSession(kpQs, [], kpRecs2, { mode: 'wrong', size: 0, now: NOW })), ['w1', 'w4', 'x2', 'w2'])
+}
+t('G5 同 kp 两道错题各配不同变式（去重）：w1→w2、x2 不重复',
+  ids(buildSession(
+    [...kpQs, { id: 'w5', seq: 7, type: '单选题', stem: 's', difficulty: '基础', knowledgeDomain: 'K1', knowledgePoint: 'A' }],
+    [],
+    [...kpRecs, rec('w5', false, NOW - 3 * DAY)],
+    { mode: 'wrong', size: 0, now: NOW }
+  )), ['w1', 'w4', 'w5', 'w2', 'x2', 'w3'])
+
 console.log(`\n通过 ${pass} / ${pass + fails.length}`)
 if (fails.length > 0) { console.log(fails.join('\n')); process.exit(1) }
 console.log('ALL PASS')
