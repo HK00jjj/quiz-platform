@@ -103,7 +103,10 @@ function ExamModal({ pool, target, size, passScore, onDone }) {
     else setWrongIds((w) => (w.includes(q.id) ? w : [...w, q.id]))
   }
   function nextRound() {
-    const nextWins = wins + (verdict?.correct ? 1 : 0)
+    /* 得分口径修复（2026-09-09 v4.13）：submit() 已通过 setWins 把本题得分计入 wins，
+       此处再按 verdict +1 会把最后一题答对重复计分（交卷 pass 判定虚高 1 分、
+       续考进度存档同样虚高）——nextWins 直接取 wins 即为本题提交后的真实累计分。 */
+    const nextWins = wins
     if (round + 1 >= deck.qs.length) {
       localStorage.removeItem(EXAM_PROGRESS_KEY)
       onDone({ pass: nextWins >= passScore, wins: nextWins, wrongIds })

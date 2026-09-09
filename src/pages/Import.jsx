@@ -17,7 +17,6 @@ export default function Import() {
   const records = useStore((s) => s.records)
   const ability = useMemo(() => abilityOf(records), [records])
   const tier = tierOf(ability)
-  const [tierCopied, setTierCopied] = useState(false)
   const [text, setText] = useState('')
   const [result, setResult] = useState(null) // {tone, title, issues, rework, warnings, added}
   const [busy, setBusy] = useState(false)
@@ -78,10 +77,9 @@ export default function Import() {
       setResult({ tone: 'red', title: '题集导入 · 导入内容无法解析', issues: errors.map((m) => ({ where: '顶层', level: '错误', message: m })), rework: true })
       return
     }
-    /* v4.12 自适应换挡机器核对：传入 records + 全库题，校验器复算 kpProfile verdict
-       逐题核对 AI 声明的「源题难度/适配决策」（不传 ctx 则闸不激活） */
-    const st = useStore.getState()
-    const issues = validateItems(items, false, { records: st.records, questions: st.allQuestions })
+    /* v4.13 自适应退役：不再传 records/全库题做 verdict 复算——命题端已无换挡声明，
+       校验器只做逐题通用校验（ctx 参数已废弃） */
+    const issues = validateItems(items, false)
     const errs = issues.filter((i) => i.level === '错误')
     if (errs.length > 0) {
       showResult(issues, null, '题集导入 · ')
@@ -90,17 +88,16 @@ export default function Import() {
     /* 跨批撞库（2026-09-08）：与库内已有题比知识点撞名/题干近似，仅告警不拦截；
        已在库内的题（内容哈希命中）自动跳过，重复导入同批不产生噪音。 */
     const crossWarns = crossBatchCheck(items, useStore.getState().allQuestions)
-    /* 能力档匹配提示（v4.8，非拦截）：新手档（状态指数<55）导入大量应用/综合层
-       题目时提醒补"我的水平"声明——补了声明 AI 才会按层级适配降阶，
-       否则用户会拿到超出当前水平的题而不自知。刻意挑战场景可忽略本提示。 */
+    /* 难度分布提示（v4.13 更新，非拦截）：题库难度完全由源题决定（命题端自适应已退役），
+       新手档导入大比例应用/综合层时仅作展示提醒——确认这是你想要的输入难度即可。 */
     const tierWarns = []
     const ab = abilityOf(useStore.getState().records)
     if (tierOf(ab) === '新手' && items.length > 0) {
       const hi = items.filter((it) => ['应用', '分析', '评价', '创造'].includes(it.认知层级)).length
       if (hi / items.length >= 0.3) {
         tierWarns.push({
-          where: '能力档', level: '告警',
-          message: `本批 ${items.length} 题中 ${hi} 题（${Math.round((hi / items.length) * 100)}%）为应用/综合层，高于当前状态指数 ${Math.round(ab * 100)}（建议档位：新手）。若为刻意挑战可忽略；若忘了在源题中写"我的水平：新手"，请补声明后重发——AI 会按层级适配降阶，源题原考点解法保留在解析中。`
+          where: '难度分布', level: '告警',
+          message: `本批 ${items.length} 题中 ${hi} 题（${Math.round((hi / items.length) * 100)}%）为应用/综合层，当前状态指数 ${Math.round(ab * 100)}（建议档位：新手）。题目难度由源题决定、AI 不做升降档适配——若为刻意挑战可忽略本提示。`
         })
       }
     }
@@ -156,19 +153,6 @@ export default function Import() {
     setTimeout(() => setCopied(false), 2500)
   }
 
-  /* v4.8 水平声明一键复制：声明发给 AI（随源题），不是写进本输入框——
-     输入框只收 JSON 数组，混入声明文本会破坏 parseItems。 */
-  async function copyTier() {
-    const t = `我的水平：${tier}（状态指数 ${Math.round(ability * 100)}）`
-    try { await navigator.clipboard.writeText(t) } catch {
-      const ta = document.createElement('textarea')
-      ta.value = t; document.body.appendChild(ta); ta.select()
-      document.execCommand('copy'); ta.remove()
-    }
-    setTierCopied(true)
-    setTimeout(() => setTierCopied(false), 2500)
-  }
-
   async function onFile(f) {
     if (f) setText(await f.text())
   }
@@ -190,14 +174,13 @@ export default function Import() {
         <p style={{ fontSize: 13, lineHeight: 1.9, color: 'var(--muted)' }}>
           只做逐题校验（题型、元数据映射、选项结构、解析标记、填空与配图白名单、批内避重等通用检查），<b>任意题数（含 21）均可通过</b>；通过校验后还会与<b>库内已有题</b>做跨批撞库提示（知识点同名 / 题干高度相似，仅告警不拦截，已在库内的题自动跳过）。对应《出题规则》现行版（AI 触发词：<b>题目：</b>）；备份 JSON 粘贴后自动识别并走「备份恢复」，无需任何开关。
         </p>
-        {/* v4.8 能力档联动：状态指数实时显示 + 水平声明一键复制（随源题发给 AI） */}
+        {/* v4.13 自适应退役：状态指数仅作展示，"复制水平声明"按钮与 fetch_level 联动文案已移除 */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginTop: 4, padding: '10px 12px', borderRadius: 12, background: 'rgba(168,216,196,.18)' }}>
           <span style={{ fontSize: 13, color: 'var(--muted)' }}>
             📊 当前状态指数 <b style={{ color: '#2E6B52' }}>{Math.round(ability * 100)}</b> · 建议能力档 <b style={{ color: '#2E6B52' }}>{tier}</b>
-            <span style={{ fontSize: 12 }}>（&lt;55 新手 / 55~78 进阶 / &gt;78 熟练 · 含主观自评，仅展示；出题换挡只认客观题画像）</span>
+            <span style={{ fontSize: 12 }}>（&lt;55 新手 / 55~78 进阶 / &gt;78 熟练 · 含主观自评，仅展示参考）</span>
           </span>
-          <GiltBtn tone="ghost" onClick={copyTier}>{tierCopied ? '✓ 已复制' : '📋 复制水平声明'}</GiltBtn>
-          <span style={{ fontSize: 12, color: 'var(--muted)' }}>发源题给 AI 时无需手动声明——AI 会自动调取云端掌握画像（fetch_level 脚本）；此按钮仅在 AI 无法访问云端时备用</span>
+          <span style={{ fontSize: 12, color: 'var(--muted)' }}>题目难度完全由你提供的源题决定，AI 不做升降档适配</span>
         </div>
       </div>
 
