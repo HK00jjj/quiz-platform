@@ -93,8 +93,13 @@ export function buildSession(questions, cards, records, opts) {
          按 |经验难度 - 目标难度| 取最匹配的前 K 题再随机抽，让作答正确率
          落在 60~80% 学习效率区间。learn 保留 seq 认知阶梯、review 归 FSRS、
          wrong/relearn 定向练习，均不受匹配干扰。records 为空时 pickMatched
-         全按自评先验排序，行为仍优于纯随机且与旧版同为"从筛选池取题"。 */
-      return pickMatched(filtered, abilityOf(records), opts.size, records, rng)
+         全按自评先验排序，行为仍优于纯随机且与旧版同为"从筛选池取题"。
+         v4.15：把当前到期题集合传给 pickMatched 做轻加权（-0.05）——
+         模式分工不动（到期题主场仍是 review），只是同等匹配度下先到期先练。 */
+      return pickMatched(
+        filtered, abilityOf(records), opts.size, records, rng,
+        new Set(cards.filter((c) => isDue(c, opts.now ?? Date.now())).map((c) => c.questionId))
+      )
     case 'relearn':
       return take([...filtered].sort((a, b) => a.seq - b.seq), opts.size)
     default:

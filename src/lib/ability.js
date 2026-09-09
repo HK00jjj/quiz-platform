@@ -1,13 +1,17 @@
 // 自适应难度匹配（2026-09-09：n=1 单用户场景的"合意困难"选题）
 // 设计口径：不测"真实能力"（n=1 不可测，个人学习曲线会污染区分度），只调
 // "下一题的答对概率"——让单次作答正确率落在 60~80% 学习效率最优区间。
-// 三个部件：
+// 四个部件（v4.15 = Route B 深化，对照开源调研 Prowise Learn/LearnLoop）：
 //   abilityOf      —— 用户能力指数：EWMA（半衰期 20 次作答），每次作答即时更新，
 //                     不等批量；平滑疲劳单日波动，响应水平变化。
 //   empDifficulty  —— 逐题经验难度：该题加权正确率的反向，n 小时按自评难度档
-//                     的先验收缩（贝叶斯），新题冷启动直接用先验。
-//   pickMatched    —— 组卷排序：|经验难度 - 目标难度| 最小的前 K 题内随机取，
-//                     目标难度 = clamp(1 - 能力指数)；既不每次同序，也显著偏向匹配区。
+//                     的先验收缩（贝叶斯），新题冷启动直接用先验；先验权重随
+//                     证据量指数衰减（v4.15），n 大后实测完全接管。
+//   pickMatched    —— 组卷排序：|经验难度 - 目标难度| 最小为基准，叠加三项修正
+//                     （v4.15）：族级薄弱度优先（-0.1）、FSRS 到期轻加权（-0.05）、
+//                     近期作答冷却期（+0.3），前 K 题内随机取。
+//   zoneAdvice     —— 换区建议：双条件闸（近 30 题正确率 × EWMA 指数）检测
+//                     题库与水平的错位，v4.15 阈值放宽（原双 85 闸形同虚设）。
 
 const HALF_LIFE = 20
 const ALPHA = Math.log(2) / HALF_LIFE
@@ -36,8 +40,14 @@ export function abilityOf(records) {
    首答权重 1、之后每次按 0.5 衰减——首答（第一次接触该题）主导难度判定，
    重复刷题无法把没学懂的题"刷成"易题：首答答错后即使连对四次，
    其经验难度仍高于首答答对后连错三次的题（P6 单测锁定该语义）。
-   贝叶斯收缩不变：n 小向自评难度档先验收缩（基础 0.85/应用 0.70/综合 0.55）。 */
+   贝叶斯收缩（v4.15）：n 小向自评难度档先验收缩（基础 0.70/应用 0.63/综合 0.75，
+   2026-09-09 晚闸6 回流校准值）；先验权重不再是常数——随**作答条数**按半衰期
+   PRIOR_HALF=8 指数衰减，n≥16 后先验近乎让位实测。注意衰减挂"条数"而非加权量 wn：
+   wn 因首答加权永远饱和在 2 以内，挂 wn 先验将永不衰减（设计自查纠错）。
+   冷启动行为与 v4.14 完全一致（条数=0 时先验权重=PRIOR_W0=2）。
+   估计量本身仍首答主导（加权口径不变）——"估计用什么权重"与"先验何时让位"正交。 */
 const REPEAT_DECAY = 0.5
+const PRIOR_HALF = 8
 export function empDifficulty(q, records) {
   const rs = (records ?? [])
     .filter((r) => r.questionId === q.id && typeof r.correct === 'boolean')
@@ -47,8 +57,9 @@ export function empDifficulty(q, records) {
     const w = Math.pow(REPEAT_DECAY, k)
     wn += w; if (r.correct) wc += w
   })
+  const pw = PRIOR_W * Math.pow(0.5, rs.length / PRIOR_HALF)
   const prior = PRIOR_P[q.difficulty] ?? 0.7
-  const p = (wc + PRIOR_W * prior) / (wn + PRIOR_W)
+  const p = (wc + pw * prior) / (wn + pw)
   return 1 - p
 }
 
@@ -76,29 +87,51 @@ export function targetDifficulty(ability) {
   return 0.15 + 0.2 * t
 }
 
-export function pickMatched(pool, ability, size, records, rng = Math.random) {
+export function pickMatched(pool, ability, size, records, rng = Math.random, dueIds = null) {
   if (!pool?.length) return []
   if (!size || size <= 0) return pool
   const target = targetDifficulty(ability)
-  /* 知识点薄弱度优先（2026-09-09，v4.10 口径）：组卷代价 = 难度匹配 + 薄弱度惩罚。
-     该 kp 客观作答 n≥3 时薄弱度 = 1−正确率（∈[0,1]），其题目获得最高 0.1 档的
-     优先提升——"在薄弱知识点上由浅入深"成为第一排序因素，防止在已掌握 kp 上
-     舒适区打转。n<3 视为样本不足不参与（宁可不动，不掺水）。 */
-  const kpOf = new Map(pool.map((q) => [q.id, q.knowledgePoint ?? null]))
+  /* 冷却期（2026-09-09 v4.15，LearnLoop 同款机制）：最近 COOLDOWN_N 条有效作答里
+     出现过的题加 COOLDOWN_PENALTY 惩罚——避免"难度匹配 + 洗牌"反复把刚做过的题
+     端回眼前（同题三遍判定制下最近 20 条 ≈ 最近 7~10 道）。用惩罚而非硬排除：
+     小池（域/题型筛选后仅几题）不会被打空，只是排到匹配更差的题之后。 */
+  const COOLDOWN_N = 20
+  const COOLDOWN_PENALTY = 0.3
+  const recentIds = new Set(
+    (records ?? [])
+      .filter((r) => typeof r.correct === 'boolean')
+      .sort((a, b) => a.timestamp - b.timestamp)
+      .slice(-COOLDOWN_N)
+      .map((r) => r.questionId)
+  )
+  /* 知识点薄弱度优先（v4.15 按 G2-① 改为「族级」统计口径）：
+     350+ 细粒度 kp 单点作答密度天然不足（实测具备首答资格的 kp 占比 0%），
+     归并到知识域 K1~K27（题库现成的 knowledgeDomain 字段 = 同域近邻族的边界），
+     单族样本密度立即可用。该族客观作答 n≥3 时薄弱度 = 1−正确率（∈[0,1]），
+     其题目获得最高 0.1 档的优先提升——"在薄弱知识域由浅入深"参与排序；
+     n<3 视为样本不足不参与（宁可不动，不掺水）。 */
+  const famOf = new Map(pool.map((q) => [q.id, q.knowledgeDomain ?? null]))
   const stat = new Map()
   for (const r of records ?? []) {
     if (typeof r.correct !== 'boolean') continue
-    const kp = kpOf.get(r.questionId)
-    if (!kp) continue
-    const s = stat.get(kp) ?? { n: 0, c: 0 }
+    const fam = famOf.get(r.questionId)
+    if (!fam) continue
+    const s = stat.get(fam) ?? { n: 0, c: 0 }
     s.n++; if (r.correct) s.c++
-    stat.set(kp, s)
+    stat.set(fam, s)
   }
   const weak = new Map()
-  for (const [kp, s] of stat) if (s.n >= 3) weak.set(kp, 1 - s.c / s.n)
+  for (const [fam, s] of stat) if (s.n >= 3) weak.set(fam, 1 - s.c / s.n)
+  /* FSRS 到期轻加权（v4.15，融合方案的"调度/选题正交"约束）：
+     到期题的主场是 review 模式（用户显式选择），random 匹配练习不动模式分工，
+     只给到期题 -0.05 的轻微优先（弱于薄弱度 0.1、远弱于难度匹配主项）——
+     同等匹配度下先到期先练，不产生"random 抢走 review 存量"的行为。 */
+  const DUE_BONUS = 0.05
   const scored = pool.map((q) => {
-    const kpWeak = weak.get(q.knowledgePoint ?? null) ?? 0
-    return { q, cost: Math.abs(empDifficulty(q, records) - target) - 0.1 * kpWeak }
+    const famWeak = weak.get(q.knowledgeDomain ?? null) ?? 0
+    const cooldown = recentIds.has(q.id) ? COOLDOWN_PENALTY : 0
+    const due = dueIds?.has(q.id) ? DUE_BONUS : 0
+    return { q, cost: Math.abs(empDifficulty(q, records) - target) - 0.1 * famWeak + cooldown - due }
   })
   scored.sort((a, b) => a.cost - b.cost)
   /* 候选池 K 随题库规模缩放：大池（400 题、size=20 → K=120）在最优 30% 内保留随机
@@ -159,9 +192,10 @@ export const EXAM_WRONGS_KEY = 'qp-exam-wrongs'
 
 /* 换区建议（题库难度与用户水平的错位检测，Learn 页段位卡的副提示行）。
    样本闸（2026-09-09 用户反馈：原 8 题太少，题库几百题必须有量的积累才可信）：
-   近 30 题、≥24 条有效判定。双条件闸防误报——「近期表现」与「EWMA 指数」同时越界：
-   too-easy：近 30 题 ≥85% 且能力指数 ≥0.85 → 题库太易，劝导入更高水平源题上分；
-   too-hard：近 30 题 ≤45% 且能力指数 ≤0.45 → 题库偏难，劝降阶源题补基础。 */
+   近 30 题、≥24 条有效判定。双条件闸防误报——「近期表现」与「EWMA 指数」同时越界。
+   阈值放宽（v4.15，机制盘点 G4 裁决：原 0.85/0.85 双 85 闸过严，上线以来几乎不触发）：
+   too-easy：近 30 题 ≥80% 且能力指数 ≥0.75 → 题库太易，劝导入更高水平源题上分；
+   too-hard：近 30 题 ≤50% 且能力指数 ≤0.55 → 题库偏难，劝降阶源题补基础。 */
 export function zoneAdvice(records) {
   const xs = (records ?? [])
     .filter((r) => typeof r.correct === 'boolean')
@@ -170,7 +204,7 @@ export function zoneAdvice(records) {
   const n = recent.length
   const acc = n ? recent.filter((r) => r.correct).length / n : 0
   const ability = abilityOf(records)
-  if (n >= 24 && acc >= 0.85 && ability >= 0.85) return { level: 'too-easy', ability, recentAcc: acc, recentN: n }
-  if (n >= 24 && acc <= 0.45 && ability <= 0.45) return { level: 'too-hard', ability, recentAcc: acc, recentN: n }
+  if (n >= 24 && acc >= 0.80 && ability >= 0.75) return { level: 'too-easy', ability, recentAcc: acc, recentN: n }
+  if (n >= 24 && acc <= 0.50 && ability <= 0.55) return { level: 'too-hard', ability, recentAcc: acc, recentN: n }
   return { level: 'ok', ability, recentAcc: acc, recentN: n }
 }
