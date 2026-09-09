@@ -111,8 +111,21 @@ await Promise.all(Array.from({ length: 3 }, async () => {
 }))
 
 // ---------- 4. 建 tree / commit / ref ----------
+/* 降级（2026-09-09）：classic PAT 只有 repo scope 时，写 .github/workflows/* 会被
+   GitHub 以 404 掩盖（blob 能传、树里含该路径必 404）。此处 404 后自动剔除 .github/**
+   重试一次，保证其余源码备份不中断；CI 文件等 token 补上 workflow scope 后重跑即可。 */
 const treeBody = [...local.entries()].map(([rel, v]) => ({ path: rel, mode: '100644', type: 'blob', sha: v.sha }))
-const newTree = await req('POST', `/repos/${repo}/git/trees`, { tree: treeBody })
+let newTree
+try {
+  newTree = await req('POST', `/repos/${repo}/git/trees`, { tree: treeBody })
+} catch (e) {
+  if (!/git\/trees -> 404/.test(String(e?.message ?? e))) throw e
+  const kept = treeBody.filter((x) => !x.path.startsWith('.github/'))
+  const skipped = treeBody.length - kept.length
+  if (kept.length === treeBody.length) throw e
+  console.log(`⚠ 建 tree 404（token 缺 workflow scope），剔除 ${skipped} 个 .github/ 条目后重试`)
+  newTree = await req('POST', `/repos/${repo}/git/trees`, { tree: kept })
+}
 console.log('new tree:', newTree.sha)
 
 const now = new Date().toISOString()
@@ -132,12 +145,16 @@ else await req('POST', `/repos/${repo}/git/refs`, { ref: `refs/heads/${BRANCH}`,
 const check = await req('GET', `/repos/${repo}/git/trees/${BRANCH}?recursive=1`)
 const rmap = new Map()
 for (const e of check.tree) if (e.type === 'blob') rmap.set(e.path, e.sha)
+/* 降级模式下 .github/** 本就不在远端：校验时同样剔除，避免永远 MISMATCH */
+const degraded = newTree.sha !== null && [...local.keys()].some((k) => k.startsWith('.github/')) && ![...rmap.keys()].some((k) => k.startsWith('.github/'))
+const want = degraded ? [...local.keys()].filter((k) => !k.startsWith('.github/')) : [...local.keys()]
 const miss = [], diff = [], extra = []
-for (const [rel, v] of local) {
+for (const rel of want) {
   if (!rmap.has(rel)) miss.push(rel)
-  else if (rmap.get(rel) !== v.sha) diff.push(rel)
+  else if (rmap.get(rel) !== local.get(rel).sha) diff.push(rel)
 }
-for (const rel of rmap.keys()) if (!local.has(rel)) extra.push(rel)
+for (const rel of rmap.keys()) if (!local.has(rel) && !(degraded && rel.startsWith('.github/'))) extra.push(rel)
+if (degraded) console.log('⚠ 本轮为降级备份：.github/** 未推送（token 缺 workflow scope），补 scope 后重跑 push-src 即可补齐')
 console.log(`\n回读校验: 本地 ${local.size} / 远端 ${rmap.size}，缺失 ${miss.length}，不一致 ${diff.length}，多余 ${extra.length}`)
 ;[...miss, ...diff, ...extra].slice(0, 20).forEach(x => console.log('  ✗ ' + x))
 console.log(`分支地址: https://github.com/HK00jjj/quiz-platform/tree/${BRANCH}`)
