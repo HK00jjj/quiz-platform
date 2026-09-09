@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useStore, peekRelearnResume } from '../store'
 import { A } from '../assets'
@@ -8,6 +8,8 @@ import { buildSession, lastResultMap, TYPES, DIFFICULTIES, domainLabel, filtersK
 import { abilityOf, zoneAdvice, RANKS, PROMOTION_EXAM, MASTERY, EXAM_ATTEMPTS, EXAM_WRONGS_KEY } from '../lib/ability.js'
 import { gradeObjective } from '../lib/validate'
 import { isDue } from '../lib/fsrs'
+import { recallDue, buildRecallItems, weakDomains, RECALL_GRADES } from '../lib/recall'
+import { shouldSnapshot, buildSnapshot, pushSnapshot, trendOf } from '../lib/snapshot'
 import { todayStr, streakLength } from '../lib/dates'
 
 const DOMAINS_ALL = Array.from({ length: 27 }, (_, i) => `K${i + 1}`)
@@ -287,6 +289,43 @@ export default function Learn() {
     return { official, next, since, doneN, total: questions.length, covered, masteredN, itemRate, kpTotal, kpOK, kpPass, masteryReady, pendingWrongN, p, examFails, chancesLeft, examSize, passScore, examSaved, objPool, examReady: covered && masteryReady && pendingWrongN === 0 && next !== null && objPool.length >= 10 }
   }, [questions, records, settings.rank, settings.lastExamAt, settings.examFails, ability])
 
+  /* P3 水平快照：挂载时若距上一份 ≥20h 就补一份（一天最多一份）进 settings.snapshots
+     （云同步、封顶 60 份）。只读现状，不碰任何闸门——趋势仅展示。 */
+  useEffect(() => {
+    const snaps = settings.snapshots ?? []
+    if (!shouldSnapshot(snaps, now)) return
+    updateSettings({ snapshots: pushSnapshot(snaps, buildSnapshot(now, {
+      ability, rankName: rank.official.name, total: questions.length, doneN: rank.doneN, recentAcc: advice.recentAcc
+    })) })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+  const trend = useMemo(() => trendOf(settings.snapshots, now), [settings.snapshots, now])
+  /* 迷你走势：最近 12 份快照的指数折线（不足 2 份不画） */
+  const spark = useMemo(() => {
+    const list = (settings.snapshots ?? []).slice(-12)
+    if (list.length < 2) return null
+    const W = 120, H = 30, PAD = 2
+    const ps = list.map((s) => Math.max(0, Math.min(100, s.p ?? 0)))
+    const min = Math.min(...ps), span = Math.max(5, Math.max(...ps) - min)
+    const line = ps.map((p, i) => `${(PAD + (i / (ps.length - 1)) * (W - 2 * PAD)).toFixed(1)},${(H - PAD - ((p - min) / span) * (H - 2 * PAD)).toFixed(1)}`).join(' ')
+    return { W, H, line }
+  }, [settings.snapshots])
+
+  /* P2 自由回忆周检：每周一次的主动提取自检（engram 机制迁移）。
+     结果进 settings.recallLog（云同步）；未达「讲得清」的域给出直达练习入口。 */
+  const [recallPick, setRecallPick] = useState({})
+  const recallLog = settings.recallLog ?? []
+  const lastRecall = recallLog.length ? recallLog[recallLog.length - 1] : null
+  const recallItems = useMemo(() => buildRecallItems(questions, records, now), [questions, records, now])
+  const needRecall = useMemo(() => recallDue(lastRecall, records, now) && recallItems.length > 0, [lastRecall, records, now, recallItems])
+  const weakKp = useMemo(() => weakDomains(lastRecall), [lastRecall])
+  function submitRecall(skipped) {
+    const items = skipped ? [] : recallItems.map((it) => ({ domain: it.domain, n: it.n, grade: recallPick[it.domain] }))
+    updateSettings({ recallLog: [...recallLog, { at: Date.now(), items }] })
+    setRecallOpen(false)
+    setRecallPick({})
+  }
+
   function finishExam({ pass, wins, wrongIds = [], quit }) {
     setExamOpen(false)
     const { official, next, passScore, examSize, examFails } = rank
@@ -403,12 +442,17 @@ export default function Learn() {
             当前段位：{rank.official.name}{rank.next ? '' : ' · 已到顶'}
           </h4>
           <p>
-            状态指数 {rank.p}（仅展示，不作晋级门槛 · 口径含主观自评，出题画像只认客观题）
+            状态指数 {rank.p}{trend ? `（7日趋势 ${trend.delta >= 0 ? '+' : ''}${trend.delta}）` : ''}（仅展示，不作晋级门槛 · 口径含主观自评，出题画像只认客观题）
             {' · '}覆盖 {rank.doneN}/{rank.total}
             {' · '}逐题掌握 {Math.round(rank.itemRate * 100)}%（≥{Math.round(MASTERY.ITEM_RATE * 100)}）
             {' · '}知识点达标 {rank.kpTotal === 0 ? '—' : `${rank.kpOK}/${rank.kpTotal}`}（≥{Math.round(MASTERY.KP_ACC * 100)}%）
             {rank.next ? ` · 补考机会 ${rank.chancesLeft}/${EXAM_ATTEMPTS}` : ''}
           </p>
+          {spark && (
+            <svg className="rank-spark" width={spark.W} height={spark.H} aria-hidden="true">
+              <polyline points={spark.line} fill="none" stroke="var(--pink-ink)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          )}
           {!rank.examReady && (
             <p className="rank-hint">
               距晋级赛还差：{[
@@ -439,6 +483,40 @@ export default function Learn() {
           </GiltBtn>
         )}
       </div>
+
+      {/* P2 自由回忆周检：到期时出清单自评；未到期但有薄弱域 → 直达「练薄弱域」 */}
+      {needRecall && (
+        <div className="panel recall-card rise">
+          <h4>🧠 本周自由回忆</h4>
+          <p className="recall-sub">下面是本周练过的知识域。先在脑里把每个域的要点「讲一遍」，再如实自评——想不起来的正是下周该优先补的。这是比选择题更有效的提取练习。</p>
+          {recallItems.map((it) => (
+            <div className="recall-row" key={it.domain}>
+              <span className="recall-domain">{domainLabel(it.domain)}<i>本周练过 {it.n} 题</i></span>
+              <span className="chip-row">
+                {RECALL_GRADES.map((g) => (
+                  <button key={g} className={'chip' + (recallPick[it.domain] === g ? ' on' : '')}
+                    onClick={() => setRecallPick((m) => ({ ...m, [it.domain]: g }))}>{g}</button>
+                ))}
+              </span>
+            </div>
+          ))}
+          <div className="recall-foot">
+            <GiltBtn size="sm" disabled={recallItems.some((it) => !recallPick[it.domain])} onClick={() => submitRecall(false)}>提交自评</GiltBtn>
+            <GiltBtn size="sm" tone="ghost" onClick={() => submitRecall(true)}>跳过本周</GiltBtn>
+            <span>提交后 7 天内不再提醒；未达「讲得清」的域会给出直达练习入口</span>
+          </div>
+        </div>
+      )}
+      {!needRecall && weakKp.length > 0 && (
+        <div className="panel recall-weak rise">
+          <span aria-hidden="true">🧠</span>
+          <div className="recall-weak-copy">
+            <h4>自由回忆遗留薄弱域（{new Date(lastRecall.at).toLocaleDateString('zh-CN')} 自评）</h4>
+            <p>{weakKp.map((d) => domainLabel(d)).join('、')} —— 这些域你自评「讲得清」以外，优先补一轮</p>
+          </div>
+          <GiltBtn size="sm" onClick={() => run('relearn', { size: 20, domains: weakKp })}>练薄弱域（20 题）</GiltBtn>
+        </div>
+      )}
 
       <div className="panel deep" style={{ textAlign: 'center' }}>
         <div style={{ display: 'flex', justifyContent: 'center', gap: 10, marginBottom: 10 }} aria-hidden="true">

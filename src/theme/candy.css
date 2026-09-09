@@ -2036,3 +2036,20 @@ body { background: linear-gradient(160deg, #FFF8FA 0%, #EAF2ED 58%, #F0FFFA 82%,
    选中状态（绿框）本身即视觉锚点，无障碍不受损（Enter 流不依赖焦点环）。 ══ */
 .opt-row:focus, .judge-card:focus, .opt-row:focus-visible, .judge-card:focus-visible,
 .q-face-foot button:focus, .q-face-foot button:focus-visible { outline: none !important; }
+
+/* ── 闭环件（2026-09-09 晚，Learn 页）：P2 自由回忆周检 + P3 水平快照走势 ──
+   视觉与 rank-card 同族：奶白面、薄荷描边、粉墨标题；入场走全局 .rise。 */
+.rank-spark { display: block; margin-top: 6px; opacity: .9; }
+.recall-card { margin: 0 0 14px; padding: 16px 18px; border-radius: 16px; border: 1.5px solid rgba(95, 174, 143, .35); background: rgba(255, 255, 255, .72); box-shadow: 0 8px 22px rgba(95, 174, 143, .12); }
+.recall-card h4 { margin: 0 0 6px; color: var(--pink-ink); font-size: 15px; letter-spacing: .5px; }
+.recall-sub { margin: 0 0 12px; font-size: 12px; line-height: 1.7; color: var(--muted, #666); }
+.recall-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 8px 0; border-top: 1px dashed rgba(95, 174, 143, .25); }
+.recall-domain { font-size: 13px; color: var(--ink, #333); display: flex; align-items: baseline; gap: 8px; }
+.recall-domain i { font-style: normal; font-size: 11px; color: var(--muted, #999); }
+.recall-foot { display: flex; align-items: center; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+.recall-foot span { font-size: 11.5px; color: var(--muted, #999); }
+.recall-weak { display: flex; align-items: center; gap: 14px; margin: 0 0 14px; padding: 13px 16px; border-radius: 16px; border: 1.5px dashed #E8C15A; background: #FFFBEC; }
+.recall-weak > span { font-size: 22px; line-height: 1; }
+.recall-weak-copy { min-width: 0; flex: 1; }
+.recall-weak-copy h4 { margin: 0 0 2px; font-size: 13.5px; color: var(--pink-ink); letter-spacing: .4px; }
+.recall-weak-copy p { margin: 0; font-size: 12px; line-height: 1.6; color: var(--muted, #666); }
