@@ -5,7 +5,7 @@ import { A } from '../assets'
 import { GiltBtn, EmptyState, burstParticles, FlameIcon } from '../components'
 import { IconRetry, IconShuffle, IconNew, IconFilter, IconLearn, IconImport } from '../components/CandyIcons'
 import { buildSession, lastResultMap, TYPES, DIFFICULTIES, domainLabel, filtersKey } from '../lib/stats'
-import { abilityOf, zoneAdvice, RANKS, PROMOTION_EXAM, MASTERY, EXAM_WRONGS_KEY } from '../lib/ability.js'
+import { abilityOf, zoneAdvice, RANKS, PROMOTION_EXAM, MASTERY, EXAM_ATTEMPTS, EXAM_WRONGS_KEY } from '../lib/ability.js'
 import { gradeObjective } from '../lib/validate'
 import { isDue } from '../lib/fsrs'
 import { todayStr, streakLength } from '../lib/dates'
@@ -212,14 +212,18 @@ export default function Learn() {
      同样计入指数与掌握度；自评宽松会抬高指数，这是已知边界（store.submitSubjective）。 */
   const ability = useMemo(() => abilityOf(records), [records])
   const advice = useMemo(() => zoneAdvice(records), [records])
-  /* 排位系统（LOL 式晋级赛，2026-09-09 晨改版考制）：
+  /* 排位系统（LOL 式晋级赛，2026-09-09 午后二改四闸版）：
      - 段位从黑铁起步（settings.rank 持久化官方段位），晋级只能一级一级考上去，不能跳段；
-     - 晋级赛触发：题库所有题自上次考试（settings.lastExamAt）后都刷过一遍（=彻底过一遍知识点）
-       + 状态指数 ≥ 下一段位门槛；
+     - 晋级赛触发（四闸合取）：① 本轮（自 settings.lastExamAt 起）全库刷过一遍（覆盖 100%）
+       ② 逐题掌握率 ≥95%（本轮每题最近一次作答答对）③ 知识点正确率（≥3 次作答者）≥95%
+       ④ 上场考试错题已在练习中答对消号；
+       持久性闸（≥3 天）与状态指数门槛已按用户指令取消——指数只展示不作门槛；
      - 百分制考制：随机抽 100 道客观题（含图题不进——脱离配图没法判分；考池不足按池缩容），
        答对 ≥90%（即 90 分）晋级一段；进度存 localStorage 可续考；
-     - 通过 → 官方段位 +1；失败 → 本场错题记入"错题重练"（练习中答对即消，全部消完即可再考），
-       覆盖/掌握进度保留（v6.1 起 lastExamAt 不再因失败重置，取消"失败重刷全库"磨盘）；
+     - 补考机会：每周期 3 次（EXAM_ATTEMPTS，settings.examFails 计失败次数）。通过 → 段位 +1
+       且计数清零；失败 → 本场错题记入"错题重练"（练习中答对即消），资格保留可补考；
+       3 次全败 → 周期作废：lastExamAt 重置（覆盖/掌握进度清零）、错题单作废、计数归零，
+       重新刷穿全库再来（用户裁决："输了3次补考机会，用完重来"）；
      - 考试作答不写 records：不污染 EWMA 能力指数与复习计划，纯考试。 */
   const [examOpen, setExamOpen] = useState(false)
   const [promo, setPromo] = useState(null)
@@ -228,8 +232,8 @@ export default function Learn() {
     const official = RANKS.find((r) => r.name === (settings.rank ?? '黑铁')) ?? RANKS[0]
     const next = RANKS[RANKS.indexOf(official) + 1] ?? null
     const since = settings.lastExamAt ?? 0
-    /* 掌握度三闸（MASTERY 标准，2026-09-09 晨）：
-       覆盖率 100% + 逐题掌握率（本轮每题最近一次作答答对）≥95% + 知识点正确率（≥3 次作答者）≥85% */
+    /* 掌握度三闸（MASTERY 标准，2026-09-09 午后二改）：
+       覆盖率 100% + 逐题掌握率（本轮每题最近一次作答答对）≥95% + 知识点正确率（≥3 次作答者）≥95% */
     const latest = new Map()
     const kpStats = new Map()
     for (const r of records) {
@@ -255,17 +259,7 @@ export default function Learn() {
     const kpOK = kpArr.filter((s) => s.c / s.n >= MASTERY.KP_ACC).length
     const kpPass = kpTotal === 0 || kpOK === kpTotal
     const masteryReady = itemRate >= MASTERY.ITEM_RATE && kpPass
-    /* 持久性闸（v6.1 防突击）：有作答记录的题里，最近一次作答距今不足 LATEST_AGE_DAYS 天的
-       视为"太新鲜"——刷穿立刻开考只测短期回忆。未作答的题由覆盖闸负责，不在此重复计数。 */
-    const lastTs = new Map()
-    for (const r of records) {
-      const p = lastTs.get(r.questionId)
-      if (!p || r.timestamp > p) lastTs.set(r.questionId, r.timestamp)
-    }
-    const ageMs = MASTERY.LATEST_AGE_DAYS * 86400000
-    const freshN = questions.filter((q) => { const t = lastTs.get(q.id); return t && Date.now() - t < ageMs }).length
-    const durabilityReady = freshN === 0
-    /* 晋级失败错题重练（v6.1）：考试错题练习中答对即消——failedAt 之后该题出现 correct=true 记录即清除 */
+    /* 晋级失败错题重练：考试错题练习中答对即消——failedAt 之后该题出现 correct=true 记录即清除 */
     let examWrongs = null
     try {
       const w = JSON.parse(localStorage.getItem(EXAM_WRONGS_KEY) ?? 'null')
@@ -275,7 +269,10 @@ export default function Learn() {
     const qIds = new Set(questions.map((q) => q.id))
     const pendingWrongN = examWrongs ? examWrongs.ids.filter((id) => qIds.has(id) && !cleared.has(id)).length : 0
     const p = Math.round(ability * 100)
-    const threshold = next ? next.lo : null
+    /* 补考机会（2026-09-09 午后二改）：每周期 EXAM_ATTEMPTS 次，settings.examFails 计已败次数。
+       第 EXAM_ATTEMPTS 次失败时结算直接作废周期，此处 examFails 正常取值 0~2。 */
+    const examFails = Number.isInteger(settings.examFails) && settings.examFails > 0 ? settings.examFails : 0
+    const chancesLeft = Math.max(0, EXAM_ATTEMPTS - examFails)
     const objPool = questions.filter((q) => ['单选题', '多选题', '判断题', '填空题'].includes(q.type) && !q.image)
     const examSize = Math.min(PROMOTION_EXAM.SIZE, objPool.length)
     const passScore = Math.ceil(examSize * PROMOTION_EXAM.PASS_RATE)
@@ -284,21 +281,31 @@ export default function Learn() {
       const s = JSON.parse(localStorage.getItem(EXAM_PROGRESS_KEY) ?? 'null')
       if (s && Array.isArray(s.ids) && s.ids.length === examSize && s.round <= examSize) examSaved = s
     } catch { /* 损坏进度视同无续考 */ }
-    return { official, next, since, doneN, total: questions.length, covered, masteredN, itemRate, kpTotal, kpOK, kpPass, masteryReady, freshN, durabilityReady, pendingWrongN, p, threshold, examSize, passScore, examSaved, objPool, examReady: covered && masteryReady && durabilityReady && pendingWrongN === 0 && threshold !== null && p >= threshold && objPool.length >= 10 }
-  }, [questions, records, settings.rank, settings.lastExamAt, ability])
+    return { official, next, since, doneN, total: questions.length, covered, masteredN, itemRate, kpTotal, kpOK, kpPass, masteryReady, pendingWrongN, p, examFails, chancesLeft, examSize, passScore, examSaved, objPool, examReady: covered && masteryReady && pendingWrongN === 0 && next !== null && objPool.length >= 10 }
+  }, [questions, records, settings.rank, settings.lastExamAt, settings.examFails, ability])
 
   function finishExam({ pass, wins, wrongIds = [], quit }) {
     setExamOpen(false)
-    const { official, next, passScore, examSize } = rank
+    const { official, next, passScore, examSize, examFails } = rank
     if (pass && next) {
-      updateSettings({ rank: next.name, lastExamAt: Date.now() })
+      updateSettings({ rank: next.name, lastExamAt: Date.now(), examFails: 0 })
       localStorage.removeItem(EXAM_WRONGS_KEY)
       setPromo({ kind: 'promo', title: `晋级成功！${official.emoji} ${official.name} → ${next.emoji} ${next.name}`, sub: `百分制 ${examSize} 题考得 ${wins} 分（≥${passScore} 过线）。段位只能一级一级考上去——继续刷，向着最强王者进发。题库已全部刷穿：去导入页发下一批源题，难度随新源题上台阶` })
     } else {
-      /* v6.1：失败不再重置 lastExamAt（覆盖/掌握进度保留），只记本场错题——
-         练习中答对即消，全部消完即可再次开考；"放弃本场"同样按失败记错题。 */
+      /* 补考机会（2026-09-09 午后二改，用户裁决）：每周期 3 次。
+         失败先记本场错题（练习中答对即消）；未用完 3 次前资格保留，lastExamAt 不重置；
+         第 3 次失败 → 周期作废重来：lastExamAt 重置（覆盖/掌握进度清零）、错题单作废、
+         计数归零，重新刷穿全库再考。"放弃本场"同样按失败计数。 */
       try { localStorage.setItem(EXAM_WRONGS_KEY, JSON.stringify({ failedAt: Date.now(), ids: [...new Set(wrongIds)] })) } catch { /* 存储异常不阻断结算 */ }
-      setPromo({ kind: 'demote', title: `${quit ? '放弃本场' : '晋级失败'}（${wins} 分 / ${passScore} 分线）：${official.emoji} ${official.name}`, sub: wrongIds.length ? `差 ${Math.max(0, passScore - wins)} 分。本场上答错的 ${wrongIds.length} 道题已记入错题重练——去练习里把它们答对（答对即消），全部消完就能再次挑战「${next?.name ?? '下一段位'}」，无需重刷全库` : `差 ${Math.max(0, passScore - wins)} 分。晋级资格保留，可再次挑战「${next?.name ?? '下一段位'}」` })
+      const fails = examFails + 1
+      if (fails >= EXAM_ATTEMPTS) {
+        updateSettings({ examFails: 0, lastExamAt: Date.now() })
+        localStorage.removeItem(EXAM_WRONGS_KEY)
+        setPromo({ kind: 'demote', title: `补考机会用完（${EXAM_ATTEMPTS} 战 ${EXAM_ATTEMPTS} 败）：晋级周期重新开始`, sub: `${quit ? '放弃本场' : '本场'} ${wins} 分 / ${passScore} 分线。本周期作废——覆盖与掌握进度已清零，错题单已作废，请重新刷穿全库（练习中答对每一题）+ 清错题，四闸再次全绿后即可重新挑战「${next?.name ?? '下一段位'}」` })
+      } else {
+        updateSettings({ examFails: fails })
+        setPromo({ kind: 'demote', title: `${quit ? '放弃本场' : '晋级失败'}（${wins} 分 / ${passScore} 分线）：${official.emoji} ${official.name}`, sub: wrongIds.length ? `差 ${Math.max(0, passScore - wins)} 分。本场上答错的 ${wrongIds.length} 道题已记入错题重练——去练习里把它们答对（答对即消），全部消完就能再次挑战「${next?.name ?? '下一段位'}」。本周期还剩 ${EXAM_ATTEMPTS - fails} 次补考机会，用完将重新刷库` : `差 ${Math.max(0, passScore - wins)} 分。晋级资格保留，可再次挑战「${next?.name ?? '下一段位'}」。本周期还剩 ${EXAM_ATTEMPTS - fails} 次补考机会，用完将重新刷库` })
+      }
     }
     if (promoTimer.current) clearTimeout(promoTimer.current)
     promoTimer.current = setTimeout(() => setPromo(null), 8000)
@@ -383,7 +390,7 @@ export default function Learn() {
         </div>
       )}
 
-      {/* 排位卡（LOL 式晋级赛）：官方段位只通过五局三胜考试获得，一级一级往上考 */}
+      {/* 排位卡（LOL 式晋级赛）：官方段位只通过晋级赛考试获得，一级一级往上考 */}
       <div className="rank-card rise">
         <span className="rank-badge" style={{ borderColor: rank.official.color }}>
           <span className="rank-emoji" aria-hidden="true">{rank.official.emoji}</span>
@@ -392,16 +399,12 @@ export default function Learn() {
           <h4 style={{ color: rank.official.color }}>
             当前段位：{rank.official.name}{rank.next ? '' : ' · 已到顶'}
           </h4>
-          {rank.next && (
-            <div className="rank-bar">
-              <span style={{ width: `${Math.min(100, Math.round((rank.p / rank.next.lo) * 100))}%`, background: rank.official.color }} />
-            </div>
-          )}
           <p>
-            状态指数 {rank.p}{rank.next ? `（晋级门槛 ${rank.next.lo}）` : ''}
+            状态指数 {rank.p}（仅展示，不作晋级门槛）
             {' · '}覆盖 {rank.doneN}/{rank.total}
             {' · '}逐题掌握 {Math.round(rank.itemRate * 100)}%（≥{Math.round(MASTERY.ITEM_RATE * 100)}）
             {' · '}知识点达标 {rank.kpTotal === 0 ? '—' : `${rank.kpOK}/${rank.kpTotal}`}（≥{Math.round(MASTERY.KP_ACC * 100)}%）
+            {rank.next ? ` · 补考机会 ${rank.chancesLeft}/${EXAM_ATTEMPTS}` : ''}
           </p>
           {!rank.examReady && (
             <p className="rank-hint">
@@ -409,9 +412,7 @@ export default function Learn() {
                 rank.covered ? null : `刷完 ${rank.total - rank.doneN} 道未刷题`,
                 rank.itemRate >= MASTERY.ITEM_RATE ? null : `错题重练（${rank.total - rank.masteredN} 题最近一次未答对）`,
                 rank.kpPass ? null : `${rank.kpTotal - rank.kpOK} 个知识点正确率未达 ${Math.round(MASTERY.KP_ACC * 100)}%`,
-                rank.durabilityReady ? null : `最近 ${MASTERY.LATEST_AGE_DAYS} 天内作答过的题还有 ${rank.freshN} 道（防突击：隔 ${MASTERY.LATEST_AGE_DAYS} 天再考，让记忆沉淀）`,
-                rank.pendingWrongN ? `晋级赛错题重练（${rank.pendingWrongN} 道上场答错的题，练习中答对即消）` : null,
-                rank.threshold === null || rank.p >= rank.threshold ? null : `状态指数升到 ${rank.threshold}`
+                rank.pendingWrongN ? `晋级赛错题重练（${rank.pendingWrongN} 道上场答错的题，练习中答对即消）` : null
               ].filter(Boolean).join('；') || '—'}
             </p>
           )}
