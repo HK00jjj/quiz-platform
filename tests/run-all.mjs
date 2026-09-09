@@ -19,6 +19,7 @@ const SUITE = [
   { name: '能力选题回归', cmd: 'node', args: ['../scripts/t-ability.mjs'] },
   { name: '填空判分回归', cmd: 'node', args: ['../scripts/t-fill.mjs'] },
   { name: '全局序回归', cmd: 'node', args: ['../scripts/t-seq.mjs'] },
+  { name: '闭环件回归（自由回忆+快照）', cmd: 'node', args: ['../scripts/t-closure.mjs'] },
   { name: '存储水位回归', cmd: 'node', args: ['tests/storage.regression.mjs'] }
 ]
 
