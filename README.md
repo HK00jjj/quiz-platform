@@ -1,7 +1,7 @@
 # 交接文档 · 糖果题库（quiz-platform）
 
 > 写给下一个接手的会话。读完这一份就能独立干活，不需要翻历史对话。
-> 最后更新：2026-09-11 下午，对应线上提交 `76f7873`。
+> 最后更新：2026-09-11 下午（第三批），对应线上提交 `4bb25e2`。
 
 ## 2026-09-11 下午增量（commit a3c5e77，bundle index-DdMJaUAG.js）· 全面机制审查整改（7 项）+ 备份链路两处缺陷修复
 
@@ -90,6 +90,30 @@ grep 发现 tests/storage.regression.mjs 仍引用，保留。教训沿用：**�
 本轮六步链：build ✓（index-BP7vLVUg.js 564868B / index-DEnYBEGr.css 未变；404.html 由插件自动生成）
 → purge-dist ✓（回收 index-DdMJaUAG.js 550KB）→ deploy commit `76f7873` → verify-deploy ✓（Pages built）
 → push-src ✓ → verify-live ✓。
+
+### 追加（同日·第三批，commit 4bb25e2，bundle index-D5gS-_op.js）· 用户要求"再查一遍"后的自查修正
+
+用户指令「检查一遍，有没有搞错，或者漏了」。逐条回报告 §1~§11 与磁盘实况比对，查出 **3 处**：
+
+1. **【我引入的 bug·重要】离线队列补传收尾会把"并发新入队"的作答静默丢弃**：
+   `flushPending` 在 `finally` 里用**启动时的快照** `list.slice(done)` 整体覆盖 localStorage——
+   若补传期间用户又答新题（该笔也已因写失败入队），那条会被覆盖掉，**恰好在防丢数据的机制里丢数据**。
+   修法：入队时给每条打唯一 `id`，收尾**重新读队列**并按 id 精确出队（兼容修复前无 id 的旧条目，就地补 id）。
+2. **§7 清单漏做一项**：`Import.jsx:82` 仍调 `validateItems(items, false)`，而 `validateItems` 早在
+   自适应退役时已收敛为单参 `(items) =>`——第二参是死参。§10 的 P2「死代码清理（§7）」涵盖此项，已删参。
+3. **回归套件标签过期**：`run-all.mjs` 里该套件名仍写「归一化去重/EWMA/洗牌」，未含新增的备份往返组，已补。
+
+**查证为"已正确"的**（免得重复怀疑）：脚本侧 seq 口径**本来就是全局 maxSeq**（`import_batch.mjs:84`
+`existing.reduce(max)` 取全库最大），§10 P2「seq 全局化（需先审脚本侧口径）」的前置审查至此完成——
+只网页导入通道有 bug，脚本通道无需改；`persistAnswerIdempotent` 的 (question_id, answered_at) 探针
+与 `persistAnswer` 用同一 ISO 转换，幂等正确；线上 `404.html` 引用的是新包（深链 fallback 未失效）。
+
+**本次仍未做（不在 §10 行动清单内，需你定夺）**：§1.4 结算页「再练错题(N)」的 N 是本场错题数、
+实际会话取全局错题池+同 kp 变式（属产品口径选择，非明确 bug）；§4.6 `crossBatchCheck` O(n²)
+同步比对（大批量导入会卡，报告建议按知识点分桶预筛）；§5.3-3／§9.4 闸6 数据回流"到点就跑"
+（要跑 fetch_level + 回写 PRIOR_P，会改难度先验，须授权）；§9.5 换区建议站内化（报告自己倾向保留人工选择权）；
+§9.1／§10 P3 考试判定服务端 RPC（已列明未做）。§7 的 `assessEntries` 经复查**保留**——
+它被 `tests/storage.regression.mjs` 直接 import，属"测试用的纯函数"，删它会断测试。
 
 ## 2026-09-11 上午增量（commit 40dddc2）· 404.html SPA fallback + 出题全自动流水线 E2E 审查
 

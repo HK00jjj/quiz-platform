@@ -122,7 +122,12 @@ function writePending(list) {
 }
 function enqueuePending(entry) {
   const list = readPending()
-  list.push(entry)
+  /* 每条带唯一 id（2026-09-11 自查修复）：补传收尾时按 id 精确出队。
+     旧写法在 finally 里用「启动时的快照 list.slice(done)」整体覆盖 localStorage，
+     若补传期间用户又答了新题（新条目已入队），那一条会被静默覆盖掉——
+     恰好在防丢数据的机制里丢数据。 */
+  const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+  list.push({ ...entry, id })
   writePending(list)
   useStore.setState({ pendingCount: Math.min(PENDING_MAX, list.length) })
 }
@@ -133,24 +138,30 @@ export async function flushPending() {
   if (DEMO || flushing) return
   const list = readPending()
   if (list.length === 0) return
+  /* 兼容本次修复前入队的旧条目（无 id）：就地补一个，否则出队时无法区分彼此 */
+  let repaired = false
+  for (const e of list) {
+    if (!e.id) { e.id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`; repaired = true }
+  }
+  if (repaired) writePending(list)
   flushing = true
-  let done = 0
+  const doneIds = new Set()
   try {
-    for (let i = 0; i < list.length; i++) {
-      const e = list[i]
+    for (const e of list) {
       if (e.t === 'a') await repo.persistAnswerIdempotent(e.r, e.c ?? null)
       else await repo.persistCard(e.c)
-      done++
+      doneIds.add(e.id)
     }
   } catch (err) {
     console.error('[flushPending] 补传中断，剩余留在队列', err)
   } finally {
-    const remain = list.slice(done)
+    /* 重新读队列再出队：补传期间可能又有新条目入队，只摘掉本次确认完成的 id */
+    const remain = readPending().filter((e) => !doneIds.has(e.id))
     writePending(remain)
     useStore.setState({ pendingCount: remain.length, ...(remain.length === 0 ? { syncError: null } : {}) })
     flushing = false
   }
-  if (done > 0) await reloadAll()
+  if (doneIds.size > 0) await reloadAll()
 }
 /* 失败后的退避重试：5s / 20s / 60s，三次机会；此后交由 online 事件与下次作答触发 */
 function scheduleFlushRetry(attempt = 2) {
