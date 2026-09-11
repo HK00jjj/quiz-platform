@@ -79,7 +79,7 @@ export default function Import() {
     }
     /* v4.13 自适应退役：不再传 records/全库题做 verdict 复算——命题端已无换挡声明，
        校验器只做逐题通用校验（ctx 参数已废弃） */
-    const issues = validateItems(items, false)
+    const issues = validateItems(items)
     const errs = issues.filter((i) => i.level === '错误')
     if (errs.length > 0) {
       showResult(issues, null, '题集导入 · ')
