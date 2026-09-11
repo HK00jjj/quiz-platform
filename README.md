@@ -1,7 +1,36 @@
 # 交接文档 · 糖果题库（quiz-platform）
 
 > 写给下一个接手的会话。读完这一份就能独立干活，不需要翻历史对话。
-> 最后更新：2026-09-11 下午（第四批），对应线上提交 `c2acce1`。
+> 最后更新：2026-09-11 晚（第五批），对应线上提交 `64eeba2`。
+
+## 2026-09-11 晚间增量（commit 64eeba2，bundle index-Bu6aenhD.js 566394B）· GitHub 调研建议逐项落实（第一批）
+
+先做了 GitHub 借鉴调研（全项逐仓实测核实：31 仓库 API + 13 npm 包 + 信源逐条确认，
+调研报告在 E:\workbuddy-cc\2026-09-11-16-45-05\GitHub借鉴调研_20260911.md），随后按用户指令落实推荐项：
+
+1. **跨批撞库知识点分桶预筛（validate.js ⑪，§4.6 O(n²) 整改）**：crossBatchCheck 的
+   题干比对从"新题×全库"改为"同 kpNorm 桶 + 库内无知识点题"；新题无知识点回退全库；
+   语义边界与性能断言锁进 tests/crossbatch.regression.mjs（9 项，含 200×1481 规模 <2s）。
+2. **离线队列 + applyBookMap 单测补盲（node:test，零新依赖）**：tests/store-hooks.mjs
+   用 node:module register() 在 Node 里加载真实 store.js（无扩展名补 .js / import.meta.env
+   注入 / lib/db.js 重定向到 tests/mocks/db-stub.mjs 可编程桩），**生产代码仅一处增量：
+   enqueuePending 加 export**（供测试驱动真实入队路径，行为不变）。
+   tests/offline-queue.regression.mjs 9 项：入队唯一 id、成功出队、**并发入队保护
+   （历史 bug 锁）**、失败保序留队、旧条目补 id、800 上限丢最旧、applyBookMap
+   清洗落库/坏 map 拒绝/空 order 拒绝。至此审查报告"离线队列与 applyBookMap 未被
+   单测覆盖"的诚实声明正式关闭。
+3. **回归与部署**：run-all.mjs 11 套件 ALL GREEN（新增两套件入列）；六步链全过：
+   build ✓ → DIST CLEAN（孤儿 0）→ deploy commit `64eeba2` → Pages built →
+   push-src d848892 SRC BACKUP OK（本地 94/远端 93 = 已知 workflow-scope 降级，
+   .github/** 仍排除）→ verify-live 27/27 三哈希 MATCH ALL OK。
+4. **配套产出（不进 bundle）**：
+   - `app/supabase/migrations/20260911_rls_owner_lock.sql`——RLS 单用户加固迁移
+     （四表固定 auth.uid() + WITH CHECK + 撤销 anon 全权限；含列级答案隐藏预留注释），
+     **待用户在 Supabase SQL Editor 粘贴执行**（本机无 DDL 通道）；
+   - 出题闸4 升级为 RAGAS 式逐项评分制：import_batches/gate4_scoring.md（四维 0~2 分 +
+     阈值放行 + 证据纪律），PIPELINE.md 闸4 行已同步引用；
+   - `SRC_BRANCH_ENV_CLEANUP_PLAN.md`（chat-1 根）——git-filter-repo 清 src 历史 .env
+     blob 的完整方案，**待批未执行**（破坏性远端操作）。
 
 ## 2026-09-11 下午增量（commit c2acce1，bundle index-DTuOvSDv.js）· 校准闭环增益阀：探索补盲（v4.16）+ 填空答案多候选判分
 
