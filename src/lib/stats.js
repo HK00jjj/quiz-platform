@@ -4,6 +4,10 @@
    scripts/t-session.mjs 的组卷回归测试就是这么挂的。lib/validate.js 零依赖所以不受影响。 */
 import { isDue } from './fsrs.js'
 import { abilityOf, pickMatched } from './ability.js'
+/* shuffle 收敛到 util.js（2026-09-11 审查整改：此前本文件与 ability.js / Practice.jsx /
+   Learn.jsx 各写一遍 Fisher-Yates，四处独立、改一处不同步另三处）。显式 .js 扩展名，
+   与上面两行的原因相同——Node 直跑组卷回归脚本时需要。 */
+import { shuffle } from './util.js'
 
 export const TYPES = ['单选题', '多选题', '判断题', '填空题', '简答题', '计算分析题', '综合设计/故障诊断题']
 export const OBJECTIVE_TYPES = ['单选题', '多选题', '判断题', '填空题']
@@ -45,13 +49,6 @@ export function filterQuestions(questions, filters) {
 }
 function take(list, size) {
   return size > 0 ? list.slice(0, size) : list
-}
-function shuffle(list, rng = Math.random) {
-  const a = [...list]
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(rng() * (i + 1));[a[i], a[j]] = [a[j], a[i]]
-  }
-  return a
 }
 export const filtersKey = (f) => JSON.stringify({
   domains: [...(f?.domains ?? [])].sort(),

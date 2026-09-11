@@ -126,6 +126,26 @@ export class CloudRepo {
     const { error } = await this.client.from('review_cards').upsert(cardRow(card))
     if (error) throw error
   }
+  /* 幂等补写（离线队列专用，2026-09-11）：answer_records 上没有唯一约束、insert 也没有幂等键，
+     直接重试会在"上次其实写成功了、只是客户端超时"的情况下插出重复作答记录
+     （会污染 EWMA 与首答正确率统计）。故补传前先按 (question_id, answered_at) 探一次：
+     命中即视为已写入，跳过 insert；卡片本身是 upsert，天然幂等。 */
+  async persistAnswerIdempotent(record, card) {
+    const iso = new Date(record.timestamp).toISOString()
+    const { data, error } = await this.client.from('answer_records')
+      .select('id').eq('question_id', record.questionId).eq('answered_at', iso).limit(1)
+    if (error) throw error
+    if (!data || data.length === 0) {
+      const { error: e } = await this.client.from('answer_records').insert({
+        question_id: record.questionId, answered_at: iso,
+        correct: record.correct, detail: record.detail
+      })
+      if (e) throw e
+    }
+    if (!card) return
+    const { error: e2 } = await this.client.from('review_cards').upsert(cardRow(card))
+    if (e2) throw e2
+  }
   async deleteQuestion(id) {
     const { error } = await this.client.from('questions').delete().eq('id', id)
     if (error) throw error

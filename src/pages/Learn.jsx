@@ -11,6 +11,7 @@ import { isDue } from '../lib/fsrs'
 import { recallDue, buildRecallItems, weakDomains, RECALL_GRADES } from '../lib/recall'
 import { shouldSnapshot, buildSnapshot, pushSnapshot, trendOf } from '../lib/snapshot'
 import { todayStr, streakLength } from '../lib/dates'
+import { shuffle } from '../lib/util.js'
 
 const DOMAINS_ALL = Array.from({ length: 27 }, (_, i) => `K${i + 1}`)
 
@@ -63,6 +64,15 @@ function FilterModal({ title, filters, onToggle, onClose, onStart, count, startL
    进度持久化：百题考试耗时较长，每答一题写 localStorage（qp-exam-progress），
    意外刷新/关闭后重开自动续考；交卷或放弃时清除。 */
 const EXAM_PROGRESS_KEY = 'qp-exam-progress'
+/* 考试错题单的**旧存储位**。2026-09-11 审查整改：真源迁到云端 settings.examWrongs——
+   原先纯 localStorage 时，删掉这个键即可直接绕过闸④（上场考试错题消号），
+   段位可信度被削弱。这里保留读取只为把旧值**一次性迁移上云**，迁移后不再写入。 */
+function legacyExamWrongs() {
+  try {
+    const w = JSON.parse(localStorage.getItem(EXAM_WRONGS_KEY) ?? 'null')
+    return (w && Array.isArray(w.ids) && typeof w.failedAt === 'number') ? w : null
+  } catch { return null }
+}
 
 function ExamModal({ pool, target, size, passScore, onDone }) {
   const [deck] = useState(() => {
@@ -70,14 +80,16 @@ function ExamModal({ pool, target, size, passScore, onDone }) {
     if (saved && Array.isArray(saved.ids)) {
       const byId = new Map(pool.map((q) => [q.id, q]))
       const rebuilt = saved.ids.map((id) => byId.get(id)).filter(Boolean)
-      /* 续考有效性：题都在、进度未越界且考题数与当前考制一致——题库变更/改制则重考 */
-      if (rebuilt.length === saved.ids.length && saved.ids.length === size && saved.round <= saved.ids.length) {
+      /* 续考有效性：题都在、进度未越界且考题数与当前考制一致——题库变更/改制则重考。
+         2026-09-11：上界判定原为 `<=`，应为 `<`——round 是 0 基下标，只有 <length 才有题；
+         `<=` 会让 round===length 的损坏进度被当作有效，渲染时 q 为 undefined → 弹窗返回 null、
+         进度又不清除，表现为"考试打不开且无法恢复"。当前答题流到不了该状态（满题即交卷），
+         属防御性修复。 */
+      if (rebuilt.length === saved.ids.length && saved.ids.length === size && saved.round < saved.ids.length) {
         return { qs: rebuilt, resume: saved }
       }
     }
-    const a = [...pool]
-    for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1));[a[i], a[j]] = [a[j], a[i]] }
-    return { qs: a.slice(0, size), resume: null }
+    return { qs: shuffle(pool).slice(0, size), resume: null }
   })
   const [round, setRound] = useState(deck.resume?.round ?? 0)
   const [wins, setWins] = useState(deck.resume?.wins ?? 0)
@@ -264,12 +276,11 @@ export default function Learn() {
     const kpOK = kpArr.filter((s) => s.c / s.n >= MASTERY.KP_ACC).length
     const kpPass = kpTotal === 0 || kpOK === kpTotal
     const masteryReady = itemRate >= MASTERY.ITEM_RATE && kpPass
-    /* 晋级失败错题重练：考试错题练习中答对即消——failedAt 之后该题出现 correct=true 记录即清除 */
-    let examWrongs = null
-    try {
-      const w = JSON.parse(localStorage.getItem(EXAM_WRONGS_KEY) ?? 'null')
-      if (w && Array.isArray(w.ids) && typeof w.failedAt === 'number') examWrongs = w
-    } catch { /* 损坏视同无 */ }
+    /* 晋级失败错题重练：考试错题练习中答对即消——failedAt 之后该题出现 correct=true 记录即清除。
+       2026-09-11：错题单改读云端 settings.examWrongs。
+       ⚠ 必须区分 undefined 与 null：undefined=从未设置（回落读旧 localStorage 值以便迁移），
+       null=已显式清空（晋级成功/周期作废）——若用 `??` 两者都会回落到旧键，清空后旧错题单会"复活"。 */
+    const examWrongs = settings.examWrongs === undefined ? legacyExamWrongs() : settings.examWrongs
     const cleared = new Set(records.filter((r) => r.correct === true && r.timestamp > (examWrongs?.failedAt ?? 0)).map((r) => r.questionId))
     const qIds = new Set(questions.map((q) => q.id))
     const pendingWrongN = examWrongs ? examWrongs.ids.filter((id) => qIds.has(id) && !cleared.has(id)).length : 0
@@ -284,10 +295,21 @@ export default function Learn() {
     let examSaved = null
     try {
       const s = JSON.parse(localStorage.getItem(EXAM_PROGRESS_KEY) ?? 'null')
-      if (s && Array.isArray(s.ids) && s.ids.length === examSize && s.round <= examSize) examSaved = s
+      if (s && Array.isArray(s.ids) && s.ids.length === examSize && s.round < examSize) examSaved = s
     } catch { /* 损坏进度视同无续考 */ }
     return { official, next, since, doneN, total: questions.length, covered, masteredN, itemRate, kpTotal, kpOK, kpPass, masteryReady, pendingWrongN, p, examFails, chancesLeft, examSize, passScore, examSaved, objPool, examReady: covered && masteryReady && pendingWrongN === 0 && next !== null && objPool.length >= 10 }
-  }, [questions, records, settings.rank, settings.lastExamAt, settings.examFails, ability])
+  }, [questions, records, settings.rank, settings.lastExamAt, settings.examFails, settings.examWrongs, ability])
+
+  /* 考试错题单一次性迁移上云（2026-09-11）：旧 localStorage 值存在而云端没有时搬过去，
+     搬完删掉本地键——此后闸④的状态不再由客户端单独持有。只跑一次，迁移后不再触发。 */
+  useEffect(() => {
+    if (settings.examWrongs) return
+    const legacy = legacyExamWrongs()
+    if (!legacy) return
+    updateSettings({ examWrongs: legacy })
+    try { localStorage.removeItem(EXAM_WRONGS_KEY) } catch { /* ignore */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   /* P3 水平快照：挂载时若距上一份 ≥20h 就补一份（一天最多一份）进 settings.snapshots
      （云同步、封顶 60 份）。只读现状，不碰任何闸门——趋势仅展示。 */
@@ -330,22 +352,23 @@ export default function Learn() {
     setExamOpen(false)
     const { official, next, passScore, examSize, examFails } = rank
     if (pass && next) {
-      updateSettings({ rank: next.name, lastExamAt: Date.now(), examFails: 0 })
-      localStorage.removeItem(EXAM_WRONGS_KEY)
+      updateSettings({ rank: next.name, lastExamAt: Date.now(), examFails: 0, examWrongs: null })
       setPromo({ kind: 'promo', title: `晋级成功！${official.emoji} ${official.name} → ${next.emoji} ${next.name}`, sub: `百分制 ${examSize} 题考得 ${wins} 分（≥${passScore} 过线）。段位只能一级一级考上去——继续刷，向着最强王者进发。题库已全部刷穿：去导入页发下一批源题，难度随新源题上台阶` })
     } else {
       /* 补考机会（2026-09-09 午后二改，用户裁决）：每周期 3 次。
          失败先记本场错题（练习中答对即消）；未用完 3 次前资格保留，lastExamAt 不重置；
          第 3 次失败 → 周期作废重来：lastExamAt 重置（覆盖/掌握进度清零）、错题单作废、
          计数归零，重新刷穿全库再考。"放弃本场"同样按失败计数。 */
-      try { localStorage.setItem(EXAM_WRONGS_KEY, JSON.stringify({ failedAt: Date.now(), ids: [...new Set(wrongIds)] })) } catch { /* 存储异常不阻断结算 */ }
+      /* 错题单落点从 localStorage 迁到云端 settings.examWrongs（2026-09-11 审查整改）：
+         原先删掉 qp-exam-wrongs 这一个键就能跳过闸④的"错题消号"，段位可信度受损。
+         迁移后闸④状态由账号（云端 + RLS）持有，客户端不能单方重置。 */
+      const wrongs = { failedAt: Date.now(), ids: [...new Set(wrongIds)] }
       const fails = examFails + 1
       if (fails >= EXAM_ATTEMPTS) {
-        updateSettings({ examFails: 0, lastExamAt: Date.now() })
-        localStorage.removeItem(EXAM_WRONGS_KEY)
+        updateSettings({ examFails: 0, lastExamAt: Date.now(), examWrongs: null })
         setPromo({ kind: 'demote', title: `补考机会用完（${EXAM_ATTEMPTS} 战 ${EXAM_ATTEMPTS} 败）：晋级周期重新开始`, sub: `${quit ? '放弃本场' : '本场'} ${wins} 分 / ${passScore} 分线。本周期作废——覆盖与掌握进度已清零，错题单已作废，请重新刷穿全库（练习中答对每一题）+ 清错题，四闸再次全绿后即可重新挑战「${next?.name ?? '下一段位'}」` })
       } else {
-        updateSettings({ examFails: fails })
+        updateSettings({ examFails: fails, examWrongs: wrongs })
         setPromo({ kind: 'demote', title: `${quit ? '放弃本场' : '晋级失败'}（${wins} 分 / ${passScore} 分线）：${official.emoji} ${official.name}`, sub: wrongIds.length ? `差 ${Math.max(0, passScore - wins)} 分。本场上答错的 ${wrongIds.length} 道题已记入错题重练——去练习里把它们答对（答对即消），全部消完就能再次挑战「${next?.name ?? '下一段位'}」。本周期还剩 ${EXAM_ATTEMPTS - fails} 次补考机会，用完将重新刷库` : `差 ${Math.max(0, passScore - wins)} 分。晋级资格保留，可再次挑战「${next?.name ?? '下一段位'}」。本周期还剩 ${EXAM_ATTEMPTS - fails} 次补考机会，用完将重新刷库` })
       }
     }

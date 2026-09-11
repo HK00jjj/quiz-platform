@@ -9,15 +9,9 @@ import { IconReveal, IconScroll, IconRetry } from '../components/CandyIcons'
 import { isObjective, domainLabel, DIFF_CLS } from '../lib/stats'
 import { gradeObjective, blanksOf } from '../lib/validate'
 import { imageFor, diagramDataUri, diagramTitle } from '../lib/diagrams'
-
-/* Fisher-Yates 洗牌，返回 0..n-1 的一个排列（#6 选项随机化用） */
-function shuffledOrder(n) {
-  const a = Array.from({ length: n }, (_, i) => i)
-  for (let i = n - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));[a[i], a[j]] = [a[j], a[i]]
-  }
-  return a
-}
+/* 选项随机化用的位置排列（#6）。实现收敛到 lib/util.js（2026-09-11 审查整改：
+   此前与 stats/ability/Learn 各写一遍 Fisher-Yates）。 */
+import { shuffledOrder } from '../lib/util.js'
 
 /* 题干渲染：填空题把 {空} 显示为下划线占位 */
 function Stem({ q }) {
@@ -500,6 +494,25 @@ export default function Practice() {
                     {(objective ? grade?.correct : lastRating === '记得') ? '答对了' : '答错了'}
                   </div>
                 )}
+                {/* 多选"错在哪"文字提示（2026-09-11 审查整改 · 纯文字通道）：
+                    §37 用户裁决「答错时正确答案不变绿、选项行不复述答案」——选项配色与
+                    勾选状态一行未动，这里只在解析区补一行字，把漏选/错选显式化。
+                    动因：旧版部分答对时只有"已选且正确"的项显绿、整体却判答错，
+                    学习者容易误判自己的掌握度（掌握度是错题重练与段位的入口）。 */}
+                {objective && grade && !grade.correct && q.type === '多选题' && (() => {
+                  const exp = new Set(String(grade.expected ?? '').split(''))
+                  const sel = new Set(multi)
+                  const missed = [...exp].filter((L) => !sel.has(L))
+                  const extra = [...sel].filter((L) => !exp.has(L))
+                  if (missed.length === 0 && extra.length === 0) return null
+                  return (
+                    <p style={{ margin: '2px 0 8px', fontSize: 12.5, lineHeight: 1.8, color: 'var(--ink-2)', letterSpacing: '.3px' }}>
+                      本题为多选：{missed.length > 0 && `漏选 ${missed.length} 项（${missed.join('、')}）`}
+                      {missed.length > 0 && extra.length > 0 && ' · '}
+                      {extra.length > 0 && `错选 ${extra.length} 项（${extra.join('、')}）`}
+                    </p>
+                  )
+                })()}
                 <div className={'answer-scroll-box ' + ((objective ? grade?.correct : lastRating === '记得') ? 'ok' : 'bad')}>
                   <h5>{(objective ? grade?.correct : lastRating === '记得') ? '参考答案' : '正确答案'}</h5>
                   <p>{shownAnswer}</p>
