@@ -207,11 +207,34 @@ async function reloadAll() {
       } else throw e
     }
     if (seq !== reloadSeq) return
-    /* 书本映射：云端优先，其次本机，都没有就零损失迁移（现有题目全归默认书） */
+    /* 书本映射：云端优先，其次本机，都没有才零损失迁移（现有题目全归默认书）。
+       ── 防覆盖闸（2026-09-12 事故整改 P0）──
+       旧逻辑「云端读不到 → 回退本机旧映射 → 自动回写云端」存在整库覆盖风险：
+       会话瞬态 / books 行异常消失 / 映射形状损坏，都会表现为「读不到」，
+       此时回写就会拿本机过期书架覆盖云端（9/12 事故：面试书 273 题归属被清空）。
+       新规则：boot 期只有两种情形允许回写——
+       ① 云端读到有效映射（正常收敛：收养未知题 / 清理死引用）；
+       ② 复核确认 books 行确实不存在、且本机也无映射（真·全新装机 → migrateBooks 首写）。
+       其余情形一律本机兜底显示、禁止回写，并置 syncError 提示，等下次 reload 读到云端再收敛。 */
     const cloud = data.books
-    let bk = (cloud && cloud.books && cloud.order) ? cloud : loadBooksLocal()
-    let mutated = !(cloud && cloud.books && cloud.order)
-    if (!bk || !bk.books || !bk.order) { bk = migrateBooks(data.questions.map((q) => q.id)); mutated = true }
+    let cloudOk = !!(cloud && cloud.books && cloud.order)
+    let effective = cloud
+    let bootWriteAllowed = cloudOk
+    if (!cloudOk) {
+      let recheck
+      try { recheck = await repo.loadBooksRaw() } catch { recheck = undefined }
+      if (recheck && recheck.books && recheck.order) {
+        /* 复核读到了有效云端映射（首次读取是瞬态异常）→ 以云端为准，允许正常收敛 */
+        effective = recheck; cloudOk = true; bootWriteAllowed = true
+      } else if (recheck === null && !loadBooksLocal()) {
+        /* 行确实不存在且本机无映射 = 真·全新装机 → 允许 migrateBooks 首写 */
+        bootWriteAllowed = true
+      }
+      /* 其余情形（行异常消失但本机有旧映射 / 复核读失败 / 形状仍损坏）：保持禁写 */
+    }
+    let bk = (cloudOk ? effective : null) ?? loadBooksLocal()
+    let mutated = !(bk && bk.books && bk.order)
+    if (mutated) { bk = migrateBooks(data.questions.map((q) => q.id)); bootWriteAllowed = true }
     bk.assign = bk.assign ?? {}
     const known = new Set(Object.keys(bk.assign))
     for (const q of data.questions) if (!known.has(q.id)) { bk.assign[q.id] = bk.activeBookId; mutated = true }
@@ -227,10 +250,10 @@ async function reloadAll() {
       cards: data.cards, records: pendingRecordsMerged(data.records),
       /* §44：保护窗口内保留本机 settings（可能比云端新——写云端在途/失败都会造成云端旧值回灌） */
       settings: Date.now() < settingsLocalUntil ? useStore.getState().settings : data.settings,
-      syncError: null,
+      syncError: cloudOk ? null : '云端书架映射异常，已暂停书架同步以保护云端数据（其余功能不受影响）',
       books: bk.books, bookOrder: bk.order, activeBookId: bk.activeBookId, assign: bk.assign
     })
-    if (mutated) persistBooks(useStore.getState())
+    if (mutated && bootWriteAllowed) persistBooks(useStore.getState())
   } catch (e) {
     console.error('[reload] 云端拉取失败', e)
     useStore.setState({ syncError: '云端同步失败：' + (e && e.message ? e.message : '网络异常') + '（点击关闭）' })
