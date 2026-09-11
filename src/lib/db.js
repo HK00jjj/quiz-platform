@@ -173,6 +173,20 @@ export class CloudRepo {
     const { error } = await this.client.from('settings').upsert({ key: 'app', value })
     if (error) throw error
   }
+  /* ═══ 考试判定服务端 RPC（2026-09-11 §3.2 落地）═══
+     exam_state 是段位/补考/错题单的服务端权威（客户端无任何直写策略）；
+     开考抽题与交卷判分全部上收——客户端传的"对错自报"不再被采信。
+     settings.rank/examFails/examWrongs 自此退化为服务端结论的**展示镜像**（由 verdict 回写）。 */
+  async examStart(pSize, poolIds) {
+    const { data, error } = await this.client.rpc('exam_start', { p_size: pSize, p_pool: poolIds ?? null })
+    if (error) throw error
+    return data // { attempt_id, question_ids }
+  }
+  async examSubmit(attemptId, answers) {
+    const { data, error } = await this.client.rpc('exam_submit', { p_attempt_id: attemptId, p_answers: answers })
+    if (error) throw error
+    return data // { score, total, passed, new_rank, chances_left, wrong_ids }
+  }
   subscribe(cb) {
     const ch = this.client.channel('quiz-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'questions' }, () => cb('questions'))
