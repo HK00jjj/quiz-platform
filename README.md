@@ -1,7 +1,7 @@
 # 交接文档 · 糖果题库（quiz-platform）
 
 > 写给下一个接手的会话。读完这一份就能独立干活，不需要翻历史对话。
-> 最后更新：2026-09-11 下午，对应线上提交 `a3c5e77`。
+> 最后更新：2026-09-11 下午，对应线上提交 `76f7873`。
 
 ## 2026-09-11 下午增量（commit a3c5e77，bundle index-DdMJaUAG.js）· 全面机制审查整改（7 项）+ 备份链路两处缺陷修复
 
@@ -66,6 +66,30 @@ verify-live 27/27 200 OK + 三哈希 MATCH + `LIVE RESULT: ALL OK`。
 现役口径（PIPELINE.md + 代码）本就是 2~4，故改文档而非改代码；② 曾拟删 `assessEntries`，
 grep 发现 tests/storage.regression.mjs 仍引用，保留。教训沿用：**文档说 A 代码说 B 时，
 先查代码注释里的裁决记录，再定谁错**。
+
+### 追加（同日·第二轮，commit 76f7873，bundle index-BP7vLVUg.js）· 备份自足化 + 修「导出→恢复出 0 题」
+
+补完整改第 1 项（P0 备份自足化）。过程中挖出一个**比原报告更严重的既有 bug**：
+
+1. **【既有 bug·重要】导出→恢复字段键错配，恢复出来恒为 0 题**：`exportBackup` 写的是
+   store/DB 同形的**英文键**（seq/type/stem/answer/options…），而 `parseBackup → toQuestions → toItem`
+   只认出题管道的**中文键**（序号/题型/题干/答案）→ 恢复时每条都判「缺少有效序号」被丢弃。
+   即：**备份按钮给的是假安全感，导出的文件根本恢复不回来**。实测确认（英文键 payload → 0 题，
+   中文键 → 1 题）。修法：仅在 `parseBackup` 内加一层英→中映射 `backupItemToRaw`，
+   **不动 `toItem`**——出题管道「只认中文键」的严格契约必须保留，否则会把畸形输入放进下游。
+2. **备份自足化**：export 的 `questions` 从 scoped 的 `questions`（**当前书**）改为 `allQuestions`
+   （全库），并把书本结构 `{ books, order, activeBookId, assign }` 一并随包携带。
+   旧格式既漏掉其它书的题，又完全不含书本结构——恢复后全部塌进一本、归书关系归零。
+3. **恢复侧**：store 新增 `applyBookMap`，在 `importBank` 的备份分支调用；形状先过 `validBookMap`
+   校验、再过 `normalizeBookMap` 清洗（丢 order 里不存在的书 / activeBookId 失配回落第一本 /
+   assign 只留指向真实书本且题目在本次备份内的项）——**坏备份只能少恢复，不能写坏书本结构**。
+   旧备份无 `books` 字段 → 整段跳过，老备份恢复行为一字未变（向后兼容）。
+4. **回归**：新增 D 组 13 条（英文键可恢复＝回归锁「修复前恒 0 题」、两本书都覆盖、中文键向后兼容、
+   validBookMap 拒垃圾、normalizeBookMap 三类清洗）。本轮套件 34/34；`run-all.mjs` **ALL GREEN**。
+
+本轮六步链：build ✓（index-BP7vLVUg.js 564868B / index-DEnYBEGr.css 未变；404.html 由插件自动生成）
+→ purge-dist ✓（回收 index-DdMJaUAG.js 550KB）→ deploy commit `76f7873` → verify-deploy ✓（Pages built）
+→ push-src ✓ → verify-live ✓。
 
 ## 2026-09-11 上午增量（commit 40dddc2）· 404.html SPA fallback + 出题全自动流水线 E2E 审查
 
