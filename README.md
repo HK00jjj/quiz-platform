@@ -1,7 +1,35 @@
 # 交接文档 · 糖果题库（quiz-platform）
 
 > 写给下一个接手的会话。读完这一份就能独立干活，不需要翻历史对话。
-> 最后更新：2026-09-11 下午（第三批），对应线上提交 `4bb25e2`。
+> 最后更新：2026-09-11 下午（第四批），对应线上提交 `c2acce1`。
+
+## 2026-09-11 下午增量（commit c2acce1，bundle index-DTuOvSDv.js）· 校准闭环增益阀：探索补盲（v4.16）+ 填空答案多候选判分
+
+用户批准"无限增益"六阀方案后落地（GitHub 调研借鉴：Sympson-Hetter 曝光控制 /
+adaptive-quiz-system-chill；Elo 双向评级 / qBank——后者与 IRT 记入远期参考未实施）：
+
+1. **探索补盲（ability.js v4.16）**：`pickMatched` 新增第四项修正——从未作答的题 -0.08
+   成本减免（EXPLORE_BONUS，介于到期 0.05 与薄弱度 0.1 之间）。动机：未作答题的
+   empDifficulty 全落在先验上，先验偏离目标时会被 nearest-match 永久挤出候选 K，
+   覆盖率卡死在 24%（首答数据是校准飞轮的原料，必须让冷选题进池）。
+2. **填空答案多候选（validate.js）**：单空多候选语法 = 答案段内用 `/`（如
+   `固体异物/固体物质`）；`checkFillBlank` 放宽为"答案段须**包含**题干挖空内容"（主候选
+   仍=挖空内容，导入规则不破坏）；`gradeObjective` 填空分支逐空按候选任一命中即对。
+   实证动机：seq108「固体物质」vs「固体异物」语义正确却计错（answer_records.detail 实锤）。
+   数据侧已 PATCH 2 题：q_mneduo（seq100）→ `正极|信号输出/信号`、q_1peec8v（seq108）→
+   `固体异物/固体物质|水`（备份 `calibration/backup_answers_20260911.json`，
+   `node patch_answers.mjs restore <备份>` 可回滚；seq7「续流」/seq47「接地」经裁决属作答
+   不完整，维持严格判分不补候选）。
+3. **measure.mjs 增强（数据侧，无需部署）**：①口径过严近命中检测——填空错答逐空做
+   "相等或互相包含（≥2字）"比对，命中即列为嫌疑（本日即揪出 seq7/seq47 两例人工裁决）；
+   ②难度供给体检——目标通过率 tPass=0.85−0.2t 同口径，统计 ±0.10 内可选题（预警线 40）
+   与高难储备（p≤0.4，61 题）。基线：740 题供给充足、无天花板预警。
+4. **回归**：app/tests 全量 34/34 PASS（ALL GREEN）+ scripts/t-ability.mjs 18/18 PASS。
+5. **六步链全过**：build ✓（index-DTuOvSDv.js 550.69kB/566216B）→ purge 1 孤儿 553KB →
+   deploy commit `c2acce1` → verify-deploy IDENTICAL → push-src 92/92 SRC BACKUP OK →
+   verify-live 27/27 200 OK 三哈希 MATCH。
+6. **未做（待批/待条件）**：②主观题服务端判分 RPC（需 Supabase CLI 登录态，工程量最大）；
+   ⑥EWMA 半衰期重校（等记录量 2000+ 才有统计意义）；Elo 双向评级（备选远期方案）。
 
 ## 2026-09-11 下午增量（commit a3c5e77，bundle index-DdMJaUAG.js）· 全面机制审查整改（7 项）+ 备份链路两处缺陷修复
 
