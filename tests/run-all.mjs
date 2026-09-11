@@ -27,7 +27,9 @@ const SUITE = [
   { name: '离线队列+书表落库回归', cmd: 'node', args: ['tests/offline-queue.regression.mjs'] },
   { name: '跨批撞库分桶预筛回归', cmd: 'node', args: ['tests/crossbatch.regression.mjs'] },
   /* 2026-09-11 v6.9 错因标签（GitLab learn-anything 错因分类法落实） */
-  { name: '错因标签枚举回归', cmd: 'node', args: ['tests/expl-cause.regression.mjs'] }
+  { name: '错因标签枚举回归', cmd: 'node', args: ['tests/expl-cause.regression.mjs'] },
+  /* 2026-09-12 顶尖段适配（专家段斜率 + 窗口按题去重） */
+  { name: '顶尖段适配回归', cmd: 'node', args: ['tests/ability-expert.regression.mjs'] }
 ]
 
 let failed = 0

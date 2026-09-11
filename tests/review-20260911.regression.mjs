@@ -64,7 +64,10 @@ ok('A6 normId 带 qn_ 前缀，与主键 q_ 互不冲突',
 }
 
 /* ── B：EWMA 不双重计入 ── */
-const recs = (arr) => arr.map((c, i) => ({ questionId: 'q', correct: c, timestamp: 1000 + i }))
+/* 2026-09-12 窗口语义升级为"按题去重取最近一条"（顶尖段适配②）后，构造器改为
+   逐条不同 questionId——同题记录在新语义下会被去重成一票，无法再锁"记录数"口径。
+   全部断言期望值一字未变（各题互异时新旧行为数学等价）。 */
+const recs = (arr) => arr.map((c, i) => ({ questionId: `q${i}`, correct: c, timestamp: 1000 + i }))
 t('B1 空记录 → 0.65（默认值不变）', abilityOf([]), 0.65)
 t('B2 无对错字段 → 0.65（过滤口径不变）', abilityOf([{ questionId: 'q', timestamp: 1 }]), 0.65)
 /* n≤5 时不再迭代 → 指数 = 前 n 条的简单比例。旧实现会给出 0.49939943…（前 5 条被算两遍） */
