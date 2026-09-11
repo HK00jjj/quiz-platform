@@ -1,7 +1,32 @@
 # 交接文档 · 糖果题库（quiz-platform）
 
 > 写给下一个接手的会话。读完这一份就能独立干活，不需要翻历史对话。
-> 最后更新：2026-09-11 晚（第六批），对应线上提交 `b025fe33`。
+> 最后更新：2026-09-11 晚（第七批），对应线上提交见 git log（第七批 = 考试判定服务端化客户端上线）。
+
+## 2026-09-11 晚间增量（第七批）· 考试判定服务端化 v1 全链路上线
+
+两份 SQL 已由 AI 经 Supabase Management API 执行（用户生成的 7 天期访问令牌授权，用后删除）：
+`supabase_migrations/exam_rpc_v1/01_exam_rpc.sql` + `app/supabase/migrations/20260911_rls_owner_lock.sql`。
+
+1. **云端已生效（全部实测验证）**：
+   - 新表 exam_state / exam_attempts / exam_audit；exam_state 仅 SELECT 自身策略（写路径物理不存在）；
+   - RPC exam_start(p_size, p_pool) / exam_submit——均 SECURITY DEFINER + search_path=public；
+   - owner-lock：四表（questions/review_cards/answer_records/settings）仅绑定教师账号
+     `06006dc2-2df7-4a1e-9bf1-84fd7692a7dd`（1928260816@qq.com），anon 全撤；
+     ⚠ 第二个账号 explorer123@gmail.com 从此无表访问权（单用户模板预期行为）；
+   - 实测：anon 读题 401、anon/登录直写 exam_state 401/403（"改 rank 直达王者"路径封死）、
+     登录态读四表正常（站点与脚本不受影响）、审计触发器工作（exam_audit 3 条）；
+   - 踩坑：云端 questions 表**无 image 列**——exam_start 初版 image 过滤报 42703，已修复
+     （改 p_pool 双路径：客户端传当前书考池 id，服务端只在此池内随机抽——保留四闸按书口径）；
+   - 段位存量回填：青铜 / examFails 0 / 原 lastExamAt 已迁入 exam_state。
+2. **客户端（本批部署）**：db.js 增 examStart/examSubmit RPC 封装；Learn.jsx ExamModal 重构——
+   开考=服务端抽题（含 attemptId 随进度持久化，续考复用同一 attempt），交卷/放弃=exam_submit
+   服务端结算（放弃=上交已答部分按实得分判失败），客户端即时判分降级为过程展示；
+   finishExam 只做"服务端结论镜像进 settings"（闸④/四闸 UI 零改动）。settings 自此为展示镜像，
+   权威在 exam_state。开考失败 fail-closed（不降级本地判分）。
+3. **v1 边界（诚实）**：四闸仍客户端声明；settings 镜像字段属主可自改（仅影响显示，
+   权威在 exam_state 且有审计）。v2 = exam_start 内做服务端四闸校验。
+4. 回归 10 套件 ALL GREEN；部署链与 verify-live 见本批 commit。
 
 ## 2026-09-11 晚间增量（commit b025fe33，bundle index-Db16wKLt.js 551.13KB）· 八平台检索报告落实（第二批）
 

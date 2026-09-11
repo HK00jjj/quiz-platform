@@ -11,7 +11,7 @@ import { isDue } from '../lib/fsrs'
 import { recallDue, buildRecallItems, weakDomains, RECALL_GRADES } from '../lib/recall'
 import { shouldSnapshot, buildSnapshot, pushSnapshot, trendOf } from '../lib/snapshot'
 import { todayStr, streakLength } from '../lib/dates'
-import { shuffle } from '../lib/util.js'
+import { repo } from '../lib/db'
 
 const DOMAINS_ALL = Array.from({ length: 27 }, (_, i) => `K${i + 1}`)
 
@@ -58,11 +58,13 @@ function FilterModal({ title, filters, onToggle, onClose, onStart, count, startL
   )
 }
 
-/* 晋级赛弹窗（2026-09-09 晨改版：百分制——随机抽 100 道客观题（含图题不进考池、
-   考池不足按池缩容），答对 ≥90%（即 90 分）晋级）。逐题作答即时判分。
-   纯考试：不写 records / 不动 SRS / 不进 EWMA——考完由 onDone 把结果交回 Learn 结算。
-   进度持久化：百题考试耗时较长，每答一题写 localStorage（qp-exam-progress），
-   意外刷新/关闭后重开自动续考；交卷或放弃时清除。 */
+/* 晋级赛弹窗（2026-09-09 晨改版：百分制——随机抽 100 道客观题（考池不足按池缩容），
+   答对 ≥90%（即 90 分）晋级。逐题作答即时判分（**仅作答题反馈展示**）。
+   2026-09-11 §3.2 服务端化：开考调 exam_start RPC（服务端在候选池内随机抽题并登记
+   attempt），交卷调 exam_submit RPC（服务端以 questions.answer 为唯一真值判分并结算
+   段位状态机）——客户端自报的对错只影响答题过程展示，不再决定晋级。
+   进度持久化：每答一题写 localStorage（qp-exam-progress，含 attemptId——续考必须复用
+   同一 attempt，重复开考会留下孤儿 attempt）。交卷或放弃时清除。 */
 const EXAM_PROGRESS_KEY = 'qp-exam-progress'
 /* 考试错题单的**旧存储位**。2026-09-11 审查整改：真源迁到云端 settings.examWrongs——
    原先纯 localStorage 时，删掉这个键即可直接绕过闸④（上场考试错题消号），
@@ -75,59 +77,115 @@ function legacyExamWrongs() {
 }
 
 function ExamModal({ pool, target, size, passScore, onDone }) {
-  const [deck] = useState(() => {
-    const saved = JSON.parse(localStorage.getItem(EXAM_PROGRESS_KEY) ?? 'null')
-    if (saved && Array.isArray(saved.ids)) {
-      const byId = new Map(pool.map((q) => [q.id, q]))
-      const rebuilt = saved.ids.map((id) => byId.get(id)).filter(Boolean)
-      /* 续考有效性：题都在、进度未越界且考题数与当前考制一致——题库变更/改制则重考。
-         2026-09-11：上界判定原为 `<=`，应为 `<`——round 是 0 基下标，只有 <length 才有题；
-         `<=` 会让 round===length 的损坏进度被当作有效，渲染时 q 为 undefined → 弹窗返回 null、
-         进度又不清除，表现为"考试打不开且无法恢复"。当前答题流到不了该状态（满题即交卷），
-         属防御性修复。 */
-      if (rebuilt.length === saved.ids.length && saved.ids.length === size && saved.round < saved.ids.length) {
-        return { qs: rebuilt, resume: saved }
-      }
-    }
-    return { qs: shuffle(pool).slice(0, size), resume: null }
-  })
-  const [round, setRound] = useState(deck.resume?.round ?? 0)
-  const [wins, setWins] = useState(deck.resume?.wins ?? 0)
-  /* 错题跟踪（v6.1）：本场答错的题 id 列表，交卷/放弃随 onDone 上报，
-     失败后写入 qp-exam-wrongs 供"错题重练"消号；续考时随进度一并恢复。 */
-  const [wrongIds, setWrongIds] = useState(deck.resume?.wrongs ?? [])
+  /* 服务端化重构：deck 由 RPC 异步产出（原为 useState 同步初始化）。
+     phase: loading → ready / error。attemptId 必须随进度持久化——续考复用同一 attempt。 */
+  const [deck, setDeck] = useState(null)          // { qs, attemptId }
+  const [examErr, setExamErr] = useState(null)
+  const [sending, setSending] = useState(false)   // 交卷 RPC 在途
+  const [round, setRound] = useState(0)
+  const [wins, setWins] = useState(0)
+  /* 错题跟踪（v6.1）：本场答错的题 id 列表——仅用于过程展示与续考恢复，
+     最终错题单以服务端 exam_submit 返回的 wrong_ids 为准。 */
+  const [wrongIds, setWrongIds] = useState([])
+  const [answers, setAnswers] = useState({})      // {qid: 最终提交的答案文本}
   const [input, setInput] = useState('')
   const [multi, setMulti] = useState([])
   const [verdict, setVerdict] = useState(null)
+
+  useEffect(() => {
+    let alive = true
+    ;(async () => {
+      const saved = JSON.parse(localStorage.getItem(EXAM_PROGRESS_KEY) ?? 'null')
+      if (saved && saved.attemptId && Array.isArray(saved.ids)) {
+        const byId = new Map(pool.map((x) => [x.id, x]))
+        const rebuilt = saved.ids.map((id) => byId.get(id)).filter(Boolean)
+        /* 续考有效性：attemptId 在、题都在、进度未越界且考题数与当前考制一致。
+           （round < 上界 的防御性语义见 2026-09-11 修复注：round 是 0 基下标。） */
+        if (rebuilt.length === saved.ids.length && saved.ids.length === size && saved.round < saved.ids.length) {
+          if (!alive) return
+          setDeck({ qs: rebuilt, attemptId: saved.attemptId })
+          setRound(saved.round); setWins(saved.wins ?? 0)
+          setWrongIds(saved.wrongs ?? []); setAnswers(saved.answers ?? {})
+          return
+        }
+      }
+      try {
+        const v = await repo.examStart(size, pool.map((x) => x.id))
+        const byId = new Map(pool.map((x) => [x.id, x]))
+        const qs = (v.question_ids ?? []).map((id) => byId.get(id)).filter(Boolean)
+        if (!alive) return
+        if (qs.length < 10) { setExamErr('服务端考池不足（<10）'); return }
+        setDeck({ qs, attemptId: v.attempt_id })
+      } catch (e) {
+        if (alive) setExamErr(String(e?.message ?? e))
+      }
+    })()
+    return () => { alive = false }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  if (examErr) return (
+    <div className="modal-veil">
+      <div className="modal-box exam-box">
+        <div className="exam-head"><span>⚔️ 晋级赛</span></div>
+        <p style={{ color: 'var(--bad, #c0392b)', fontSize: 14 }}>开考失败（fail-closed：服务端不可用时不降级到本地判分）：{examErr}</p>
+        <GiltBtn size="sm" onClick={() => onDone({ aborted: true })}>关闭</GiltBtn>
+      </div>
+    </div>
+  )
+  if (!deck) return (
+    <div className="modal-veil">
+      <div className="modal-box exam-box">
+        <div className="exam-head"><span>⚔️ 晋级赛 · 服务端抽题中…</span></div>
+        <div className="rank-bar"><span style={{ width: '40%', background: target.color }} /></div>
+      </div>
+    </div>
+  )
+
   const q = deck.qs[round]
   if (!q) return null
   const isChoice = q.type === '单选题' || q.type === '多选题'
   const isMulti = q.type === '多选题'
   const canSubmit = isMulti ? multi.length > 0 : input.trim().length > 0
 
-  function saveProgress(nextRound, nextWins, nextWrongs) {
-    try { localStorage.setItem(EXAM_PROGRESS_KEY, JSON.stringify({ ids: deck.qs.map((x) => x.id), round: nextRound, wins: nextWins, wrongs: nextWrongs })) } catch { /* 存储满等异常不阻断考试 */ }
+  function saveProgress(nextRound, nextWins, nextWrongs, nextAnswers) {
+    try { localStorage.setItem(EXAM_PROGRESS_KEY, JSON.stringify({ attemptId: deck.attemptId, ids: deck.qs.map((x) => x.id), round: nextRound, wins: nextWins, wrongs: nextWrongs, answers: nextAnswers })) } catch { /* 存储满等异常不阻断考试 */ }
   }
   function submit() {
     const text = isMulti ? multi.join('') : input
     let g
-    try { g = gradeObjective(q, text) } catch { g = { correct: false, expected: q.answer ?? '—' } } // v6.1 fail-closed：判分异常按答错计，绝不放行
+    try { g = gradeObjective(q, text) } catch { g = { correct: false, expected: q.answer ?? '—' } } // fail-closed：异常按答错计（仅展示层面）
     setVerdict(g)
+    setAnswers((a) => ({ ...a, [q.id]: text }))
     if (g.correct) setWins((w) => w + 1)
     else setWrongIds((w) => (w.includes(q.id) ? w : [...w, q.id]))
   }
   function nextRound() {
     /* 得分口径修复（2026-09-09 v4.13）：submit() 已通过 setWins 把本题得分计入 wins，
-       此处再按 verdict +1 会把最后一题答对重复计分（交卷 pass 判定虚高 1 分、
-       续考进度存档同样虚高）——nextWins 直接取 wins 即为本题提交后的真实累计分。 */
+       此处不再重复计分（nextWins 直接取 wins）。 */
     const nextWins = wins
+    const nextWrongIds = wrongIds
+    const nextAnswers = { ...answers, [q.id]: (isMulti ? multi.join('') : input) }
     if (round + 1 >= deck.qs.length) {
-      localStorage.removeItem(EXAM_PROGRESS_KEY)
-      onDone({ pass: nextWins >= passScore, wins: nextWins, wrongIds })
+      sendVerdict(nextWins, nextWrongIds, nextAnswers, false)
       return
     }
-    saveProgress(round + 1, nextWins, wrongIds)
+    saveProgress(round + 1, nextWins, nextWrongIds, nextAnswers)
     setRound((r) => r + 1); setInput(''); setMulti([]); setVerdict(null)
+  }
+  /* 交卷/放弃统一走服务端结算。放弃=把已答部分上交（服务端按实际得分判失败），
+     保证"放弃算失败"由服务端记账，客户端不再自扣补考次数。 */
+  async function sendVerdict(nextWins, nextWrongIds, finalAnswers, quit) {
+    if (sending) return
+    setSending(true)
+    try {
+      const v = await repo.examSubmit(deck.attemptId, finalAnswers)
+      localStorage.removeItem(EXAM_PROGRESS_KEY)
+      onDone({ server: v, quit, wins: nextWins, wrongIds: nextWrongIds })
+    } catch (e) {
+      setSending(false)
+      setExamErr('结算失败：' + String(e?.message ?? e) + '——进度已保留，重开考试可续考后再次交卷')
+    }
   }
 
   return (
@@ -170,10 +228,10 @@ function ExamModal({ pool, target, size, passScore, onDone }) {
           {!verdict ? (
             <GiltBtn size="sm" onClick={submit} disabled={!canSubmit}>提交本题</GiltBtn>
           ) : (
-            <GiltBtn size="sm" onClick={nextRound}>{round + 1 >= deck.qs.length ? `交卷（${wins} 分）` : '下一题'}</GiltBtn>
+            <GiltBtn size="sm" onClick={nextRound} disabled={sending}>{sending ? '服务端结算中…' : (round + 1 >= deck.qs.length ? `交卷（${wins} 分）` : '下一题')}</GiltBtn>
           )}
-          <button className="exam-quit" onClick={() => { localStorage.removeItem(EXAM_PROGRESS_KEY); onDone({ pass: false, wins, wrongIds, quit: true }) }}>放弃本场（算失败）</button>
-          <span style={{ fontSize: 11.5, color: 'var(--muted)' }}>每题自动存进度，刷新后可续考</span>
+          <button className="exam-quit" disabled={sending} onClick={() => sendVerdict(wins, wrongIds, { ...answers, [q.id]: (isMulti ? multi.join('') : input) }, true)}>放弃本场（算失败）</button>
+          <span style={{ fontSize: 11.5, color: 'var(--muted)' }}>每题自动存进度，刷新后可续考；判分与段位由服务端结算</span>
         </div>
       </div>
     </div>
@@ -348,29 +406,29 @@ export default function Learn() {
     setRecallPick({})
   }
 
-  function finishExam({ pass, wins, wrongIds = [], quit }) {
+  /* 考试结算（2026-09-11 §3.2 服务端化）：晋级/补考/周期作废全部由服务端
+     exam_submit RPC 判定并写入 exam_state（客户端对该表无任何写策略，实测直写 403）。
+     本函数只做两件事：把服务端结论**镜像**进 settings（rank/examFails/lastExamAt/examWrongs
+     ——闸④消号与四闸统计仍读 settings，镜像让既有 UI 零改动），并渲染结算文案。 */
+  function finishExam({ server, quit, wins, wrongIds = [] }) {
     setExamOpen(false)
-    const { official, next, passScore, examSize, examFails } = rank
-    if (pass && next) {
-      updateSettings({ rank: next.name, lastExamAt: Date.now(), examFails: 0, examWrongs: null })
-      setPromo({ kind: 'promo', title: `晋级成功！${official.emoji} ${official.name} → ${next.emoji} ${next.name}`, sub: `百分制 ${examSize} 题考得 ${wins} 分（≥${passScore} 过线）。段位只能一级一级考上去——继续刷，向着最强王者进发。题库已全部刷穿：去导入页发下一批源题，难度随新源题上台阶` })
+    if (!server) return // 开考失败被关闭（fail-closed，无服务端记录，不产生任何状态变化）
+    const { official, next, passScore, examSize } = rank
+    if (server.passed && next) {
+      updateSettings({ rank: server.new_rank, lastExamAt: Date.now(), examFails: 0, examWrongs: null })
+      setPromo({ kind: 'promo', title: `晋级成功！${official.emoji} ${official.name} → ${(RANKS.find((r) => r.name === server.new_rank) ?? next).emoji} ${server.new_rank}`, sub: `服务端判分：${server.score}/${server.total}（≥${passScore} 过线）。段位只能一级一级考上去——继续刷，向着最强王者进发` })
+    } else if (server.passed) {
+      /* 已在最强王者：通过不再升段，服务端仅重置周期 */
+      updateSettings({ lastExamAt: Date.now(), examFails: 0, examWrongs: null })
+      setPromo({ kind: 'promo', title: `守擂成功！${official.emoji} ${official.name}`, sub: `服务端判分：${server.score}/${server.total}。已是最高段位——继续保持` })
+    } else if (server.chances_left >= EXAM_ATTEMPTS) {
+      /* 第 3 次失败：服务端已作废周期（examFails 归零/lastExamAt 重置/错题清空），客户端镜像 */
+      updateSettings({ examFails: 0, lastExamAt: Date.now(), examWrongs: null })
+      setPromo({ kind: 'demote', title: `补考机会用完（${EXAM_ATTEMPTS} 战 ${EXAM_ATTEMPTS} 败）：晋级周期重新开始`, sub: `${quit ? '放弃本场' : '本场'} 服务端判分 ${server.score} / ${server.total} 题（${passScore} 分线）。本周期作废——覆盖与掌握进度已清零，错题单已作废，请重新刷穿全库再挑战「${next?.name ?? '下一段位'}」` })
     } else {
-      /* 补考机会（2026-09-09 午后二改，用户裁决）：每周期 3 次。
-         失败先记本场错题（练习中答对即消）；未用完 3 次前资格保留，lastExamAt 不重置；
-         第 3 次失败 → 周期作废重来：lastExamAt 重置（覆盖/掌握进度清零）、错题单作废、
-         计数归零，重新刷穿全库再考。"放弃本场"同样按失败计数。 */
-      /* 错题单落点从 localStorage 迁到云端 settings.examWrongs（2026-09-11 审查整改）：
-         原先删掉 qp-exam-wrongs 这一个键就能跳过闸④的"错题消号"，段位可信度受损。
-         迁移后闸④状态由账号（云端 + RLS）持有，客户端不能单方重置。 */
-      const wrongs = { failedAt: Date.now(), ids: [...new Set(wrongIds)] }
-      const fails = examFails + 1
-      if (fails >= EXAM_ATTEMPTS) {
-        updateSettings({ examFails: 0, lastExamAt: Date.now(), examWrongs: null })
-        setPromo({ kind: 'demote', title: `补考机会用完（${EXAM_ATTEMPTS} 战 ${EXAM_ATTEMPTS} 败）：晋级周期重新开始`, sub: `${quit ? '放弃本场' : '本场'} ${wins} 分 / ${passScore} 分线。本周期作废——覆盖与掌握进度已清零，错题单已作废，请重新刷穿全库（练习中答对每一题）+ 清错题，四闸再次全绿后即可重新挑战「${next?.name ?? '下一段位'}」` })
-      } else {
-        updateSettings({ examFails: fails, examWrongs: wrongs })
-        setPromo({ kind: 'demote', title: `${quit ? '放弃本场' : '晋级失败'}（${wins} 分 / ${passScore} 分线）：${official.emoji} ${official.name}`, sub: wrongIds.length ? `差 ${Math.max(0, passScore - wins)} 分。本场上答错的 ${wrongIds.length} 道题已记入错题重练——去练习里把它们答对（答对即消），全部消完就能再次挑战「${next?.name ?? '下一段位'}」。本周期还剩 ${EXAM_ATTEMPTS - fails} 次补考机会，用完将重新刷库` : `差 ${Math.max(0, passScore - wins)} 分。晋级资格保留，可再次挑战「${next?.name ?? '下一段位'}」。本周期还剩 ${EXAM_ATTEMPTS - fails} 次补考机会，用完将重新刷库` })
-      }
+      const fails = EXAM_ATTEMPTS - server.chances_left
+      updateSettings({ examFails: fails, examWrongs: { failedAt: Date.now(), ids: server.wrong_ids ?? [] } })
+      setPromo({ kind: 'demote', title: `${quit ? '放弃本场' : '晋级失败'}（服务端判分 ${server.score} / ${server.total} 题，${passScore} 分线）：${official.emoji} ${official.name}`, sub: (server.wrong_ids ?? []).length ? `本场上答错的 ${(server.wrong_ids ?? []).length} 道题已记入错题重练——去练习里把它们答对（答对即消），全部消完就能再次挑战「${next?.name ?? '下一段位'}」。本周期还剩 ${server.chances_left} 次补考机会` : `晋级资格保留，可再次挑战「${next?.name ?? '下一段位'}」。本周期还剩 ${server.chances_left} 次补考机会，用完将重新刷库` })
     }
     if (promoTimer.current) clearTimeout(promoTimer.current)
     promoTimer.current = setTimeout(() => setPromo(null), 8000)
