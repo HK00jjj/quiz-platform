@@ -219,6 +219,20 @@ export default function Practice() {
   /* 展示给用户的答案：选择题把原始字母换算成洗牌后的字母；填空题多空时逐空列出，
      比原来一串逗号好读。注意这里用 lastGrade 而不是下面才声明的 grade（const 有 TDZ，会整页崩溃）。 */
   const mapLetters = (s) => String(s ?? '').split('').map((c) => origToDisp[c] ?? c).join('')
+  /* v6.8 解析字母重映射（用户报障"题目与选项存在对不上"的根因修复）：
+     练习页选项经 shuffledOrder 洗牌展示，而【题库解析】里的"选B者误以为…""故选项C…"
+     用的是**命题时的原始字母**，过去原样渲染 → 用户按屏幕上的字母去对，对上的却是另一项。
+     这里把解析文本中的选项指代同步换算为洗牌后的字母。
+     限定范围：只重映射紧跟在 选 / 选项 / 答案 之后、或紧邻"项"字的 A~E 单字母，
+     绝不逐字符替换——否则 I0.0、AC-3、K1、DC24V、380V 这类技术符号会被误伤。
+     非选择题（optItems 为空 → origToDisp 为 {}）时本函数等价于恒等变换。 */
+  const remapExplLetters = (text) => {
+    const s = String(text ?? '')
+    if (!isChoice || !Object.keys(origToDisp).length) return s
+    return s
+      .replace(/(选|选项|答案)\s*([A-E])/g, (m, p, L) => p + (origToDisp[L] ?? L))
+      .replace(/(?<![A-Za-z0-9.])([A-E])(?=项)/g, (m, L) => origToDisp[L] ?? L)
+  }
   const shownAnswer = !objective ? q.answer
     : isChoice ? mapLetters(lastGrade ? lastGrade.expected : q.answer)
       : q.type === '填空题' && lastGrade?.expectedParts
@@ -502,8 +516,11 @@ export default function Practice() {
                 {objective && grade && !grade.correct && q.type === '多选题' && (() => {
                   const exp = new Set(String(grade.expected ?? '').split(''))
                   const sel = new Set(multi)
-                  const missed = [...exp].filter((L) => !sel.has(L))
-                  const extra = [...sel].filter((L) => !exp.has(L))
+                  /* v6.8：比较仍用原始字母（grade.expected 与 multi 同为原始字母），
+                     但**展示一律换算成洗牌后的显示字母**——否则"漏选 B"会指向
+                     用户屏幕上的另一个选项，与解析错位是同一类问题。 */
+                  const missed = [...exp].filter((L) => !sel.has(L)).map((L) => origToDisp[L] ?? L).sort()
+                  const extra = [...sel].filter((L) => !exp.has(L)).map((L) => origToDisp[L] ?? L).sort()
                   if (missed.length === 0 && extra.length === 0) return null
                   return (
                     <p style={{ margin: '2px 0 8px', fontSize: 12.5, lineHeight: 1.8, color: 'var(--ink-2)', letterSpacing: '.3px' }}>
@@ -518,7 +535,7 @@ export default function Practice() {
                   <p>{shownAnswer}</p>
                   {q.explanation && <>
                     <p className="lab">【题库解析】</p>
-                    <p>{q.explanation}</p>
+                    <p>{remapExplLetters(q.explanation)}</p>
                   </>}
                 </div>
               </div>
@@ -532,7 +549,7 @@ export default function Practice() {
                   <p>{q.answer}</p>
                   {q.explanation && <>
                     <p className="lab">【题库解析】</p>
-                    <p>{q.explanation}</p>
+                    <p>{remapExplLetters(q.explanation)}</p>
                   </>}
                 </div>
               </div>

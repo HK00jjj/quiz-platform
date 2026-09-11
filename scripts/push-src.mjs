@@ -1,9 +1,10 @@
 // 用 GitHub Git Data API 把源码工程推送为独立分支 src（不依赖 git 直连，支持断点续传）
-// 用法: node push-src.mjs <token> <appDir> <toolsDir> <readmePath>
+// 用法: node push-src.mjs <token> <appDir> <toolsDir> <readmePath> [额外文件...]
+// 额外文件按文件名放到分支根（用来备份工作区根目录的 verify-*.mjs、HANDOFF.md 等）
 import { readFileSync, readdirSync, statSync } from 'fs'
 import { createHash } from 'crypto'
 
-const [, , token, appDir, toolsDir, readmePath] = process.argv
+const [, , token, appDir, toolsDir, readmePath, ...extras] = process.argv
 const repo = 'HK00jjj/quiz-platform'
 const BRANCH = 'src'
 const H = {
@@ -16,10 +17,6 @@ const H = {
 async function req(method, path, body, tries = 4) {
   let lastErr
   for (let i = 1; i <= tries; i++) {
-    // 2026-09-11 修：原先「4xx 不重试」的 throw 写在 try 内，被自己的 catch 吞掉，
-    // 结果 404 这类确定性错误也白跑 3 轮退避重试，还把真实错误淹在 [retry] 噪音里。
-    // 改为先记录 fatal，出 try 后再抛。
-    let fatal = null
     try {
       const r = await fetch('https://api.github.com' + path, {
         method, headers: H,
@@ -28,40 +25,20 @@ async function req(method, path, body, tries = 4) {
       })
       const t = await r.text()
       if (r.ok) return t ? JSON.parse(t) : null
-      const e = new Error(`${method} ${path} -> ${r.status}: ${t.slice(0, 200)}`)
-      // 4xx 除 409/422 外不重试（网络层抖动才值重试）
-      if (r.status < 500 && r.status !== 409 && r.status !== 422) fatal = e
-      lastErr = e
+      // 4xx 除 409/422 外不重试
+      if (r.status < 500 && r.status !== 409 && r.status !== 422) throw new Error(`${method} ${path} -> ${r.status}: ${t.slice(0, 200)}`)
+      lastErr = new Error(`${method} ${path} -> ${r.status}: ${t.slice(0, 200)}`)
     } catch (e) { lastErr = e }
-    if (fatal) throw fatal
     if (i < tries) { console.log(`  [retry ${i}] ${lastErr.message}`); await new Promise(s => setTimeout(s, 3000 * i)) }
   }
   throw lastErr
 }
 
-/* 备份排除清单（2026-09-11 审查整改新增）——三条各自有硬理由，别随手删：
-   ① .env / .env.*：凭据文件。本仓库 public，一旦进备份即等于公开（红线：
-      「token 不落盘不进任何会被 push 的文件」）。本地 .env 存 E2E 测试账号口令。
-   ② *.timestamp-*.mjs：Vite 配置加载时吐的临时产物（vite.config.js.timestamp-*.mjs），
-      一次性、无价值，历史备份里混进过两份。
-   ③ .github/workflows/**：GitHub 要求 token 具备 workflow scope 才可写该路径。
-      本 token 仅 repo scope，命中即整批 404（实测：单条 .github/workflows/ci.yml
-      即失败，删掉它其余 69 条全过）。若要备份 CI 配置，需给 PAT 补 workflow scope。
-      例外：设 QP_SRC_INCLUDE_CI=1 可强制纳入（给已补 scope 的 token 用），
-      此时若仍 404 则由下方第 4 步的降级层自动剔除并警告。 */
-const SKIP_RE = [
-  /^\.env(\.|$)/,
-  /\.timestamp-\d+[^/]*\.mjs$/,
-  ...(process.env.QP_SRC_INCLUDE_CI ? [] : [/^\.github\/workflows\//])
-]
-const skipped = []
-
 function walk(dir, base, out) {
   for (const n of readdirSync(dir)) {
     if (n === 'node_modules' || n === 'dist' || n === '.git') continue
-    const rel = base ? base + '/' + n : n
-    if (SKIP_RE.some((re) => re.test(rel))) { skipped.push(rel); continue }
     const p = dir + '/' + n
+    const rel = base ? base + '/' + n : n
     if (statSync(p).isDirectory()) walk(p, rel, out)
     else out.push({ rel, p })
   }
@@ -77,12 +54,17 @@ function blobSha(buf) {
 
 // ---------- 1. 组装待推送清单 ----------
 const files = walk(appDir, '', [])
-for (const t of ['deploy-api.mjs', 'deploy-ghpages.ps1', 'compress-sharp.mjs', 'compress-assets.ps1']) {
-  const p = toolsDir + '/' + t
-  if (statSync(p).isFile()) files.push({ rel: 'scripts/' + t, p })
-}
+// 整个 scripts/ 目录都备份。原来这里是一份 8 个文件的硬编码白名单，
+// 导致 pull-src.mjs / purge-dist.mjs / candy-copy.mjs / 素材脚本从未进过 src 分支，
+// 而它们正是断点续传与回滚时最需要的工具。
+walk(toolsDir, 'scripts', files)
 files.push({ rel: 'README.md', p: readmePath })
-// 把本脚本自己也备份进分支，下次续传无需重写
+// 额外文件（仓库根目录的 verify-*.mjs、HANDOFF.md 等）：按文件名放到分支根
+for (const e of extras) {
+  try { if (statSync(e).isFile()) files.push({ rel: e.split(/[\\/]/).pop(), p: e }) }
+  catch { console.log(`  [skip] 额外文件不存在: ${e}`) }
+}
+// 把本脚本自己也备份进分支，下次续传无需重写（rel 重复时下面的 Map 会自然去重）
 files.push({ rel: 'scripts/push-src.mjs', p: process.argv[1] })
 
 const local = new Map()
@@ -93,10 +75,6 @@ for (const f of files) {
   local.set(f.rel, { sha: blobSha(buf), size: buf.length, buf })
 }
 console.log(`待推送: ${local.size} 个文件, ${(totalBytes / 1048576).toFixed(2)} MB`)
-if (skipped.length) {
-  console.log(`已排除 ${skipped.length} 个（见 SKIP_RE 注释，绝不进备份）:`)
-  skipped.forEach((s) => console.log('  - ' + s))
-}
 
 // ---------- 2. 分支是否已存在（续传用） ----------
 let parentSha = null
@@ -133,28 +111,26 @@ await Promise.all(Array.from({ length: 3 }, async () => {
 }))
 
 // ---------- 4. 建 tree / commit / ref ----------
-const buildTreeBody = () => [...local.entries()].map(([rel, v]) => ({ path: rel, mode: '100644', type: 'blob', sha: v.sha }))
+/* 降级（2026-09-09）：classic PAT 只有 repo scope 时，写 .github/workflows/* 会被
+   GitHub 以 404 掩盖（blob 能传、树里含该路径必 404）。此处 404 后自动剔除 .github/**
+   重试一次，保证其余源码备份不中断；CI 文件等 token 补上 workflow scope 后重跑即可。 */
+const treeBody = [...local.entries()].map(([rel, v]) => ({ path: rel, mode: '100644', type: 'blob', sha: v.sha }))
 let newTree
 try {
-  newTree = await req('POST', `/repos/${repo}/git/trees`, { tree: buildTreeBody() })
+  newTree = await req('POST', `/repos/${repo}/git/trees`, { tree: treeBody })
 } catch (e) {
-  /* 降级层（2026-09-11 补实装；此前 SKILL.md 已声称具备、实际没有——本函数即补上）：
-     GitHub 要求 token 具备 workflow scope 才可写 .github/workflows/*。缺该 scope 时
-     表现为 POST /git/trees 返回 **404**（blob 却能正常上传，故极难排查，本次实测踩到）。
-     把 .github/** 整体剔除后重试一次，并明示警告。回读校验以同一个 local 集合为基准，
-     所以这里 delete 之后仍能判 SRC OK，不会出现"本地有、远端无"的假 MISMATCH。 */
-  if (!/-> 404\b/.test(String(e.message)) || local.size === 0) throw e
-  const drop = [...local.keys()].filter((rel) => rel.startsWith('.github/'))
-  if (drop.length === 0) throw e
-  console.warn('⚠ POST /git/trees -> 404：按降级策略剔除 .github/** 后重试（token 缺 workflow scope）')
-  drop.forEach((rel) => { console.warn('  - ' + rel); local.delete(rel) })
-  newTree = await req('POST', `/repos/${repo}/git/trees`, { tree: buildTreeBody() })
+  if (!/git\/trees -> 404/.test(String(e?.message ?? e))) throw e
+  const kept = treeBody.filter((x) => !x.path.startsWith('.github/'))
+  const skipped = treeBody.length - kept.length
+  if (kept.length === treeBody.length) throw e
+  console.log(`⚠ 建 tree 404（token 缺 workflow scope），剔除 ${skipped} 个 .github/ 条目后重试`)
+  newTree = await req('POST', `/repos/${repo}/git/trees`, { tree: kept })
 }
 console.log('new tree:', newTree.sha)
 
 const now = new Date().toISOString()
 const commit = await req('POST', `/repos/${repo}/git/commits`, {
-  message: 'chore: 备份完整源码工程到 src 分支（React 18 + Vite 5 糖果主题「糖果题库」）',
+  message: 'chore: 备份完整源码工程到 src 分支（React 18 + Vite 5 塔罗主题「奥术典籍馆」）',
   tree: newTree.sha,
   parents: parentSha ? [parentSha] : [],
   author: { name: 'HK00jjj', email: 'hk00jjj@users.noreply.github.com', date: now },
@@ -169,12 +145,16 @@ else await req('POST', `/repos/${repo}/git/refs`, { ref: `refs/heads/${BRANCH}`,
 const check = await req('GET', `/repos/${repo}/git/trees/${BRANCH}?recursive=1`)
 const rmap = new Map()
 for (const e of check.tree) if (e.type === 'blob') rmap.set(e.path, e.sha)
+/* 降级模式下 .github/** 本就不在远端：校验时同样剔除，避免永远 MISMATCH */
+const degraded = newTree.sha !== null && [...local.keys()].some((k) => k.startsWith('.github/')) && ![...rmap.keys()].some((k) => k.startsWith('.github/'))
+const want = degraded ? [...local.keys()].filter((k) => !k.startsWith('.github/')) : [...local.keys()]
 const miss = [], diff = [], extra = []
-for (const [rel, v] of local) {
+for (const rel of want) {
   if (!rmap.has(rel)) miss.push(rel)
-  else if (rmap.get(rel) !== v.sha) diff.push(rel)
+  else if (rmap.get(rel) !== local.get(rel).sha) diff.push(rel)
 }
-for (const rel of rmap.keys()) if (!local.has(rel)) extra.push(rel)
+for (const rel of rmap.keys()) if (!local.has(rel) && !(degraded && rel.startsWith('.github/'))) extra.push(rel)
+if (degraded) console.log('⚠ 本轮为降级备份：.github/** 未推送（token 缺 workflow scope），补 scope 后重跑 push-src 即可补齐')
 console.log(`\n回读校验: 本地 ${local.size} / 远端 ${rmap.size}，缺失 ${miss.length}，不一致 ${diff.length}，多余 ${extra.length}`)
 ;[...miss, ...diff, ...extra].slice(0, 20).forEach(x => console.log('  ✗ ' + x))
 console.log(`分支地址: https://github.com/HK00jjj/quiz-platform/tree/${BRANCH}`)
