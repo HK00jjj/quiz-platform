@@ -46,11 +46,13 @@ async function req(method, path, body, tries = 4) {
       一次性、无价值，历史备份里混进过两份。
    ③ .github/workflows/**：GitHub 要求 token 具备 workflow scope 才可写该路径。
       本 token 仅 repo scope，命中即整批 404（实测：单条 .github/workflows/ci.yml
-      即失败，删掉它其余 69 条全过）。若要备份 CI 配置，需给 PAT 补 workflow scope。 */
+      即失败，删掉它其余 69 条全过）。若要备份 CI 配置，需给 PAT 补 workflow scope。
+      例外：设 QP_SRC_INCLUDE_CI=1 可强制纳入（给已补 scope 的 token 用），
+      此时若仍 404 则由下方第 4 步的降级层自动剔除并警告。 */
 const SKIP_RE = [
   /^\.env(\.|$)/,
   /\.timestamp-\d+[^/]*\.mjs$/,
-  /^\.github\/workflows\//
+  ...(process.env.QP_SRC_INCLUDE_CI ? [] : [/^\.github\/workflows\//])
 ]
 const skipped = []
 
@@ -131,8 +133,23 @@ await Promise.all(Array.from({ length: 3 }, async () => {
 }))
 
 // ---------- 4. 建 tree / commit / ref ----------
-const treeBody = [...local.entries()].map(([rel, v]) => ({ path: rel, mode: '100644', type: 'blob', sha: v.sha }))
-const newTree = await req('POST', `/repos/${repo}/git/trees`, { tree: treeBody })
+const buildTreeBody = () => [...local.entries()].map(([rel, v]) => ({ path: rel, mode: '100644', type: 'blob', sha: v.sha }))
+let newTree
+try {
+  newTree = await req('POST', `/repos/${repo}/git/trees`, { tree: buildTreeBody() })
+} catch (e) {
+  /* 降级层（2026-09-11 补实装；此前 SKILL.md 已声称具备、实际没有——本函数即补上）：
+     GitHub 要求 token 具备 workflow scope 才可写 .github/workflows/*。缺该 scope 时
+     表现为 POST /git/trees 返回 **404**（blob 却能正常上传，故极难排查，本次实测踩到）。
+     把 .github/** 整体剔除后重试一次，并明示警告。回读校验以同一个 local 集合为基准，
+     所以这里 delete 之后仍能判 SRC OK，不会出现"本地有、远端无"的假 MISMATCH。 */
+  if (!/-> 404\b/.test(String(e.message)) || local.size === 0) throw e
+  const drop = [...local.keys()].filter((rel) => rel.startsWith('.github/'))
+  if (drop.length === 0) throw e
+  console.warn('⚠ POST /git/trees -> 404：按降级策略剔除 .github/** 后重试（token 缺 workflow scope）')
+  drop.forEach((rel) => { console.warn('  - ' + rel); local.delete(rel) })
+  newTree = await req('POST', `/repos/${repo}/git/trees`, { tree: buildTreeBody() })
+}
 console.log('new tree:', newTree.sha)
 
 const now = new Date().toISOString()
