@@ -47,11 +47,51 @@ const whereOf = (item) => {
   return s < 0 ? '序号?' : `序号${s}`
 }
 // 题目 id：内容哈希（与线上一致，保证去重与云端主键兼容）
+// ⚠ 2026-09-11 审查结论：本函数直接拼原始串，大小写/全半角/空白差异会生成不同 id
+//    （判分侧 loose() 却做了归一，两处口径不一致）→ 「PLC」与「plc」会被当成两道题入库，
+//    造成题量虚高、跨批「哈希命中自动跳过」失效。
+//    **但 hashId 不能就地改**：它是云端主键，现有 1481 题的 id 都按旧算法生成，
+//    改算法会让全库题目变成"新题"（需配套全库迁移，风险高、收益低）。
+//    故另加一枚**归一化指纹 normId**（qn_ 前缀，绝不与 q_ 主键冲突），
+//    只用于"导入去重"判断，不写库、不作主键——既堵住重复入库，又零破坏。
 export function hashId(stem, type, answer) {
   const s = stem + '\n' + type + '\n' + answer
   let h = 2166136261
   for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619) }
   return 'q_' + (h >>> 0).toString(36)
+}
+
+/* 文本归一（与判分口径对齐）：全角→半角、去空白、ASCII 小写化。
+   loose() 处理的是"答案"，这里处理的是"题干/题型/答案"整体指纹。 */
+export function normText(s) {
+  return String(s ?? '')
+    .replace(/[\uFF01-\uFF5E]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xFEE0))
+    .replace(/\u3000/g, ' ')
+    .replace(/\s+/g, '')
+    .toLowerCase()
+}
+
+export function normId(stem, type, answer) {
+  const s = normText(stem) + '\n' + normText(type) + '\n' + normText(answer)
+  let h = 2166136261
+  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619) }
+  return 'qn_' + (h >>> 0).toString(36)
+}
+
+/* 导入去重（归一化口径）：把「与库内已有题归一化同题」以及「批内归一化同题」的条目剔掉。
+   返回 kept（保留）与 dupes（被判为重复而跳过）。
+   取 q.stem/q.type/q.answer 与库内 q 同形（库内题目也是这套字段）。 */
+export function dropNormalizedDupes(incoming, existing) {
+  const have = new Set()
+  for (const q of existing ?? []) have.add(normId(q.stem, q.type, q.answer))
+  const kept = [], dupes = []
+  for (const q of incoming ?? []) {
+    const nid = normId(q.stem, q.type, q.answer)
+    if (have.has(nid)) { dupes.push(q); continue }
+    have.add(nid)   // 批内也按归一化去重
+    kept.push(q)
+  }
+  return { kept, dupes }
 }
 
 export class Validator {

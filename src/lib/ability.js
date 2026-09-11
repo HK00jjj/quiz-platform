@@ -13,6 +13,8 @@
 //   zoneAdvice     —— 换区建议：双条件闸（近 30 题正确率 × EWMA 指数）检测
 //                     题库与水平的错位，v4.15 阈值放宽（原双 85 闸形同虚设）。
 
+import { shuffle } from './util.js'
+
 const HALF_LIFE = 20
 const ALPHA = Math.log(2) / HALF_LIFE
 const WINDOW = 60
@@ -31,8 +33,13 @@ export function abilityOf(records) {
     .sort((a, b) => a.timestamp - b.timestamp)
     .slice(-WINDOW)
   if (xs.length === 0) return 0.65
-  let a = xs.slice(0, 5).reduce((s, r) => s + (r.correct ? 1 : 0), 0) / Math.min(5, xs.length)
-  for (const r of xs) a = a + ALPHA * ((r.correct ? 1 : 0) - a)
+  /* 冷启动种子 = 最早 5 条（不足 5 条则全部）的均值；随后**只对第 6 条起**做 EWMA 迭代。
+     2026-09-11 审查修复：旧写法种子用前 5 条均值，紧接着 `for (const r of xs)` 又把这 5 条
+     重新迭代一遍——前 5 条被加权两次，新用户的指数初值偏斜、收敛变慢。
+     修法保持"热启动"意图不变，只把重复计入的部分去掉（ALPHA≈0.0347，偏差虽温和但属确定性错误）。 */
+  const seedN = Math.min(5, xs.length)
+  let a = xs.slice(0, seedN).reduce((s, r) => s + (r.correct ? 1 : 0), 0) / seedN
+  for (let i = seedN; i < xs.length; i++) a = a + ALPHA * ((xs[i].correct ? 1 : 0) - a)
   return Math.min(1, Math.max(0, a))
 }
 
@@ -63,13 +70,8 @@ export function empDifficulty(q, records) {
   return 1 - p
 }
 
-function shuffle(list, rng) {
-  const a = [...list]
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(rng() * (i + 1));[a[i], a[j]] = [a[j], a[i]]
-  }
-  return a
-}
+/* shuffle 已收敛到 lib/util.js（2026-09-11 审查整改：此前 stats/ability/Practice/Learn 四处各写一遍，
+   改一处不会同步另三处）。这里 import 复用，算法与语义完全不变。 */
 
 /* 目标难度（2026-09-09 重设计，v4.9 口径）：pass 目标随能力从 0.85 线性下移到 0.65。
    原理：难度是"题×人"的函数——empDifficulty 是该题对该用户的通过率预测，
@@ -147,8 +149,10 @@ export function tierOf(a) {
 
 /* 排位段位系统（2026-09-09 深夜：LOL 式定级赛/晋级赛）。
    段位只通过考试获得（settings.rank 持久化官方段位），状态指数只决定"考试门槛"：
-   定级赛门槛 85（用户指定），晋级赛门槛 = 下一段位 lo。段位本身不由指数自动升降——
-   防 EWMA 波动导致段位漂移。 */
+   段位本身不由指数自动升降——防 EWMA 波动导致段位漂移。
+   ⚠ 2026-09-11 审查整改：定级赛从未实现，其门槛常量 PLACEMENT_ABILITY 与
+   rankOf(ability)（按指数反推段位）全仓零引用，已删除；RANKS 的 lo/hi 是
+   段位×能力指数参照带，当前同样无调用，但属段位定义的一部分，保留数据。 */
 export const RANKS = [
   { name: '黑铁', lo: 0, hi: 19, emoji: '⛓️', color: '#7C848D' },
   { name: '青铜', lo: 20, hi: 34, emoji: '🥉', color: '#B0793C' },
@@ -159,12 +163,6 @@ export const RANKS = [
   { name: '大师', lo: 85, hi: 92, emoji: '🌟', color: '#9B59D0' },
   { name: '最强王者', lo: 93, hi: 100, emoji: '👑', color: '#D95B5B' }
 ]
-export function rankOf(ability) {
-  const p = Math.round(ability * 100)
-  return RANKS.find((r) => p >= r.lo && p <= r.hi) ?? RANKS[0]
-}
-/* 定级赛门槛（用户指定：EWMA 能力指数 ≥0.85 才有资格开考） */
-export const PLACEMENT_ABILITY = 85
 
 /* 晋级赛考制（2026-09-09 晨改版：五局三胜 → 百分制）：
    题库刷完一遍后开考，随机抽 SIZE 道客观题（考池不足按池缩容），

@@ -5,7 +5,7 @@ import { repo } from './lib/db'
 import { newCard, reviewCard } from './lib/fsrs'
 import { fmtDate } from './lib/dates'
 import { buildSession, expandTriple, filtersKey, isObjective } from './lib/stats'
-import { classifyImport, parseBackup, parseBank, gradeObjective, assignGlobalSeq } from './lib/validate'
+import { classifyImport, parseBackup, parseBank, gradeObjective, assignGlobalSeq, dropNormalizedDupes } from './lib/validate'
 import { saveImageMap, mergeImageMap } from './lib/diagrams'
 
 const RESUME_KEY = 'quiz-platform.resume.v1'
@@ -69,6 +69,8 @@ let reloadSeq = 0
    （否则筛选弹窗里刚取消的 chip 会被云端旧值「复原」——用户实测的取消后恢复选中）。
    5s 后恢复云端优先，多端正常同步不受影响。 */
 let settingsLocalUntil = 0
+/* 网络恢复监听只绑一次（attach 可能被重复调用：登录/切换账号） */
+let onlineBound = false
 
 function saveResume(state) {
   try {
@@ -97,6 +99,76 @@ function persistAfterImport(questions) {
     questions.forEach((q) => { if (!map[q.id]) map[q.id] = now })
     localStorage.setItem(IMPORTED_AT_KEY, JSON.stringify(map))
   } catch { /* ignore */ }
+}
+
+/* ── 离线待补传队列（2026-09-11 审查整改 P1）──
+   旧行为：persistAnswer / persistCard 失败时**回滚并丢弃本次结果**——学习者在网络抖动时
+   "答了等于没答"，断网则完全无法练习。现改为 append-only 队列：失败不丢，
+   落 localStorage 待联网/重试成功后补传。
+   - 队列上限 PENDING_MAX，超出丢最旧（宁可丢最旧也不无限增长撑爆 5MB 配额）
+   - 顺序补传：一笔失败就停住，保持作答时序（records 的价值在时序）
+   - 补传用 repo.persistAnswerIdempotent：answer_records 没有唯一约束且 insert 无幂等键，
+     重试前先按 (question_id, answered_at) 查一次，避免"其实已写成功但客户端超时"造成重复记录 */
+const PENDING_KEY = 'qp.pending.v1'
+const PENDING_MAX = 800
+function readPending() {
+  try {
+    const a = JSON.parse(localStorage.getItem(PENDING_KEY) || '[]')
+    return Array.isArray(a) ? a : []
+  } catch { return [] }
+}
+function writePending(list) {
+  try { localStorage.setItem(PENDING_KEY, JSON.stringify(list.slice(-PENDING_MAX))) } catch { /* ignore */ }
+}
+function enqueuePending(entry) {
+  const list = readPending()
+  list.push(entry)
+  writePending(list)
+  useStore.setState({ pendingCount: Math.min(PENDING_MAX, list.length) })
+}
+export function pendingCountNow() { return readPending().length }
+/* 补传（幂等）：成功即出队；失败保留顺序、留待下次重试，不再丢弃 */
+let flushing = false
+export async function flushPending() {
+  if (DEMO || flushing) return
+  const list = readPending()
+  if (list.length === 0) return
+  flushing = true
+  let done = 0
+  try {
+    for (let i = 0; i < list.length; i++) {
+      const e = list[i]
+      if (e.t === 'a') await repo.persistAnswerIdempotent(e.r, e.c ?? null)
+      else await repo.persistCard(e.c)
+      done++
+    }
+  } catch (err) {
+    console.error('[flushPending] 补传中断，剩余留在队列', err)
+  } finally {
+    const remain = list.slice(done)
+    writePending(remain)
+    useStore.setState({ pendingCount: remain.length, ...(remain.length === 0 ? { syncError: null } : {}) })
+    flushing = false
+  }
+  if (done > 0) await reloadAll()
+}
+/* 失败后的退避重试：5s / 20s / 60s，三次机会；此后交由 online 事件与下次作答触发 */
+function scheduleFlushRetry(attempt = 2) {
+  if (attempt > 4) return
+  const delay = attempt === 2 ? 5000 : attempt === 3 ? 20000 : 60000
+  setTimeout(() => { flushPending().then(() => { if (readPending().length > 0) scheduleFlushRetry(attempt + 1) }) }, delay)
+}
+/* 待补传的作答并入云端快照：否则网络抖动时下一次 reload 会把这笔从界面抹掉（像"白答了"） */
+function pendingRecordsMerged(cloudRecords) {
+  const list = readPending().filter((e) => e.t === 'a')
+  if (list.length === 0) return cloudRecords
+  const known = new Set(cloudRecords.map((r) => r.questionId + '|' + r.timestamp))
+  const extra = []
+  for (const e of list) {
+    const k = e.r.questionId + '|' + e.r.timestamp
+    if (!known.has(k)) { known.add(k); extra.push({ ...e.r }) }
+  }
+  return extra.length ? [...cloudRecords, ...extra] : cloudRecords
 }
 function maybeSaveResume(state) {
   if (state.sessionMode !== 'relearn' || state.sessionQuestions.length === 0) return
@@ -138,7 +210,7 @@ async function reloadAll() {
     useStore.setState({
       allQuestions: data.questions,
       questions: scopeQuestions(data.questions, bk),
-      cards: data.cards, records: data.records,
+      cards: data.cards, records: pendingRecordsMerged(data.records),
       /* §44：保护窗口内保留本机 settings（可能比云端新——写云端在途/失败都会造成云端旧值回灌） */
       settings: Date.now() < settingsLocalUntil ? useStore.getState().settings : data.settings,
       syncError: null,
@@ -158,7 +230,13 @@ async function attach(email) {
   unsubscribe?.()
   unsubscribe = repo.subscribe(() => scheduleReload())
   await reloadAll()
-  useStore.setState({ authStatus: 'signed-in', userEmail: email, ready: true })
+  useStore.setState({ authStatus: 'signed-in', userEmail: email, ready: true, pendingCount: readPending().length })
+  /* 登录即补传历史欠账；并监听网络恢复——断网→联网是补传最常见的触发点 */
+  if (!onlineBound && typeof window !== 'undefined') {
+    onlineBound = true
+    window.addEventListener('online', () => { flushPending() })
+  }
+  flushPending()
 }
 
 const emptySession = {
@@ -178,20 +256,19 @@ function commitAnswer(q, { correct, rating, detail, grade, lastRatingValue, comm
      db.js 的 insert/rpc payload 再放行该字段）——本地 records 为真源，云端不丢对错语义。 */
   const ms = Math.max(0, now - (get().qStartAt || now))
   const record = { questionId: q.id, date: fmtDate(new Date(now)), timestamp: now, correct, detail, ms }
-  /* §57 回滚按索引精确摘除（原 slice(-1) 会误删失败后新答的那笔——键盘流连答快，窗口变大） */
-  const resultIndex = get().sessionResults.length
   const existing = get().cards.find((c) => c.questionId === q.id)
   const card = commitCard ? reviewCard(existing ?? newCard(q.id, now), rating, now) : null
+  /* 云端写入失败不再回滚丢弃（2026-09-11 审查整改 P1）：
+     旧行为把这笔从 summary / sessionResults / records 里摘掉——网络抖动时学习者"答了等于没答"，
+     断网则完全无法练习。现改为转入离线待补传队列（append-only，落 localStorage），
+     本机保留、联网后幂等补传。§57 的"按索引精确摘除"逻辑随之作废（不再有回滚）。 */
   if (!DEMO) repo.persistAnswer(record, card).catch((e) => {
-    console.error('[persistAnswer] 云端写入失败', e)
+    console.error('[persistAnswer] 云端写入失败，转入离线待补传队列', e)
+    enqueuePending({ t: 'a', r: record, c: card })
     useStore.setState((s) => ({
-      syncError: '云端写入失败，本次结果可能未同步',
-      summary: { total: s.summary.total - 1, correct: s.summary.correct - (correct ? 1 : 0) },
-      sessionResults: s.sessionResults.filter((_, i) => i !== resultIndex),
-      /* 卡只在 commitCard 分支动过 → 回滚也只在那条分支摘除 */
-      ...(card ? { cards: existing ? s.cards.map((c) => (c.questionId === q.id ? existing : c)) : s.cards.filter((c) => c.questionId !== q.id) } : {}),
-      records: s.records.filter((r) => !(r.questionId === q.id && r.timestamp === now))
+      syncError: `云端写入失败：本笔已存入本机待补传（队列 ${s.pendingCount ?? 1} 条），联网后自动重试`
     }))
+    scheduleFlushRetry()
   })
   set((s) => ({
     phase: 'feedback', lastGrade: grade, lastRating: lastRatingValue,
@@ -223,11 +300,10 @@ function flushPendingRatings() {
     const existing = cards.find((c) => c.questionId === q.id)
     const card = reviewCard(existing ?? newCard(q.id, now), rating, now)
     if (!DEMO) repo.persistCard(card).catch((e) => {
-      console.error('[persistCard] 云端写入失败', e)
-      useStore.setState((s) => ({
-        syncError: '云端写入失败，本次结果可能未同步',
-        cards: existing ? s.cards.map((c) => (c.questionId === q.id ? existing : c)) : s.cards.filter((c) => c.questionId !== q.id)
-      }))
+      console.error('[persistCard] 云端写入失败，转入离线待补传队列', e)
+      enqueuePending({ t: 'c', c: card })
+      useStore.setState({ syncError: '云端写入失败：卡片已存入本机待补传，联网后自动重试' })
+      scheduleFlushRetry()
     })
     useStore.setState((s) => ({ cards: [...s.cards.filter((c) => c.questionId !== q.id), card] }))
   }
@@ -288,6 +364,8 @@ export const useStore = create((set, get) => ({
   userEmail: null,
   ready: false,
   syncError: null,
+  /* 离线待补传队列长度（>0 时说明有作答尚未上云，syncToast / 设置页可据此提示） */
+  pendingCount: 0,
   questions: [],
   allQuestions: [],
   cards: [],
@@ -348,7 +426,9 @@ export const useStore = create((set, get) => ({
       persistAfterImport(backup.questions)
       saveImageMap(backup.questions)
       mergeImageMap(backup.imageMap)
-      const existing = new Set(get().questions.map((q) => q.id))
+      /* existing 同样取全库（2026-09-11）：备份里的题目可能跨多本书，
+         用当前书去算 added 会把"其它书已有的题"误报成新增 */
+      const existing = new Set(get().allQuestions.map((q) => q.id))
       const added = backup.questions.filter((q) => !existing.has(q.id)).length
       await repo.upsertQuestions(backup.questions)
       if (backup.cards.length > 0 || backup.records.length > 0) {
@@ -361,17 +441,27 @@ export const useStore = create((set, get) => ({
     }
     const parsed = parseBank(text)
     if (parsed.questions.length > 0) {
-      const existing = new Map(get().questions.map((q) => [q.id, q]))
+      /* existing 改用全库 allQuestions（2026-09-11 审查整改）：
+         旧写法取 scoped 的 get().questions（当前书），导致 assignGlobalSeq 的 maxSeq
+         只在本书内取最大 → 多书并存时新 seq 会与另一本书的既有区间**重号**，
+         与"全局单调入库序"的声明不符（第二本书 2026-09-11 上线后已成现实风险）。 */
+      const all = get().allQuestions
+      const existing = new Map(all.map((q) => [q.id, q]))
+      /* 归一化去重（2026-09-11）：hashId 直接拼原始串，大小写/全半角差异会生成不同主键，
+         「PLC」与「plc」会被当成两道题入库、题量虚高。这里先用归一化指纹剔掉重复
+         （同时覆盖批内重复），**不改主键、不动 hashId**，避免全库 1481 题主键失效。 */
+      const { kept, dupes } = dropNormalizedDupes(parsed.questions, all)
       /* 入库前把批内序号(1~21)改写成全局单调入库序，理由见 assignGlobalSeq 的注释。
          必须在 parseBank（也就是校验）之后做：校验器用的是原始 JSON 的序号。
          上面备份恢复那条分支故意不做这件事——备份里带的本来就是存好的全局序，重排会毁掉它。 */
-      const questions = assignGlobalSeq(parsed.questions, existing)
+      const questions = assignGlobalSeq(kept, existing)
       persistAfterImport(questions)
       saveImageMap(questions)
       const added = questions.filter((q) => !existing.has(q.id)).length
       await repo.upsertQuestions(questions)
       await reloadAll()
-      return { ...parsed, questions, added, skipped: questions.length - added }
+      /* skipped 含两类：主键撞库（同题重复导入）+ 归一化撞库（大小写/全半角差异的同题） */
+      return { ...parsed, questions, added, skipped: questions.length - added + dupes.length, normDupes: dupes.length }
     }
     return { ...parsed, added: 0, skipped: 0 }
   },
