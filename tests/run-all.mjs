@@ -25,7 +25,9 @@ const SUITE = [
   /* 2026-09-11 GitHub 调研落实：补上"离线队列与 applyBookMap 未被单测覆盖"的诚实声明缺口
      （经 tests/store-hooks.mjs 钩子在 Node 里加载真实 store.js + 可编程 db 桩） */
   { name: '离线队列+书表落库回归', cmd: 'node', args: ['tests/offline-queue.regression.mjs'] },
-  { name: '跨批撞库分桶预筛回归', cmd: 'node', args: ['tests/crossbatch.regression.mjs'] }
+  { name: '跨批撞库分桶预筛回归', cmd: 'node', args: ['tests/crossbatch.regression.mjs'] },
+  /* 2026-09-11 v6.9 错因标签（GitLab learn-anything 错因分类法落实） */
+  { name: '错因标签枚举回归', cmd: 'node', args: ['tests/expl-cause.regression.mjs'] }
 ]
 
 let failed = 0

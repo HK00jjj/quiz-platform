@@ -32,6 +32,10 @@
 //      新题只与「同桶 + 库内无知识点题」做 2-gram 比对（近似改写必然保留同一考点，
 //      跨知识点相似只是共享模板句式，本就由 SIM_MIN_NGRAMS 护栏压制）；
 //      新题无知识点（异常/未标注）时回退全库比对保持旧行为。复杂度 O(新题×库) → O(新题×桶)。
+// 2026-09-11 v6.9 错因标签（八平台调研落实 · GitLab learn-anything 错因分类法）：
+//   ⑫ checkAnalysis 新增 [错因:…] 可选标签校验——出现即须在 WRONG_CAUSE_TAGS 六值枚举内
+//      （概念缺失/公式误用/单位口径/审题偏差/干扰项混淆/工况错配）、一题最多一个；
+//      未出现不拦截，存量题不失效。规则主副本已同步 v6.9（md5 1fb8cff1…）。
 import { DIAGRAM_IDS } from './diagrams.js'
 export const TYPE_LIST = ['单选题', '多选题', '判断题', '填空题', '简答题', '计算分析题', '综合设计/故障诊断题']
 const DIFFS = ['基础', '应用', '综合']
@@ -45,6 +49,10 @@ const ANALYSIS_LIMIT_DEFAULT = 600
 const ANALYSIS_FLOOR = { '综合设计/故障诊断题': 200, 计算分析题: 160 }
 const ANALYSIS_FLOOR_DEFAULT = 120
 const COMPREHENSIVE_ELEMENTS = ['方案', '选型计算', '控制逻辑', '保护与安全']
+/* v6.9 错因标签枚举（v6.9 规则 §6.4）：解析【误诊】段末尾可附 [错因:枚举值]，
+   一题最多一个；机器只校验"出现即须在枚举内"，未出现不拦截（存量题不失效）。
+   用途：月度校准按错因聚合作答数据（错题→误诊类型→定向变式）。 */
+export const WRONG_CAUSE_TAGS = ['概念缺失', '公式误用', '单位口径', '审题偏差', '干扰项混淆', '工况错配']
 /* 反"改名过闸"（2026-09-08 v4.7）：查重是字符串匹配，AI 会学会把同考点换措辞绕过
    （"互锁"被拦 → 拆成"电气互锁""机械互锁"）。此归一剥离高频通用修饰词后比对：
    异名同归 → 告警（不拦截），交人工确认是实质重复还是真细分。 */
@@ -224,6 +232,14 @@ export class Validator {
       this.warn(w, `“解析”缺少【误诊】段（v6.8 起 ${type} 同样必写：写明典型丢分点与错误写法）`)
     } else if (p2 < p1 || p2 > p3) {
       this.err(w, '【误诊】标记须位于【推导】与【记忆点】之间')
+    }
+    /* v6.9 错因标签：[错因:…] 可选，出现即校验枚举与数量；未出现不拦截 */
+    const causeTags = [...a.matchAll(/\[错因[:：]\s*([^\][]*?)\s*\]/g)].map((m) => m[1])
+    if (causeTags.length > 1) this.err(w, '"解析"最多附一个 [错因:…] 标签')
+    for (const c of causeTags) {
+      if (!WRONG_CAUSE_TAGS.includes(c)) {
+        this.err(w, `[错因:${c}] 不在六值枚举内（${WRONG_CAUSE_TAGS.join(' / ')}）——请改用枚举值或删除该标签`)
+      }
     }
     const limit = ANALYSIS_LIMIT[type] ?? ANALYSIS_LIMIT_DEFAULT
     if (a.length > limit) this.warn(w, `"解析"${a.length}字，超出建议上限${limit}字`)
