@@ -427,6 +427,52 @@ const validCard = (c, ids) =>
 const validRecord = (r, ids) =>
   typeof r === 'object' && r !== null && typeof r.questionId === 'string' && ids.has(r.questionId) &&
   typeof r.date === 'string' && typeof r.timestamp === 'number' && typeof r.correct === 'boolean' && typeof r.detail === 'string'
+/* ── 备份里的书本映射（2026-09-11 审查整改：备份自足化） ──
+   旧备份只带「当前书」的题目，且完全不含书本结构，多书并存时换机恢复会：
+   ① 丢掉其它书的题；② 全部塌进一本、归书关系（assign）归零。
+   现在导出携带 { books, order, activeBookId, assign }，这里做形状校验与清洗。
+   铁律：坏备份只能「少恢复」，绝不能写坏书本结构——所以只保留 order 里真实存在的
+   书、activeBookId 失配回落第一本、assign 只保留指向真实书本（且题目在本次备份内）的项。 */
+export function validBookMap(m) {
+  if (!m || typeof m !== 'object' || Array.isArray(m)) return false
+  const { books, order, assign } = m
+  if (!books || typeof books !== 'object' || Array.isArray(books)) return false
+  if (!Array.isArray(order)) return false
+  if (!order.some((id) => typeof id === 'string' && books[id] && typeof books[id] === 'object')) return false
+  if (assign !== undefined && (assign === null || typeof assign !== 'object' || Array.isArray(assign))) return false
+  return true
+}
+
+export function normalizeBookMap(m, knownQuestionIds) {
+  const ids = m.order.filter((id) => typeof id === 'string' && m.books[id] && typeof m.books[id] === 'object')
+  const books = Object.fromEntries(ids.map((id) => [id, m.books[id]]))
+  const activeBookId = ids.includes(m.activeBookId) ? m.activeBookId : ids[0]
+  const assign = {}
+  for (const [qid, bid] of Object.entries(m.assign ?? {})) {
+    if (typeof bid !== 'string' || !books[bid]) continue
+    if (knownQuestionIds && !knownQuestionIds.has(qid)) continue
+    assign[qid] = bid
+  }
+  return { books, order: ids, activeBookId, assign }
+}
+
+/* 备份里的题目是「store/DB 同形」的**英文键**（seq/type/stem/answer/options/difficulty…），
+   而 toItem 读的是出题管道的**中文键**契约（序号/题型/题干/答案）。
+   把英文键直接喂给 toItem 会全判「缺少有效序号」→ 恢复出来 0 题。
+   这是 2026-09-11 实测确认的既有 bug（导出→恢复对不上，备份按钮给的是假安全感）。
+   这里只在 parseBackup 内做一次英→中字段映射，**不动 toItem**：出题管道「只认中文键」
+   的严格契约必须保留，否则会把下游畸形输入一并放进来。 */
+function backupItemToRaw(q) {
+  if (typeof q !== 'object' || q === null) return q
+  if (typeof q.题干 === 'string') return q   /* 已是中文键（历史备份 / 手工构造） */
+  return {
+    序号: q.seq, 题型: q.type, 题干: q.stem, 答案: q.answer,
+    选项: q.options, 难度: q.difficulty, 知识点: q.knowledgePoint,
+    知识域: q.knowledgeDomain, 认知层级: q.cognitiveLevel,
+    解析: q.explanation, image: q.image
+  }
+}
+
 export function parseBackup(text) {
   const t = stripFences(text)   /* §46：同 extractArray，只剥首尾围栏 */
   if (!t.startsWith('{')) return null
@@ -434,14 +480,16 @@ export function parseBackup(text) {
   try { parsed = JSON.parse(t) } catch { return null }
   if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) return null
   if (!Array.isArray(parsed.questions)) return null
-  const { questions } = toQuestions(parsed.questions)
+  const { questions } = toQuestions(parsed.questions.map(backupItemToRaw))
   const ids = new Set(questions.map((q) => q.id))
   const cards = Array.isArray(parsed.cards) ? parsed.cards.filter((c) => validCard(c, ids)) : []
   const records = Array.isArray(parsed.records)
     ? parsed.records.filter((r) => validRecord(r, ids)).map(({ id, ...rest }) => rest)
     : []
   const imageMap = (parsed.imageMap && typeof parsed.imageMap === 'object' && !Array.isArray(parsed.imageMap)) ? parsed.imageMap : undefined
-  return { questions, cards, records, imageMap }
+  /* books 缺失（旧备份）→ undefined，恢复侧跳过，向后兼容 */
+  const books = validBookMap(parsed.books) ? parsed.books : undefined
+  return { questions, cards, records, imageMap, books }
 }
 
 // ── 客观题作答归一化与判分 ──

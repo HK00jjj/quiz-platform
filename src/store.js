@@ -5,7 +5,7 @@ import { repo } from './lib/db'
 import { newCard, reviewCard } from './lib/fsrs'
 import { fmtDate } from './lib/dates'
 import { buildSession, expandTriple, filtersKey, isObjective } from './lib/stats'
-import { classifyImport, parseBackup, parseBank, gradeObjective, assignGlobalSeq, dropNormalizedDupes } from './lib/validate'
+import { classifyImport, parseBackup, parseBank, gradeObjective, assignGlobalSeq, dropNormalizedDupes, validBookMap, normalizeBookMap } from './lib/validate'
 import { saveImageMap, mergeImageMap } from './lib/diagrams'
 
 const RESUME_KEY = 'quiz-platform.resume.v1'
@@ -434,6 +434,13 @@ export const useStore = create((set, get) => ({
       if (backup.cards.length > 0 || backup.records.length > 0) {
         await repo.replaceProgress(backup.cards, backup.records)
       }
+      /* 书本结构与归书关系随备份恢复（2026-09-11 审查整改：备份自足化）。
+         旧格式备份没有 books 字段 → 整段跳过，走原来的「未知题自动收养进当前书」兜底，
+         因此老备份的恢复行为一字未变。knownQuestionIds 传本次备份内的全量题目 id，
+         防坏备份把 assign 指向不存在的题（只允许少恢复，不允许写坏）。 */
+      if (backup.books) {
+        await get().applyBookMap(backup.books, new Set(backup.questions.map((q) => q.id)))
+      }
       await reloadAll()
       /* skipped = 内容哈希撞库被去重的数量：重复导入同一批时 added=0、skipped=总数，
          导入页据此提示「均已存在」而不是误导性的「新增 0 题」（2026-09-08 用户反馈） */
@@ -489,6 +496,17 @@ export const useStore = create((set, get) => ({
       }
     })
     await persistBooks(get())
+  },
+  /* 从备份恢复书本结构与归书关系（2026-09-11 审查整改：备份自足化）。
+     形状先过 validBookMap 校验、再过 normalizeBookMap 清洗才落库——
+     坏备份只能「少恢复」，绝不能写坏书本结构。返回是否真的恢复了。 */
+  applyBookMap: async (map, knownQuestionIds) => {
+    if (!validBookMap(map)) return false
+    const next = normalizeBookMap(map, knownQuestionIds)
+    if (next.order.length === 0) return false
+    set({ books: next.books, bookOrder: next.order, activeBookId: next.activeBookId, assign: next.assign })
+    await persistBooks(get())
+    return true
   },
   resetAll: async () => {
     if (!DEMO) await repo.clearAll()

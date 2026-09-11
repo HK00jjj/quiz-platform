@@ -12,7 +12,11 @@ export default function Settings() {
   const userEmail = useStore((s) => s.userEmail)
   const signOut = useStore((s) => s.signOut)
   const resetAll = useStore((s) => s.resetAll)
-  const questions = useStore((s) => s.questions)
+  const allQuestions = useStore((s) => s.allQuestions)
+  const bookOrder = useStore((s) => s.bookOrder)
+  const books = useStore((s) => s.books)
+  const activeBookId = useStore((s) => s.activeBookId)
+  const assign = useStore((s) => s.assign)
   const cards = useStore((s) => s.cards)
   const records = useStore((s) => s.records)
   const [exported, setExported] = useState(false)
@@ -32,7 +36,19 @@ export default function Settings() {
   const goal = settings.dailyGoal ?? 20
 
   function exportBackup() {
-    const payload = { exportedAt: new Date().toISOString(), questions, cards, records, imageMap: readImageMap() }
+    /* 备份自足化（2026-09-11 审查整改）：
+       旧写法 questions 取的是 **当前书**（store 里是派生值），而 cards/records 是全局——
+       第二本书上线后，导出的备份缺其它书的题；且整个 payload 不含书本结构，
+       换机恢复会把所有题塌进一本书、归书关系（assign）归零。
+       现改为：questions = allQuestions（全库），并把书本映射一并随包携带。 */
+    const payload = {
+      exportedAt: new Date().toISOString(),
+      questions: allQuestions,
+      cards,
+      records,
+      imageMap: readImageMap(),
+      books: { books, order: bookOrder, activeBookId, assign }
+    }
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
