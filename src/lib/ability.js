@@ -28,15 +28,29 @@ const PRIOR_P = { 基础: 0.7, 应用: 0.63, 综合: 0.75 }
 const PRIOR_W = 2
 
 export function abilityOf(records) {
-  const xs = (records ?? [])
+  const all = (records ?? [])
     .filter((r) => typeof r.correct === 'boolean')
     .sort((a, b) => a.timestamp - b.timestamp)
-    .slice(-WINDOW)
+  /* 2026-09-12 顶尖段适配②（窗口同题降密 · 审查报告 §2 落实）：三遍判定制下 60 条窗口
+     常被 ~20 道题的三遍记录占满，热点题（反复刷同一题）更能把窗口灌满——指数对真实
+     水平变化的响应被钝化。修法 = **按题去重取最近一条**：从最新往回收集，每题只计
+     最近一次作答，集满 60 道不同题为止。每题一票、以最近证据为准——与 empDifficulty
+     的"首答主导、重复不掺水"哲学同源（此处取"最近"因能力估计要反映当前状态）。
+     半衰期语义从"20 条记录"变为"20 道不同题"，对顶尖段的水平变化感知更灵敏。
+     ≤60 条且各题互异的场景数学行为与旧版完全一致（B 段回归值一字未变）。 */
+  const picked = []
+  const seen = new Set()
+  for (let i = all.length - 1; i >= 0 && picked.length < WINDOW; i--) {
+    const id = all[i].questionId
+    if (seen.has(id)) continue
+    seen.add(id)
+    picked.push(all[i])
+  }
+  const xs = picked.reverse()
   if (xs.length === 0) return 0.65
   /* 冷启动种子 = 最早 5 条（不足 5 条则全部）的均值；随后**只对第 6 条起**做 EWMA 迭代。
-     2026-09-11 审查修复：旧写法种子用前 5 条均值，紧接着 `for (const r of xs)` 又把这 5 条
-     重新迭代一遍——前 5 条被加权两次，新用户的指数初值偏斜、收敛变慢。
-     修法保持"热启动"意图不变，只把重复计入的部分去掉（ALPHA≈0.0347，偏差虽温和但属确定性错误）。 */
+     2026-09-11 审查修复：旧写法种子用前 5 条均值，紧接着又把这 5 条重新迭代一遍
+     （前 5 条被加权两次）。修法保持"热启动"意图不变，只去掉重复计入。 */
   const seedN = Math.min(5, xs.length)
   let a = xs.slice(0, seedN).reduce((s, r) => s + (r.correct ? 1 : 0), 0) / seedN
   for (let i = seedN; i < xs.length; i++) a = a + ALPHA * ((xs[i].correct ? 1 : 0) - a)
@@ -86,7 +100,14 @@ export function empDifficulty(q, records) {
    而依赖全库复刷等非匹配作答——晋级赛触发本就强制全库复刷，训练与测量分工。 */
 export function targetDifficulty(ability) {
   const t = Math.min(1, Math.max(0, (ability - 0.2) / 0.6))
-  return 0.15 + 0.2 * t
+  /* 2026-09-12 顶尖段适配①（专家段斜率）：旧公式 t∈[0,1] → 难度 ∈[0.15,0.35]，
+     是按"能力中段"设计的——对"定义行业未来"的顶尖段，练习必须能下探到
+     通过率 40~50% 的题（合意困难上限），否则高手永远被钉在 35% 难度封顶。
+     分段：t≤0.8 维持 0.15+0.2t（新手/中段行为一字不变，t=0.8 处连续 =0.31）；
+     t>0.8 进专家段，斜率加大到 0.95/单位 t，t=1（ability≥0.8）时难度封顶 0.50
+     （通过率 50%——顶尖段的挑战区下限）。 */
+  if (t <= 0.8) return 0.15 + 0.2 * t
+  return 0.31 + 0.95 * (t - 0.8)
 }
 
 export function pickMatched(pool, ability, size, records, rng = Math.random, dueIds = null) {
