@@ -1,7 +1,28 @@
 # 交接文档 · 糖果题库（quiz-platform）
 
 > 写给下一个接手的会话。读完这一份就能独立干活，不需要翻历史对话。
-> 最后更新：2026-09-11 晚（第五批），对应线上提交 `64eeba2`。
+> 最后更新：2026-09-11 晚（第六批），对应线上提交 `b025fe33`。
+
+## 2026-09-11 晚间增量（commit b025fe33，bundle index-Db16wKLt.js 551.13KB）· 八平台检索报告落实（第二批）
+
+八平台检索（GitHub/GitLab/Gitee/Bitbucket/Codeberg/SourceForge/Sourcehut/Radicle）报告在
+E:\workbuddy-cc\2026-09-11-16-45-05\八平台开源检索报告_20260911.md；按用户"依次逐项落实"指令执行：
+
+1. **出题规则升 v6.9**（主副本+skill 副本 md5 = `1fb8cff1140d03ed63adf7defe7f51cc`，双副本一致）：
+   【误诊】段新增**可选错因标签** `[错因:枚举值]`，六值枚举（概念缺失/公式误用/单位口径/
+   审题偏差/干扰项混淆/工况错配），一题最多一个；机器只校验"出现即须在枚举内"，
+   未出现不拦截（存量题不失效）。用途：月度校准按错因聚合（错题→误诊类型→定向变式）。
+2. **validate.js ⑫ 错因枚举校验**（checkAnalysis）：`[错因:…]` 全/半角冒号兼容、枚举外报错、
+   多于一个报错；导出 WRONG_CAUSE_TAGS 供复用。tests/expl-cause.regression.mjs（5 断言）
+   已入 run-all 套件。回归 10 套件 ALL GREEN 后六步链部署，verify-live：线上/本地
+   index-Db16wKLt.js sha256 全等（354e3641…）+ 特征串双命中。
+3. **闸6 自动化"到点就跑"授权落地**：周一自动化 prompt 已改为"样本闸满足时直接回写
+   PRIOR_P 并汇报"（此前只出建议）。
+4. **promptfoo 项关闭（不重复建设）**：第五批已以 RAGAS 式逐项评分制（gate4_scoring.md）
+   达成"闸4 可回归门禁"目标；promptfoo 需独立 LLM API key，与本能力重复，判定不引入。
+5. **未做与阻塞（如实）**：考试 RPC 客户端改造仍等用户在控制台执行
+   supabase_migrations/exam_rpc_v1/01_exam_rpc.sql + app/supabase/migrations/20260911_rls_owner_lock.sql
+   （两包均就绪）；Elo 试点按序在 RPC 之后；ts-fsrs 替换等 2000+ 记录；主库解析迁移需专项会话。
 
 ## 2026-09-11 晚间增量（commit 64eeba2，bundle index-Bu6aenhD.js 566394B）· GitHub 调研建议逐项落实（第一批）
 
