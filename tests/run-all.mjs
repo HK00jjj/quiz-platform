@@ -21,7 +21,11 @@ const SUITE = [
   { name: '全局序回归', cmd: 'node', args: ['../scripts/t-seq.mjs'] },
   { name: '闭环件回归（自由回忆+快照）', cmd: 'node', args: ['../scripts/t-closure.mjs'] },
   { name: '存储水位回归', cmd: 'node', args: ['tests/storage.regression.mjs'] },
-  { name: '审查整改回归（归一化去重/EWMA/洗牌/备份往返）', cmd: 'node', args: ['tests/review-20260911.regression.mjs'] }
+  { name: '审查整改回归（归一化去重/EWMA/洗牌/备份往返）', cmd: 'node', args: ['tests/review-20260911.regression.mjs'] },
+  /* 2026-09-11 GitHub 调研落实：补上"离线队列与 applyBookMap 未被单测覆盖"的诚实声明缺口
+     （经 tests/store-hooks.mjs 钩子在 Node 里加载真实 store.js + 可编程 db 桩） */
+  { name: '离线队列+书表落库回归', cmd: 'node', args: ['tests/offline-queue.regression.mjs'] },
+  { name: '跨批撞库分桶预筛回归', cmd: 'node', args: ['tests/crossbatch.regression.mjs'] }
 ]
 
 let failed = 0

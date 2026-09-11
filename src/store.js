@@ -120,7 +120,10 @@ function readPending() {
 function writePending(list) {
   try { localStorage.setItem(PENDING_KEY, JSON.stringify(list.slice(-PENDING_MAX))) } catch { /* ignore */ }
 }
-function enqueuePending(entry) {
+export function enqueuePending(entry) {
+  /* 2026-09-11 起导出：仅供 tests/offline-queue.regression.mjs 驱动真实入队路径
+     （此前只被本模块内部调用；导出不改变任何行为，未带 export 前测试只能伪造
+     localStorage 内容，覆盖不到"入队即写唯一 id + pendingCount 状态"这段真实逻辑）。 */
   const list = readPending()
   /* 每条带唯一 id（2026-09-11 自查修复）：补传收尾时按 id 精确出队。
      旧写法在 finally 里用「启动时的快照 list.slice(done)」整体覆盖 localStorage，
