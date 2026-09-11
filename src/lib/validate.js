@@ -21,13 +21,24 @@
 //      治"为过长度均衡而模板化写作"——均衡性查太悬殊，此检查查太整齐；
 //   ⑧ 批内查重与 crossBatchCheck 新增"去修饰同名"告警（kpNorm 剥离高频通用修饰词），
 //      反"电气互锁/机械互锁"式改名过闸；均为告警级，人工确认实质重复还是真细分。
+// 2026-09-11 v6.8 解析质量提升（用户报障"解析过于简单、题目与选项对不上"）：
+//   ⑨ 解析四段结构【概念】→【推导】→【误诊】→【记忆点】全题型必写：取消"非选择题省略【误诊】"
+//      告警；单选/多选缺【误诊】维持错误级，其余题型缺【误诊】与全题型缺【概念】为告警级；
+//   ⑩ 新设解析正文信息量下限（一般 120 字 / 计算 160 字 / 综合 200 字，剥去标记后计），
+//      字数上限由 300/400/500 上调为 600/700/800——旧上限与"概念先行 + 完整结论链"直接冲突。
+//      配套展示端修复见 pages/Practice.jsx 的 remapExplLetters（选项洗牌后解析字母同步换算）。
 import { DIAGRAM_IDS } from './diagrams.js'
 export const TYPE_LIST = ['单选题', '多选题', '判断题', '填空题', '简答题', '计算分析题', '综合设计/故障诊断题']
 const DIFFS = ['基础', '应用', '综合']
 const COG = ['记忆', '理解', '应用', '分析', '评价', '创造']
 const DOMAINS = Array.from({ length: 27 }, (_, i) => `K${i + 1}`)
 const META_MAP = { 基础: ['记忆', '理解'], 应用: ['应用', '分析'], 综合: ['评价', '创造'] }
-const ANALYSIS_LIMIT = { '综合设计/故障诊断题': 500, 计算分析题: 400 }
+/* v6.8 解析长度口径：上限上调（旧 300/400/500 会扼杀"概念先行 + 完整结论链"），
+   同时新设信息量下限——正文（剥去【】标记后）低于下限即判"解析过于简单"。 */
+const ANALYSIS_LIMIT = { '综合设计/故障诊断题': 800, 计算分析题: 700 }
+const ANALYSIS_LIMIT_DEFAULT = 600
+const ANALYSIS_FLOOR = { '综合设计/故障诊断题': 200, 计算分析题: 160 }
+const ANALYSIS_FLOOR_DEFAULT = 120
 const COMPREHENSIVE_ELEMENTS = ['方案', '选型计算', '控制逻辑', '保护与安全']
 /* 反"改名过闸"（2026-09-08 v4.7）：查重是字符串匹配，AI 会学会把同考点换措辞绕过
    （"互锁"被拦 → 拆成"电气互锁""机械互锁"）。此归一剥离高频通用修饰词后比对：
@@ -189,19 +200,31 @@ export class Validator {
     const w = whereOf(it)
     const a = str(it.解析)
     if (a.includes('\n') || a.includes('\r')) this.err(w, '"解析"含换行符，须为单行字符串')
+    const type = str(it.题型)
+    const p0 = a.indexOf('【概念】')
     const p1 = a.indexOf('【推导】'), p3 = a.indexOf('【记忆点】')
     if (p1 < 0 || p3 < 0 || p1 > p3) this.err(w, '"解析"须依次包含【推导】【记忆点】标记')
-    // 单选/多选题必含【误诊】段（2026-09-04 新增；2026-09-06 起升级为错误级，对齐规则A类⑦）
-    const type = str(it.题型)
+    /* v6.8 四段结构（【概念】→【推导】→【误诊】→【记忆点】）对全七种题型一律必写：
+       ① 取消旧版"非选择题应省略【误诊】段"的告警（错因对任何题型同样重要）；
+       ② 缺【误诊】对单选/多选维持**错误级**（沿用旧版硬保证，不回退），对其余题型为告警级；
+       ③ 缺【概念】段、正文低于信息量下限均为告警级——格式升级不应让存量数据"变砖"，
+          但新批次的"告警清零"纪律会逼出合规写法。 */
+    if (p0 < 0) this.warn(w, '“解析”缺少【概念】段（v6.8 起全题型必写：先用第一性原理讲清最基础概念，再进本题）')
+    else if (p0 > p1) this.warn(w, '【概念】标记须位于【推导】之前')
     const p2 = a.indexOf('【误诊】')
     if (type === '单选题' || type === '多选题') {
-      if (p2 < 0) this.err(w, '单选/多选题“解析”须依次包含【推导】【误诊】【记忆点】三段')
+      if (p2 < 0) this.err(w, '单选/多选题“解析”须依次包含【概念】【推导】【误诊】【记忆点】四段')
       else if (p2 < p1 || p2 > p3) this.err(w, '【误诊】标记须位于【推导】与【记忆点】之间')
-    } else if (p2 >= 0) {
-      this.warn(w, '非选择题应省略【误诊】段（仅单选/多选必写）')
+    } else if (p2 < 0) {
+      this.warn(w, `“解析”缺少【误诊】段（v6.8 起 ${type} 同样必写：写明典型丢分点与错误写法）`)
+    } else if (p2 < p1 || p2 > p3) {
+      this.err(w, '【误诊】标记须位于【推导】与【记忆点】之间')
     }
-    const limit = ANALYSIS_LIMIT[type] ?? 300
+    const limit = ANALYSIS_LIMIT[type] ?? ANALYSIS_LIMIT_DEFAULT
     if (a.length > limit) this.warn(w, `"解析"${a.length}字，超出建议上限${limit}字`)
+    const bodyLen = a.replace(/【[^】]*】/g, '').trim().length
+    const floor = ANALYSIS_FLOOR[type] ?? ANALYSIS_FLOOR_DEFAULT
+    if (bodyLen < floor) this.warn(w, `“解析”正文仅 ${bodyLen} 字，低于 v6.8 信息量下限 ${floor} 字——解析过于简单，须按【概念】【推导】【误诊】【记忆点】四段重写`)
   }
   checkChoice(it) {
     const w = whereOf(it)
