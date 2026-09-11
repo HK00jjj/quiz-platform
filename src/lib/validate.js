@@ -27,6 +27,11 @@
 //   ⑩ 新设解析正文信息量下限（一般 120 字 / 计算 160 字 / 综合 200 字，剥去标记后计），
 //      字数上限由 300/400/500 上调为 600/700/800——旧上限与"概念先行 + 完整结论链"直接冲突。
 //      配套展示端修复见 pages/Practice.jsx 的 remapExplLetters（选项洗牌后解析字母同步换算）。
+// 2026-09-11 O(n²) 性能整改（GitHub 调研 §4.6 落实）：
+//   ⑪ crossBatchCheck 题干比对改"知识点分桶预筛"：库内题干按 kpNorm 归一化知识点分桶，
+//      新题只与「同桶 + 库内无知识点题」做 2-gram 比对（近似改写必然保留同一考点，
+//      跨知识点相似只是共享模板句式，本就由 SIM_MIN_NGRAMS 护栏压制）；
+//      新题无知识点（异常/未标注）时回退全库比对保持旧行为。复杂度 O(新题×库) → O(新题×桶)。
 import { DIAGRAM_IDS } from './diagrams.js'
 export const TYPE_LIST = ['单选题', '多选题', '判断题', '填空题', '简答题', '计算分析题', '综合设计/故障诊断题']
 const DIFFS = ['基础', '应用', '综合']
@@ -627,15 +632,21 @@ export function crossBatchCheck(items, existing) {
   const warns = []
   const exList = (existing ?? []).filter((q) => q && typeof q.stem === 'string' && q.stem)
   const kpInBank = new Map()
+  /* 分桶预筛（⑪）：建桶一次 O(库)，比对只走同桶。库内无知识点的旧数据单列，
+     无论新题是否带知识点都要与它们比对（旧行为的全量比对只对这一部分仍然必要）。 */
+  const stemBuckets = new Map()
+  const stemsNoKp = []
   for (const q of exList) {
     const k = str(q.knowledgePoint).trim()
-    if (!k) continue
+    if (!k) { stemsNoKp.push({ id: q.id, g: bigrams(q.stem) }); continue }
     const nk = kpNorm(k)
     if (!kpInBank.has(nk)) kpInBank.set(nk, [])
     if (!kpInBank.get(nk).includes(k)) kpInBank.get(nk).push(k)
+    if (!stemBuckets.has(nk)) stemBuckets.set(nk, [])
+    stemBuckets.get(nk).push({ id: q.id, g: bigrams(q.stem) })
   }
+  let bankAll = null /* 惰性：仅当新题无知识点时才需要全库列表 */
   const idInBank = new Set(exList.map((q) => q.id))
-  const bankStems = exList.map((q) => ({ id: q.id, g: bigrams(q.stem) }))
   for (const it of items) {
     const stem = str(it.题干).trim()
     if (idInBank.has(hashId(stem, str(it.题型), str(it.答案).trim()))) continue
@@ -653,7 +664,11 @@ export function crossBatchCheck(items, existing) {
     }
     const g = bigrams(stem)
     if (g.size >= SIM_MIN_NGRAMS) {
-      for (const s of bankStems) {
+      const nk = kp ? kpNorm(kp) : null
+      const candidates = nk === null
+        ? (bankAll ??= [...stemBuckets.values()].flat().concat(stemsNoKp))
+        : (stemBuckets.get(nk) ?? []).concat(stemsNoKp)
+      for (const s of candidates) {
         if (Math.min(g.size, s.g.size) >= SIM_MIN_NGRAMS && simScore(g, s.g) >= SIM_THRESHOLD) {
           warns.push({ where: w, level: '告警', message: '题干与库内已有题高度相似（疑似近似改写），请人工确认非重复题' })
           break
