@@ -1,7 +1,14 @@
 # 交接文档 · 糖果题库（quiz-platform）
 
 > 写给下一个接手的会话。读完这一份就能独立干活，不需要翻历史对话。
-> 最后更新：2026-09-09 晚，对应线上提交 `95f67c6`。
+> 最后更新：2026-09-11 上午，对应线上提交 `40dddc2`。
+
+## 2026-09-11 上午增量（commit 40dddc2）· 404.html SPA fallback + 出题全自动流水线 E2E 审查
+
+1. **404.html fallback 上线**：dist/404.html = index.html 副本（哈希引用 assets/index-CWd5z7rD.js / index-DEnYBEGr.css 未变）。GH Pages 对未知路径（如直接访问 /quiz-platform/practice 无 # 前缀）改发应用 HTML，死链落地进应用而非 GitHub 404。**铁律：以后每次重构建（rm -rf dist → vite build）必须重建 404.html：`cp dist/index.html dist/404.html`，否则 fallback 静默丢失。**
+2. **"共 N 题"口径定论**：练习场次题数 = 客观题×3 + 主观题×1（expandTriple 三遍判定制），非作用域泄漏——独立书 6 题显示"共 14 题"（4 客观×3 + 2 主观×1）属设计行为。
+3. **出题全自动流水线 E2E 审查通过**：试点 6 题跨题型真跑全闸（审题/检题测题/撞库/入库/复查）+ 真机验证（书架/切书/书库过滤/答题判分/解析展开）。SOP 固化于 `E:/workbuddy-cc/2026-09-10-22-35-40/import_batches/PIPELINE.md`；批44（223 题）已登记台账。关键机制：import_batch.mjs **先写 assign 后写题**（关闭前端"未知题自动收养进活动书"的导入窗口期竞态）；cleanup_book.mjs 整书回滚。
+4. 验证：verify-live 主页哈希与部署前一致（bundle 无孤儿）、/quiz-platform/practice 死链真机渲染应用成功（cdp Chrome）。
 
 ## 2026-09-09 晚增量（commit 95f67c6，bundle index-sociiza-.js）· 去除包（v4.14 死代码清理）+ 闸6 第二轮回流校准 PRIOR_P
 
