@@ -300,7 +300,10 @@ export class Validator {
     } else {
       blanks.forEach((b, i) => {
         const bt = b.trim(), pt = parts[i].trim()
-        if (bt !== pt) this.err(w, `第${i + 1}空“${b}”与答案分段“${parts[i]}”不一致`)
+        /* 单空多候选（2026-09-11）：答案段可用 / 追加备选（"固体异物/固体物质"），
+           主候选必须仍是题干挖空内容——判分端 gradeObjective 按候选任一命中即对。 */
+        const cands = pt.split('/').map((s) => s.trim()).filter(Boolean)
+        if (!cands.includes(bt)) this.err(w, `第${i + 1}空“${b}”与答案分段“${parts[i]}”不一致`)
         if (bt.length > 10) this.warn(w, `第${i + 1}空答案“${bt}”超过10字`)
       })
     }
@@ -534,7 +537,9 @@ function loose(s) {
 }
 /* 把标准答案按空数切开：优先用 |（导入规则里的多空分隔符，见 checkFillBlank），
    切不出正确空数时再退回其它分隔符，都不行就整串当一空。
-   用题干空数做裁判，所以「答案本体含逗号/斜杠」也不会被误切。 */
+   用题干空数做裁判，所以「答案本体含逗号/斜杠」也不会被误切。
+   单空多候选（2026-09-11）：段内用 / 分隔（"固体异物/固体物质"），
+   checkFillBlank 要求段内主候选 = 题干挖空内容。 */
 function splitExpected(q) {
   const n = Math.max(blanksOf(q.stem).length, 1)
   const raw = String(q.answer ?? '')
@@ -573,15 +578,19 @@ export function gradeObjective(q, input) {
   const normalized = normalizeAnswer(q.type, input)
   if (q.type === '填空题') {
     const expParts = splitExpected(q)
+    /* 单空多候选（2026-09-11）：答案段"甲/乙"按 / 切候选，任一命中即对。
+       解决"固体物质 vs 固体异物"类同义表述被严格比对误判——同义误判会污染掌握度统计
+       （实证案例：answer_records 里该题作答语义正确却连续计错）。 */
+    const expCands = expParts.map((p) => p.split('/').map((s) => s.trim()).filter(Boolean))
     /* 输入按空数切：UI 用 \n 拼接各空（单行 input 里不可能出现换行，是无歧义哨兵）；
        没有 \n 时兼容旧的手打分隔。若切完段数对不上空数，说明答案本体含分隔符，退回整串比。 */
     const raw = String(input ?? '').trim()
     let got = raw.includes('\n')
       ? raw.split('\n').map((p) => p.trim())
       : raw.split(BLANK_SEP).map((p) => p.trim()).filter(Boolean)
-    if (got.length !== expParts.length && got.length > 1) got = [raw]
+    if (got.length !== expCands.length && got.length > 1) got = [raw]
     return {
-      correct: got.length === expParts.length && got.every((g, i) => loose(g) === loose(expParts[i])),
+      correct: got.length === expCands.length && got.every((g, i) => expCands[i].some((c) => loose(g) === loose(c))),
       normalized: got.join(','), expected: expParts.join(','), expectedParts: expParts
     }
   }

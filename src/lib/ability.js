@@ -7,9 +7,9 @@
 //   empDifficulty  —— 逐题经验难度：该题加权正确率的反向，n 小时按自评难度档
 //                     的先验收缩（贝叶斯），新题冷启动直接用先验；先验权重随
 //                     证据量指数衰减（v4.15），n 大后实测完全接管。
-//   pickMatched    —— 组卷排序：|经验难度 - 目标难度| 最小为基准，叠加三项修正
-//                     （v4.15）：族级薄弱度优先（-0.1）、FSRS 到期轻加权（-0.05）、
-//                     近期作答冷却期（+0.3），前 K 题内随机取。
+//   pickMatched    —— 组卷排序：|经验难度 - 目标难度| 最小为基准，叠加四项修正
+//                     （v4.16）：族级薄弱度优先（-0.1）、FSRS 到期轻加权（-0.05）、
+//                     未作答探索优先（-0.08，见下）、近期作答冷却期（+0.3），前 K 题内随机取。
 //   zoneAdvice     —— 换区建议：双条件闸（近 30 题正确率 × EWMA 指数）检测
 //                     题库与水平的错位，v4.15 阈值放宽（原双 85 闸形同虚设）。
 
@@ -127,11 +127,22 @@ export function pickMatched(pool, ability, size, records, rng = Math.random, due
      只给到期题 -0.05 的轻微优先（弱于薄弱度 0.1、远弱于难度匹配主项）——
      同等匹配度下先到期先练，不产生"random 抢走 review 存量"的行为。 */
   const DUE_BONUS = 0.05
+  /* 未作答探索优先（v4.16，2026-09-11 校准闭环增益阀①）：
+     从未作答的题 empDifficulty 完全落在先验上——先验若偏离目标难度，冷选题会被
+     nearest-match 永久挤出候选 K，覆盖率停在低位（实证 24.1%），先验永远无法被
+     首答数据替换（empDifficulty 是首答加权口径，首答数据是整个校准飞轮的原料）。
+     给未作答题 -0.08 的探索优先（介于到期 0.05 与薄弱度 0.1 之间）：
+     难度匹配仍是主项，探索只解决"同等匹配度下先见没见过"——
+     思想源自 Sympson-Hetter 曝光控制（开源调研 adaptive-quiz-system-chill）：
+     控制每题曝光机会的分配，防止部分题被系统性饿死。 */
+  const EXPLORE_BONUS = 0.08
+  const answeredIds = new Set((records ?? []).map((r) => r.questionId))
   const scored = pool.map((q) => {
     const famWeak = weak.get(q.knowledgeDomain ?? null) ?? 0
     const cooldown = recentIds.has(q.id) ? COOLDOWN_PENALTY : 0
     const due = dueIds?.has(q.id) ? DUE_BONUS : 0
-    return { q, cost: Math.abs(empDifficulty(q, records) - target) - 0.1 * famWeak + cooldown - due }
+    const explore = answeredIds.has(q.id) ? 0 : EXPLORE_BONUS
+    return { q, cost: Math.abs(empDifficulty(q, records) - target) - 0.1 * famWeak + cooldown - due - explore }
   })
   scored.sort((a, b) => a.cost - b.cost)
   /* 候选池 K 随题库规模缩放：大池（400 题、size=20 → K=120）在最优 30% 内保留随机
