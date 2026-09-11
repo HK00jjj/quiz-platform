@@ -93,6 +93,15 @@ export class CloudRepo {
     const { error } = await this.client.from('settings').upsert({ key: 'books', value })
     if (error) throw error
   }
+  /* 防覆盖闸专用（2026-09-12 事故整改）：单独复核 books 行。
+     返回 value（行存在）| null（行确实不存在）| 抛错（读取失败，语义与"存在"严格区分）。
+     reloadAll 在回写云端前必须用它确认"云端真的没有书架"，防止本机旧映射覆盖云端。 */
+  async loadBooksRaw() {
+    const { data, error } = await this.client
+      .from('settings').select('value').eq('key', 'books').maybeSingle()
+    if (error) throw error
+    return data?.value ?? null
+  }
   /* 删整本题库：分批删，避免 .in() 列表过长；题目、SRS 卡、做题记录一起清 */
   async deleteQuestions(ids) {
     for (let i = 0; i < ids.length; i += 100) {
