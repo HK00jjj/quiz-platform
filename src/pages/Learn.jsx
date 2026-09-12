@@ -290,7 +290,7 @@ export default function Learn() {
   /* 排位系统（LOL 式晋级赛，2026-09-09 午后二改四闸版）：
      - 段位从黑铁起步（settings.rank 持久化官方段位），晋级只能一级一级考上去，不能跳段；
      - 晋级赛触发（四闸合取）：① 本轮（自 settings.lastExamAt 起）全库刷过一遍（覆盖 100%）
-       ② 逐题掌握率 ≥95%（本轮每题最近一次作答答对）③ 知识点正确率（≥3 次作答者）≥95%
+       ② 逐题掌握率 ≥95%（本轮每题最近一次作答答对）③ 知识域正确率（≥3 次作答者）≥95%
        ④ 上场考试错题已在练习中答对消号；
        持久性闸（≥3 天）与状态指数门槛已按用户指令取消——指数只展示不作门槛；
      - 百分制考制：随机抽 100 道客观题（含图题不进——脱离配图没法判分；考池不足按池缩容），
@@ -307,33 +307,11 @@ export default function Learn() {
     const official = RANKS.find((r) => r.name === (settings.rank ?? '黑铁')) ?? RANKS[0]
     const next = RANKS[RANKS.indexOf(official) + 1] ?? null
     const since = settings.lastExamAt ?? 0
-    /* 掌握度三闸（MASTERY 标准，2026-09-09 午后二改）：
-       覆盖率 100% + 逐题掌握率（本轮每题最近一次作答答对）≥95% + 知识点正确率（≥3 次作答者）≥95% */
-    const latest = new Map()
-    const kpStats = new Map()
-    for (const r of records) {
-      if (r.timestamp <= since) continue
-      const prev = latest.get(r.questionId)
-      if (!prev || r.timestamp > prev.timestamp) latest.set(r.questionId, r)
-    }
-    const doneN = questions.filter((q) => latest.has(q.id)).length
-    const covered = questions.length > 0 && doneN === questions.length
-    const masteredN = questions.filter((q) => latest.get(q.id)?.correct === true).length
-    const itemRate = questions.length ? masteredN / questions.length : 0
-    const qKp = new Map(questions.map((q) => [q.id, q.knowledgePoint ?? '未标注']))
-    for (const r of records) {
-      if (r.timestamp <= since) continue
-      const kp = qKp.get(r.questionId)
-      if (!kp) continue
-      const s = kpStats.get(kp) ?? { n: 0, c: 0 }
-      s.n++; if (r.correct) s.c++
-      kpStats.set(kp, s)
-    }
-    const kpArr = [...kpStats.values()].filter((s) => s.n >= MASTERY.KP_MIN)
-    const kpTotal = kpArr.length
-    const kpOK = kpArr.filter((s) => s.c / s.n >= MASTERY.KP_ACC).length
-    const kpPass = kpTotal === 0 || kpOK === kpTotal
-    const masteryReady = itemRate >= MASTERY.ITEM_RATE && kpPass
+    /* 掌握度三闸（MASTERY 标准，2026-09-09 午后二改）：计算已提取为 ability.js 的
+       masteryGate 纯函数（2026-09-12，可回归锁定）；闸③聚合键 K 域对齐的裁决记录
+       见该函数注释——细粒度 kp 聚合下闸③名存实亡，K 域族级后与薄弱度/校准同口径。 */
+    const { doneN, covered, masteredN, itemRate, kpTotal, kpOK, kpPass, masteryReady } =
+      masteryGate(questions, records, since)
     /* 晋级失败错题重练：考试错题练习中答对即消——failedAt 之后该题出现 correct=true 记录即清除。
        2026-09-11：错题单改读云端 settings.examWrongs。
        ⚠ 必须区分 undefined 与 null：undefined=从未设置（回落读旧 localStorage 值以便迁移），
@@ -526,7 +504,7 @@ export default function Learn() {
             状态指数 {rank.p}{trend ? `（7日趋势 ${trend.delta >= 0 ? '+' : ''}${trend.delta}）` : ''}（仅展示，不作晋级门槛 · 口径含主观自评，出题画像只认客观题）
             {' · '}覆盖 {rank.doneN}/{rank.total}
             {' · '}逐题掌握 {Math.round(rank.itemRate * 100)}%（≥{Math.round(MASTERY.ITEM_RATE * 100)}）
-            {' · '}知识点达标 {rank.kpTotal === 0 ? '—' : `${rank.kpOK}/${rank.kpTotal}`}（≥{Math.round(MASTERY.KP_ACC * 100)}%）
+            {' · '}知识域达标 {rank.kpTotal === 0 ? '—' : `${rank.kpOK}/${rank.kpTotal}`}（≥{Math.round(MASTERY.KP_ACC * 100)}%）
             {rank.next ? ` · 补考机会 ${rank.chancesLeft}/${EXAM_ATTEMPTS}` : ''}
           </p>
           {spark && (
@@ -539,7 +517,7 @@ export default function Learn() {
               距晋级赛还差：{[
                 rank.covered ? null : `刷完 ${rank.total - rank.doneN} 道未刷题`,
                 rank.itemRate >= MASTERY.ITEM_RATE ? null : `错题重练（${rank.total - rank.masteredN} 题最近一次未答对）`,
-                rank.kpPass ? null : `${rank.kpTotal - rank.kpOK} 个知识点正确率未达 ${Math.round(MASTERY.KP_ACC * 100)}%`,
+                rank.kpPass ? null : `${rank.kpTotal - rank.kpOK} 个知识域正确率未达 ${Math.round(MASTERY.KP_ACC * 100)}%`,
                 rank.pendingWrongN ? `晋级赛错题重练（${rank.pendingWrongN} 道上场答错的题，练习中答对即消）` : null
               ].filter(Boolean).join('；') || '—'}
             </p>
