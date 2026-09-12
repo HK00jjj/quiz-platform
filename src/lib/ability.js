@@ -204,7 +204,9 @@ export const PROMOTION_EXAM = { SIZE: 100, PASS_RATE: 0.9 }
 /* 晋级赛触发四闸（2026-09-09 午后二改，用户定稿「六闸合取」裁剪版）：
    ① 覆盖率 100%：本轮（自 lastExamAt 起）每题至少作答一次；
    ② 逐题掌握率 ≥ITEM_RATE：每题"本轮最近一次作答"必须答对（错题清零，留 5% 顽固题给考试把关）；
-   ③ 知识点达标率 100%：每个本轮作答 ≥KP_MIN 次的知识点，正确率 ≥KP_ACC（<3 次样本不足豁免）；
+   ③ 知识域达标率 100%：每个本轮作答 ≥KP_MIN 次的知识域，正确率 ≥KP_ACC（<3 次样本不足豁免）；
+      聚合键 = knowledgeDomain（K 域族级，2026-09-12 颗粒度对齐，与 pickMatched 薄弱度同口径；
+      细粒度 kp 统计密度 ≈1 题/点致该闸空转，裁决记录见 Learn.jsx 闸③注释）；
    ④ 错题清零：上场考试错题已在练习中答对消号（EXAM_WRONGS 机制，见下）。
    两闸已按用户指令取消（2026-09-09 午后二改）：
    - 持久性闸（每题最近一次作答距今 ≥3 天防突击）——删除，刷完即可考；
@@ -212,6 +214,45 @@ export const PROMOTION_EXAM = { SIZE: 100, PASS_RATE: 0.9 }
    补考机会：每周期 EXAM_ATTEMPTS 次，3 次全败周期作废重来（结算在 Learn.finishExam）。 */
 export const MASTERY = { ITEM_RATE: 0.95, KP_ACC: 0.95, KP_MIN: 3 }
 export const EXAM_ATTEMPTS = 3
+
+/* 晋级赛掌握度三闸计算（2026-09-12 从 Learn.jsx useMemo 提取为纯函数——闸③此前零测试覆盖，
+   提取后可回归锁定语义；字段与旧实现一一对应，覆盖/逐题掌握闸的数值行为一字未变）。
+   输入 questions（当前书全题）/ records（全部作答）/ since（本轮起点 = lastExamAt）。
+   闸③聚合键裁决（2026-09-12 全流程颗粒度对齐 / 全流程闭环审查 P0-1 收尾）：
+   旧实现按细粒度 kp 字符串精确聚合——题库 440 题 K8 挂 429 个细分点（≈1 题 1 点），
+   KP_MIN=3 门槛下绝大多数 kp 样本不足被豁免，闸③名存实亡（对"域掌握度"零度量力）。
+   聚合键改为 knowledgeDomain（K 域族级）后，与 pickMatched 薄弱度（v4.15 G2-①）、
+   闸6 校准、K 谱系覆盖矩阵同口径：统计职能归 K 域，细粒度 kp 只保留给查重/变式/检索。
+   无域题兜底回落 knowledgePoint（与旧行为等价，防畸形数据制造假闸；
+   全库 1531 题已实测全带 K 域标注，此分支纯防御）。KP_MIN / KP_ACC 阈值不变。 */
+export function masteryGate(questions, records, since) {
+  const latest = new Map()
+  const domStats = new Map()
+  for (const r of records ?? []) {
+    if (r.timestamp <= since) continue
+    const prev = latest.get(r.questionId)
+    if (!prev || r.timestamp > prev.timestamp) latest.set(r.questionId, r)
+  }
+  const doneN = questions.filter((q) => latest.has(q.id)).length
+  const covered = questions.length > 0 && doneN === questions.length
+  const masteredN = questions.filter((q) => latest.get(q.id)?.correct === true).length
+  const itemRate = questions.length ? masteredN / questions.length : 0
+  const qDom = new Map(questions.map((q) => [q.id, q.knowledgeDomain ?? q.knowledgePoint ?? '未标注']))
+  for (const r of records ?? []) {
+    if (r.timestamp <= since) continue
+    const dom = qDom.get(r.questionId)
+    if (!dom) continue
+    const s = domStats.get(dom) ?? { n: 0, c: 0 }
+    s.n++; if (r.correct) s.c++
+    domStats.set(dom, s)
+  }
+  const kpArr = [...domStats.values()].filter((s) => s.n >= MASTERY.KP_MIN)
+  const kpTotal = kpArr.length
+  const kpOK = kpArr.filter((s) => s.c / s.n >= MASTERY.KP_ACC).length
+  const kpPass = kpTotal === 0 || kpOK === kpTotal
+  const masteryReady = itemRate >= MASTERY.ITEM_RATE && kpPass
+  return { doneN, covered, masteredN, itemRate, kpTotal, kpOK, kpPass, masteryReady }
+}
 
 /* 晋级失败错题重练（2026-09-09 午后 v6.1，取代"失败全库重刷"）：
    考试错题存 localStorage（ExamModal 上报），在练习中答对一次即消；
