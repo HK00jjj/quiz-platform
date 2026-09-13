@@ -217,18 +217,29 @@ export default function Practice() {
 
   /* ── 解析语音播报（2026-09-13，用户钦定：点开解析自动播 + 🔊 可关 + 语速 1.25）──
      时机与滚动 effect 对齐：挂 seal==='broken'（蜡封卸载、布局定型之后）才开读。
+     **一题只播一次**：用「题号|题目 id」做键，只有本题还没读过才开口。
+     之前把 lastGrade/phase 放进依赖 → store 每次更新（作答、确认、翻牌）都重跑
+     effect → stopSpeak+speak 重播。Edge 的 Online 神经音是云端流式合成，cancel()
+     落地有几拍延迟，新链已经在说、旧音频还没停 → 听感就是"读一半换了个声音"
+     "两个声音叠着一起播"（2026-09-13 晚用户两轮实测，同一个根因）。
+     所以本 effect **不返回 cleanup**（cleanup 每次依赖变化都会停声，等于把重启请回来），
+     改由"离开揭晓态 / 静音 / 切题"三条路径显式 stopSpeak，卸载另挂一个空依赖 effect。
      必须挂在 early return 之前（Rules of Hooks）；播报文本的洗牌序直接读
-     shuffleRef.current（与本帧渲染同源，重掷会念错字母）。
-     切题/翻牌/结算/静音时经 cleanup 走 stopSpeak，声音不会串题。 */
+     shuffleRef.current（与本帧渲染同源，重掷会念错字母）。 */
   const [ttsOn, setTtsOn] = useState(ttsPrefEnabled)
   const ttsOK = useRef(ttsSupported()).current
+  const spokenKeyRef = useRef(null)
   useEffect(() => {
     if (!ttsOK) return
     const revealed = seal === 'broken' && (phase === 'feedback' || showAnswer)
-    if (!revealed || !ttsOn || !q) { stopSpeak(); return }
+    if (!revealed || !ttsOn || !q) { stopSpeak(); spokenKeyRef.current = null; return }
+    const key = index + '|' + q.id
+    if (spokenKeyRef.current === key) return      // 本题已读过：不重播（这是防叠音的闸）
+    spokenKeyRef.current = key
     speak(spokenOf(q, lastGrade, shuffleRef.current.order))
-    return () => stopSpeak()
-  }, [ttsOK, seal, phase, showAnswer, index, q?.id, ttsOn, lastGrade])
+  }, [ttsOK, seal, phase, showAnswer, index, q?.id, ttsOn])
+  /* 卸载兜底：离开练习页/进结算页时，不留一条还在说的声音 */
+  useEffect(() => () => stopSpeak(), [])
 
   if (phase === 'idle' || questions.length === 0) {
     return (

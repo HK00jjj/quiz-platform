@@ -5,7 +5,7 @@
    ② cleanSpeechText：emoji 删除、→ 与换行转停顿、markdown 记号剥离
    ③ pickVoice：选声优先级（晓晓Natural > 云希Natural > Natural > 常见微软本地音 > 任意zh） */
 import assert from 'node:assert/strict'
-import { chunkSpeechText, cleanSpeechText, pickVoice } from '../src/lib/tts.js'
+import { chunkSpeechText, cleanSpeechText, pickVoice, chunkMaxFor, TTS_RATE } from '../src/lib/tts.js'
 
 let n = 0
 const ok = (cond, msg) => { n++; assert.ok(cond, msg) }
@@ -68,5 +68,19 @@ ok(pickVoice([V('Microsoft 曉曼 Online (Natural) - Chinese (Cantonese, Traditi
 ok(pickVoice([V('Some Voice', 'en-US'), V('Google 普通话（中国大陆）')]).name.includes('普通话'), '③-9 无微软系回落任意普通话（含 Google）')
 ok(pickVoice([V('Samantha', 'en-US')]) === null, '③-10 无 zh 音 → null（交浏览器按 lang 默认）')
 ok(pickVoice([]) === null, '③-11 空列表 → null')
+
+/* ── ④ 块长分流（2026-09-13 晚：用户实测"读一下就换音色"的对策之一）──
+   Edge Online 神经音走云端长文本引擎 → 放宽到 180 字（少切几刀 = 少几次块边界）；
+   其余（Chrome Google 网络音 / 本地 SAPI）保持 50 字，规避 Chrome 桌面 ~15s 静默中断。 */
+const ONLINE_NATURAL = V(XIAOXIAO, 'zh-CN', false)
+ok(chunkMaxFor(ONLINE_NATURAL) === 180, '④-1 Online 神经音块长放宽 180')
+ok(chunkMaxFor(V('Microsoft Huihui', 'zh-CN', true)) === 50, '④-2 本地 SAPI 保持 50')
+ok(chunkMaxFor(V('Google 普通话（中国大陆）', 'zh-CN', false)) === 50, '④-3 Google 网络音保持 50（Chrome 有长文静默 bug）')
+ok(chunkMaxFor(null) === 50, '④-4 无音色时保守取 50')
+const longText = '解析'.repeat(120)
+ok(chunkSpeechText(longText, chunkMaxFor(ONLINE_NATURAL)).length < chunkSpeechText(longText, 50).length, '④-5 同一长文在 180 分块下块数更少')
+
+/* ── ⑤ 语速锚定（用户 2026-09-13 晚：1.25 → 1.5"快一点"；再快会掉理解率）── */
+ok(TTS_RATE === 1.5, '⑤-1 播报语速锁定 1.5（改动需同步本条注释与依据）')
 
 console.log(`\ntts.regression：${n} 断言全绿`)

@@ -7,7 +7,7 @@
       多方独立复现）。修法只能切块——Android 的 pause() 等于 cancel()，
       社区流行的「每 14s pause/resume 保活」在安卓必炸，故不采用。
       切块上限按【时长】算而不是字符数：中文 TTS ≈4~5 字/秒，50 字/块在
-      1.0~1.25 倍速下 ≤10s，远离 15s 阈值（网上「200 字符」的切块经验来自
+      1.0~1.5 倍速下 ≤10s，远离 15s 阈值（网上「200 字符」的切块经验来自
       英文文本，中文不能照抄）。
 
    ② 选声：按公开评测事实排优先级——微软神经语音是中文自然度天花板
@@ -24,8 +24,10 @@
    ③ 清理：stopSpeak 必须在切题/卸载/静音时调用，否则上一题的声音会串进
       下一题（speechSynthesis 是浏览器全局单例，不随组件卸载而停）。 */
 
-/* 播报语速（用户钦定 1.25；1.2~1.5 是"熟悉内容复听"的舒适区） */
-export const TTS_RATE = 1.25
+/* 播报语速（用户 2026-09-13 晚：1.25 → 1.5"快一点"）。
+   依据：1.5× ≈ 225~270 wpm，是"熟悉内容/有经验听者"的舒适上限；再往上（2.0×）
+   理解率明显下滑（Murphy/Hoover/Ritter 2018 阅读与写作研究：2.5× 以上叙述文本理解率骤降）。 */
+export const TTS_RATE = 1.5
 
 const LS_KEY = 'qp.tts.enabled'
 
@@ -145,33 +147,76 @@ export function voiceNote() {
   return isNatural(v) ? `语音：${v.name}` : `语音：${v.name}（本机无神经音，用 Edge 打开可听到晓晓自然语音）`
 }
 
-/* 串行播报。token 防竞态：新一轮 speak/stopSpeak 递增 token，
-   旧块 onend 链发现 token 变了就自动断链，不会把新一轮的块接在后面。 */
+/* 块长按音色分流：
+   · Edge/微软 Online 神经音（云端长文本引擎，Read Aloud 整页朗读同源）→ 180 字/块，
+     少切几刀 = 少几次"块边界"= 少几次音色被换的机会；
+   · 其余（Chrome Google 网络音 / 本地 SAPI）→ 50 字/块，
+     规避 Chrome 桌面长文 ~15s 静默中断（实证阈值 200~300 字符是英文经验，
+     中文按 4~5 字/秒折算才安全）。 */
+export function chunkMaxFor(voice) {
+  const onlineNatural = !!voice && /natural|neural/i.test(voice.name) && voice.localService === false
+  return onlineNatural ? 180 : 50
+}
+
+/* 串行播报。三个抗坑措施（均有公开记录，2026-09-13 晚按用户实测"读一下就换音色"补）：
+   ① **保活引用**：Chromium 长期 bug——SpeechSynthesisUtterance 在说完前被 GC 会丢
+      voice/丢事件，表现为"开头正确、后面变成默认音"。存进 live 数组即可保活。
+   ② **块间 120ms 间隙**：背靠背 speak 会让引擎忽略第二句起的 voice
+      （SO 36377342 标题就是"第一次女声、第二次男声"）。
+   ③ **每次现取 voice**：不缓存 voice 对象（列表 voiceschanged 后会换新对象，
+      旧对象可能失效），每块从当前 getVoices() 重新匹配同一音色。
+   另加看门狗：Chrome+Google 网络音有"事件不触发、卡在 speaking"的老 bug，
+   估算时长+4s 仍无进展就推进下一块，避免整段播报无声挂死。
+   token 防竞态：新一轮 speak/stopSpeak 递增 token，旧链自动作废。 */
 let token = 0
 export function stopSpeak() {
   token++
   try { window.speechSynthesis?.cancel() } catch { /* ignore */ }
 }
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+const CHUNK_GAP = 120
 export async function speak(raw, { rate = TTS_RATE, onDone } = {}) {
   if (!ttsSupported()) return false
-  const chunks = chunkSpeechText(raw)
-  if (!chunks.length) return false
   const my = ++token
   const synth = window.speechSynthesis
-  /* 先拿到语音再开口（见 waitVoice 注释）；等待期间若被静音/新播报取代，token 已变，直接放弃 */
+  /* 先拿到语音再开口（见 waitVoice 注释）；等待期间若被静音/新播报取代，直接放弃 */
   const voice = await waitVoice()
   if (my !== token) return false
+  const chunks = chunkSpeechText(raw, chunkMaxFor(voice))
+  if (!chunks.length) return false
+  /* 新一轮开口前一律 cancel：旧链可能正卡在块间隙（此时 speaking/pending 都是 false，
+     只看状态就漏 cancel），而 Edge 的云端神经音 cancel 落地有几拍延迟——不 cancel
+     就会新旧两条链叠着说。cancel 后留 120ms 让引擎状态复位再开口。 */
+  try { synth.cancel() } catch { /* ignore */ }
+  await sleep(CHUNK_GAP)
+  if (my !== token) return false
+  const live = []                       // ① 保活：防 GC 丢 voice
+  let gapTimer = null, watchdog = null
+  const clearTimers = () => { clearTimeout(gapTimer); clearTimeout(watchdog) }
+  const armWatchdog = (text) => {
+    const est = Math.max(5000, (text.length / 4) * 1000) + 4000
+    clearTimeout(watchdog)
+    watchdog = setTimeout(() => {
+      if (my !== token) return
+      if (synth.speaking || synth.pending) return armWatchdog(text)   // 还在说，继续等
+      gapTimer = setTimeout(next, CHUNK_GAP)                          // 事件没来且已停 → 推进
+    }, est)
+  }
   let i = 0
   const next = () => {
     if (my !== token) return                        // 已被新播报/静音取代：断链
-    if (i >= chunks.length) { if (onDone) onDone(); return }
-    const u = new SpeechSynthesisUtterance(chunks[i++])
-    if (voice) u.voice = voice
-    u.lang = voice?.lang || 'zh-CN'
+    if (i >= chunks.length) { clearTimers(); live.length = 0; if (onDone) onDone(); return }
+    const text = chunks[i++]
+    const v = pickVoice(synth.getVoices() || [])    // ③ 每块现取（令牌名匹配同一音色）
+    const u = new SpeechSynthesisUtterance(text)
+    if (v) { u.voice = v; u.lang = v.lang } else u.lang = 'zh-CN'
     u.rate = rate
-    u.onend = next
-    u.onerror = next                                // cancel 在部分浏览器走 onerror，token 校验兜住
-    try { synth.speak(u) } catch { if (onDone) onDone() }
+    live.push(u)                                    // ① 保活
+    if (live.length > 60) live.shift()
+    u.onend = () => { if (my === token) gapTimer = setTimeout(next, CHUNK_GAP) }   // ② 块间间隙
+    u.onerror = () => { if (my === token) gapTimer = setTimeout(next, CHUNK_GAP) }
+    try { synth.speak(u) } catch { clearTimers(); if (onDone) onDone() }
+    armWatchdog(text)
   }
   next()
   return true

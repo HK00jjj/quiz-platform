@@ -1,7 +1,39 @@
 # 交接文档 · 糖果题库（quiz-platform）
 
 > 写给下一个接手的会话。读完这一份就能独立干活，不需要翻历史对话。
-> 最后更新：2026-09-13 晚（第十二批），线上提交 `e8d8a2f`，bundle index-D6V0KuzL.js。
+> 最后更新：2026-09-13 晚（第十三批），bundle index-eUTPFYqo.js（③续考进度云化）+ src 历史 .env blob 已清除（①安全收口）。
+
+## 2026-09-13 晚增量（第十三批）· 续考进度云化（③）+ src 历史 .env 清除（①）
+
+用户指示"按照建议逐项落实"（同步核查后给出的 4 项待办）。
+
+1. **③续考进度云化**：进度原先只存 localStorage（qp-exam-progress），清缓存丢整场考试。
+   照 examWrongs 同款链路迁到 settings.examProgress（零 DDL，复用 per-user KV）：
+   - db.js 新增 `loadAppSettings()`（fail-open，ExamModal 进入时确定性现拉云端快照，
+     不赌启动期 loadAll 是否完成——避免误判"无云端进度"而新开孤儿 attempt）；
+   - Learn.jsx 五处：saveProgress 双写（本地照旧+updateSettings 上云，payload 加 ts）；
+     恢复与 examSaved 走 pickExamProgress(本地, 云端)——**ts 新者胜**，防跨设备旧进度
+     覆盖新进度污染 examSubmit 判分；examSubmit 成功后本地+云端同步清除；
+   - 新增 lib/exam-progress.js 纯函数 + tests/exam-progress.regression.mjs（11 断言），
+     run-all 14 套件 ALL GREEN。
+2. **①src 历史 .env blob 清除**（用户批准执行）：发现 .env **间歇性反复入库**——
+   根因=push-src 把自己备份进云端，pull-src 会用云端旧版（无 SKIP_RE）覆写本地脚本，
+   旧版再跑就把 app/.env 重新带上（09-11 与 09-13 两次实锤；实测 165 提交中 49+ 个
+   树含 .env，**第十三批前 HEAD 938d7dc 树里就有**）。修法：
+   - push-src.mjs 加**硬失败自检**（推送清单含 .env 类条目直接 exit 1）+ message
+     改动态日期（旧模板"塔罗主题奥术典籍馆"误导性强，已退役）；
+   - git clone 直连超时 → 改 **GitHub Git Data API 全链重建**（165 提交逐个：
+     含 .env 的重建树（删条目，子树 sha 复用），不含的复用树 sha；commit 全部重建
+     改 parent；PATCH ref 需 force:true（历史重写 non-FF，首跑 422 已补）；
+   - 回滚参照：旧 HEAD `938d7dc`（重建前），24h 内可经 API 把 src ref 指回（之后 GC 不可逆）。
+   - **配套待办（用户）**：轮换 Supabase E2E 账号口令（.env 内凭据视为已泄露）——
+     Supabase Dashboard → Authentication → 改 1928260816@qq.com 密码 → 同步改 app/.env。
+3. **②CI 备份**：PAT 需补 workflow scope（用户 GitHub 操作），补齐后
+   `QP_SRC_INCLUDE_CI=1 node scripts/push-src.mjs …` 即纳入 .github/workflows 备份。
+4. **④数据核查**：E2E 登录实测云端 questions=2301、answer_records=491、review_cards=195、
+   settings=2、exam_state=1——数据层健康（273 为 09-12 时点数，之后已大量导入）。
+5. 工具坑：本会话 bash shim 损坏（dirname 缺失/PATH 断）+ PortableGit 1.2.0 过旧
+   （不支持 -C）→ git 操作用 node execFileSync+process.chdir 绕行；PowerShell stdout 吞输出。
 
 ## 2026-09-13 晚增量（第十二批）· 解析语音播报上线 + 填空斜杠判错修复（P1 存量）
 
