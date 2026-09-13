@@ -13,7 +13,7 @@ import { imageFor, diagramDataUri, diagramTitle } from '../lib/diagrams'
    此前与 stats/ability/Learn 各写一遍 Fisher-Yates）。 */
 import { shuffledOrder } from '../lib/util.js'
 /* 解析语音播报（2026-09-13 增量）：启封自动朗读解析，🔊 一键可关，语速 1.25 */
-import { speak, stopSpeak, ttsSupported, ttsEnabled as ttsPrefEnabled, setTtsEnabled, voiceNote, ttsRate, setTtsRate, fmtRate, RATE_MIN, RATE_MAX, RATE_STEP } from '../lib/tts.js'
+import { speak, stopSpeak, pauseSpeak, resumeSpeak, ttsSupported, ttsEnabled as ttsPrefEnabled, setTtsEnabled, voiceNote, ttsRate, setTtsRate, fmtRate, RATE_MIN, RATE_MAX, RATE_STEP } from '../lib/tts.js'
 
 /* 题干渲染：填空题把 {空} 显示为下划线占位 */
 function Stem({ q }) {
@@ -235,7 +235,8 @@ export default function Practice() {
   useEffect(() => {
     if (!ttsOK) return
     const revealed = seal === 'broken' && (phase === 'feedback' || showAnswer)
-    if (!revealed || !ttsOn || !q) { stopSpeak(); spokenKeyRef.current = null; return }
+    if (!revealed || !q) { stopSpeak(); spokenKeyRef.current = null; return }
+    if (!ttsOn) return                            // 静音中：不自动开口（揭晓后再开由开关 handler 接）
     const key = index + '|' + q.id
     if (spokenKeyRef.current === key) return      // 本题已读过：不重播（这是防叠音的闸）
     spokenKeyRef.current = key
@@ -304,6 +305,24 @@ export default function Practice() {
     : q.type === '填空题' ? fills.join('\n')
     : text
   const canSubmit = objective ? inputText.trim().length > 0 : true
+
+  /* 播报开关 = 暂停/继续（2026-09-13 晚第五轮，用户指令"开和关都暂停在原处，不重复读"）：
+     关 → pauseSpeak（桌面原生 pause 原地停；不支持时记住块位置），**不清进度、不清键**；
+     开 → 优先 resumeSpeak 接着读；只有"本题从未读过"（键不匹配）才从头开口。
+     已读完的题再开只是取消静音，不会重头再读一遍。 */
+  function toggleTts() {
+    const next = !ttsOn
+    setTtsOn(next)
+    setTtsEnabled(next)
+    if (!next) { pauseSpeak(); return }
+    if (resumeSpeak()) return
+    const revealed = seal === 'broken' && (phase === 'feedback' || showAnswer)
+    const key = index + '|' + q?.id
+    if (revealed && q && spokenKeyRef.current !== key) {
+      spokenKeyRef.current = key
+      speak(spokenOf(q, lastGrade, shuffleRef.current.order))
+    }
+  }
 
   /* 语速自定义（无级滑块）：夹取 → 落盘 → 停当前播报；若本题正在播报，
      防抖 450ms 后用新语速重播（拖动过程中不反复重启，松手才生效）。 */
@@ -568,17 +587,18 @@ export default function Practice() {
               {ttsOK && (
                 <button className="chip" style={{ fontSize: 11 }} aria-expanded={ttsOpen}
                   aria-pressed={ttsOn}
-                  title={ttsOn ? `解析语音播报已开｜${voiceNote()}` : `解析语音播报已关｜${voiceNote()}`}
+                  title={ttsOn ? `解析语音播报进行中｜${voiceNote()}` : `已暂停在原处，再点继续接着读｜${voiceNote()}`}
                   onClick={() => setTtsOpen((o) => !o)}>
-                  {ttsOn ? `🔊 ${fmtRate(rateNow)}×` : '🔇 静音'}
+                  {ttsOn ? `🔊 ${fmtRate(rateNow)}×` : '⏸ 已暂停'}
                 </button>
               )}
             </div>
             {ttsOK && ttsOpen && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 4px 8px' }}>
                 <button className="chip" style={{ fontSize: 11 }} aria-pressed={ttsOn}
-                  onClick={() => { const v = !ttsOn; setTtsOn(v); setTtsEnabled(v) }}>
-                  {ttsOn ? '🔊 播报开' : '🔇 播报关'}
+                  title="关闭＝暂停在原处；再点＝接着读（不会从头重读）"
+                  onClick={toggleTts}>
+                  {ttsOn ? '🔊 播报开' : '▶ 继续播报'}
                 </button>
                 <input type="range" min={RATE_MIN} max={RATE_MAX} step={RATE_STEP} value={rateNow}
                   aria-label="播报语速" style={{ flex: 1, accentColor: 'var(--teal, #3fbfa8)' }}

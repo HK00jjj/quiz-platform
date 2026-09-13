@@ -5,7 +5,7 @@
    ② cleanSpeechText：emoji 删除、→ 与换行转停顿、markdown 记号剥离
    ③ pickVoice：选声优先级（晓晓Natural > 云希Natural > Natural > 常见微软本地音 > 任意zh） */
 import assert from 'node:assert/strict'
-import { chunkSpeechText, cleanSpeechText, pickVoice, chunkMaxFor, TTS_RATE, RATE_MIN, RATE_MAX, RATE_STEP, clampRate, fmtRate, ttsRate } from '../src/lib/tts.js'
+import { chunkSpeechText, cleanSpeechText, pickVoice, chunkMaxFor, TTS_RATE, RATE_MIN, RATE_MAX, RATE_STEP, clampRate, fmtRate, ttsRate, sliceForResume } from '../src/lib/tts.js'
 
 let n = 0
 const ok = (cond, msg) => { n++; assert.ok(cond, msg) }
@@ -94,5 +94,12 @@ ok(ttsRate() === 1.35, '⑤-8 Node 无 window 环境取默认值且不抛错（�
 ok(RATE_STEP === 0.01, '⑤-9 滑块步进 0.01（任意百分位可调，不被网格吸附）')
 ok(clampRate(1.42) === 1.42, '⑤-10 1.42 这类自定义值完整保留')
 ok(fmtRate(1.4) === '1.4' && fmtRate(1.35) === '1.35' && fmtRate(1.42) === '1.42', '⑤-11 显示格式化去浮点尾巴')
+
+/* ── ⑥ 暂停/续播位置（用户指令 2026-09-13 晚：开关都暂停在原处、不重复读）──
+   session.i = 已开口的块数 → 被打断的是 i-1，续播从它开始贪吃，绝不整段重来 */
+ok(JSON.stringify(sliceForResume({ chunks: ['a', 'b', 'c'], i: 2 })) === JSON.stringify(['b', 'c']), '⑥-1 续播从被打断的那块起（已读完的 a 不重读）')
+ok(JSON.stringify(sliceForResume({ chunks: ['a', 'b', 'c'], i: 1 })) === JSON.stringify(['a', 'b', 'c']), '⑥-2 首块就被打断则仍从整段（无更早进度可续）')
+ok(sliceForResume(null).length === 0, '⑥-3 无会话（换题/停止后）返回空，不会误从头读')
+ok(sliceForResume({ chunks: [], i: 3 }).length === 0, '⑥-4 空块表返回空')
 
 console.log(`\ntts.regression：${n} 断言全绿`)

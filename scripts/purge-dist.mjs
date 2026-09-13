@@ -90,10 +90,13 @@ if (existsSync(distAssets)) {
   /* 【2026-09-13 保留窗口】不再把孤儿清零：gh-pages 的 index.html 缓存不完全可控
      （浏览器/运营商缓存可能远超官方 max-age=600），旧 HTML 指向的 bundle 被删即白屏
      （09-13 实测事故：用户电脑缓存旧 index → 旧 JS 404 → 有皮没芯；当天已从 git 历史
-     恢复 10 代 bundle 上线自愈）。裁决 = 保留最新的 RETAIN=6 个孤儿（按 mtime，
-     约 2 周生成窗口 ≈3MB），更旧的才删——旧缓存命中保留窗内 bundle 时旧版照常启动，
-     用户随后自然刷新到新版，无需手动清缓存。 */
-  const RETAIN = 6
+     恢复 10 代 bundle 上线自愈）。裁决 = 保留最新的 RETAIN 个孤儿（按 mtime），更旧的才删
+     ——旧缓存命中保留窗内 bundle 时旧版照常启动，用户随后自然刷新到新版，无需手动清缓存。
+     【2026-09-13 晚 路由分割适配】App.jsx 起 React.lazy 把四页拆成独立 chunk，且
+     chunkFileNames 统一为 index-<hash>.js（见 vite.config.js）——每代构建从 1 个 bundle
+     变成 1 主包 + 4 懒加载 chunk ≈ 5 个文件。RETAIN 从 6 提到 30，仍覆盖约 6 代生成窗口
+     （约 2 周 ≈ 15MB），旧缓存自愈语义不变。 */
+  const RETAIN = 30
   const orphanAll = readdirSync(distAssets).filter((f) => /^index-[\w-]+\.(?:js|css)$/.test(f) && !htmlRefs.has(f))
     .map((f) => ({ f, m: statSync(path.join(distAssets, f)).mtimeMs }))
     .sort((a, b) => b.m - a.m)

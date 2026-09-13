@@ -54,7 +54,8 @@ export function ttsRate() {
 export function setTtsRate(v) {
   const val = clampRate(v)
   try { window.localStorage.setItem(LS_RATE, String(val)) } catch { /* ignore */ }
-  stopSpeak()                   // 换语速即停当前播报（调用方决定是否立刻重播）
+  /* 只落盘，不在这里停声：正在播报时由调用方防抖重播（内部会 cancel）；
+     暂停中则连现场都不动——继续时 resumeSpeak 用新语速从被打断的那块接读。 */
   return val
 }
 
@@ -64,13 +65,14 @@ export function ttsSupported() {
   return typeof window !== 'undefined' && 'speechSynthesis' in window
 }
 
-/* 播报开关（默认开：2026-09-13 用户裁决——点开解析自动播，🔊 一键可关） */
+/* 播报开关（默认开）。**只负责记忆偏好，不再顺手停声**——
+   开关的停声语义已升级为"暂停在原处、继续接着读"（见 pauseSpeak/resumeSpeak），
+   由调用方决定调 pause 还是 stop。 */
 export function ttsEnabled() {
   try { return window.localStorage.getItem(LS_KEY) !== '0' } catch { return true }
 }
 export function setTtsEnabled(on) {
   try { window.localStorage.setItem(LS_KEY, on ? '1' : '0') } catch { /* 隐私模式等：仅本次会话生效 */ }
-  if (!on) stopSpeak()
 }
 
 /* 播报前清洗：emoji/装饰符直接删；箭头与换行读成停顿，
@@ -187,7 +189,7 @@ export function chunkMaxFor(voice) {
   return onlineNatural ? 180 : 50
 }
 
-/* 串行播报。三个抗坑措施（均有公开记录，2026-09-13 晚按用户实测"读一下就换音色"补）：
+/* 串行播报会话。三个抗坑措施（均有公开记录）：
    ① **保活引用**：Chromium 长期 bug——SpeechSynthesisUtterance 在说完前被 GC 会丢
       voice/丢事件，表现为"开头正确、后面变成默认音"。存进 live 数组即可保活。
    ② **块间 120ms 间隙**：背靠背 speak 会让引擎忽略第二句起的 voice
@@ -196,14 +198,93 @@ export function chunkMaxFor(voice) {
       旧对象可能失效），每块从当前 getVoices() 重新匹配同一音色。
    另加看门狗：Chrome+Google 网络音有"事件不触发、卡在 speaking"的老 bug，
    估算时长+4s 仍无进展就推进下一块，避免整段播报无声挂死。
-   token 防竞态：新一轮 speak/stopSpeak 递增 token，旧链自动作废。 */
+   token 防竞态：新一轮 speak/stopSpeak 递增 token，旧链自动作废。
+
+   **暂停/续播（2026-09-13 晚第五轮，用户指令"播报开和关都暂停在原处、不重复读"）**：
+   播报状态挂在模块级 session 上（chunks + 读到第几块 + 暂停标记），所以开关关掉
+   不等于丢掉进度：
+   · 桌面 Chrome/Edge 的 pause() 是真暂停 → 恢复时 resume() 原地续上（一个字不重读）；
+   · Android 的 pause() 等于 cancel（社区实证）→ 运行时用 `synth.paused` 探测，
+     不成立就退回"记住块位置"策略：恢复时从被打断的那一块重新开口（最多重读一句，
+     绝不从头重读整段）。 */
 let token = 0
+let session = null      // { chunks, i, paused, nativePaused, done }
 export function stopSpeak() {
   token++
+  session = null
   try { window.speechSynthesis?.cancel() } catch { /* ignore */ }
+}
+/* 暂停在原处：能原生暂停就原生暂停，不能就记住块位置并断链 */
+export function pauseSpeak() {
+  if (!ttsSupported() || !session || session.done) return false
+  const synth = window.speechSynthesis
+  session.paused = true
+  session.nativePaused = false
+  try { synth.pause() } catch { /* ignore */ }
+  if (synth.paused) { session.nativePaused = true; return true }
+  token++                                   // 原生暂停不可用：断链，位置留在 session.i
+  try { synth.cancel() } catch { /* ignore */ }
+  return false
+}
+/* 继续：原生暂停的续上；否则从被打断的那一块接读（新语速即时生效） */
+export function resumeSpeak() {
+  if (!ttsSupported()) return false
+  const synth = window.speechSynthesis
+  const s = session
+  if (!s || !s.paused || s.done) return false
+  if (s.nativePaused && (synth.speaking || synth.pending)) {
+    try { synth.resume() } catch { /* ignore */ }
+    s.paused = false
+    return true
+  }
+  const rest = sliceForResume(s)
+  session = null
+  return runChunks(rest, ttsRate()) !== false
+}
+/* 纯函数（可回归）：被打断块 + 其后的剩余块；i 已自增，故取 i-1 起 */
+export function sliceForResume(s) {
+  if (!s || !s.chunks || !s.chunks.length) return []
+  return s.chunks.slice(Math.max(0, s.i - 1))
 }
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 const CHUNK_GAP = 120
+function runChunks(chunks, rate, onDone, my) {
+  if (!chunks || !chunks.length) return false
+  const tok = my === undefined ? ++token : my
+  const synth = window.speechSynthesis
+  const sess = { chunks, i: 0, paused: false, nativePaused: false, done: false }
+  session = sess
+  const live = []                       // ① 保活：防 GC 丢 voice
+  let gapTimer = null, watchdog = null
+  const clearTimers = () => { clearTimeout(gapTimer); clearTimeout(watchdog) }
+  const armWatchdog = (text) => {
+    const est = Math.max(5000, (text.length / 4) * 1000) + 4000
+    clearTimeout(watchdog)
+    watchdog = setTimeout(() => {
+      if (tok !== token) return
+      if (sess.paused) return armWatchdog(text)                     // 暂停中：不推进
+      if (synth.speaking || synth.pending) return armWatchdog(text) // 还在说，继续等
+      gapTimer = setTimeout(next, CHUNK_GAP)                        // 事件没来且已停 → 推进
+    }, est)
+  }
+  const next = () => {
+    if (tok !== token || sess.paused) return                        // 被取代/暂停：断链
+    if (sess.i >= chunks.length) { clearTimers(); live.length = 0; sess.done = true; if (onDone) onDone(); return }
+    const text = chunks[sess.i++]
+    const v = pickVoice(synth.getVoices() || [])                    // ③ 每块现取
+    const u = new SpeechSynthesisUtterance(text)
+    if (v) { u.voice = v; u.lang = v.lang } else u.lang = 'zh-CN'
+    u.rate = rate
+    live.push(u)                                                    // ① 保活
+    if (live.length > 60) live.shift()
+    u.onend = () => { if (tok === token) gapTimer = setTimeout(next, CHUNK_GAP) }   // ② 块间间隙
+    u.onerror = () => { if (tok === token) gapTimer = setTimeout(next, CHUNK_GAP) }
+    try { synth.speak(u) } catch { clearTimers(); if (onDone) onDone() }
+    armWatchdog(text)
+  }
+  next()
+  return true
+}
 export async function speak(raw, { rate = ttsRate(), onDone } = {}) {
   if (!ttsSupported()) return false
   const my = ++token
@@ -217,36 +298,8 @@ export async function speak(raw, { rate = ttsRate(), onDone } = {}) {
      只看状态就漏 cancel），而 Edge 的云端神经音 cancel 落地有几拍延迟——不 cancel
      就会新旧两条链叠着说。cancel 后留 120ms 让引擎状态复位再开口。 */
   try { synth.cancel() } catch { /* ignore */ }
+  session = null
   await sleep(CHUNK_GAP)
   if (my !== token) return false
-  const live = []                       // ① 保活：防 GC 丢 voice
-  let gapTimer = null, watchdog = null
-  const clearTimers = () => { clearTimeout(gapTimer); clearTimeout(watchdog) }
-  const armWatchdog = (text) => {
-    const est = Math.max(5000, (text.length / 4) * 1000) + 4000
-    clearTimeout(watchdog)
-    watchdog = setTimeout(() => {
-      if (my !== token) return
-      if (synth.speaking || synth.pending) return armWatchdog(text)   // 还在说，继续等
-      gapTimer = setTimeout(next, CHUNK_GAP)                          // 事件没来且已停 → 推进
-    }, est)
-  }
-  let i = 0
-  const next = () => {
-    if (my !== token) return                        // 已被新播报/静音取代：断链
-    if (i >= chunks.length) { clearTimers(); live.length = 0; if (onDone) onDone(); return }
-    const text = chunks[i++]
-    const v = pickVoice(synth.getVoices() || [])    // ③ 每块现取（令牌名匹配同一音色）
-    const u = new SpeechSynthesisUtterance(text)
-    if (v) { u.voice = v; u.lang = v.lang } else u.lang = 'zh-CN'
-    u.rate = rate
-    live.push(u)                                    // ① 保活
-    if (live.length > 60) live.shift()
-    u.onend = () => { if (my === token) gapTimer = setTimeout(next, CHUNK_GAP) }   // ② 块间间隙
-    u.onerror = () => { if (my === token) gapTimer = setTimeout(next, CHUNK_GAP) }
-    try { synth.speak(u) } catch { clearTimers(); if (onDone) onDone() }
-    armWatchdog(text)
-  }
-  next()
-  return true
+  return runChunks(chunks, rate, onDone, my)
 }

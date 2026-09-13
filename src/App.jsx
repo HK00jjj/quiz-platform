@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState, lazy, Suspense } from 'react'
 import { HashRouter, Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom'
 import { useStore } from './store'
 import { A } from './assets'
@@ -10,10 +10,14 @@ import FestiveDecor from './components/FestiveDecor'
 import { lastResultMap } from './lib/stats'
 import Login from './pages/Login'
 import Learn from './pages/Learn'
-import Practice from './pages/Practice'
-import Bank from './pages/Bank'
-import Import from './pages/Import'
-import Settings from './pages/Settings'
+/* §性能 路由级代码分割：非首屏四个页拆成独立 chunk（首访只下载 Learn+公共件，
+   bundle 557KB → 主包约 380KB；切页时按需拉取，gh-pages CDN 单文件 <20KB gzip 无感）。
+   chunk 统一命名 index-*.js（vite.config chunkFileNames），纳入 purge-dist 保留窗口，
+   避免 Practice-*.js 之类命名游离在清理逻辑外。 */
+const Bank = lazy(() => import('./pages/Bank'))
+const Import = lazy(() => import('./pages/Import'))
+const Settings = lazy(() => import('./pages/Settings'))
+const Practice = lazy(() => import('./pages/Practice'))
 
 function Shell() {
   useScrollReveal()
@@ -74,14 +78,20 @@ function Shell() {
           z-5 压在内容上但低于底部导航/弹窗；登录前不挂（BootRitual/Login 分支保持素净）；
           答题页 compact——顶部灯串/小旗/圣诞帽按学习页 hero 定位，会压题干，撤掉 */}
       <FestiveDecor compact={inPractice} />
-      <Routes>
-        <Route path="/" element={<Learn />} />
-        <Route path="/bank" element={<Bank />} />
-        <Route path="/import" element={<Import />} />
-        <Route path="/settings" element={<Settings />} />
-        <Route path="/practice" element={<Practice />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+      <Suspense fallback={
+        <div style={{ display: 'flex', justifyContent: 'center', paddingTop: '38vh' }}>
+          <div className="loading-orb" />
+        </div>
+      }>
+        <Routes>
+          <Route path="/" element={<Learn />} />
+          <Route path="/bank" element={<Bank />} />
+          <Route path="/import" element={<Import />} />
+          <Route path="/settings" element={<Settings />} />
+          <Route path="/practice" element={<Practice />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Suspense>
       {/* 底部导航：除答题页外一律显示（不再受会话 phase 制约），active 由当前路由得出 */}
       {!inPractice && (
         <BottomNav active={activeKey} wrongCount={wrongN} onNav={(to) => navTo(to)} />

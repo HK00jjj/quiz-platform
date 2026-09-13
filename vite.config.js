@@ -27,5 +27,13 @@ export default defineConfig({
   plugins: [react(), spa404Fallback()],
   // emptyOutDir:false：构建不清空 dist（WorkBuddy 的 safe-delete 垫片会拦截 rmSync 导致构建崩溃）。
   // 孤儿产物统一由 scripts/purge-dist.mjs 的语义不变式闸清理。
-  build: { outDir: 'dist', emptyOutDir: false, assetsInlineLimit: 0 }
+  // emptyOutDir:false：构建不清空 dist（WorkBuddy 的 safe-delete 垫片会拦截 rmSync 导致构建崩溃）。
+  // 孤儿产物统一由 scripts/purge-dist.mjs 的语义不变式闸清理。
+  build: {
+    outDir: 'dist', emptyOutDir: false, assetsInlineLimit: 0,
+    /* 路由级代码分割（App.jsx React.lazy）后，懒加载 chunk 若用默认命名（Practice-*.js）
+       会游离在 purge-dist 的 index-* 清理模式之外：既不会被保留窗口保护、也不会被清点。
+       统一命名成 index-<hash>.js，让所有 chunk 与主包一样纳入「HTML 引用集 + RETAIN 保留窗」。 */
+    rollupOptions: { output: { chunkFileNames: 'assets/index-[hash].js' } }
+  }
 })

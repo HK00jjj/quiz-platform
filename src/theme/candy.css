@@ -565,20 +565,6 @@ body, button, input, textarea, select {
 .entry-card:nth-child(4)::before { content: '🍡' }
 .entry-card:nth-child(5)::before { content: '🔖' }
 .entry-card.hot::before { animation-duration: 2.6s; }
-.entry-card .count-gem {
-  background: #fff !important; border-color: var(--mint) !important;
-  color: #2FA98A !important; box-shadow: 0 0 10px rgba(127, 232, 200, .45) !important;
-}
-.entry-card.hot .count-gem {
-  border-color: var(--sour) !important; color: #6E9B2E !important;
-  background: #fff !important; box-shadow: 0 0 10px rgba(168, 224, 99, .45) !important;
-}
-.fab-stats {
-  background: radial-gradient(circle at 35% 30%, #EAF2ED, #D3EADF 72%) !important;
-  border-color: var(--candy-pink) !important; color: #D14767 !important;
-  box-shadow: 0 6px 20px rgba(95, 174, 143, .35) !important;
-}
-.fab-stats small { background: #fff !important; color: #D14767 !important; border-color: var(--candy-pink-lt) !important; }
 
 /* 筛选 chips / 空状态 / 载入球 */
 .chip {
@@ -1153,10 +1139,6 @@ body, button, input, textarea, select {
 .crack-veil { background: radial-gradient(circle at 50% 50%, transparent 38%, rgba(242, 86, 74, .28) 100%) !important; }
 .pile-counter.okp { color: var(--ok-ink) !important; border-color: rgba(127, 232, 200, .75) !important; }
 .pile-counter.badp { color: var(--bad-ink) !important; border-color: rgba(242, 86, 74, .6) !important; }
-.entry-card.hot .count-gem {
-  border-color: var(--bad) !important; color: var(--bad-ink) !important;
-  background: #fff !important; box-shadow: 0 0 10px rgba(242, 86, 74, .45) !important;
-}
 .tag.red { color: var(--bad-ink) !important; border-color: rgba(242, 86, 74, .55) !important; }
 
 /* ══════════════════════════════════════════════════════════
@@ -1253,7 +1235,6 @@ body, button, input, textarea, select {
 /* 这行字只有 clamp(7.5px,4.2cqw,10px)，用 --ink-3(#999) 在浅底上只剩约 2.8:1，
    小到这个份上必须提到 --muted(#6E6E6E，约 5.0:1) 才读得清 */
 .tarot-hint { color: var(--muted) !important; letter-spacing: 1px; }
-.tarot-seq { color: var(--muted) !important; font-family: 'Nunito', 'Noto Sans SC', sans-serif !important; }
 .bank-meta { color: var(--ink-2) !important; }
 .bank-search input::placeholder { color: var(--ink-3) !important; }
 /* 掌握状态宝珠：哥特的暗底金边换成糖果三色（未做=奶粉 / 复习中=浅薄荷 / 已掌握=深薄荷） */
