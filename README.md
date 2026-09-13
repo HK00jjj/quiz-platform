@@ -1,7 +1,28 @@
 # 交接文档 · 糖果题库（quiz-platform）
 
 > 写给下一个接手的会话。读完这一份就能独立干活，不需要翻历史对话。
-> 最后更新：2026-09-12 晚（第九批），对应线上提交见 git log（第九批 = 全流程颗粒度对齐）。
+> 最后更新：2026-09-13 午（第十批），对应线上提交见 git log（第十批 = 恢复历史 bundle + purge 保留窗口）。
+
+## 2026-09-13 午增量（第十批）· 白屏事故修复：旧缓存自愈 + purge 保留窗口
+
+**事故**：用户电脑打开站点白屏（有糖果底色无内容）、手机一直转圈。诊断三层实证：服务端 200、
+无头 Chrome 全新 profile 渲染正常、Supabase 401（0.4s 活着）——锁定为**浏览器缓存旧 index.html
+→ 其引用的旧 JS 已被 purge 清掉（实测历代 bundle 全 404）→ 有皮没芯**。CSS 多代同哈希
+（index-DEnYBEGr.css）所以底色能渲染，是"缓存旧 index"的标准指纹。手机转圈 = 蜂窝网到
+github.io 的路径问题，非站点故障。
+
+1. **恢复 09-11~09-12 全部 10 代历史 bundle 上线**（commit `2093cb2`）：从 gh-pages 各代提交的
+   raw 资产逐一取回（映射表：f150280→Dq1uq_4- / d9745e4→COS2ZXrt / 6a50749→C8s_CcOB /
+   b025fe33→Db16wKLt / 64eeba2→Bu6aenhD / c2acce1→DTuOvSDv / 48626c6→6JnU2b7w /
+   4bb25e2→D5gS-_op / 76f7873→BP7vLVUg / a3c5e77→DdMJaUAG），10 个全部 200——**任何旧缓存的
+   index.html 重新加载即自愈**（旧版照常启动并连当前云端，随后自然刷新到新版）。
+2. **purge-dist.mjs 加保留窗口（根治复发）**：assets 孤儿不再清零，保留最新 RETAIN=6 个
+   index-*.{js,css}（按 mtime，约 2 周生成窗口 ≈3MB），更旧的才删。裁决记录写在脚本注释里。
+   干验证：孤儿 10 = 保留 6 + 清除 4（2206KB），DIST CLEAN。
+3. 教训（入铁律）：**部署链删除任何线上仍可能被缓存的资源前，先问"旧 HTML 缓存的过期窗口"**——
+   gh-pages 无法自定义缓存头，"删光旧产物"与"缓存不确定"组合就是白屏制造机。
+4. 六步链：run-all 13 套件 ALL GREEN → deploy `2093cb2` → Pages built → verify-live ALL OK
+   （三哈希 MATCH，bundle 仍 index-DnIDXPnB.js 未变）。src 备份含本节与 purge-dist 补丁。
 
 ## 2026-09-12 晚增量（第九批）· 全流程颗粒度对齐（G2 kp 粒度收尾 + P0-1 闸③空转修复）
 

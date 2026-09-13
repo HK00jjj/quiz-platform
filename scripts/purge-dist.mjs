@@ -87,10 +87,21 @@ if (existsSync(distAssets)) {
     console.log(`RESULT: ABORT —— HTML 引用了但 assets 里没有（会 404）: ${missingA.join(', ')}`)
     process.exit(1)
   }
-  const orphanJs = readdirSync(distAssets).filter((f) => /^index-[\w-]+\.(?:js|css)$/.test(f) && !htmlRefs.has(f))
+  /* 【2026-09-13 保留窗口】不再把孤儿清零：gh-pages 的 index.html 缓存不完全可控
+     （浏览器/运营商缓存可能远超官方 max-age=600），旧 HTML 指向的 bundle 被删即白屏
+     （09-13 实测事故：用户电脑缓存旧 index → 旧 JS 404 → 有皮没芯；当天已从 git 历史
+     恢复 10 代 bundle 上线自愈）。裁决 = 保留最新的 RETAIN=6 个孤儿（按 mtime，
+     约 2 周生成窗口 ≈3MB），更旧的才删——旧缓存命中保留窗内 bundle 时旧版照常启动，
+     用户随后自然刷新到新版，无需手动清缓存。 */
+  const RETAIN = 6
+  const orphanAll = readdirSync(distAssets).filter((f) => /^index-[\w-]+\.(?:js|css)$/.test(f) && !htmlRefs.has(f))
+    .map((f) => ({ f, m: statSync(path.join(distAssets, f)).mtimeMs }))
+    .sort((a, b) => b.m - a.m)
+  const keep = orphanAll.slice(0, RETAIN).map((x) => x.f)
+  const orphanJs = orphanAll.slice(RETAIN).map((x) => x.f)
   let savedA = 0
   for (const f of orphanJs) { const p = path.join(distAssets, f); savedA += statSync(p).size; unlinkSync(p) }
-  console.log(`HTML 引用 ${htmlRefs.size} 个 bundle，清除 assets 孤儿 ${orphanJs.length} 个（省 ${(savedA / 1024).toFixed(0)}KB）: ${orphanJs.join(', ') || '无'}`)
+  console.log(`HTML 引用 ${htmlRefs.size} 个 bundle；孤儿 ${orphanAll.length} 个 = 保留窗口 ${keep.length}（${keep.join(', ') || '无'}）+ 清除 ${orphanJs.length} 个（省 ${(savedA / 1024).toFixed(0)}KB）: ${orphanJs.join(', ') || '无'}`)
 }
 
 const left = readdirSync(distImg)
