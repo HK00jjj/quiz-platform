@@ -2,6 +2,7 @@
 // 核心锁点 = 闸③聚合键从细粒度 kp 改为 knowledgeDomain（K 域族级）后的行为变化与不变式。
 // 运行：node tests/mastery-gate.regression.mjs （在 app 目录下）
 import { masteryGate, MASTERY } from '../src/lib/ability.js'
+import { readFileSync } from 'node:fs'
 
 let pass = 0, fail = 0
 const t = (name, cond) => {
@@ -76,6 +77,19 @@ const QS = [
 /* ── ⑧ 阈值常量未被顺手改动 ── */
 t('⑧ MASTERY 阈值不动：ITEM_RATE .95 / KP_ACC .95 / KP_MIN 3',
   MASTERY.ITEM_RATE === 0.95 && MASTERY.KP_ACC === 0.95 && MASTERY.KP_MIN === 3)
+
+/* ── ⑨ 接线回归锁（2026-09-13 真机 E2E 抓到的线上事故）──
+   Learn.jsx 调用处存在但 import 行丢了 masteryGate：rollup 把它当全局变量静默放行
+   （构建零报错），运行时 ReferenceError → 已登录用户首页（Learn）整页白屏。
+   单测只覆盖 ability.js 本体、verify-live 只 grep 文案串，都测不到组件接线——
+   加文本级锁：import 必须含 masteryGate，且调用处真实存在。 */
+{
+  const src = readFileSync(new URL('../src/pages/Learn.jsx', import.meta.url), 'utf8')
+  const importLine = src.split('\n').find((l) => l.includes("from '../lib/ability.js'")) ?? ''
+  t('⑨ Learn.jsx 的 ability.js import 行含 masteryGate（接线锁，09-13 事故回归）',
+    /\bmasteryGate\b/.test(importLine))
+  t('⑨ Learn.jsx 调用处 masteryGate( 存在', /masteryGate\(/.test(src))
+}
 
 console.log(`\nregression: ${pass} pass, ${fail} fail`)
 process.exit(fail > 0 ? 1 : 0)

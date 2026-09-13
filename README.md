@@ -1,7 +1,29 @@
 # 交接文档 · 糖果题库（quiz-platform）
 
 > 写给下一个接手的会话。读完这一份就能独立干活，不需要翻历史对话。
-> 最后更新：2026-09-13 午（第十批），对应线上提交见 git log（第十批 = 恢复历史 bundle + purge 保留窗口）。
+> 最后更新：2026-09-13 午（第十一批 P0），对应线上提交见 git log（第十一批 = 修 masteryGate 接线崩溃）。
+
+## 2026-09-13 午增量（第十一批 P0）· 真机 E2E 抓获并修复 masteryGate 接线崩溃
+
+用户令"你自己真实跑一遍"。用系统 Chrome+CDP 真实登录线上站全流程遍历——**第一遍就抓到 P0**：
+
+1. **事故**：`ReferenceError: masteryGate is not defined`——Learn 页 useMemo 调用 masteryGate，
+   但 import 行的修改**丢失**（第九批只改了调用处与 ability.js，import 编辑未落盘/被回退，归因不可考）。
+   rollup 把它当全局变量**静默放行**（构建零报错）；单测只测 ability.js 本体、verify-live 只 grep
+   文案串，都测不到组件接线 → 昨批起**所有已登录用户首页整页白屏**。未登录访问只到 Login 页，
+   不踩此路径（这就是 09-13 凌晨无头 Chrome 验证"渲染正常"漏掉它的原因）。
+   **识别指纹**：minified bundle 里调用处保留完整标识符名 = 未解析全局（模块内绑定会被改名）。
+2. **修复**：import 行补 masteryGate（commit `76e39c9`，bundle index-DW8P1DMi.js）。
+3. **接线回归锁**：mastery-gate.regression.mjs 新增 ⑨ 组 2 断言——Learn.jsx 的 ability.js import 行
+   必须含 masteryGate + 调用处存在（文本级锁，17/17 ALL GREEN）。
+4. **真机 E2E 复跑全绿（登录态）**：登录 → 五表拉全库（活动书 770 题）→ 首页（段位卡/四闸文案/
+   练习入口）→ 书库（770/770、统计与筛选）→ 导入/设置渲染 → 「开始今日练习」真实会话：
+   填空题遮答验真 → loose 判分答对（"Studio 5000"）→ v6.8 四段式解析展示 → 自评 → 确认下一题
+   （三遍判定制同题重现，设计行为）→ 退出。**全程 console 0 error**。活数据反馈实证：
+   状态指数 65→69、连续学习 9→10 天（E2E 产生 1 条作答记录，已如实告知用户）。
+5. 复用资产：`E:/workbuddy-cc/2026-09-12-01-56-54/e2e-live.cjs`（CDP 真机 E2E 脚本，可改 BASE 复用）。
+6. 教训：**"改了组件逻辑"的验证必须含登录态真机跑通主路径**——单测（函数级）+ 静态 grep（文案级）
+   都到不了组件接线层；bundle 里出现"调用处全名"即接线断裂的 fingerprints，可入 verify 清单。
 
 ## 2026-09-13 午增量（第十批）· 白屏事故修复：旧缓存自愈 + purge 保留窗口
 
