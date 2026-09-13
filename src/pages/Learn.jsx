@@ -12,6 +12,7 @@ import { recallDue, buildRecallItems, weakDomains, RECALL_GRADES } from '../lib/
 import { shouldSnapshot, buildSnapshot, pushSnapshot, trendOf } from '../lib/snapshot'
 import { todayStr, streakLength } from '../lib/dates'
 import { repo } from '../lib/db'
+import { pickExamProgress } from '../lib/exam-progress'
 
 const DOMAINS_ALL = Array.from({ length: 27 }, (_, i) => `K${i + 1}`)
 
@@ -79,6 +80,7 @@ function legacyExamWrongs() {
 function ExamModal({ pool, target, size, passScore, onDone }) {
   /* 服务端化重构：deck 由 RPC 异步产出（原为 useState 同步初始化）。
      phase: loading → ready / error。attemptId 必须随进度持久化——续考复用同一 attempt。 */
+  const updateSettings = useStore((s) => s.updateSettings)
   const [deck, setDeck] = useState(null)          // { qs, attemptId }
   const [examErr, setExamErr] = useState(null)
   const [sending, setSending] = useState(false)   // 交卷 RPC 在途
@@ -95,7 +97,13 @@ function ExamModal({ pool, target, size, passScore, onDone }) {
   useEffect(() => {
     let alive = true
     ;(async () => {
-      const saved = JSON.parse(localStorage.getItem(EXAM_PROGRESS_KEY) ?? 'null')
+      /* 2026-09-13 ③续考进度云化：恢复源 = pickExamProgress(本地, 云端)。
+         云端现拉一次（loadAppSettings）而非用 store 快照——避免启动期 settings
+         未加载完时误判"无云端进度"而新开 attempt（孤儿 attempt 是明确要避免的）。
+         读失败 fail-open 视作无云端，本地兜底。 */
+      const local = JSON.parse(localStorage.getItem(EXAM_PROGRESS_KEY) ?? 'null')
+      const cloud = await repo.loadAppSettings().then((v) => v?.examProgress ?? null).catch(() => null)
+      const saved = pickExamProgress(local, cloud)
       if (saved && saved.attemptId && Array.isArray(saved.ids)) {
         const byId = new Map(pool.map((x) => [x.id, x]))
         const rebuilt = saved.ids.map((id) => byId.get(id)).filter(Boolean)
@@ -149,7 +157,11 @@ function ExamModal({ pool, target, size, passScore, onDone }) {
   const canSubmit = isMulti ? multi.length > 0 : input.trim().length > 0
 
   function saveProgress(nextRound, nextWins, nextWrongs, nextAnswers) {
-    try { localStorage.setItem(EXAM_PROGRESS_KEY, JSON.stringify({ attemptId: deck.attemptId, ids: deck.qs.map((x) => x.id), round: nextRound, wins: nextWins, wrongs: nextWrongs, answers: nextAnswers })) } catch { /* 存储满等异常不阻断考试 */ }
+    /* 2026-09-13 ③续考进度云化：双写。本地照旧（断网/存储满兜底），
+       云端经 settings.examProgress 走 updateSettings 既有链路（失败仅 syncError 不阻断）。 */
+    const payload = { attemptId: deck.attemptId, ids: deck.qs.map((x) => x.id), round: nextRound, wins: nextWins, wrongs: nextWrongs, answers: nextAnswers, ts: Date.now() }
+    try { localStorage.setItem(EXAM_PROGRESS_KEY, JSON.stringify(payload)) } catch { /* 存储满等异常不阻断考试 */ }
+    updateSettings({ examProgress: payload })
   }
   function submit() {
     const text = isMulti ? multi.join('') : input
@@ -181,6 +193,8 @@ function ExamModal({ pool, target, size, passScore, onDone }) {
     try {
       const v = await repo.examSubmit(deck.attemptId, finalAnswers)
       localStorage.removeItem(EXAM_PROGRESS_KEY)
+      /* 2026-09-13 ③续考进度云化：本地清除的同时清云端（null=无进行中考试）。 */
+      updateSettings({ examProgress: null })
       onDone({ server: v, quit, wins: nextWins, wrongIds: nextWrongIds })
     } catch (e) {
       setSending(false)
@@ -330,11 +344,13 @@ export default function Learn() {
     const passScore = Math.ceil(examSize * PROMOTION_EXAM.PASS_RATE)
     let examSaved = null
     try {
-      const s = JSON.parse(localStorage.getItem(EXAM_PROGRESS_KEY) ?? 'null')
+      /* 2026-09-13 ③续考进度云化：续考提示同样走 pickExamProgress（云优先/取新）。 */
+      const local = JSON.parse(localStorage.getItem(EXAM_PROGRESS_KEY) ?? 'null')
+      const s = pickExamProgress(local, settings.examProgress ?? null)
       if (s && Array.isArray(s.ids) && s.ids.length === examSize && s.round < examSize) examSaved = s
     } catch { /* 损坏进度视同无续考 */ }
     return { official, next, since, doneN, total: questions.length, covered, masteredN, itemRate, kpTotal, kpOK, kpPass, masteryReady, pendingWrongN, p, examFails, chancesLeft, examSize, passScore, examSaved, objPool, examReady: covered && masteryReady && pendingWrongN === 0 && next !== null && objPool.length >= 10 }
-  }, [questions, records, settings.rank, settings.lastExamAt, settings.examFails, settings.examWrongs, ability])
+  }, [questions, records, settings.rank, settings.lastExamAt, settings.examFails, settings.examWrongs, settings.examProgress, ability])
 
   /* 考试错题单一次性迁移上云（2026-09-11）：旧 localStorage 值存在而云端没有时搬过去，
      搬完删掉本地键——此后闸④的状态不再由客户端单独持有。只跑一次，迁移后不再触发。 */

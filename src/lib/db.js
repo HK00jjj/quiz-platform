@@ -182,6 +182,14 @@ export class CloudRepo {
     const { error } = await this.client.from('settings').upsert({ key: 'app', value })
     if (error) throw error
   }
+  /* 2026-09-13 ③续考进度云化：读取 settings key='app' 行的当前云端值。
+     独立于 loadAll——ExamModal 进入时需要确定性的云端快照，而不是碰运气等
+     启动期的全量加载完成。fail-open：读失败返回 null（本地 localStorage 兜底）。 */
+  async loadAppSettings() {
+    const { data, error } = await this.client.from('settings').select('value').eq('key', 'app').maybeSingle()
+    if (error) return null
+    return data?.value ?? null
+  }
   /* ═══ 考试判定服务端 RPC（2026-09-11 §3.2 落地）═══
      exam_state 是段位/补考/错题单的服务端权威（客户端无任何直写策略）；
      开考抽题与交卷判分全部上收——客户端传的"对错自报"不再被采信。

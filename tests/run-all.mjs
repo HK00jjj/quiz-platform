@@ -33,7 +33,9 @@ const SUITE = [
   /* 2026-09-12 全流程颗粒度对齐：掌握度三闸提取纯函数 + 闸③ K 域聚合（P0-1 收尾） */
   { name: '掌握度三闸回归（闸③ K 域聚合）', cmd: 'node', args: ['tests/mastery-gate.regression.mjs'] },
   /* 2026-09-13 解析语音播报：切块规避 Chrome 15s 中断 + 选声优先级（lib/tts.js） */
-  { name: '解析播报TTS回归', cmd: 'node', args: ['tests/tts.regression.mjs'] }
+  { name: '解析播报TTS回归', cmd: 'node', args: ['tests/tts.regression.mjs'] },
+  /* 2026-09-13 ③续考进度云化：恢复源选择语义（ts 新者胜/缺端兜底/无效过滤） */
+  { name: '续考进度恢复源回归', cmd: 'node', args: ['tests/exam-progress.regression.mjs'] }
 ]
 
 let failed = 0

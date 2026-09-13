@@ -1,7 +1,37 @@
 # 交接文档 · 糖果题库（quiz-platform）
 
 > 写给下一个接手的会话。读完这一份就能独立干活，不需要翻历史对话。
-> 最后更新：2026-09-13 午（第十一批 P0），对应线上提交见 git log（第十一批 = 修 masteryGate 接线崩溃）。
+> 最后更新：2026-09-13 晚（第十二批），线上提交 `e8d8a2f`，bundle index-D6V0KuzL.js。
+
+## 2026-09-13 晚增量（第十二批）· 解析语音播报上线 + 填空斜杠判错修复（P1 存量）
+
+用户要求"点开查看解析自动播放解析内容"，先八平台/GitHub 检索现成方案再实施。
+
+1. **语音播报（lib/tts.js，零依赖 ~110 行）**：检索结论是 react-speech-kit 等现成库
+   都不处理长文本切块，而切块恰恰是必须的（Chrome 桌面长文 ~15s 静默中断且卡死全局，
+   SO 21947730/57667357；Android 的 pause()=cancel()，14s pause/resume 保活法在安卓必炸
+   → 切块是唯一跨平台修法）。**关键修正：切块上限按时长不按字符**——中文 TTS ≈4~5 字/秒，
+   网传"200 字符"是英文经验，中文收 50 字/块（1.25 倍速 ≤10s，远离 15s 阈值）。
+2. **选声（有据）**：公开评测一致结论=微软神经语音是中文自然度天花板（晓晓 Xiaoxiao
+   MOS≈4.6 全能向、云希 Yunxi≈4.5 解说向；Google TTS 中文盲测垫底 5.5 分）。优先级：
+   晓晓Natural > 云希Natural > 其他 Natural/Neural > 常见微软本地音 > 任意 zh。
+   注意：Online (Natural) 神经音只有 Edge 桌面版开箱即得；Chrome 需系统装 Neural 语音包。
+   语速 1.25（用户钦定）。播报开关默认开（点开解析即播），🔊 一键静音，偏好存
+   localStorage `qp.tts.enabled`。接线：Practice 启封（seal==='broken'）自动播+
+   解析区开关；Bank 解析标题旁手动 🔊（浏览页不自动播），收卡即停。播报文本与屏幕同源
+   （选项字母按洗牌后显示字母重映射，spokenOf 纯函数）。
+3. **顺带抓获存量 P1：填空斜杠答案判错**（09-11"单空多候选"引入，`I/O`/`AC/DC` 被当
+   候选分隔符切碎，答案一模一样也判错，带病上线两天）。修法=整段命中优先、候选切分兜底
+   （validate.js gradeObjective）。**该 bug 能漏网两天是因为 t-fill.mjs 从不 process.exit(1)
+   ——run-all 只看退出码，历批 ALL GREEN 被蒙混**。已补退出码，未来内部 FAIL 即阻断部署。
+4. **回归**：新增 tests/tts.regression.mjs（26 断言：切块上限/拼回等价/断点优先级/清洗/
+   选声优先级），run-all 14 套件 ALL GREEN（t-fill 13/13 恢复）。
+5. **部署**：e8d8a2f（父 76e39c9）→ verify-deploy IDENTICAL → src 备份 OK → verify-live
+   ALL OK（33/33 200，三哈希 MATCH）+ bundle sha256 全等（8DDFB9B1…）+ 特征串
+   `播报开`×1、`播报`×6 线上=本地。purge 保留窗口 6 个历史 bundle，清孤儿 1 个（553KB）。
+6. **工具坑（新增）**：本沙箱 PowerShell 5.1 `Get-Content` 读无 BOM UTF-8 bundle 必须
+   显式 `-Encoding UTF8`，否则按 ANSI 读、中文特征串全部假阴性（SHA256 是字节级不受影响）；
+   PowerShell 工具 stdout 常被吞，验证输出一律 `*> 落文件 → Out-File utf8 → Read`。
 
 ## 2026-09-13 午增量（第十一批 P0）· 真机 E2E 抓获并修复 masteryGate 接线崩溃
 
