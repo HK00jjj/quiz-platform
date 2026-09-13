@@ -80,7 +80,7 @@ ok(chunkMaxFor(null) === 50, '④-4 无音色时保守取 50')
 const longText = '解析'.repeat(120)
 ok(chunkSpeechText(longText, chunkMaxFor(ONLINE_NATURAL)).length < chunkSpeechText(longText, 50).length, '④-5 同一长文在 180 分块下块数更少')
 
-/* ── ⑤ 语速锚定（用户 2026-09-13 晚：1.25 → 1.5"快一点"；再快会掉理解率）── */
-ok(TTS_RATE === 1.5, '⑤-1 播报语速锁定 1.5（改动需同步本条注释与依据）')
+/* ── ⑤ 语速锚定（用户 2026-09-13 晚调定 1.35：先 1.25 → 1.5 试快 → 回落 1.35）── */
+ok(TTS_RATE === 1.35, '⑤-1 播报语速锁定 1.35（改动需同步 lib/tts.js 的依据注释）')
 
 console.log(`\ntts.regression：${n} 断言全绿`)
