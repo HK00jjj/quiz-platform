@@ -24,11 +24,34 @@
    ③ 清理：stopSpeak 必须在切题/卸载/静音时调用，否则上一题的声音会串进
       下一题（speechSynthesis 是浏览器全局单例，不随组件卸载而停）。 */
 
-/* 播报语速（用户 2026-09-13 晚调定：1.25 → 1.5 → **1.35**）。
+/* 播报语速（用户 2026-09-13 晚三次调整：1.25 → 1.5 → **1.35 定为默认**）。
    依据：中文 TTS 基线 ≈4~5 字/秒，1.35 倍 ≈ 6 字/秒（约 200~220 wpm），
    落在"熟悉内容复听"的舒适区；1.5 以上对不熟悉的技术解析偏快，2.0 以上
-   理解率明显下滑（Murphy/Hoover/Ritter 2018：叙述文本 2.5× 起理解率骤降）。 */
+   理解率明显下滑（Murphy/Hoover/Ritter 2018：叙述文本 2.5× 起理解率骤降）。
+   **语速改为可调**（2026-09-13 晚第三轮）：解析区给一个 1.35× 小按钮，
+   点一下循环切换 RATE_STEPS 并记进 localStorage——三番调整来回部署不如让学习者
+   自己现场定；切换即停当前播报，若要立刻听新语速就在揭晓态重播一次。 */
 export const TTS_RATE = 1.35
+export const RATE_STEPS = [1, 1.15, 1.35, 1.5, 1.75]
+const LS_RATE = 'qp.tts.rate'
+export function ttsRate() {
+  try {
+    const raw = typeof window !== 'undefined' ? window.localStorage.getItem(LS_RATE) : null
+    const v = parseFloat(raw || '')
+    if (RATE_STEPS.includes(v)) return v
+  } catch { /* 隐私模式等：用默认 */ }
+  return TTS_RATE
+}
+export function setTtsRate(v) {
+  const val = RATE_STEPS.includes(v) ? v : TTS_RATE
+  try { window.localStorage.setItem(LS_RATE, String(val)) } catch { /* ignore */ }
+  stopSpeak()
+  return val
+}
+export function nextRate(cur) {
+  const i = RATE_STEPS.indexOf(cur)
+  return RATE_STEPS[i < 0 ? 0 : (i + 1) % RATE_STEPS.length]
+}
 
 const LS_KEY = 'qp.tts.enabled'
 
@@ -176,7 +199,7 @@ export function stopSpeak() {
 }
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 const CHUNK_GAP = 120
-export async function speak(raw, { rate = TTS_RATE, onDone } = {}) {
+export async function speak(raw, { rate = ttsRate(), onDone } = {}) {
   if (!ttsSupported()) return false
   const my = ++token
   const synth = window.speechSynthesis

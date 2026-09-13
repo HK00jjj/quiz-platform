@@ -87,6 +87,29 @@
    经用户批准一起上线（run-all 15 套件全绿）。**同一工作树多会话并发是现状**——部署前务必
    核对 `Get-ChildItem -Recurse | Where LastWriteTime -gt (Get-Date).AddHours(-1)`，
    否则会把别人在途的改动带上线；HANDOFF/run-all 也出现过并发编辑。
+9. **第三轮修复（同晚，用户实测驱动的两个叠音级 bug）**：用户报「开头晓晓、读一下就换声」
+   和「读完重读 / 两个声音一起放」。根因两条，都已在代码里堵死：
+   ① **effect 重启**——旧实现把 `lastGrade/phase` 放进 deps 且返回 cleanup，store 每次更新
+      （作答落库、确认、翻牌）都会 stopSpeak+speak 重播；且 Edge 的 Online 神经音是云端
+      流式合成，`cancel()` 落地有几拍延迟 → 新链已在说、旧音频未停 = 叠音。修法：以
+      「题号|题目 id」为键**一题只播一次**，effect 不再返回 cleanup，改由"离开揭晓态/静音/
+      切题"显式 stopSpeak，卸载另挂空依赖 effect 兜底。
+   ② **Utterance 被 GC**——Chromium 长期 bug：SpeechSynthesisUtterance 在说完前被垃圾回收
+      会丢 voice/丢事件（表现为"后面变成默认音"）。修法：live 数组保活引用；另加块间 120ms
+      间隙（背靠背 speak 会丢 voice，SO 36377342 即"第一次女声第二次男声"）、每块现取 voice
+      （不缓存对象）、看门狗（Chrome+Google 网络音有"事件不触发卡死"老 bug，估算时长+4s
+      无进展就推进下一块）、新链开口前一律 cancel 且留 120ms 复位。
+   **块长按音色分流**：Edge Online 神经音 → 180 字/块（少切几刀=少几次丢音色机会）；
+   其余（Chrome Google 网络音 / 本地 SAPI5）→ 50 字/块（Chrome 桌面 ~15s 静默中断）。
+   本地 dist 双浏览器实测：Edge 单块 175 字、calls 恒为 1（无重播）、切题 cancels+2、
+   语音=晓晓 Online (Natural)；Chrome 18 块、块长 50、语音=Google 普通话、播完即停；均 0 error。
+10. **语速改为可调**（用户三轮：1.25 → 1.5 → 1.35，干脆做控件）：默认 **1.35**，
+    解析区新增 `1.35×` 小按钮循环 `1 / 1.15 / 1.35 / 1.5 / 1.75`，偏好存
+    `qp.tts.rate`；若当前题正在播报，点一下立即用新语速重播（用户主动触发，非自动重启）。
+    依据：中文 TTS ≈4~5 字/秒基线，1.35× ≈ 200~220 wpm 属"熟悉内容复听"舒适区；
+    2.0× 以上理解率下滑（Murphy/Hoover/Ritter 2018）。测试升至 42 断言。
+    排查提示：用户反馈"还是快"时先查**是否旧缓存包**——`curl 线上 index-*.js | grep 1.35`
+    实锤线上值，再让用户强刷（Ctrl+Shift+R）。
 
 ## 2026-09-13 午增量（第十一批 P0）· 真机 E2E 抓获并修复 masteryGate 接线崩溃
 

@@ -13,7 +13,7 @@ import { imageFor, diagramDataUri, diagramTitle } from '../lib/diagrams'
    此前与 stats/ability/Learn 各写一遍 Fisher-Yates）。 */
 import { shuffledOrder } from '../lib/util.js'
 /* 解析语音播报（2026-09-13 增量）：启封自动朗读解析，🔊 一键可关，语速 1.25 */
-import { speak, stopSpeak, ttsSupported, ttsEnabled as ttsPrefEnabled, setTtsEnabled, voiceNote } from '../lib/tts.js'
+import { speak, stopSpeak, ttsSupported, ttsEnabled as ttsPrefEnabled, setTtsEnabled, voiceNote, ttsRate, setTtsRate, nextRate } from '../lib/tts.js'
 
 /* 题干渲染：填空题把 {空} 显示为下划线占位 */
 function Stem({ q }) {
@@ -227,6 +227,7 @@ export default function Practice() {
      必须挂在 early return 之前（Rules of Hooks）；播报文本的洗牌序直接读
      shuffleRef.current（与本帧渲染同源，重掷会念错字母）。 */
   const [ttsOn, setTtsOn] = useState(ttsPrefEnabled)
+  const [rateNow, setRateNow] = useState(ttsRate)      // 语速可调：点小按钮循环 RATE_STEPS
   const ttsOK = useRef(ttsSupported()).current
   const spokenKeyRef = useRef(null)
   useEffect(() => {
@@ -549,11 +550,26 @@ export default function Practice() {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingRight: 2 }}>
               <h5 className="zone-label">◇ 解析</h5>
               {ttsOK && (
-                <button className="chip" style={{ fontSize: 11 }} aria-pressed={ttsOn}
-                  title={ttsOn ? `关闭解析语音播报｜${voiceNote()}` : `开启解析语音播报｜${voiceNote()}`}
-                  onClick={() => { const v = !ttsOn; setTtsOn(v); setTtsEnabled(v) }}>
-                  {ttsOn ? '🔊 播报开' : '🔇 播报关'}
-                </button>
+                <>
+                  {/* 语速小按钮（2026-09-13 晚第三轮）：点一下换一档，偏好存 localStorage。
+                      若当前题已在播报，立即用新语速重播（用户主动触发，不是自动重启 → 无叠音风险）。 */}
+                  <button className="chip" style={{ fontSize: 11, marginRight: 6 }}
+                    title={'点击切换播报语速（' + nextRate(rateNow) + '×）｜当前 ' + rateNow + '×'}
+                    onClick={() => {
+                      const v = setTtsRate(nextRate(rateNow))
+                      setRateNow(v)
+                      if (ttsOn && q && spokenKeyRef.current === index + '|' + q.id) {
+                        speak(spokenOf(q, lastGrade, shuffleRef.current.order), { rate: v })
+                      }
+                    }}>
+                    {rateNow}×
+                  </button>
+                  <button className="chip" style={{ fontSize: 11 }} aria-pressed={ttsOn}
+                    title={ttsOn ? `关闭解析语音播报｜${voiceNote()}` : `开启解析语音播报｜${voiceNote()}`}
+                    onClick={() => { const v = !ttsOn; setTtsOn(v); setTtsEnabled(v) }}>
+                    {ttsOn ? '🔊 播报开' : '🔇 播报关'}
+                  </button>
+                </>
               )}
             </div>
             {/* §38：题图只在点击解析（蜡封启封）后随答案一起显示，答题前不渲染 */}

@@ -5,7 +5,7 @@
    ② cleanSpeechText：emoji 删除、→ 与换行转停顿、markdown 记号剥离
    ③ pickVoice：选声优先级（晓晓Natural > 云希Natural > Natural > 常见微软本地音 > 任意zh） */
 import assert from 'node:assert/strict'
-import { chunkSpeechText, cleanSpeechText, pickVoice, chunkMaxFor, TTS_RATE } from '../src/lib/tts.js'
+import { chunkSpeechText, cleanSpeechText, pickVoice, chunkMaxFor, TTS_RATE, RATE_STEPS, nextRate, ttsRate } from '../src/lib/tts.js'
 
 let n = 0
 const ok = (cond, msg) => { n++; assert.ok(cond, msg) }
@@ -80,7 +80,12 @@ ok(chunkMaxFor(null) === 50, '④-4 无音色时保守取 50')
 const longText = '解析'.repeat(120)
 ok(chunkSpeechText(longText, chunkMaxFor(ONLINE_NATURAL)).length < chunkSpeechText(longText, 50).length, '④-5 同一长文在 180 分块下块数更少')
 
-/* ── ⑤ 语速锚定（用户 2026-09-13 晚调定 1.35：先 1.25 → 1.5 试快 → 回落 1.35）── */
-ok(TTS_RATE === 1.35, '⑤-1 播报语速锁定 1.35（改动需同步 lib/tts.js 的依据注释）')
+/* ── ⑤ 语速：默认 1.35 + 可调档位（用户 2026-09-13 晚三轮定稿，改档位需同步注释）── */
+ok(TTS_RATE === 1.35, '⑤-1 默认语速锁定 1.35')
+ok(RATE_STEPS.includes(TTS_RATE), '⑤-2 默认语速落在可选档位内（UI 才能显示成当前档）')
+ok(nextRate(1.35) === 1.5, '⑤-3 点一下 1.35 → 1.5')
+ok(nextRate(1.75) === 1, '⑤-4 末档回环到 1.0（不会卡在最快档出不来）')
+ok(nextRate(9.9) === 1, '⑤-5 非法/旧值回到第一档')
+ok(ttsRate() === 1.35, '⑤-6 Node 无 window 环境取默认值且不抛错（回归脚本可直接跑）')
 
 console.log(`\ntts.regression：${n} 断言全绿`)
