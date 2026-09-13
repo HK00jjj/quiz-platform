@@ -13,7 +13,7 @@ import { imageFor, diagramDataUri, diagramTitle } from '../lib/diagrams'
    此前与 stats/ability/Learn 各写一遍 Fisher-Yates）。 */
 import { shuffledOrder } from '../lib/util.js'
 /* 解析语音播报（2026-09-13 增量）：启封自动朗读解析，🔊 一键可关，语速 1.25 */
-import { speak, stopSpeak, ttsSupported, ttsEnabled as ttsPrefEnabled, setTtsEnabled, voiceNote, ttsRate, setTtsRate, nextRate } from '../lib/tts.js'
+import { speak, stopSpeak, ttsSupported, ttsEnabled as ttsPrefEnabled, setTtsEnabled, voiceNote, ttsRate, setTtsRate, fmtRate, RATE_MIN, RATE_MAX, RATE_STEP } from '../lib/tts.js'
 
 /* 题干渲染：填空题把 {空} 显示为下划线占位 */
 function Stem({ q }) {
@@ -227,7 +227,9 @@ export default function Practice() {
      必须挂在 early return 之前（Rules of Hooks）；播报文本的洗牌序直接读
      shuffleRef.current（与本帧渲染同源，重掷会念错字母）。 */
   const [ttsOn, setTtsOn] = useState(ttsPrefEnabled)
-  const [rateNow, setRateNow] = useState(ttsRate)      // 语速可调：点小按钮循环 RATE_STEPS
+  const [rateNow, setRateNow] = useState(ttsRate)      // 语速：自定义（0.5~2.0 无级），存 localStorage
+  const [ttsOpen, setTtsOpen] = useState(false)        // 「声音」控件展开态
+  const rateRetry = useRef(null)                       // 拖动滑块时的重播防抖
   const ttsOK = useRef(ttsSupported()).current
   const spokenKeyRef = useRef(null)
   useEffect(() => {
@@ -302,6 +304,18 @@ export default function Practice() {
     : q.type === '填空题' ? fills.join('\n')
     : text
   const canSubmit = objective ? inputText.trim().length > 0 : true
+
+  /* 语速自定义（无级滑块）：夹取 → 落盘 → 停当前播报；若本题正在播报，
+     防抖 450ms 后用新语速重播（拖动过程中不反复重启，松手才生效）。 */
+  function applyRate(v) {
+    const val = setTtsRate(v)
+    setRateNow(val)
+    if (ttsOn && q && spokenKeyRef.current === index + '|' + q.id) {
+      clearTimeout(rateRetry.current)
+      rateRetry.current = setTimeout(
+        () => speak(spokenOf(q, lastGrade, shuffleRef.current.order), { rate: val }), 450)
+    }
+  }
 
   function doCheck() {
     if (!canSubmit) return
@@ -549,29 +563,29 @@ export default function Practice() {
                 浏览器不支持 speechSynthesis 时不渲染，解析区外观零变化。 */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingRight: 2 }}>
               <h5 className="zone-label">◇ 解析</h5>
+              {/* 「声音」合并控件（2026-09-13 晚第四轮：开关与调速合一个，语速自定义无档位）：
+                  收起时只显示当前状态（🔊 1.35× / 🔇 静音），点开是"开关 + 无级滑块"。 */}
               {ttsOK && (
-                <>
-                  {/* 语速小按钮（2026-09-13 晚第三轮）：点一下换一档，偏好存 localStorage。
-                      若当前题已在播报，立即用新语速重播（用户主动触发，不是自动重启 → 无叠音风险）。 */}
-                  <button className="chip" style={{ fontSize: 11, marginRight: 6 }}
-                    title={'点击切换播报语速（' + nextRate(rateNow) + '×）｜当前 ' + rateNow + '×'}
-                    onClick={() => {
-                      const v = setTtsRate(nextRate(rateNow))
-                      setRateNow(v)
-                      if (ttsOn && q && spokenKeyRef.current === index + '|' + q.id) {
-                        speak(spokenOf(q, lastGrade, shuffleRef.current.order), { rate: v })
-                      }
-                    }}>
-                    {rateNow}×
-                  </button>
-                  <button className="chip" style={{ fontSize: 11 }} aria-pressed={ttsOn}
-                    title={ttsOn ? `关闭解析语音播报｜${voiceNote()}` : `开启解析语音播报｜${voiceNote()}`}
-                    onClick={() => { const v = !ttsOn; setTtsOn(v); setTtsEnabled(v) }}>
-                    {ttsOn ? '🔊 播报开' : '🔇 播报关'}
-                  </button>
-                </>
+                <button className="chip" style={{ fontSize: 11 }} aria-expanded={ttsOpen}
+                  aria-pressed={ttsOn}
+                  title={ttsOn ? `解析语音播报已开｜${voiceNote()}` : `解析语音播报已关｜${voiceNote()}`}
+                  onClick={() => setTtsOpen((o) => !o)}>
+                  {ttsOn ? `🔊 ${fmtRate(rateNow)}×` : '🔇 静音'}
+                </button>
               )}
             </div>
+            {ttsOK && ttsOpen && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 4px 8px' }}>
+                <button className="chip" style={{ fontSize: 11 }} aria-pressed={ttsOn}
+                  onClick={() => { const v = !ttsOn; setTtsOn(v); setTtsEnabled(v) }}>
+                  {ttsOn ? '🔊 播报开' : '🔇 播报关'}
+                </button>
+                <input type="range" min={RATE_MIN} max={RATE_MAX} step={RATE_STEP} value={rateNow}
+                  aria-label="播报语速" style={{ flex: 1, accentColor: 'var(--teal, #3fbfa8)' }}
+                  onChange={(e) => applyRate(parseFloat(e.target.value))} />
+                <span style={{ fontSize: 11, minWidth: 40, textAlign: 'right', letterSpacing: '.3px' }}>{fmtRate(rateNow)}×</span>
+              </div>
+            )}
             {/* §38：题图只在点击解析（蜡封启封）后随答案一起显示，答题前不渲染 */}
             {seal === 'broken' && fbImgUri && <img src={fbImgUri} alt={diagramTitle(imageFor(q.id))} style={{ display: 'block', maxWidth: '100%', margin: '0 auto 10px', background: '#fff', border: '1px solid #e5d9c3', borderRadius: 8 }} />}
             {seal !== 'broken' && (

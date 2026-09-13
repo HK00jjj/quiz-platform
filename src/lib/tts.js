@@ -24,33 +24,38 @@
    ③ 清理：stopSpeak 必须在切题/卸载/静音时调用，否则上一题的声音会串进
       下一题（speechSynthesis 是浏览器全局单例，不随组件卸载而停）。 */
 
-/* 播报语速（用户 2026-09-13 晚三次调整：1.25 → 1.5 → **1.35 定为默认**）。
-   依据：中文 TTS 基线 ≈4~5 字/秒，1.35 倍 ≈ 6 字/秒（约 200~220 wpm），
-   落在"熟悉内容复听"的舒适区；1.5 以上对不熟悉的技术解析偏快，2.0 以上
-   理解率明显下滑（Murphy/Hoover/Ritter 2018：叙述文本 2.5× 起理解率骤降）。
-   **语速改为可调**（2026-09-13 晚第三轮）：解析区给一个 1.35× 小按钮，
-   点一下循环切换 RATE_STEPS 并记进 localStorage——三番调整来回部署不如让学习者
-   自己现场定；切换即停当前播报，若要立刻听新语速就在揭晓态重播一次。 */
+/* 播报语速（用户 2026-09-13 晚定稿：**自定义、不要预设档位**）。
+   默认 1.35×（用户 1.25 → 1.5 → 1.35 三轮实测后的取值；中文 TTS 基线 ≈4~5 字/秒，
+   1.35× ≈ 200~220 wpm 属"熟悉内容复听"舒适区；2.0× 以上理解率下滑——
+   Murphy/Hoover/Ritter 2018：叙述文本 2.5× 起理解率骤降）。
+   调速与开关合并为一个「声音」控件（解析区点开 → 滑块无级调 + 开关），
+   0.5~2.0 之间任意值，0.05 步进，落 localStorage `qp.tts.rate`。 */
 export const TTS_RATE = 1.35
-export const RATE_STEPS = [1, 1.15, 1.35, 1.5, 1.75]
+export const RATE_MIN = 0.5
+export const RATE_MAX = 2
+export const RATE_STEP = 0.01   // 滑块步进：真机实测 0.05 会让 1.42 被吸附成 1.40（网格 0.5+0.05n）
 const LS_RATE = 'qp.tts.rate'
+export function clampRate(v) {
+  const n = typeof v === 'number' ? v : parseFloat(v)
+  if (!isFinite(n)) return TTS_RATE
+  return Math.min(RATE_MAX, Math.max(RATE_MIN, Math.round(n * 100) / 100))
+}
+/* 显示用：去掉浮点尾巴（1.4× 而不是 1.3999999×） */
+export function fmtRate(v) {
+  return String(Math.round(clampRate(v) * 100) / 100)
+}
 export function ttsRate() {
   try {
     const raw = typeof window !== 'undefined' ? window.localStorage.getItem(LS_RATE) : null
-    const v = parseFloat(raw || '')
-    if (RATE_STEPS.includes(v)) return v
-  } catch { /* 隐私模式等：用默认 */ }
-  return TTS_RATE
+    if (raw === null || raw === '') return TTS_RATE
+    return clampRate(raw)
+  } catch { return TTS_RATE }   // 隐私模式等：用默认
 }
 export function setTtsRate(v) {
-  const val = RATE_STEPS.includes(v) ? v : TTS_RATE
+  const val = clampRate(v)
   try { window.localStorage.setItem(LS_RATE, String(val)) } catch { /* ignore */ }
-  stopSpeak()
+  stopSpeak()                   // 换语速即停当前播报（调用方决定是否立刻重播）
   return val
-}
-export function nextRate(cur) {
-  const i = RATE_STEPS.indexOf(cur)
-  return RATE_STEPS[i < 0 ? 0 : (i + 1) % RATE_STEPS.length]
 }
 
 const LS_KEY = 'qp.tts.enabled'

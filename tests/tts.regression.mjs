@@ -5,7 +5,7 @@
    ② cleanSpeechText：emoji 删除、→ 与换行转停顿、markdown 记号剥离
    ③ pickVoice：选声优先级（晓晓Natural > 云希Natural > Natural > 常见微软本地音 > 任意zh） */
 import assert from 'node:assert/strict'
-import { chunkSpeechText, cleanSpeechText, pickVoice, chunkMaxFor, TTS_RATE, RATE_STEPS, nextRate, ttsRate } from '../src/lib/tts.js'
+import { chunkSpeechText, cleanSpeechText, pickVoice, chunkMaxFor, TTS_RATE, RATE_MIN, RATE_MAX, RATE_STEP, clampRate, fmtRate, ttsRate } from '../src/lib/tts.js'
 
 let n = 0
 const ok = (cond, msg) => { n++; assert.ok(cond, msg) }
@@ -80,12 +80,19 @@ ok(chunkMaxFor(null) === 50, '④-4 无音色时保守取 50')
 const longText = '解析'.repeat(120)
 ok(chunkSpeechText(longText, chunkMaxFor(ONLINE_NATURAL)).length < chunkSpeechText(longText, 50).length, '④-5 同一长文在 180 分块下块数更少')
 
-/* ── ⑤ 语速：默认 1.35 + 可调档位（用户 2026-09-13 晚三轮定稿，改档位需同步注释）── */
-ok(TTS_RATE === 1.35, '⑤-1 默认语速锁定 1.35')
-ok(RATE_STEPS.includes(TTS_RATE), '⑤-2 默认语速落在可选档位内（UI 才能显示成当前档）')
-ok(nextRate(1.35) === 1.5, '⑤-3 点一下 1.35 → 1.5')
-ok(nextRate(1.75) === 1, '⑤-4 末档回环到 1.0（不会卡在最快档出不来）')
-ok(nextRate(9.9) === 1, '⑤-5 非法/旧值回到第一档')
-ok(ttsRate() === 1.35, '⑤-6 Node 无 window 环境取默认值且不抛错（回归脚本可直接跑）')
+/* ── ⑤ 语速：自定义（无档位）+ 默认 1.35（用户 2026-09-13 晚第四轮定稿）── */
+ok(TTS_RATE === 1.35, '⑤-1 默认语速 1.35（未设置偏好时）')
+ok(RATE_MIN === 0.5 && RATE_MAX === 2, '⑤-2 自定义区间 0.5~2.0（引擎上限 2.0，超了会失真/卡死）')
+ok(clampRate(1.42) === 1.42, '⑤-3 任意自定义值原样通过（1.42）')
+ok(clampRate(0.2) === 0.5, '⑤-4 低于下限夹到 0.5')
+ok(clampRate(9) === 2, '⑤-5 高于上限夹到 2.0')
+ok(clampRate('1.137') === 1.14, '⑤-6 字符串入参 + 两位小数取整')
+ok(clampRate('abc') === TTS_RATE, '⑤-7 非法入参回落默认 1.35')
+ok(ttsRate() === 1.35, '⑤-8 Node 无 window 环境取默认值且不抛错（回归脚本可直接跑）')
+/* 真机实测（2026-09-13 晚）：步进 0.05 时滑块把 1.42 吸附成 1.40（网格 0.5+0.05n），
+   既然要"自定义、不要预设"，步进收细到 0.01 并加显示格式化 */
+ok(RATE_STEP === 0.01, '⑤-9 滑块步进 0.01（任意百分位可调，不被网格吸附）')
+ok(clampRate(1.42) === 1.42, '⑤-10 1.42 这类自定义值完整保留')
+ok(fmtRate(1.4) === '1.4' && fmtRate(1.35) === '1.35' && fmtRate(1.42) === '1.42', '⑤-11 显示格式化去浮点尾巴')
 
 console.log(`\ntts.regression：${n} 断言全绿`)
