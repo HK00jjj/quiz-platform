@@ -610,8 +610,14 @@ export function gradeObjective(q, input) {
       ? raw.split('\n').map((p) => p.trim())
       : raw.split(BLANK_SEP).map((p) => p.trim()).filter(Boolean)
     if (got.length !== expCands.length && got.length > 1) got = [raw]
+    /* 斜杠歧义修正（2026-09-13）：整段命中优先、候选切分只作兜底。
+       / 候选切分本为「固体物质/固体异物」类同义候选而生，但 I/O、AC/DC 这类
+       斜杠本体的技术术语会被误切成 ["I","O"] → 答案一模一样也判错（t-fill
+       五断言实测抓获，09-11 起带病上线——该套件从不 exit 1，历批被蒙混）。
+       先拿整段（未切 / 的原始 part）比对，命中即对；不中再走候选逐个比。 */
     return {
-      correct: got.length === expCands.length && got.every((g, i) => expCands[i].some((c) => loose(g) === loose(c))),
+      correct: got.length === expCands.length && got.every((g, i) =>
+        loose(g) === loose(expParts[i].trim()) || expCands[i].some((c) => loose(g) === loose(c))),
       normalized: got.join(','), expected: expParts.join(','), expectedParts: expParts
     }
   }

@@ -36,3 +36,6 @@ for (const [name, stem, answer, input, want] of CASES) {
   )
 }
 console.log(`\n${pass}/${CASES.length} 通过`)
+/* 2026-09-13 补退出码：此前从不 exit 1 → run-all 只看退出码，
+   本套件内部 FAIL 被历批 "ALL GREEN" 蒙混（斜杠判错 5 断言静默漏网两天）。 */
+if (pass !== CASES.length) process.exit(1)

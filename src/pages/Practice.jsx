@@ -12,6 +12,8 @@ import { imageFor, diagramDataUri, diagramTitle } from '../lib/diagrams'
 /* 选项随机化用的位置排列（#6）。实现收敛到 lib/util.js（2026-09-11 审查整改：
    此前与 stats/ability/Learn 各写一遍 Fisher-Yates）。 */
 import { shuffledOrder } from '../lib/util.js'
+/* 解析语音播报（2026-09-13 增量）：启封自动朗读解析，🔊 一键可关，语速 1.25 */
+import { speak, stopSpeak, ttsSupported, ttsEnabled as ttsPrefEnabled, setTtsEnabled } from '../lib/tts.js'
 
 /* 题干渲染：填空题把 {空} 显示为下划线占位 */
 function Stem({ q }) {
@@ -27,6 +29,35 @@ function Stem({ q }) {
         : <React.Fragment key={i}>{p}</React.Fragment>)}
     </p>
   )
+}
+
+/* ── 解析播报文本组装（纯函数，2026-09-13）──
+   与屏幕同源：选择题答案/解析里的选项字母都按洗牌后的【显示字母】重映射
+   （同 remapExplLetters 的两步正则），朗读出来的「选B」与屏幕上的 B 一致。
+   order 必须传本帧渲染用的洗牌序（shuffleRef.current），不能重掷。 */
+function spokenOf(q, lastGrade, order) {
+  const isChoice = q.type === '单选题' || q.type === '多选题'
+  const dispMap = {}
+  if (isChoice) (order || []).forEach((oi, pos) => {
+    const raw = (q.options ?? [])[oi] ?? ''
+    const orig = String(raw).match(/^([A-E])[.、]/)?.[1] ?? 'ABCDE'[oi]
+    dispMap[orig] = 'ABCDE'[pos]
+  })
+  const mapLetters = (s) => String(s ?? '').split('').map((c) => dispMap[c] ?? c).join('')
+  const remap = (t) => {
+    const s = String(t ?? '')
+    if (!isChoice || !Object.keys(dispMap).length) return s
+    return s
+      .replace(/(选|选项|答案)\s*([A-E])/g, (m, p, L) => p + (dispMap[L] ?? L))
+      .replace(/(?<![A-Za-z0-9.])([A-E])(?=项)/g, (m, L) => dispMap[L] ?? L)
+  }
+  const ans = isChoice ? mapLetters(lastGrade ? lastGrade.expected : q.answer)
+    : q.type === '填空题' && lastGrade?.expectedParts
+      ? lastGrade.expectedParts.map((p, i) => lastGrade.expectedParts.length > 1 ? `第${i + 1}空：${p}` : p).join('　')
+      : q.answer
+  const parts = [`正确答案：${ans}`]
+  if (q.explanation) parts.push(`解析：${remap(q.explanation)}`)
+  return parts.join('。')
 }
 
 export default function Practice() {
@@ -183,6 +214,21 @@ export default function Practice() {
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [phase, objective, q?.id])
+
+  /* ── 解析语音播报（2026-09-13，用户钦定：点开解析自动播 + 🔊 可关 + 语速 1.25）──
+     时机与滚动 effect 对齐：挂 seal==='broken'（蜡封卸载、布局定型之后）才开读。
+     必须挂在 early return 之前（Rules of Hooks）；播报文本的洗牌序直接读
+     shuffleRef.current（与本帧渲染同源，重掷会念错字母）。
+     切题/翻牌/结算/静音时经 cleanup 走 stopSpeak，声音不会串题。 */
+  const [ttsOn, setTtsOn] = useState(ttsPrefEnabled)
+  const ttsOK = useRef(ttsSupported()).current
+  useEffect(() => {
+    if (!ttsOK) return
+    const revealed = seal === 'broken' && (phase === 'feedback' || showAnswer)
+    if (!revealed || !ttsOn || !q) { stopSpeak(); return }
+    speak(spokenOf(q, lastGrade, shuffleRef.current.order))
+    return () => stopSpeak()
+  }, [ttsOK, seal, phase, showAnswer, index, q?.id, ttsOn, lastGrade])
 
   if (phase === 'idle' || questions.length === 0) {
     return (
@@ -486,8 +532,19 @@ export default function Practice() {
                 只挂 bad、不挂 ok：答对态必须一行不碰，继续吃 candy.css L399 的薄荷绿。
                 用 lastGrade 而不是下面才声明的 grade（const 有 TDZ，会整页崩溃）。 */}
             <section className={'zone zone-s' + (answered || showAnswer ? ' revealed' : '') + (answered && !(objective ? lastGrade?.correct : lastRating === '记得') ? ' bad' : '')}>
-            {/* 这里原来是 `answered || showAnswer ? '◇ 解析' : '◇ 解析'`——两个分支完全相同的遗留三元，已收成一行 */}
-            <h5 className="zone-label">◇ 解析</h5>
+            {/* 这里原来是 `answered || showAnswer ? '◇ 解析' : '◇ 解析'`——两个分支完全相同的遗留三元，已收成一行。
+                🔊 播报开关（2026-09-13）：启封即自动朗读，一键静音，偏好记忆在 localStorage（lib/tts）。
+                浏览器不支持 speechSynthesis 时不渲染，解析区外观零变化。 */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingRight: 2 }}>
+              <h5 className="zone-label">◇ 解析</h5>
+              {ttsOK && (
+                <button className="chip" style={{ fontSize: 11 }} aria-pressed={ttsOn}
+                  title={ttsOn ? '关闭解析语音播报' : '开启解析语音播报'}
+                  onClick={() => { const v = !ttsOn; setTtsOn(v); setTtsEnabled(v) }}>
+                  {ttsOn ? '🔊 播报开' : '🔇 播报关'}
+                </button>
+              )}
+            </div>
             {/* §38：题图只在点击解析（蜡封启封）后随答案一起显示，答题前不渲染 */}
             {seal === 'broken' && fbImgUri && <img src={fbImgUri} alt={diagramTitle(imageFor(q.id))} style={{ display: 'block', maxWidth: '100%', margin: '0 auto 10px', background: '#fff', border: '1px solid #e5d9c3', borderRadius: 8 }} />}
             {seal !== 'broken' && (

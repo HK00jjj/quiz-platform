@@ -31,7 +31,9 @@ const SUITE = [
   /* 2026-09-12 顶尖段适配（专家段斜率 + 窗口按题去重） */
   { name: '顶尖段适配回归', cmd: 'node', args: ['tests/ability-expert.regression.mjs'] },
   /* 2026-09-12 全流程颗粒度对齐：掌握度三闸提取纯函数 + 闸③ K 域聚合（P0-1 收尾） */
-  { name: '掌握度三闸回归（闸③ K 域聚合）', cmd: 'node', args: ['tests/mastery-gate.regression.mjs'] }
+  { name: '掌握度三闸回归（闸③ K 域聚合）', cmd: 'node', args: ['tests/mastery-gate.regression.mjs'] },
+  /* 2026-09-13 解析语音播报：切块规避 Chrome 15s 中断 + 选声优先级（lib/tts.js） */
+  { name: '解析播报TTS回归', cmd: 'node', args: ['tests/tts.regression.mjs'] }
 ]
 
 let failed = 0

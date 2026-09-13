@@ -3,6 +3,9 @@ import { useStore } from '../store'
 import { A } from '../assets'
 import { EmptyState } from '../components'
 import { TYPES, DIFFICULTIES, DIFF_CLS, domainLabel, lastResultMap } from '../lib/stats'
+/* 题库解析手动播报（2026-09-13）：浏览页不做自动播（一次翻多张会吵），
+   只在解析标题旁给 🔊 按钮，点谁读谁；收起卡片即停。 */
+import { speak, stopSpeak } from '../lib/tts.js'
 
 const PAGE_SIZE = 50
 
@@ -168,8 +171,8 @@ export default function Bank() {
           return (
             <div key={q.id} className={'bank-item reveal' + (open ? ' flipped' : '')}
               role="button" tabIndex={0} aria-expanded={open}
-              onClick={() => { setOpenId(open ? null : q.id); setConfirmId(null) }}
-              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpenId(open ? null : q.id); setConfirmId(null) } }}>
+              onClick={() => { setOpenId(open ? null : q.id); setConfirmId(null); stopSpeak() }}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpenId(open ? null : q.id); setConfirmId(null); stopSpeak() } }}>
               <div className="tarot-inner">
                 {/* 正面：题干摘要 + 签条行。
                     哥特题型印章位图 A.seals 去掉了——p34-1~7 七个文件内容完全相同，
@@ -211,7 +214,13 @@ export default function Bank() {
                       {(q.options ?? []).map((o, k) => <p key={k} className="tarot-opt">{o}</p>)}
                       <h6>答案</h6>
                       <p className="tarot-ans">{q.answer}</p>
-                      {q.explanation && <><h6>解析</h6><p>{q.explanation}</p></>}
+                      {q.explanation && (
+                        <>
+                          <h6>解析 <button className="chip" style={{ fontSize: 10, marginLeft: 6 }}
+                            title="语音播报解析内容" onClick={() => speak(q.explanation)}>🔊 播报</button></h6>
+                          <p>{q.explanation}</p>
+                        </>
+                      )}
                       {qRecords.length > 0 && (
                         <>
                           <h6>做题记录（最近 {qRecords.length} 次）</h6>
@@ -236,7 +245,7 @@ export default function Bank() {
                       ) : (
                         <>
                           <button className="danger" onClick={() => setConfirmId(q.id)}>🗑 删除</button>
-                          <button onClick={() => setOpenId(null)}>收起</button>
+                          <button onClick={() => { setOpenId(null); stopSpeak() }}>收起</button>
                         </>
                       )}
                     </div>
