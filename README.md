@@ -25,7 +25,10 @@
    - git clone 直连超时 → 改 **GitHub Git Data API 全链重建**（165 提交逐个：
      含 .env 的重建树（删条目，子树 sha 复用），不含的复用树 sha；commit 全部重建
      改 parent；PATCH ref 需 force:true（历史重写 non-FF，首跑 422 已补）；
-   - 回滚参照：旧 HEAD `938d7dc`（重建前），24h 内可经 API 把 src ref 指回（之后 GC 不可逆）。
+   - **已执行完成（2026-09-14 00:1x，看门狗等并行会话停止后自动重建）**：
+     基于 a717af0（171 提交，含并行会话追加）全链重建，删 env 树 60 个，
+     **src 新 HEAD = fea0b466**，独立验证 HEAD 树 .env=0、gh-pages 未受影响；
+   - 回滚参照：旧 HEAD `a717af0`（重建前），24h 内可经 API 把 src ref 指回（之后 GC 不可逆）。
    - **配套待办（用户）**：轮换 Supabase E2E 账号口令（.env 内凭据视为已泄露）——
      Supabase Dashboard → Authentication → 改 1928260816@qq.com 密码 → 同步改 app/.env。
 3. **②CI 备份**：PAT 需补 workflow scope（用户 GitHub 操作），补齐后
@@ -112,6 +115,28 @@
     依据：中文 TTS ≈4~5 字/秒基线，1.35× ≈ 200~220 wpm 属舒适区；2.0× 以上理解率下滑。
     测试升至 47 断言。排查提示：用户反馈"还是快"时先查**是否旧缓存包**——
     `curl 线上 index-*.js` 后 grep 值实锤线上，再让用户强刷（Ctrl+Shift+R）。
+11. **第五轮：播报开关升级为「暂停/续播」（用户指令"播报开和关都暂停在原处，不重复读"）**：
+    内核加了模块级 `session`（chunks + 已读到第几块 + 暂停标记），开关不再清进度：
+    · 关 = `pauseSpeak()`：桌面 Chrome/Edge 走原生 `pause()`（真暂停、恢复零重读）；
+      运行时用 `synth.paused` 探测，Android（pause 等于 cancel）自动退回"记住块位置"策略，
+      并 `token++` 断链 + `cancel()`；
+    · 开 = `resumeSpeak()`：原生暂停的 `resume()` 原地续上；否则 `sliceForResume(session)`
+      从**被打断的那一块**接读（最多重读一句，绝不整段重来），且用当前语速；
+    · 只有"本题从未读过"（键不匹配）才从头开口；已读完的题再开关不会多读一个字
+      （`session.done` 短路）。
+    连带调整：`setTtsEnabled` 只落盘不再顺手停声；`setTtsRate` 只落盘（暂停态改语速不丢现场，
+    继续时用新语速接读）；UI 文案改为 `⏸ 已暂停` / `▶ 继续播报`。
+    **验证法（可复用）**：无头环境没有音频、真引擎会瞬间"读完"，暂停语义测不出 →
+    用**可控 mock 引擎**（页面里把 window.speechSynthesis 换成 mock：getVoices 转发真实清单，
+    speak 只排队不自动结束，pause/resume 可编程）驱动真实 UI 按钮；`pause-verify.cjs`
+    9 项断言本地与线上双双全绿：暂停零重读（spoken 2→2）、原生 pause 无 cancel、
+    Android 语义下续读文本=被打断那块、链读到底后关/开不再新增 speak。
+    测试升至 51 断言；run-all 15 套件 ALL GREEN。
+12. **并发会话的第二批改动（同批上线）**：另一会话把路由改成 `React.lazy` 四页分割
+    （vite.config.js `chunkFileNames = index-<hash>.js`），每代构建从 1 个 bundle 变
+    1 主包 + 4 懒加载 chunk；purge-dist 的 `RETAIN` 已相应从 6 提到 **30**（≈6 代窗口）
+    并在注释里写明原因。本轮 dist 上传 46 个文件、线上 46/46 全 200 —— **部署后必须用
+    verify-live 全量核验**（懒加载 chunk 不在 index.html 引用集里，少传一个就等于练习页白屏）。
 
 ## 2026-09-13 午增量（第十一批 P0）· 真机 E2E 抓获并修复 masteryGate 接线崩溃
 
