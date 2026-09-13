@@ -32,6 +32,29 @@
 6. **工具坑（新增）**：本沙箱 PowerShell 5.1 `Get-Content` 读无 BOM UTF-8 bundle 必须
    显式 `-Encoding UTF8`，否则按 ANSI 读、中文特征串全部假阴性（SHA256 是字节级不受影响）；
    PowerShell 工具 stdout 常被吞，验证输出一律 `*> 落文件 → Out-File utf8 → Read`。
+   真机验证新坑：Chrome/Edge 由 Node `child_process.spawn` 自己拉起并守护（本环境后台 shell
+   活不过前台命令，单独 run_in_background 拉浏览器 ~7s 即被回收）；平台工具 stdio 常被吞，
+   浏览器侧输出必须落到工作区文件再读；`Runtime.evaluate` 传 async 表达式必须带
+   `awaitPromise:true`，否则拿回空对象（本次误判"0 语音"就是这个坑）。
+7. **第二轮真机检查（同晚）· 选声修正**：本机语音清单对拍——**Chrome 仅 3 个中文音**
+   （Huihui/Kangkang/Yaoyao，Windows 老 SAPI5，电子感强），**无任何神经音**；
+   **Edge 17 个**（晓晓/云希/云扬/晓伊/云夏等 Online (Natural)，另有粤语 zh-HK、
+   台湾 zh-TW、东北 zh-CN-liaoning、陕西 zh-CN-shaanxi 等方言变体）。据此修 pickVoice：
+   ① 语种收口普通话（排除方言变体，仅当机器只有方言音时才兜底）；
+   ② Edge 语音名是**中文本地化**的（"Microsoft 晓晓 Online (Natural)"），拉丁名与中文名一起匹配；
+   ③ **Google 网络音上移到本地 SAPI 之前**——有据：AI 语音设计指南"未指定模型时浏览器会
+   降级到最基础的离线 SAPI，产生强烈电子机器感；Edge Online 神经音与 Chrome Google 语音
+   最接近真人"；修正前实测 Chrome 里确实选中了 Huihui（机械）；
+   ④ 新增 `waitVoice`：voices 异步加载，取不到就等 `voiceschanged`（≤800ms）再开口，
+   否则首句不带 voice、浏览器按 lang 自选默认音，选声静默落空。
+   本地 dist 真机复验（登录→练习→揭晓全链路）：**Chrome → Google 普通话；Edge → 晓晓
+   Online (Natural)**，rate 1.25、lang zh-CN、console 0 error。测试升至 31 断言。
+   另：开关按钮 title 会显示当前选中的语音名，非神经音时提示"用 Edge 打开可听到晓晓自然语音"。
+8. **并发会话事实（重要）**：22:31~22:35 另一会话在改「续考进度」（`src/lib/exam-progress.js`、
+   `Learn.jsx`、`db.js`、run-all 第 15 套件 exam-progress.regression）。本轮构建**含其改动**，
+   经用户批准一起上线（run-all 15 套件全绿）。**同一工作树多会话并发是现状**——部署前务必
+   核对 `Get-ChildItem -Recurse | Where LastWriteTime -gt (Get-Date).AddHours(-1)`，
+   否则会把别人在途的改动带上线；HANDOFF/run-all 也出现过并发编辑。
 
 ## 2026-09-13 午增量（第十一批 P0）· 真机 E2E 抓获并修复 masteryGate 接线崩溃
 

@@ -13,9 +13,13 @@
    ② 选声：按公开评测事实排优先级——微软神经语音是中文自然度天花板
       （盲测中 Azure 系稳居前二：晓晓 Xiaoxiao MOS≈4.6 全能温暖向、
       云希 Yunxi≈4.5 解说向；Google TTS 中文明显偏硬，盲测 5.5 分垫底）。
-      注意可用性：带 "Online (Natural)" 的神经音只有 Edge 桌面版开箱即得；
-      Chrome 下要在 Windows「语言设置→语音」里装 Neural 语音包才有，
-      否则回落到老 SAPI 本地音（Huihui/Yaoyao 等，较机械）。
+      **可用性事实（2026-09-13 真机对拍本机 Chrome/Edge）**：
+        · Chrome 只有 3 个中文音（Huihui/Kangkang/Yaoyao，Windows 老 SAPI5，电子感强），
+          无任何神经音 —— 想听"晓晓"必须用 Edge；
+        · Edge 暴露 17 个中文音，含晓晓/云希/云扬/晓伊/云夏等 Online (Natural) 神经音
+          （还有粤语 zh-HK、台湾 zh-TW、东北/陕西官话等方言变体，需排除）。
+      Google 网络音排在本地 SAPI 之前：有据（AI 语音设计指南：未指定模型时浏览器会降级到
+      最基础的离线 SAPI，产生强烈机器感；Edge Online 神经音与 Chrome Google 语音最接近真人）。
 
    ③ 清理：stopSpeak 必须在切题/卸载/静音时调用，否则上一题的声音会串进
       下一题（speechSynthesis 是浏览器全局单例，不随组件卸载而停）。 */
@@ -81,19 +85,64 @@ export function chunkSpeechText(raw, max = 50) {
   return chunks
 }
 
-/* 选声优先级（依据见文件头注释②）：
-   晓晓(Natural) > 云希(Natural) > 其他 Natural/Neural 网络音 >
-   常见微软本地音（晓晓/云希/云扬/瑶瑶/辉辉/康康/婷婷/美佳）>
-   任意 zh 音 > null（交浏览器按 lang 默认） */
+/* 选声优先级（依据见文件头注释②，2026-09-13 晚真机对拍后修正）：
+   ① 晓晓 Natural（MOS≈4.6 全能） → ② 云希 Natural（≈4.5 解说） →
+   ③ 其他 Online/Neural 神经音 → ④ Google 网络音 →
+   ⑤ 微软本地 SAPI（Huihui/Yaoyao/Kangkang，电子感强） → ⑥ 任意普通话 → ⑦ null
+
+   为什么 Google 排在本地 SAPI 之前：AI 语音设计指南明确「未指定模型时浏览器会降级调用
+   系统最基础的离线语音(如 Windows 旧版 SAPI5)，产生强烈电子机器感；Edge 的 Online 神经音
+   与 Chrome 的 Google 语音音质最接近真人，应优先指名」；另有 TTS 工具文档把"Windows 上
+   声音机械"直接归因于老 SAPI 并建议改用 Edge。修正前实测在 Chrome 里选中了 Huihui（机械），
+   而当时 Google 普通话可选 —— 顺序错了。
+
+   语种收口：只收普通话（zh-CN / zh-Hans），**排除粤语 zh-HK、台湾 zh-TW、方言
+   zh-CN-liaoning / zh-CN-shaanxi 等**——/^zh/ 会把它们一起捞进来，念出来是另一种腔调。
+   命名收口：Edge 里语音名是**中文本地化**的（"Microsoft 晓晓 Online (Natural)"），
+   只匹配 xiaoxiao/yunxi 这类拉丁名会全部落空，故拉丁名与中文名一起匹配。 */
+const ZH_MANDARIN = /^zh[-_]?(CN|Hans)/i
+const ZH_VARIANT = /[-_](HK|TW|MO)|[-_](liaoning|shaanxi|sichuan|henan|shanxi)(\b|$)/i
+const isNatural = (v) => /natural|neural/i.test(v.name)
 export function pickVoice(voices) {
-  const zh = (voices || []).filter((v) => /^zh/i.test(v.lang))
-  if (!zh.length) return null
-  return zh.find((v) => /xiaoxiao/i.test(v.name) && /natural/i.test(v.name))
-    || zh.find((v) => /yunxi/i.test(v.name) && /natural/i.test(v.name))
-    || zh.find((v) => /natural|neural/i.test(v.name))
-    || zh.find((v) => /xiaoxiao|yunxi|yunyang|yaoyao|huihui|kangkang|tingting|meijia/i.test(v.name))
-    || zh.find((v) => v.localService)
-    || zh[0]
+  const all = (voices || []).filter((v) => /^zh/i.test(v.lang))
+  if (!all.length) return null
+  const mandarin = all.filter((v) => ZH_MANDARIN.test(v.lang) && !ZH_VARIANT.test(v.lang))
+  const pool = mandarin.length ? mandarin : all      // 一台机器只有粤语/台湾音时也不至于无音可用
+  return pool.find((v) => /xiaoxiao|晓晓/i.test(v.name) && isNatural(v))
+    || pool.find((v) => /yunxi|云希/i.test(v.name) && isNatural(v))
+    || pool.find((v) => isNatural(v) && !/multilingual/i.test(v.name))
+    || pool.find((v) => /google/i.test(v.name))
+    || pool.find((v) => /xiaoxiao|yunxi|yunyang|yaoyao|huihui|kangkang|tingting|meijia|晓晓|云希|云扬|瑶瑶|慧慧|康康|婷婷/i.test(v.name))
+    || pool[0]
+}
+
+/* voices 在 Chrome/Edge 都是异步加载（首帧 getVoices() 常为空）。
+   若此时不等待就 speak，utterance 会不带 voice → 浏览器按 lang 自选默认音
+   （Windows 上默认多半就是 Huihui 这类机械音），"沉浸感最强"的选声会静默落空。
+   故首次取不到语音时等 voiceschanged，最多 800ms，宁可晚说半秒也别念错音色。 */
+function waitVoice(maxMs = 800) {
+  return new Promise((resolve) => {
+    if (!ttsSupported()) return resolve(null)
+    const s = window.speechSynthesis
+    let done = false
+    const finish = () => {
+      if (done) return
+      done = true
+      try { s.removeEventListener('voiceschanged', finish) } catch { /* older impl */ }
+      resolve(pickVoice(s.getVoices() || []))
+    }
+    if (pickVoice(s.getVoices() || [])) return finish()
+    try { s.addEventListener('voiceschanged', finish) } catch { setTimeout(finish, maxMs) }
+    setTimeout(finish, maxMs)
+  })
+}
+
+/* 给 UI 用的选声说明：当前环境若没有神经音，提示改用 Edge（有据：Edge 独占 Online 神经音） */
+export function voiceNote() {
+  if (!ttsSupported()) return '当前浏览器不支持语音合成'
+  const v = pickVoice(window.speechSynthesis.getVoices() || [])
+  if (!v) return '语音列表尚未加载，首句可能用系统默认音'
+  return isNatural(v) ? `语音：${v.name}` : `语音：${v.name}（本机无神经音，用 Edge 打开可听到晓晓自然语音）`
 }
 
 /* 串行播报。token 防竞态：新一轮 speak/stopSpeak 递增 token，
@@ -103,15 +152,15 @@ export function stopSpeak() {
   token++
   try { window.speechSynthesis?.cancel() } catch { /* ignore */ }
 }
-export function speak(raw, { rate = TTS_RATE, onDone } = {}) {
+export async function speak(raw, { rate = TTS_RATE, onDone } = {}) {
   if (!ttsSupported()) return false
   const chunks = chunkSpeechText(raw)
   if (!chunks.length) return false
   const my = ++token
   const synth = window.speechSynthesis
-  /* voices 在用户手势之后取（点开解析才播），Chrome 异步加载此时基本已就绪；
-     取不到就传 null，浏览器按 utterance.lang 自选默认音 */
-  const voice = pickVoice(synth.getVoices() || [])
+  /* 先拿到语音再开口（见 waitVoice 注释）；等待期间若被静音/新播报取代，token 已变，直接放弃 */
+  const voice = await waitVoice()
+  if (my !== token) return false
   let i = 0
   const next = () => {
     if (my !== token) return                        // 已被新播报/静音取代：断链

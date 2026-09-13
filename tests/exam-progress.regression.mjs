@@ -27,9 +27,9 @@ t('本地 ts 更新 → 本地', () => {
   const l = mk(300)
   assert.equal(pickExamProgress(l, mk(200)), l)
 })
-t('ts 相同 → 取云端（确定性偏好真源）', () => {
+t('ts 相同 → 取本地（云须严格更新才切换）', () => {
   const c = mk(100), l = mk(100)
-  assert.equal(pickExamProgress(l, c), c)
+  assert.equal(pickExamProgress(l, c), l)
 })
 t('无 ts 的旧格式视为 0：云端新格式胜本地旧格式', () => {
   const c = mk(50), l = { attemptId: 'att_0', ids: ['q1'], round: 0 }

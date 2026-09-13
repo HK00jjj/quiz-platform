@@ -13,7 +13,7 @@ import { imageFor, diagramDataUri, diagramTitle } from '../lib/diagrams'
    此前与 stats/ability/Learn 各写一遍 Fisher-Yates）。 */
 import { shuffledOrder } from '../lib/util.js'
 /* 解析语音播报（2026-09-13 增量）：启封自动朗读解析，🔊 一键可关，语速 1.25 */
-import { speak, stopSpeak, ttsSupported, ttsEnabled as ttsPrefEnabled, setTtsEnabled } from '../lib/tts.js'
+import { speak, stopSpeak, ttsSupported, ttsEnabled as ttsPrefEnabled, setTtsEnabled, voiceNote } from '../lib/tts.js'
 
 /* 题干渲染：填空题把 {空} 显示为下划线占位 */
 function Stem({ q }) {
@@ -539,7 +539,7 @@ export default function Practice() {
               <h5 className="zone-label">◇ 解析</h5>
               {ttsOK && (
                 <button className="chip" style={{ fontSize: 11 }} aria-pressed={ttsOn}
-                  title={ttsOn ? '关闭解析语音播报' : '开启解析语音播报'}
+                  title={ttsOn ? `关闭解析语音播报｜${voiceNote()}` : `开启解析语音播报｜${voiceNote()}`}
                   onClick={() => { const v = !ttsOn; setTtsOn(v); setTtsEnabled(v) }}>
                   {ttsOn ? '🔊 播报开' : '🔇 播报关'}
                 </button>

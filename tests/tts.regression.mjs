@@ -49,14 +49,24 @@ ok(cleanSpeechText('**重点**与`代码`') === '重点与代码', '②-4 markdo
 ok(cleanSpeechText('正常文字保持不变') === '正常文字保持不变', '②-5 正常文字原样')
 ok(cleanSpeechText('，连续逗号，') === '，连续逗号，', '②-6 连续停顿不误伤正常标点')
 
-/* ── ③ 选声 ── */
+/* ── ③ 选声（2026-09-13 晚按真机对拍修正顺序后重写）── */
 const V = (name, lang = 'zh-CN', localService = false) => ({ name, lang, localService })
-ok(pickVoice([V('Microsoft Huihui'), V('Microsoft Xiaoxiao Online (Natural) - Chinese (Simplified)'), V('Microsoft Yaoyao')]).name.includes('Xiaoxiao') , '③-1 晓晓 Natural 最高优先')
-ok(pickVoice([V('Microsoft Huihui'), V('Microsoft Yunxi Online (Natural)')]).name.includes('Yunxi'), '③-2 云希 Natural 次优先')
-ok(pickVoice([V('Microsoft Yaoyao'), V('Microsoft Yunyang Online (Natural) - Chinese (Simplified)')]).name.includes('Yunyang'), '③-3 其他 Natural 第三')
-ok(pickVoice([V('Microsoft Yaoyao'), V('Google 普通话（中国大陆）')]).name.includes('Yaoyao'), '③-4 常见微软本地音优先于 Google 音')
-ok(pickVoice([V('Some Voice', 'en-US'), V('Google 普通话（中国大陆）')]).name.includes('普通话'), '③-5 无微软系回落任意 zh')
-ok(pickVoice([V('Samantha', 'en-US')]) === null, '③-6 无 zh 音 → null（交浏览器按 lang 默认）')
-ok(pickVoice([]) === null, '③-7 空列表 → null')
+const XIAOXIAO = 'Microsoft 晓晓 Online (Natural) - Chinese (Mandarin, Simplified)'
+const YUNXI = 'Microsoft 云希 Online (Natural) - Chinese (Mandarin, Simplified)'
+const YUNYANG = 'Microsoft 云扬 Online (Natural) - Chinese (Mandarin, Simplified)'
+ok(pickVoice([V('Microsoft Huihui'), V(XIAOXIAO), V('Microsoft Yaoyao')]).name.includes('晓晓'), '③-1 晓晓 Natural 最高优先（中文名，Edge 本地化命名）')
+ok(pickVoice([V('Microsoft Huihui'), V(YUNXI)]).name.includes('云希'), '③-2 云希 Natural 次优先')
+ok(pickVoice([V('Microsoft Huihui'), V(YUNYANG)]).name.includes('云扬'), '③-3 其他 Online 神经音第三')
+ok(pickVoice([V('Microsoft Huihui'), V('Microsoft Xiaoxiao Online (Natural) - Chinese (Simplified)')]).name.includes('Xiaoxiao'), '③-3b 拉丁名形式同样命中（Chrome 系命名）')
+/* 关键修正：无神经音时，Google 网络音必须排在本地 SAPI5 之前（实证：SAPI 电子感强） */
+ok(pickVoice([V('Microsoft Huihui'), V('Microsoft Yaoyao'), V('Google 普通话（中国大陆）')]).name.includes('Google'), '③-4 无神经音时 Google 网络音优先于微软本地 SAPI')
+ok(pickVoice([V('Microsoft Huihui'), V('Microsoft Yaoyao')]).name.includes('Huihui'), '③-5 连 Google 都没有才回落本地 SAPI')
+/* 方言/腔调收口：粤语、台湾腔、官话方言不得被当作普通话选中 */
+ok(pickVoice([V('Microsoft Huihui'), V('Microsoft 曉曼 Online (Natural) - Chinese (Cantonese, Traditional)', 'zh-HK'), V('Microsoft 曉臻 Online (Natural) - Chinese (Taiwanese Mandarin, Traditional)', 'zh-TW')]).name.includes('Huihui'), '③-6 粤语/台湾腔神经音不抢占普通话（回落 zh-CN）')
+ok(pickVoice([V('Microsoft 晓北 Online (Natural) - Chinese (Northeastern Mandarin, Simplified)', 'zh-CN-liaoning'), V(YUNXI)]).name.includes('云希'), '③-7 东北官话变体不参与普通话优先池')
+ok(pickVoice([V('Microsoft 曉曼 Online (Natural) - Chinese (Cantonese, Traditional)', 'zh-HK')]).name.includes('曉曼'), '③-8 机器只有粤语音时仍可用（兜底不空）')
+ok(pickVoice([V('Some Voice', 'en-US'), V('Google 普通话（中国大陆）')]).name.includes('普通话'), '③-9 无微软系回落任意普通话（含 Google）')
+ok(pickVoice([V('Samantha', 'en-US')]) === null, '③-10 无 zh 音 → null（交浏览器按 lang 默认）')
+ok(pickVoice([]) === null, '③-11 空列表 → null')
 
 console.log(`\ntts.regression：${n} 断言全绿`)
