@@ -289,6 +289,28 @@ export function voiceNote() {
   const tag = q === 'natural' ? '自然语音' : q === 'network' ? '网络语音' : q === 'sapi' ? '老式本地语音·机器感重' : '本地语音'
   return `语音：${v.name}（${tag}）`
 }
+/* 给 UI 用的安全取样：拿不到就返回空数组（安卓 WebView 上 speechSynthesis 可能是空壳） */
+export function currentVoices() {
+  if (!ttsSupported()) return []
+  try { return window.speechSynthesis.getVoices() || [] } catch { return [] }
+}
+/* 移动端"语音列表读不出来"的规避（2026-09-14，用户报"手机端 Edge 不能选择语音"）：
+   ① 安卓内核**可能根本不触发 voiceschanged**（官方问答与 WebView 长期 issue 均有记录），
+      只监听该事件会在移动端永久拿到空列表 → 下拉只剩"自动"，看起来就是"不能选语音"；
+   ② 安卓 Edge 默认走**系统 TTS 引擎**，Edge 自带的微软在线神经音（晓晓/云希）需要用户
+      先手动用一次 Edge 的「大声朗读」才会被初始化（微软官方口径：无 JS API 可强制初始化）；
+   ③ 首次 speak 之后，部分内核才把语音表补齐。
+   故 UI 侧改为"多点触发刷新"：挂载后短轮询 + 面板打开时 + 首次播报后 + 手动 ↻。
+   getVoices() 是同步且廉价的内存读取，轮询不构成性能负担。 */
+export function voiceGuideText(listLen) {
+  if (!ttsSupported()) return '本浏览器内核不支持语音合成：换 Chrome / Edge / Safari 可用'
+  if (listLen === 0) {
+    return '本机暂未暴露任何语音（移动端常见）。播报仍会用系统默认音色；'
+      + '想解锁更多音色：安卓 Edge 请先对任意网页用一次「大声朗读」再回来点 ↻；'
+      + '安卓其他浏览器可在 系统设置→无障碍→文字转语音 装中文语音数据。'
+  }
+  return ''
+}
 /* 面板里显示的一行建议（无自然语音时明确告知最省事的改善路径） */
 export function voiceAdvice() {
   if (!ttsSupported()) return '本浏览器内核不支持语音合成：换 Chrome / Edge / Safari 可用'

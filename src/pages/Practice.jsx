@@ -13,7 +13,7 @@ import { imageFor, diagramDataUri, diagramTitle } from '../lib/diagrams'
    此前与 stats/ability/Learn 各写一遍 Fisher-Yates）。 */
 import { shuffledOrder } from '../lib/util.js'
 /* 解析语音播报（2026-09-13 增量）：启封自动朗读解析，🔊 一键可关，语速 1.25 */
-import { speak, stopSpeak, pauseSpeak, resumeSpeak, unlockSpeech, ttsSupported, ttsEnabled as ttsPrefEnabled, setTtsEnabled, voiceNote, voiceAdvice, listVoices, ttsVoicePref, setTtsVoice, ttsRate, setTtsRate, fmtRate, RATE_MIN, RATE_MAX, RATE_STEP } from '../lib/tts.js'
+import { speak, stopSpeak, pauseSpeak, resumeSpeak, unlockSpeech, ttsSupported, ttsEnabled as ttsPrefEnabled, setTtsEnabled, voiceNote, voiceAdvice, voiceGuideText, currentVoices, listVoices, ttsVoicePref, setTtsVoice, ttsRate, setTtsRate, fmtRate, RATE_MIN, RATE_MAX, RATE_STEP } from '../lib/tts.js'
 
 /* 题干渲染：填空题把 {空} 显示为下划线占位 */
 function Stem({ q }) {
@@ -235,15 +235,22 @@ export default function Practice() {
   const rateRetry = useRef(null)                       // 拖动滑块/换音色时的重播防抖
   const ttsOK = useRef(ttsSupported()).current
   const spokenKeyRef = useRef(null)
-  /* 语音清单是异步加载的（Chrome 首帧常为空），拿到 voiceschanged 后刷新下拉列表。
-     没有这一步，用户看到的"音色"下拉会一直是空的 → 又变成"为什么没有"的困惑。 */
+  /* 语音清单是异步加载的（Chrome/Edge 首帧常为空），且**安卓内核可能根本不触发
+     voiceschanged**（实测：只监听该事件会让移动端下拉永远只有"自动"，用户看到的就是
+     "手机端不能选择语音"）。所以改为多点触发刷新：
+       挂载后短轮询（8×600ms）→ 面板每次打开 → 首次播报后 → 手动 ↻ 按钮。 */
   useEffect(() => {
     if (!ttsOK) return
     const s = window.speechSynthesis
-    const refresh = () => setVoiceList(listVoices(s.getVoices() || []))
+    const refresh = () => setVoiceList(listVoices(currentVoices()))
     refresh()
     try { s.addEventListener('voiceschanged', refresh) } catch { /* 老实现无该方法 */ }
-    return () => { try { s.removeEventListener('voiceschanged', refresh) } catch { /* ignore */ } }
+    const ticks = [400, 900, 1500, 2400, 3600, 5200, 7000, 9000]
+    const timers = ticks.map((ms) => setTimeout(refresh, ms))
+    return () => {
+      try { s.removeEventListener('voiceschanged', refresh) } catch { /* ignore */ }
+      timers.forEach(clearTimeout)
+    }
   }, [ttsOK])
   useEffect(() => {
     if (!ttsOK) return
@@ -350,6 +357,12 @@ export default function Practice() {
     speak(spokenOf(q, lastGrade, shuffleRef.current.order))
   }
 
+  /* 手动重读语音清单（移动端的救命按钮：安卓 Edge 要先手动用一次「大声朗读」，
+     微软在线语音才会进列表；用户点 ↻ 即可拉到） */
+  function refreshVoiceList() {
+    setVoiceList(listVoices(currentVoices()))
+  }
+
   /* 换音色：落盘 → 若本题正在播报，防抖 300ms 后立刻用新音色重读（便于直接对比听感） */
   function applyVoice(name) {
     setTtsVoice(name || null)
@@ -359,6 +372,8 @@ export default function Practice() {
       rateRetry.current = setTimeout(
         () => speak(spokenOf(q, lastGrade, shuffleRef.current.order)), 300)
     }
+    /* 首播之后再拉一次：部分内核要"说过一次"才补齐语音表 */
+    setTimeout(refreshVoiceList, 1800)
   }
 
   /* 语速自定义（无级滑块）：夹取 → 落盘 → 停当前播报；若本题正在播报，
@@ -626,7 +641,7 @@ export default function Practice() {
                 <button className="chip" style={{ fontSize: 11 }} aria-expanded={ttsOpen}
                   aria-pressed={ttsOn}
                   title={ttsOn ? `解析语音播报进行中｜${voiceNote()}` : `已暂停在原处，再点继续接着读｜${voiceNote()}`}
-                  onClick={() => setTtsOpen((o) => !o)}>
+                  onClick={() => { setTtsOpen((o) => !o); refreshVoiceList() }}>
                   {ttsOn ? `🔊 ${fmtRate(rateNow)}×` : '⏸ 已暂停'}
                 </button>
               )}
@@ -665,16 +680,25 @@ export default function Practice() {
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '0 4px 8px' }}>
                   <span style={{ fontSize: 11, opacity: .7, paddingTop: 3 }}>音色</span>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
-                    <select className="chip" style={{ fontSize: 11, maxWidth: 260 }}
-                      aria-label="播报音色" value={voiceSel || ''}
-                      onChange={(e) => applyVoice(e.target.value)}>
-                      <option value="">自动（挑本机最好的普通话）</option>
-                      {voiceList.map((v) => (
-                        <option key={v.name + v.lang} value={v.name}>{v.label}</option>
-                      ))}
-                    </select>
-                    <span style={{ fontSize: 10.5, opacity: .68, lineHeight: 1.32, maxWidth: 260 }}>
-                      共 {voiceList.length} 个中文音色，可任选（含粤语/台湾/方言）· {voiceAdvice()}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <select className="chip" style={{ fontSize: 11, maxWidth: 230 }}
+                        aria-label="播报音色" value={voiceSel || ''}
+                        onChange={(e) => applyVoice(e.target.value)}>
+                        <option value="">自动（挑本机最好的普通话）</option>
+                        {voiceList.map((v) => (
+                          <option key={v.name + v.lang} value={v.name}>{v.label}</option>
+                        ))}
+                      </select>
+                      {/* ↻ 重新读取音色（移动端必需：安卓 Edge 需先用一次「大声朗读」，
+                          微软在线语音才会进列表；部分内核不触发 voiceschanged 事件） */}
+                      <button className="chip" style={{ fontSize: 11, padding: '2px 7px' }}
+                        title="重新读取本机音色列表（安卓 Edge 请先对任意网页用一次「大声朗读」）"
+                        onClick={refreshVoiceList}>↻</button>
+                    </div>
+                    <span style={{ fontSize: 10.5, opacity: .68, lineHeight: 1.32, maxWidth: 262 }}>
+                      {voiceList.length > 0
+                        ? `已读取 ${voiceList.length} 个中文音色，可任选（含粤语/台湾/方言）· ${voiceAdvice()}`
+                        : voiceGuideText(0)}
                     </span>
                   </div>
                 </div>
