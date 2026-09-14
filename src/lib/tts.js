@@ -170,15 +170,48 @@ export function voiceQualityOf(v) {
   if (v.localService === false) return 'network'
   return 'other'
 }
-/* 普通话候选池（供 UI 让用户自选音色）：按 神经音 > 网络音 > 其他 > 老本地音 排序 */
+/* 腔调识别（2026-09-14：用户要求"所有中文音色都放进列表，自由选择"，
+   所以不再过滤方言，而是**标注**出来让用户自己决定） */
+export function voiceAccent(v) {
+  const lang = String((v && v.lang) || '').toLowerCase()
+  const name = String((v && v.name) || '')
+  if (/zh[-_]hk/.test(lang) || /cantonese|粵|粤/i.test(name)) return '粤语'
+  if (/zh[-_]tw/.test(lang) || /taiwanese|台灣|台湾/i.test(name)) return '台湾'
+  if (/-liaoning/.test(lang) || /northeastern/i.test(name)) return '东北'
+  if (/-shaanxi/.test(lang) || /shaanxi|zhongyuan/i.test(name)) return '陕西'
+  if (/zh[-_]?(cn|hans)/i.test(lang)) return ''
+  return '其它'
+}
+/* 下拉里显示的名字：去掉厂商与冗长的 " - Chinese (...)" 尾巴，补上腔调/质量标签 */
+export function voiceLabel(v) {
+  const base = String((v && v.name) || '')
+    .replace(/^Microsoft\s+/i, '')
+    .replace(/^Google\s+/i, '')
+    .replace(/\s*-\s*Chinese\s*\(.*$/i, '')
+    .replace(/\s*Online\s*\(Natural\)\s*$/i, '')
+    .replace(/\s*\(Natural\)\s*$/i, '')
+    .trim()
+  const q = voiceQualityOf(v)
+  const tags = [
+    voiceAccent(v),
+    q === 'natural' ? '★自然' : q === 'network' ? '网络' : q === 'sapi' ? '老式' : ''
+  ].filter(Boolean)
+  return tags.length ? `${base}（${tags.join('·')}）` : base
+}
+/* 全量中文音色清单（供 UI 自由选择）：收录所有 zh* 音，按
+   「普通话优先 → 神经音 > 网络音 > 其他 > 老 SAPI」排序，方言/其它腔调排在最后但**不隐藏**。
+   注意：这个排序只影响列表观感；"自动"模式仍走 pickVoice（只用普通话，见上方注释）。 */
 export function listVoices(voices) {
-  const all = (voices || []).filter((v) => /^zh/i.test(v.lang))
-  const mandarin = all.filter((v) => ZH_MANDARIN.test(v.lang) && !ZH_VARIANT.test(v.lang))
-  const pool = mandarin.length ? mandarin : all
-  const rank = { natural: 0, network: 1, other: 2, sapi: 3 }
-  return pool
-    .map((v) => ({ name: v.name, lang: v.lang, quality: voiceQualityOf(v) }))
-    .sort((a, b) => (rank[a.quality] - rank[b.quality]) || a.name.localeCompare(b.name))
+  const rankQ = { natural: 0, network: 1, other: 2, sapi: 3 }
+  return (voices || [])
+    .filter((v) => /^zh/i.test(v.lang))
+    .map((v) => {
+      const accent = voiceAccent(v)
+      const quality = voiceQualityOf(v)
+      return { name: v.name, lang: v.lang, quality, accent, label: voiceLabel(v), _r: (accent ? 10 : 0) + rankQ[quality] }
+    })
+    .sort((a, b) => a._r - b._r || a.label.localeCompare(b.label))
+    .map(({ _r, ...rest }) => rest)
 }
 /* 用户显式指定的音色（localStorage qp.tts.voice，存 name）。null=自动 */
 const LS_VOICE = 'qp.tts.voice'

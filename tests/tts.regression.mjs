@@ -5,7 +5,7 @@
    ② cleanSpeechText：emoji 删除、→ 与换行转停顿、markdown 记号剥离
    ③ pickVoice：选声优先级（晓晓Natural > 云希Natural > Natural > 常见微软本地音 > 任意zh） */
 import assert from 'node:assert/strict'
-import { chunkSpeechText, cleanSpeechText, pickVoice, chunkMaxFor, TTS_RATE, RATE_MIN, RATE_MAX, RATE_STEP, clampRate, fmtRate, ttsRate, sliceForResume, listVoices, voiceQualityOf, ttsVoicePref, resolveVoiceByName } from '../src/lib/tts.js'
+import { chunkSpeechText, cleanSpeechText, pickVoice, chunkMaxFor, TTS_RATE, RATE_MIN, RATE_MAX, RATE_STEP, clampRate, fmtRate, ttsRate, sliceForResume, listVoices, voiceQualityOf, voiceAccent, voiceLabel, ttsVoicePref, resolveVoiceByName } from '../src/lib/tts.js'
 
 let n = 0
 const ok = (cond, msg) => { n++; assert.ok(cond, msg) }
@@ -102,21 +102,27 @@ ok(JSON.stringify(sliceForResume({ chunks: ['a', 'b', 'c'], i: 1 })) === JSON.st
 ok(sliceForResume(null).length === 0, '⑥-3 无会话（换题/停止后）返回空，不会误从头读')
 ok(sliceForResume({ chunks: [], i: 3 }).length === 0, '⑥-4 空块表返回空')
 
-/* ── ⑦ 音色分档与可挑选音色清单（2026-09-14 用户反馈"机械音太重"）──
+/* ── ⑦ 音色分档与全量中文音色清单（2026-09-14：用户要求"所有中文音都放进去自由选"）──
    现实约束：Chrome 只暴露 3 个老 SAPI 中文音，晓晓/云希这类 Online 神经音只有 Edge 有。 */
 ok(voiceQualityOf(V(XIAOXIAO, 'zh-CN', false)) === 'natural', '⑦-1 Online 神经音 → natural')
 ok(voiceQualityOf(V('Google 普通话（中国大陆）', 'zh-CN', false)) === 'network', '⑦-2 Google 系列 → network')
 ok(voiceQualityOf(V('Microsoft Huihui', 'zh-CN', true)) === 'sapi', '⑦-3 Huihui → sapi（机械感强那一档）')
 ok(voiceQualityOf(V('Microsoft Huihui', 'zh-CN', false)) === 'sapi', '⑦-3b Huihui 即使 localService=false 也判 sapi（名字优先，防误判成网络音）')
 ok(voiceQualityOf(null) === 'none', '⑦-4 无声 → none')
-const LV = listVoices([V('Microsoft Huihui'), V('Google 普通话（中国大陆）'), V(XIAOXIAO),
-  V('Microsoft 曉曼 Online (Natural) - Chinese (Cantonese, Traditional)', 'zh-HK')])
-ok(LV[0].quality === 'natural', '⑦-5 下拉列表按质量排序：神经音置顶')
-ok(LV.filter((v) => /曉曼/.test(v.name)).length === 0, '⑦-6 粤语音不进候选列表（腔调不对）')
-ok(LV.length === 3 && LV[LV.length - 1].quality === 'sapi', '⑦-7 老式本地音排最后')
-ok(ttsVoicePref() === null, '⑦-8 Node 无 window 时音色偏好取 null 且不抛错')
-/* ⑧ 整段锁定同一音色（2026-09-14：Edge 首帧只给老 SAPI 音、异步补齐神经音 →
-   旧实现"每块各自 pickVoice"会造成前几块机械音/后面换音色） */
+const CANTON = V('Microsoft 曉曼 Online (Natural) - Chinese (Cantonese, Traditional)', 'zh-HK')
+const TAIWAN = V('Microsoft 曉臻 Online (Natural) - Chinese (Taiwanese Mandarin, Traditional)', 'zh-TW')
+const DONGBEI = V('Microsoft 晓北 Online (Natural) - Chinese (Northeastern Mandarin, Simplified)', 'zh-CN-liaoning')
+const LV = listVoices([V('Microsoft Huihui'), V('Google 普通话（中国大陆）'), V(XIAOXIAO), CANTON, TAIWAN, DONGBEI])
+ok(LV.length === 6, '⑦-5 全量收录：粤语/台湾/方言都进列表（不再过滤）')
+ok(LV[0].quality === 'natural' && LV[0].accent === '', '⑦-6 普通话神经音置顶，且不带腔调标签')
+ok(LV[LV.length - 1].accent !== '', '⑦-7 方言/其它腔调排最后（但不隐藏）')
+ok(voiceAccent(CANTON) === '粤语' && voiceAccent(TAIWAN) === '台湾', '⑦-8 腔调识别：粤语 / 台湾')
+ok(voiceAccent(DONGBEI) === '东北', '⑦-9 方言识别：东北官话')
+ok(/粤语/.test(voiceLabel(CANTON)) && /★自然/.test(voiceLabel(CANTON)), '⑦-10 下拉文案含腔调与质量标签')
+ok(/晓晓/.test(voiceLabel(V(XIAOXIAO))) && !/Microsoft|Chinese|Online/.test(voiceLabel(V(XIAOXIAO))), '⑦-11 文案去掉厂商与冗长尾巴')
+ok(ttsVoicePref() === null, '⑦-12 Node 无 window 时音色偏好取 null 且不抛错')
+/* ⑧ 整段锁定同一音色（Edge 首帧只给老 SAPI 音、异步补齐神经音 → 旧实现"每块各自 pickVoice"
+   会造成前几块机械音/后面换音色） */
 const VS = [V('Microsoft Huihui'), V(YUNXI), V(XIAOXIAO)]
 ok(resolveVoiceByName(VS, YUNXI)?.name.includes('云希') === true, '⑧-1 按名字取回同一音色')
 ok(resolveVoiceByName(VS, '不存在的音色') === null, '⑧-2 名字失效返回 null（回退当前最优）')

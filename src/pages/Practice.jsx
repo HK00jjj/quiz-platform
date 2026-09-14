@@ -647,17 +647,17 @@ export default function Practice() {
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '0 4px 8px' }}>
                   <span style={{ fontSize: 11, opacity: .7, paddingTop: 3 }}>音色</span>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
-                    <select className="chip" style={{ fontSize: 11, maxWidth: 240 }}
+                    <select className="chip" style={{ fontSize: 11, maxWidth: 260 }}
                       aria-label="播报音色" value={voiceSel || ''}
                       onChange={(e) => applyVoice(e.target.value)}>
-                      <option value="">自动（挑本机最好的）</option>
+                      <option value="">自动（挑本机最好的普通话）</option>
                       {voiceList.map((v) => (
-                        <option key={v.name} value={v.name}>
-                          {v.name.replace(/^Microsoft |^Google |\s*-.*$/, '')}{v.quality === 'natural' ? ' ★自然' : v.quality === 'sapi' ? ' ·老式' : ''}
-                        </option>
+                        <option key={v.name + v.lang} value={v.name}>{v.label}</option>
                       ))}
                     </select>
-                    <span style={{ fontSize: 10.5, opacity: .68, lineHeight: 1.32, maxWidth: 260 }}>{voiceAdvice()}</span>
+                    <span style={{ fontSize: 10.5, opacity: .68, lineHeight: 1.32, maxWidth: 260 }}>
+                      共 {voiceList.length} 个中文音色，可任选（含粤语/台湾/方言）· {voiceAdvice()}
+                    </span>
                   </div>
                 </div>
               </>
