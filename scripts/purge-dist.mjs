@@ -96,7 +96,13 @@ if (existsSync(distAssets)) {
      chunkFileNames 统一为 index-<hash>.js（见 vite.config.js）——每代构建从 1 个 bundle
      变成 1 主包 + 4 懒加载 chunk ≈ 5 个文件。RETAIN 从 6 提到 30，仍覆盖约 6 代生成窗口
      （约 2 周 ≈ 15MB），旧缓存自愈语义不变。 */
-  const RETAIN = 30
+     【2026-09-14 事故后加码】保留窗口 30 → **120**：当天 8+ 次部署 + 每代 6 个文件，
+     30 项只够 5 代，而用户浏览器/运营商缓存的 index.html 可能更久 —— 实测旧代
+     chunk（BGWZcjOS / Wn4XYHl1 / DupMCO-S …）已被删成 404，直接导致"点开练习页
+     功能全都不见了"（懒加载 chunk 404 + 无兜底）。Vite 官方与 GitHub 同类 PR 的
+     口径一致：**部署侧要保留旧 chunk 一段时间**，并配合运行时 vite:preloadError
+     自愈（见 app/src/lib/reload.js）。120 项 ≈ 20 代 ≈ 20~30MB，可接受。 */
+  const RETAIN = 120
   const orphanAll = readdirSync(distAssets).filter((f) => /^index-[\w-]+\.(?:js|css)$/.test(f) && !htmlRefs.has(f))
     .map((f) => ({ f, m: statSync(path.join(distAssets, f)).mtimeMs }))
     .sort((a, b) => b.m - a.m)

@@ -8,16 +8,56 @@ import { TouchRitual } from './components'
 import { Background, BottomNav, BootRitual, useScrollReveal } from './components/CandyBoot'
 import FestiveDecor from './components/FestiveDecor'
 import { lastResultMap } from './lib/stats'
+import { reloadOnceForFreshAssets, clearReloadFlag } from './lib/reload'
 import Login from './pages/Login'
 import Learn from './pages/Learn'
 /* §性能 路由级代码分割：非首屏四个页拆成独立 chunk（首访只下载 Learn+公共件，
    bundle 557KB → 主包约 380KB；切页时按需拉取，gh-pages CDN 单文件 <20KB gzip 无感）。
    chunk 统一命名 index-*.js（vite.config chunkFileNames），纳入 purge-dist 保留窗口，
-   避免 Practice-*.js 之类命名游离在清理逻辑外。 */
-const Bank = lazy(() => import('./pages/Bank'))
-const Import = lazy(() => import('./pages/Import'))
-const Settings = lazy(() => import('./pages/Settings'))
-const Practice = lazy(() => import('./pages/Practice'))
+   避免 Practice-*.js 之类命名游离在清理逻辑外。
+
+   ⚠ 2026-09-14 血泪：**懒加载 chunk 会在部署后 404**（Pages 每代重建产物，旧哈希被删），
+   而陈旧的缓存 index.html 仍按旧哈希去取 → "Failed to fetch dynamically imported module"
+   → 用户看到的就是"功能全都不见了"（实测 body 全空且永不恢复）。两层兜底：
+   ① 每个 lazy 的 import 失败都接一次"整页刷新换新资源"（reloadOnceForFreshAssets，
+      30s 内只刷一次防循环）；② 下面包 ErrorBoundary，刷新后仍失败则显示"点此刷新"提示。 */
+const lazyPage = (factory) => lazy(() => factory().catch(() => {
+  reloadOnceForFreshAssets()          // 拿到新 index.html 与新 chunk
+  return new Promise(() => {})        // 保持 pending：交给刷新，别再抛错炸掉整树
+}).then((m) => {
+  /* 加载成功 → 清掉"已刷过"标记，保证下次真·版本错位还能自愈 */
+  clearReloadFlag()
+  return m
+}))
+const Bank = lazyPage(() => import('./pages/Bank'))
+const Import = lazyPage(() => import('./pages/Import'))
+const Settings = lazyPage(() => import('./pages/Settings'))
+const Practice = lazyPage(() => import('./pages/Practice'))
+
+/* 兜底 ErrorBoundary：任何页面级异常（含刷新后仍拉不到 chunk）都给出可操作提示，
+   不再出现"一片空白、什么都没有"。 */
+class PageBoundary extends React.Component {
+  constructor(props) { super(props); this.state = { err: null } }
+  static getDerivedStateFromError(err) { return { err } }
+  componentDidCatch(err) { try { console.error('[PageBoundary]', err) } catch { /* ignore */ } }
+  render() {
+    if (!this.state.err) return this.props.children
+    const msg = String((this.state.err && this.state.err.message) || this.state.err || '')
+    const isChunk = /dynamically imported module|Loading chunk|import\(\)/i.test(msg)
+    return (
+      <div className="panel" style={{ margin: '18px auto', maxWidth: 420, padding: '16px 18px', textAlign: 'center' }}>
+        <h3 style={{ marginBottom: 8 }}>{isChunk ? '页面资源已更新' : '这个页面出了点问题'}</h3>
+        <p style={{ fontSize: 13, lineHeight: 1.6, opacity: .85 }}>
+          {isChunk
+            ? '本站刚发布过新版本，你手上的页面还是旧的。点下面的按钮刷新即可恢复（不会丢进度）。'
+            : '已记录错误信息。刷新一次通常就能恢复；若反复出现请告诉我。'}
+        </p>
+        <button className="chip" style={{ marginTop: 10 }} onClick={() => window.location.reload()}>🔄 刷新页面</button>
+      </div>
+    )
+  }
+}
+
 
 function Shell() {
   useScrollReveal()
@@ -78,20 +118,22 @@ function Shell() {
           z-5 压在内容上但低于底部导航/弹窗；登录前不挂（BootRitual/Login 分支保持素净）；
           答题页 compact——顶部灯串/小旗/圣诞帽按学习页 hero 定位，会压题干，撤掉 */}
       <FestiveDecor compact={inPractice} />
-      <Suspense fallback={
-        <div style={{ display: 'flex', justifyContent: 'center', paddingTop: '38vh' }}>
-          <div className="loading-orb" />
-        </div>
-      }>
-        <Routes>
-          <Route path="/" element={<Learn />} />
-          <Route path="/bank" element={<Bank />} />
-          <Route path="/import" element={<Import />} />
-          <Route path="/settings" element={<Settings />} />
-          <Route path="/practice" element={<Practice />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </Suspense>
+      <PageBoundary>
+        <Suspense fallback={
+          <div style={{ display: 'flex', justifyContent: 'center', paddingTop: '38vh' }}>
+            <div className="loading-orb" />
+          </div>
+        }>
+          <Routes>
+            <Route path="/" element={<Learn />} />
+            <Route path="/bank" element={<Bank />} />
+            <Route path="/import" element={<Import />} />
+            <Route path="/settings" element={<Settings />} />
+            <Route path="/practice" element={<Practice />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Suspense>
+      </PageBoundary>
       {/* 底部导航：除答题页外一律显示（不再受会话 phase 制约），active 由当前路由得出 */}
       {!inPractice && (
         <BottomNav active={activeKey} wrongCount={wrongN} onNav={(to) => navTo(to)} />

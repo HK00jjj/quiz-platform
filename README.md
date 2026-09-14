@@ -179,6 +179,35 @@
     （国内常不可达）**；晓晓/云希属 **Edge 云端 Online 神经音**，Windows 本地语音包不含，
     且系统「讲述人自然语音」默认不给第三方应用调用（要用需第三方注入器
     NaturalVoiceSAPIAdapter）。要再往上只能接云 TTS（讯飞/火山/Azure，需 key 与成本）。
+15. **"上述功能都不见了"事故（2026-09-14 晚，当天第 8 次部署后用户报障）· 已修并验证**
+    症状：用户打开练习页，声音面板/播报/重读等功能全部消失（页面内容为空）。
+    排查（走 systematic-debugging 四阶段，**先定性再动手**）：
+    · 源码完好：Practice.jsx 有重读=8/音色=10、tts.js 有 voiceLabel/unlockSpeech；
+    · 线上主包 0 特征串**属正常**——路由代码分割后练习页在懒加载 chunk 里（别再拿主包 grep 判功能）；
+    · 线上 5 个 chunk **全 200**，其中 `index-Bav_WkHd.js` 含「重读」「个中文音色」；
+    · 干净 profile 真机访问：面板 `🔊 1.35×`/`🔊 播报开`/`🔁 重读` + 音色 7 项，0 报错；
+    · **决定性证据：历史 bundle 批量 404**（BGWZcjOS / Wn4XYHl1 / DupMCO-S / CltAbZBf /
+      CvpJrdQ7 / Dfa0iLgo / Y4URO0Qj / DXwQPnKo）。
+    **根因**：当天高频部署（8+ 代）× `purge-dist` 保留窗口只有 30 项（≈5 代）→ 旧代 chunk
+    被删；用户浏览器/运营商缓存里的**旧 index.html 按旧哈希请求已不存在的 chunk → 404
+    → React.lazy 动态 import 失败 + 无 error boundary → 页面空白且永不恢复**（与 09-13
+    "白屏自愈"同源，只是这次连自愈都没有）。
+    **失败测试先行**（`stale-chunk-test.cjs`，CDP Fetch 把练习页 chunk 首次请求改 404）：
+    修复前 = body 为空 + Uncaught + navigations=1（无任何自愈）。
+    **修复（双保险，与 Vite 官方 "Handling load errors" 及 GitHub 同类 PR 一致）**：
+    ① 运行时自愈 `src/lib/reload.js`：`vite:preloadError`（main.jsx 接）与每个
+       `React.lazy` 的 catch（App.jsx `lazyPage`）都触发 `reloadOnceForFreshAssets()`
+       ——整页刷新换新 HTML/新 chunk；sessionStorage 存时间戳**30s 冷却防刷新循环**；
+       页面加载成功即清标记，保证下次真·版本错位仍能自愈；
+    ② `PageBoundary`（App.jsx，class 组件）兜底：刷新后仍失败 → 显示
+       「页面资源已更新，点此刷新」，**绝不再出现无声空白**；
+    ③ 部署侧 `purge-dist.mjs` 的 `RETAIN` 30 → **120**（≈20 代 ≈20~30MB）。
+    **验证**：复跑同一失败测试 → **navigations=2（自动刷新已发生）、页面正常渲染、走完
+    「返回学习页→开始今日练习→开解析→开声音面板」后按钮为 `🔊 1.35×`/`🔊 播报开`/`🔁 重读`、
+    音色 7 项**。run-all 15 套件 ALL GREEN；verify-deploy IDENTICAL；verify-live **62/62 全 200**。
+    用户侧即时恢复：强刷（Ctrl+Shift+R）或清站点数据。
+    ⚠ 教训：**高频部署必须同步放大 purge 保留窗口**；以及"功能不见了"先查 chunk 404，
+    不要先怀疑代码丢失。
 
 ## 2026-09-13 午增量（第十一批 P0）· 真机 E2E 抓获并修复 masteryGate 接线崩溃
 
