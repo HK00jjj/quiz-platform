@@ -13,7 +13,7 @@ import { imageFor, diagramDataUri, diagramTitle } from '../lib/diagrams'
    此前与 stats/ability/Learn 各写一遍 Fisher-Yates）。 */
 import { shuffledOrder } from '../lib/util.js'
 /* 解析语音播报（2026-09-13 增量）：启封自动朗读解析，🔊 一键可关，语速 1.25 */
-import { speak, stopSpeak, pauseSpeak, resumeSpeak, unlockSpeech, ttsSupported, ttsEnabled as ttsPrefEnabled, setTtsEnabled, voiceNote, ttsRate, setTtsRate, fmtRate, RATE_MIN, RATE_MAX, RATE_STEP } from '../lib/tts.js'
+import { speak, stopSpeak, pauseSpeak, resumeSpeak, unlockSpeech, ttsSupported, ttsEnabled as ttsPrefEnabled, setTtsEnabled, voiceNote, voiceAdvice, listVoices, ttsVoicePref, setTtsVoice, ttsRate, setTtsRate, fmtRate, RATE_MIN, RATE_MAX, RATE_STEP } from '../lib/tts.js'
 
 /* 题干渲染：填空题把 {空} 显示为下划线占位 */
 function Stem({ q }) {
@@ -229,9 +229,22 @@ export default function Practice() {
   const [ttsOn, setTtsOn] = useState(ttsPrefEnabled)
   const [rateNow, setRateNow] = useState(ttsRate)      // 语速：自定义（0.5~2.0 无级），存 localStorage
   const [ttsOpen, setTtsOpen] = useState(false)        // 「声音」控件展开态
-  const rateRetry = useRef(null)                       // 拖动滑块时的重播防抖
+  const [voiceSel, setVoiceSel] = useState(ttsVoicePref)   // 显式选择的音色（null=自动）
+  const [voiceList, setVoiceList] = useState(() => (typeof window !== 'undefined' && window.speechSynthesis
+    ? listVoices(window.speechSynthesis.getVoices() || []) : []))
+  const rateRetry = useRef(null)                       // 拖动滑块/换音色时的重播防抖
   const ttsOK = useRef(ttsSupported()).current
   const spokenKeyRef = useRef(null)
+  /* 语音清单是异步加载的（Chrome 首帧常为空），拿到 voiceschanged 后刷新下拉列表。
+     没有这一步，用户看到的"音色"下拉会一直是空的 → 又变成"为什么没有"的困惑。 */
+  useEffect(() => {
+    if (!ttsOK) return
+    const s = window.speechSynthesis
+    const refresh = () => setVoiceList(listVoices(s.getVoices() || []))
+    refresh()
+    try { s.addEventListener('voiceschanged', refresh) } catch { /* 老实现无该方法 */ }
+    return () => { try { s.removeEventListener('voiceschanged', refresh) } catch { /* ignore */ } }
+  }, [ttsOK])
   useEffect(() => {
     if (!ttsOK) return
     const revealed = seal === 'broken' && (phase === 'feedback' || showAnswer)
@@ -321,6 +334,17 @@ export default function Practice() {
     if (revealed && q && spokenKeyRef.current !== key) {
       spokenKeyRef.current = key
       speak(spokenOf(q, lastGrade, shuffleRef.current.order))
+    }
+  }
+
+  /* 换音色：落盘 → 若本题正在播报，防抖 300ms 后立刻用新音色重读（便于直接对比听感） */
+  function applyVoice(name) {
+    setTtsVoice(name || null)
+    setVoiceSel(name || null)
+    if (ttsOn && q && spokenKeyRef.current === index + '|' + q.id) {
+      clearTimeout(rateRetry.current)
+      rateRetry.current = setTimeout(
+        () => speak(spokenOf(q, lastGrade, shuffleRef.current.order)), 300)
     }
   }
 
@@ -603,17 +627,40 @@ export default function Practice() {
               )}
             </div>
             {ttsOK && ttsOpen && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 4px 8px' }}>
-                <button className="chip" style={{ fontSize: 11 }} aria-pressed={ttsOn}
-                  title="关闭＝暂停在原处；再点＝接着读（不会从头重读）"
-                  onClick={toggleTts}>
-                  {ttsOn ? '🔊 播报开' : '▶ 继续播报'}
-                </button>
-                <input type="range" min={RATE_MIN} max={RATE_MAX} step={RATE_STEP} value={rateNow}
-                  aria-label="播报语速" style={{ flex: 1, accentColor: 'var(--teal, #3fbfa8)' }}
-                  onChange={(e) => applyRate(parseFloat(e.target.value))} />
-                <span style={{ fontSize: 11, minWidth: 40, textAlign: 'right', letterSpacing: '.3px' }}>{fmtRate(rateNow)}×</span>
-              </div>
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 4px 4px' }}>
+                  <button className="chip" style={{ fontSize: 11 }} aria-pressed={ttsOn}
+                    title="关闭＝暂停在原处；再点＝接着读（不会从头重读）"
+                    onClick={toggleTts}>
+                    {ttsOn ? '🔊 播报开' : '▶ 继续播报'}
+                  </button>
+                  <input type="range" min={RATE_MIN} max={RATE_MAX} step={RATE_STEP} value={rateNow}
+                    aria-label="播报语速" style={{ flex: 1, accentColor: 'var(--teal, #3fbfa8)' }}
+                    onChange={(e) => applyRate(parseFloat(e.target.value))} />
+                  <span style={{ fontSize: 11, minWidth: 40, textAlign: 'right', letterSpacing: '.3px' }}>{fmtRate(rateNow)}×</span>
+                </div>
+                {/* 音色选择（2026-09-14，用户反馈"机械音太重"）：
+                    ⚠ 现实约束——Chrome 只暴露 3 个老 SAPI 中文音（Huihui/Kangkang/Yaoyao），
+                    晓晓/云希这类 Online 神经音只有 Edge 提供（Windows 本地语音包不含它们，
+                    且系统「讲述人自然语音」默认不给第三方应用调用）。所以这里能做的是：
+                    把"用的是哪个音色、属于哪一档"摆到台面上，并允许用户自行挑选/换用。 */}
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '0 4px 8px' }}>
+                  <span style={{ fontSize: 11, opacity: .7, paddingTop: 3 }}>音色</span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
+                    <select className="chip" style={{ fontSize: 11, maxWidth: 240 }}
+                      aria-label="播报音色" value={voiceSel || ''}
+                      onChange={(e) => applyVoice(e.target.value)}>
+                      <option value="">自动（挑本机最好的）</option>
+                      {voiceList.map((v) => (
+                        <option key={v.name} value={v.name}>
+                          {v.name.replace(/^Microsoft |^Google |\s*-.*$/, '')}{v.quality === 'natural' ? ' ★自然' : v.quality === 'sapi' ? ' ·老式' : ''}
+                        </option>
+                      ))}
+                    </select>
+                    <span style={{ fontSize: 10.5, opacity: .68, lineHeight: 1.32, maxWidth: 260 }}>{voiceAdvice()}</span>
+                  </div>
+                </div>
+              </>
             )}
             {/* §38：题图只在点击解析（蜡封启封）后随答案一起显示，答题前不渲染 */}
             {seal === 'broken' && fbImgUri && <img src={fbImgUri} alt={diagramTitle(imageFor(q.id))} style={{ display: 'block', maxWidth: '100%', margin: '0 auto 10px', background: '#fff', border: '1px solid #e5d9c3', borderRadius: 8 }} />}

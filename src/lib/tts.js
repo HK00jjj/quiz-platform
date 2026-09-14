@@ -157,11 +157,55 @@ export function chunkSpeechText(raw, max = 50) {
 const ZH_MANDARIN = /^zh[-_]?(CN|Hans)/i
 const ZH_VARIANT = /[-_](HK|TW|MO)|[-_](liaoning|shaanxi|sichuan|henan|shanxi)(\b|$)/i
 const isNatural = (v) => /natural|neural/i.test(v.name)
+/* 音色质量分层（UI 提示与块长策略都用它）：
+   natural=Edge 云端神经音；network=浏览器自带网络音（Chrome 的 Google 系列）；
+   sapi=Windows 老本地音（Huihui/Yaoyao/Kangkang，机械感强）；other=其余普通话音 */
+export function voiceQualityOf(v) {
+  if (!v) return 'none'
+  if (isNatural(v)) return 'natural'
+  /* 先按名字认老 SAPI 音（Huihui/Yaoyao/Kangkang…）：它们在某些环境里 localService
+     也可能是 false（真机/测试都见过），只靠 localService 会把机械音误判成"网络音"。 */
+  if (/huihui|yaoyao|kangkang|tingting|meijia|慧慧|瑶瑶|康康|婷婷/i.test(v.name)) return 'sapi'
+  if (/google/i.test(v.name)) return 'network'
+  if (v.localService === false) return 'network'
+  return 'other'
+}
+/* 普通话候选池（供 UI 让用户自选音色）：按 神经音 > 网络音 > 其他 > 老本地音 排序 */
+export function listVoices(voices) {
+  const all = (voices || []).filter((v) => /^zh/i.test(v.lang))
+  const mandarin = all.filter((v) => ZH_MANDARIN.test(v.lang) && !ZH_VARIANT.test(v.lang))
+  const pool = mandarin.length ? mandarin : all
+  const rank = { natural: 0, network: 1, other: 2, sapi: 3 }
+  return pool
+    .map((v) => ({ name: v.name, lang: v.lang, quality: voiceQualityOf(v) }))
+    .sort((a, b) => (rank[a.quality] - rank[b.quality]) || a.name.localeCompare(b.name))
+}
+/* 用户显式指定的音色（localStorage qp.tts.voice，存 name）。null=自动 */
+const LS_VOICE = 'qp.tts.voice'
+export function ttsVoicePref() {
+  try {
+    const raw = typeof window !== 'undefined' ? window.localStorage.getItem(LS_VOICE) : null
+    return raw && raw.trim() ? raw : null
+  } catch { return null }
+}
+export function setTtsVoice(name) {
+  try {
+    if (name) window.localStorage.setItem(LS_VOICE, name)
+    else window.localStorage.removeItem(LS_VOICE)
+  } catch { /* ignore */ }
+  return name || null
+}
 export function pickVoice(voices) {
   const all = (voices || []).filter((v) => /^zh/i.test(v.lang))
   if (!all.length) return null
   const mandarin = all.filter((v) => ZH_MANDARIN.test(v.lang) && !ZH_VARIANT.test(v.lang))
   const pool = mandarin.length ? mandarin : all      // 一台机器只有粤语/台湾音时也不至于无音可用
+  /* ① 用户在面板里点过名 → 就用它（仍可用才生效，换设备/换浏览器后自动回落） */
+  const want = ttsVoicePref()
+  if (want) {
+    const hit = all.find((v) => v.name === want)
+    if (hit) return hit
+  }
   return pool.find((v) => /xiaoxiao|晓晓/i.test(v.name) && isNatural(v))
     || pool.find((v) => /yunxi|云希/i.test(v.name) && isNatural(v))
     || pool.find((v) => isNatural(v) && !/multilingual/i.test(v.name))
@@ -173,52 +217,80 @@ export function pickVoice(voices) {
 /* voices 在 Chrome/Edge 都是异步加载（首帧 getVoices() 常为空）。
    若此时不等待就 speak，utterance 会不带 voice → 浏览器按 lang 自选默认音
    （Windows 上默认多半就是 Huihui 这类机械音），"沉浸感最强"的选声会静默落空。
-   故首次取不到语音时等 voiceschanged，最多 800ms，宁可晚说半秒也别念错音色。 */
-function waitVoice(maxMs = 800) {
+   **2026-09-14 加严**：不只是"等到有语音"，而是"**等到有非老 SAPI 的语音**"——
+   Edge 首帧实测常常只列出 Huihui/Kangkang/Yaoyao 三个老音，再过一拍才补上
+   14 个 Online 神经音；如果一看到列表非空就开说，第一段就是机械音。
+   策略：最长等 1500ms，期间一旦出现非 SAPI 音立即开说；超时则用当前最优。 */
+function waitVoice(maxMs = 1500) {
   return new Promise((resolve) => {
     if (!ttsSupported()) return resolve(null)
     const s = window.speechSynthesis
     let done = false
+    const best = () => pickVoice(s.getVoices() || [])
+    const good = () => { const v = best(); return v && voiceQualityOf(v) !== 'sapi' ? v : null }
     const finish = () => {
       if (done) return
       done = true
-      try { s.removeEventListener('voiceschanged', finish) } catch { /* older impl */ }
-      resolve(pickVoice(s.getVoices() || []))
+      try { s.removeEventListener('voiceschanged', onchange) } catch { /* 老实现 */ }
+      resolve(best())
     }
-    if (pickVoice(s.getVoices() || [])) return finish()
-    try { s.addEventListener('voiceschanged', finish) } catch { setTimeout(finish, maxMs) }
-    setTimeout(finish, maxMs)
+    const onchange = () => { if (good()) finish() }
+    if (good()) return finish()
+    try { s.addEventListener('voiceschanged', onchange) } catch { /* ignore */ }
+    const t0 = Date.now()
+    const poll = setInterval(() => {
+      if (done) { clearInterval(poll); return }
+      if (good() || Date.now() - t0 > maxMs) { clearInterval(poll); finish() }
+    }, 120)
+    setTimeout(finish, maxMs + 200)
   })
 }
 
-/* 给 UI 用的选声说明：当前环境若没有神经音，提示改用 Edge（有据：Edge 独占 Online 神经音） */
+/* 给 UI 用的选声说明：把"机械感"从模糊感受变成可核对的字面信息
+   （哪个音色 / 属于哪一档），并给出改进建议。 */
 export function voiceNote() {
   if (!ttsSupported()) return '当前浏览器不支持语音合成'
   const v = pickVoice(window.speechSynthesis.getVoices() || [])
   if (!v) return '语音列表尚未加载，首句可能用系统默认音'
-  return isNatural(v) ? `语音：${v.name}` : `语音：${v.name}（本机无神经音，用 Edge 打开可听到晓晓自然语音）`
+  const q = voiceQualityOf(v)
+  const tag = q === 'natural' ? '自然语音' : q === 'network' ? '网络语音' : q === 'sapi' ? '老式本地语音·机器感重' : '本地语音'
+  return `语音：${v.name}（${tag}）`
+}
+/* 面板里显示的一行建议（无自然语音时明确告知最省事的改善路径） */
+export function voiceAdvice() {
+  if (!ttsSupported()) return '本浏览器内核不支持语音合成：换 Chrome / Edge / Safari 可用'
+  const v = pickVoice(window.speechSynthesis.getVoices() || [])
+  const q = voiceQualityOf(v)
+  if (q === 'natural') return '自然语音已就位，可在上面选择其它音色'
+  if (q === 'network') return '网络语音质量尚可但不稳定；用 Edge 打开可听到晓晓/云希自然语音'
+  return '本机只有老式本地语音（机械感重）；用 Edge 打开可听到晓晓/云希自然语音，无需安装任何东西'
 }
 
-/* 块长按音色分流：
-   · Edge/微软 Online 神经音（云端长文本引擎，Read Aloud 整页朗读同源）→ 180 字/块，
-     少切几刀 = 少几次"块边界"= 少几次音色被换的机会；
-   · 其余（Chrome Google 网络音 / 本地 SAPI）→ 50 字/块，
-     规避 Chrome 桌面长文 ~15s 静默中断（实证阈值 200~300 字符是英文经验，
-     中文按 4~5 字/秒折算才安全）。 */
+/* 块长按音色分流（2026-09-14 调整，针对"机械音/碎句感"）：
+   · Edge/微软 Online 神经音（云端长文本引擎）→ 180 字/块：少切几刀，语调连贯；
+   · 浏览器自带网络音（Chrome 的 Google 系列）→ **70 字/块**：
+     原先 50 字切得太碎，中文听感"一顿一顿"更像机器人在念短语；70 字 ≈11s（1.35 倍速
+     约 6 字/秒）仍安全落在 Chrome 桌面 ~15s 静默中断阈值之内；
+   · 本地 SAPI 等其余 → 50 字/块（这类引擎长句更容易出现音调塌陷，保守切）。 */
 export function chunkMaxFor(voice) {
-  const onlineNatural = !!voice && /natural|neural/i.test(voice.name) && voice.localService === false
-  return onlineNatural ? 180 : 50
+  const q = voiceQualityOf(voice)
+  if (q === 'natural') return 180
+  if (q === 'network') return 70
+  return 50
 }
 
-/* 串行播报会话。三个抗坑措施（均有公开记录）：
+/* 串行播报会话。四个抗坑措施（均有公开记录 / 真机实测）：
    ① **保活引用**：Chromium 长期 bug——SpeechSynthesisUtterance 在说完前被 GC 会丢
       voice/丢事件，表现为"开头正确、后面变成默认音"。存进 live 数组即可保活。
    ② **块间 120ms 间隙**：背靠背 speak 会让引擎忽略第二句起的 voice
       （SO 36377342 标题就是"第一次女声、第二次男声"）。
-   ③ **每次现取 voice**：不缓存 voice 对象（列表 voiceschanged 后会换新对象，
-      旧对象可能失效），每块从当前 getVoices() 重新匹配同一音色。
-   另加看门狗：Chrome+Google 网络音有"事件不触发、卡在 speaking"的老 bug，
-   估算时长+4s 仍无进展就推进下一块，避免整段播报无声挂死。
+   ③ **整段锁定同一音色**（2026-09-14 修正）：链开始时解析一次音色并锁定 name，
+      之后每块按 name 现取同一音色（对象可换、名字不换），取不到才回退锁定对象。
+      此前是"每块各自 pickVoice"，而 Edge/Chrome 的语音列表是**异步补齐**的
+      （Edge 首帧常只有 3 个老 SAPI 音，随后才补上 14 个 Online 神经音）
+      → 前几块用机械音、后面换成神经音，用户听到的就是"读一半换音色"。
+   ④ 看门狗：Chrome+Google 网络音有"事件不触发、卡在 speaking"的老 bug，
+      估算时长+4s 仍无进展就推进下一块，避免整段播报无声挂死。
    token 防竞态：新一轮 speak/stopSpeak 递增 token，旧链自动作废。
 
    **暂停/续播（2026-09-13 晚第五轮，用户指令"播报开和关都暂停在原处、不重复读"）**：
@@ -229,7 +301,7 @@ export function chunkMaxFor(voice) {
      不成立就退回"记住块位置"策略：恢复时从被打断的那一块重新开口（最多重读一句，
      绝不从头重读整段）。 */
 let token = 0
-let session = null      // { chunks, i, paused, nativePaused, done }
+let session = null      // { chunks, i, paused, nativePaused, done, voiceName }
 export function stopSpeak() {
   token++
   session = null
@@ -259,21 +331,27 @@ export function resumeSpeak() {
     return true
   }
   const rest = sliceForResume(s)
+  const keep = s.voiceName
   session = null
-  return runChunks(rest, ttsRate()) !== false
+  return runChunks(rest, ttsRate(), undefined, undefined, keep) !== false
 }
 /* 纯函数（可回归）：被打断块 + 其后的剩余块；i 已自增，故取 i-1 起 */
 export function sliceForResume(s) {
   if (!s || !s.chunks || !s.chunks.length) return []
   return s.chunks.slice(Math.max(0, s.i - 1))
 }
+/* 纯函数（可回归）：按名字在当前列表里取同一音色（对象可换、名字不换） */
+export function resolveVoiceByName(voices, name) {
+  if (!name) return null
+  return (voices || []).find((v) => v.name === name) || null
+}
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 const CHUNK_GAP = 120
-function runChunks(chunks, rate, onDone, my) {
+function runChunks(chunks, rate, onDone, my, voiceName) {
   if (!chunks || !chunks.length) return false
   const tok = my === undefined ? ++token : my
   const synth = window.speechSynthesis
-  const sess = { chunks, i: 0, paused: false, nativePaused: false, done: false }
+  const sess = { chunks, i: 0, paused: false, nativePaused: false, done: false, voiceName: voiceName || null }
   session = sess
   const live = []                       // ① 保活：防 GC 丢 voice
   let gapTimer = null, watchdog = null
@@ -292,7 +370,9 @@ function runChunks(chunks, rate, onDone, my) {
     if (tok !== token || sess.paused) return                        // 被取代/暂停：断链
     if (sess.i >= chunks.length) { clearTimers(); live.length = 0; sess.done = true; if (onDone) onDone(); return }
     const text = chunks[sess.i++]
-    const v = pickVoice(synth.getVoices() || [])                    // ③ 每块现取
+    /* ③ 整段同一音色：优先按锁定 name 现取（列表可能已补齐），取不到再用当前最优 */
+    const vs = synth.getVoices() || []
+    const v = resolveVoiceByName(vs, sess.voiceName) || pickVoice(vs)
     const u = new SpeechSynthesisUtterance(text)
     if (v) { u.voice = v; u.lang = v.lang } else u.lang = 'zh-CN'
     u.rate = rate
@@ -322,5 +402,5 @@ export async function speak(raw, { rate = ttsRate(), onDone } = {}) {
   session = null
   await sleep(CHUNK_GAP)
   if (my !== token) return false
-  return runChunks(chunks, rate, onDone, my)
+  return runChunks(chunks, rate, onDone, my, voice ? voice.name : null)
 }
