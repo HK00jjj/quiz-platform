@@ -5,7 +5,7 @@
    ② cleanSpeechText：emoji 删除、→ 与换行转停顿、markdown 记号剥离
    ③ pickVoice：选声优先级（晓晓Natural > 云希Natural > Natural > 常见微软本地音 > 任意zh） */
 import assert from 'node:assert/strict'
-import { chunkSpeechText, cleanSpeechText, normalizeSpeech, pickVoice, chunkMaxFor, TTS_RATE, RATE_MIN, RATE_MAX, RATE_STEP, clampRate, fmtRate, ttsRate, sliceForResume, listVoices, voiceQualityOf, voiceAccent, voiceLabel, ttsVoicePref, resolveVoiceByName, zhLike, voiceDiag } from '../src/lib/tts.js'
+import { chunkSpeechText, cleanSpeechText, normalizeSpeech, pickVoice, chunkMaxFor, TTS_RATE, RATE_MIN, RATE_MAX, RATE_STEP, clampRate, fmtRate, ttsRate, sliceForResume, listVoices, voiceQualityOf, voiceAccent, voiceLabel, ttsVoicePref, resolveVoiceByName, zhLike, voiceDiag, cloudTtsUrl, cloudSpd, engineFor, isCloudVoice, CLOUD_VOICES, CLOUD_CHUNK_MAX, cloudSupported, CLOUD_VOICE_ID } from '../src/lib/tts.js'
 
 let n = 0
 const ok = (cond, msg) => { n++; assert.ok(cond, msg) }
@@ -198,5 +198,35 @@ ok(voiceAccent(MV('Microsoft 云健 Online (Natural)', 'cmn-Hans-CN')) === '', '
 // ⑩-6 诊断读数 API 形状（Node 无 window → supported:false，不抛异常）
 const dg = voiceDiag()
 ok(dg && dg.supported === false && dg.total === 0 && Array.isArray(dg.sample), '⑩-14 voiceDiag 在无 speechSynthesis 环境安全降级')
+
+/* ── ⑪ 云端音色（2026-09-15，修「手机端选不了其他语音」的最后一招）──
+   背景：手机没有系统中文语音时，Web Speech 永远没声；本组锁住"云端兜底"这条通路
+   的纯函数部分（URL 构造 / 语速映射 / 引擎决策），避免以后被改坏。 */
+// ⑪-1 语速 → spd：只落在实测可用的 3 档（0/9/12 实测返回空音频）
+ok(cloudSpd(0.5) === 3 && cloudSpd(0.85) === 3, '⑪-1 慢速 → spd=3')
+ok(cloudSpd(1) === 5 && cloudSpd(1.15) === 5, '⑪-2 常速 → spd=5')
+ok(cloudSpd(1.35) === 7 && cloudSpd(2) === 7, '⑪-3 快速（含默认 1.35）→ spd=7')
+ok([3, 5, 7].includes(cloudSpd(0)) && [3, 5, 7].includes(cloudSpd(999)), '⑪-4 越界值也被夹到可用档位')
+// ⑪-2 URL 构造：域名/参数/编码
+const u = cloudTtsUrl('合上断路器 QS#1', 1)
+ok(/^https:\/\/fanyi\.baidu\.com\/gettts\?/.test(u), '⑪-5 云端 URL 指向百度翻译发音接口')
+ok(/[?&]lan=zh(&|$)/.test(u) && /[?&]source=web(&|$)/.test(u), '⑪-6 含 lan=zh 与 source=web（缺 source 会返回空）')
+ok(/[?&]spd=5(&|$)/.test(u), '⑪-7 语速参数按 rate 映射')
+ok(!/#|\s/.test(u.split('&text=')[1]), '⑪-8 文本已 URL 编码（# 与空格不裸露）')
+ok(decodeURIComponent(u.split('&text=')[1]) === '合上断路器 QS#1', '⑪-9 编码可无损还原')
+ok(cloudTtsUrl('', 1).endsWith('&text='), '⑪-10 空文本不抛异常')
+// ⑪-3 块长上限（URL 安全：实测 2000 字会 414）
+ok(CLOUD_CHUNK_MAX >= 50 && CLOUD_CHUNK_MAX <= 300, '⑪-11 云端块长在 URL 安全区间')
+ok(chunkSpeechText('长'.repeat(400), CLOUD_CHUNK_MAX).every((c) => c.length <= CLOUD_CHUNK_MAX), '⑪-12 云端切块不超上限')
+// ⑪-4 音色表
+ok(CLOUD_VOICES.length >= 1 && CLOUD_VOICES[0].name === CLOUD_VOICE_ID && /云端/.test(CLOUD_VOICES[0].label), '⑪-13 云端音色表含可读标签')
+ok(isCloudVoice(CLOUD_VOICE_ID) && !isCloudVoice('Microsoft Huihui'), '⑪-14 isCloudVoice 只认云端 id')
+// ⑪-5 引擎决策：显式选择优先；自动档看系统有没有中文音
+ok(engineFor(true, CLOUD_VOICE_ID, true) === 'cloud', '⑪-15 显式选云端 → cloud（系统音可用也照办）')
+ok(engineFor(true, 'Microsoft Huihui', true) === 'sys', '⑪-16 显式选系统音 → sys')
+ok(engineFor(true, null, true) === 'sys', '⑪-17 自动 + 系统有中文音 → sys（离线零延迟）')
+ok(engineFor(false, null, true) === 'cloud', '⑪-18 自动 + 系统无中文音 → cloud（手机不至于没声）')
+ok(engineFor(false, null, false) === 'sys', '⑪-19 云端不可用时仍回落 sys（不臆造能力）')
+ok(cloudSupported() === false, '⑪-20 Node 无 window → cloudSupported() 安全返回 false')
 
 console.log(`\ntts.regression：${n} 断言全绿`)

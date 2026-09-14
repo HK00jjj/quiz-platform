@@ -13,7 +13,7 @@ import { imageFor, diagramDataUri, diagramTitle } from '../lib/diagrams'
    此前与 stats/ability/Learn 各写一遍 Fisher-Yates）。 */
 import { shuffledOrder } from '../lib/util.js'
 /* 解析语音播报（2026-09-13 增量）：启封自动朗读解析，🔊 一键可关，语速 1.25 */
-import { speak, stopSpeak, pauseSpeak, resumeSpeak, unlockSpeech, ttsSupported, ttsEnabled as ttsPrefEnabled, setTtsEnabled, voiceNote, voiceAdvice, voiceGuideText, currentVoices, listVoices, ttsVoicePref, setTtsVoice, ttsRate, setTtsRate, fmtRate, voiceDiag, warmUpVoices, RATE_MIN, RATE_MAX, RATE_STEP } from '../lib/tts.js'
+import { speak, stopSpeak, pauseSpeak, resumeSpeak, unlockSpeech, ttsSupported, ttsEnabled as ttsPrefEnabled, setTtsEnabled, voiceNote, voiceAdvice, voiceGuideText, currentVoices, listVoices, ttsVoicePref, setTtsVoice, ttsRate, setTtsRate, fmtRate, voiceDiag, warmUpVoices, CLOUD_VOICES, CLOUD_VOICE_ID, unlockCloudAudio, RATE_MIN, RATE_MAX, RATE_STEP } from '../lib/tts.js'
 
 /* 题干渲染：填空题把 {空} 显示为下划线占位 */
 function Stem({ q }) {
@@ -234,14 +234,16 @@ export default function Practice() {
     ? listVoices(window.speechSynthesis.getVoices() || []) : []))
   const rateRetry = useRef(null)                       // 拖动滑块/换音色时的重播防抖
   const panelPoll = useRef(null)                       // 面板展开期间的语音表轮询（2026-09-15）
-  const ttsOK = useRef(ttsSupported()).current
+  /* 面板可用性：系统语音或云端音频任一可用即渲染（2026-09-15——手机可能没有
+     系统语音但云端通路可用，此时也必须让用户能打开「声音」控件选云端音色） */
+  const ttsOK = useRef(ttsSupported() || cloudSupported()).current
   const spokenKeyRef = useRef(null)
   /* 语音清单是异步加载的（Chrome/Edge 首帧常为空），且**安卓内核可能根本不触发
      voiceschanged**（实测：只监听该事件会让移动端下拉永远只有"自动"，用户看到的就是
      "手机端不能选择语音"）。所以改为多点触发刷新：
        挂载后短轮询（8×600ms）→ 面板每次打开 → 首次播报后 → 手动 ↻ 按钮。 */
   useEffect(() => {
-    if (!ttsOK) return
+    if (!ttsSupported()) return               // 无系统语音时不再碰 speechSynthesis（可能是空壳属性）
     const s = window.speechSynthesis
     const refresh = () => setVoiceList(listVoices(currentVoices()))
     refresh()
@@ -388,6 +390,8 @@ export default function Practice() {
   function applyVoice(name) {
     setTtsVoice(name || null)
     setVoiceSel(name || null)
+    /* 换成云端音色时，趁这次 change 手势把 <audio> 解锁（移动端首次播放必须落在手势里） */
+    if (name === CLOUD_VOICE_ID) unlockCloudAudio()
     if (ttsOn && q && spokenKeyRef.current === index + '|' + q.id) {
       clearTimeout(rateRetry.current)
       rateRetry.current = setTimeout(
@@ -412,6 +416,7 @@ export default function Practice() {
   function doCheck() {
     if (!canSubmit) return
     unlockSpeech()                    // 手势内解锁音频（移动端首次 speak 必须落在手势栈里）
+    unlockCloudAudio()                // 云端通路同样是"首次播放须在手势内"（<audio> 解锁）
     breakSeal()
     submitObjective(inputText)
     const ok = lastGradeAfter(inputText)
@@ -705,10 +710,21 @@ export default function Practice() {
                       <select className="chip" style={{ fontSize: 11, maxWidth: 230 }}
                         aria-label="播报音色" value={voiceSel || ''}
                         onChange={(e) => applyVoice(e.target.value)}>
-                        <option value="">自动（默认云健）</option>
-                        {voiceList.map((v) => (
-                          <option key={v.name + v.lang} value={v.name}>{v.label}</option>
-                        ))}
+                        <option value="">自动（有系统音用系统，没有就用云端）</option>
+                        {/* 云端音色：不依赖设备语音库，手机/任何设备都能出声、可切换
+                            （通路与前置条件见 tts.js 云端段注释 + index.html 的 no-referrer） */}
+                        <optgroup label="云端音色（任意设备可用）">
+                          {CLOUD_VOICES.map((v) => (
+                            <option key={v.name} value={v.name}>{v.label}</option>
+                          ))}
+                        </optgroup>
+                        {voiceList.length > 0 && (
+                          <optgroup label="本机系统音色">
+                            {voiceList.map((v) => (
+                              <option key={v.name + v.lang} value={v.name}>{v.label}</option>
+                            ))}
+                          </optgroup>
+                        )}
                       </select>
                       {/* ↻ 重新读取音色（移动端必需：部分安卓内核不触发 voiceschanged，
                           且首次 speak 之前 getVoices() 恒为空） */}
@@ -716,17 +732,19 @@ export default function Practice() {
                         title="重新读取本机音色列表（若是安卓且列表为空，可按下方提示装中文语音数据）"
                         onClick={refreshVoiceList}>↻</button>
                     </div>
-                    {/* 空列表时把引擎真实读数摊开（2026-09-15）：手机无 devtools，
-                        用户截图即可反馈"引擎到底看到了什么"，避免继续靠猜。 */}
+                    {/* 空列表 + 已选云端时，把"引擎看到了什么"和"现在用的是谁"都摊开
+                        （2026-09-15）：手机无 devtools，用户截图即可反馈，避免靠猜。 */}
                     <span style={{ fontSize: 10.5, opacity: .68, lineHeight: 1.32, maxWidth: 262 }}>
-                      {voiceList.length > 0
-                        ? `已读取 ${voiceList.length} 个中文音色，可任选（含粤语/台湾/方言）· ${voiceAdvice()}`
-                        : (() => {
-                            const d = voiceDiag()
-                            return d.total > 0
-                              ? `本机共 ${d.total} 条语音，其中中文 0 条。样例：${d.sample.join('；')}（可截图反馈）`
-                              : voiceGuideText(0)
-                          })()}
+                      {voiceSel === CLOUD_VOICE_ID
+                        ? `已选云端音色：不依赖本机语音库，任何设备都能出声。本机可见语音 ${voiceDiag().total} 条。`
+                        : voiceList.length > 0
+                          ? `已读取 ${voiceList.length} 个中文音色，可任选（含粤语/台湾/方言）· ${voiceAdvice()}`
+                          : (() => {
+                              const d = voiceDiag()
+                              return d.total > 0
+                                ? `本机共 ${d.total} 条语音，其中中文 0 条。样例：${d.sample.join('；')}（可截图反馈）`
+                                : voiceGuideText(0)
+                            })()}
                     </span>
                   </div>
                 </div>

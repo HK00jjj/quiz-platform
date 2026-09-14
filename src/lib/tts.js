@@ -386,9 +386,10 @@ function waitVoice(maxMs = 1500) {
 /* 给 UI 用的选声说明：把"机械感"从模糊感受变成可核对的字面信息
    （哪个音色 / 属于哪一档），并给出改进建议。 */
 export function voiceNote() {
-  if (!ttsSupported()) return '当前浏览器不支持语音合成'
+  if (isCloudVoice(ttsVoicePref())) return '语音：云端·普通话女声（百度，不挑设备）'
+  if (!ttsSupported()) return cloudSupported() ? '语音：云端·普通话女声（本机不支持系统语音，已走云端）' : '当前浏览器不支持语音合成'
   const v = pickVoice(window.speechSynthesis.getVoices() || [])
-  if (!v) return '语音列表尚未加载，首句可能用系统默认音'
+  if (!v) return cloudSupported() ? '本机无中文系统音 → 自动使用云端语音' : '语音列表尚未加载，首句可能用系统默认音'
   const q = voiceQualityOf(v)
   const tag = q === 'natural' ? '自然语音' : q === 'network' ? '网络语音' : q === 'sapi' ? '老式本地语音·机器感重' : '本地语音'
   return `语音：${v.name}（${tag}）`
@@ -438,15 +439,18 @@ export function warmUpVoices() {
    故 UI 侧改为"多点触发刷新"：挂载后短轮询 + 面板打开时 + 首次播报后 + 手动 ↻。
    getVoices() 是同步且廉价的内存读取，轮询不构成性能负担。 */
 export function voiceGuideText(listLen) {
-  if (!ttsSupported()) return '本浏览器内核不支持语音合成：换 Chrome / Edge / Safari 可用'
+  if (!ttsSupported()) {
+    return cloudSupported()
+      ? '本机不支持系统语音合成——直接在上方选「云端音色」即可播报，无需安装任何东西。'
+      : '本浏览器内核不支持语音合成：换 Chrome / Edge / Safari 可用'
+  }
   if (listLen === 0) {
-    /* 2026-09-15 修订：删掉"先大声朗读再点 ↻"这条对安卓基本无效的引导（微软官方口径：
-       安卓 Edge 网页接口走系统 TTS 引擎，云端音初始化无 JS 可强求、刷新即失效），
-       改成用户真正能自己动手的系统层路径。 */
-    return '本机网页接口暂未暴露中文音色（移动端常见）。可尝试：'
-      + '① 安卓：设置 → 无障碍/语言与输入 → 文字转语音 → 安装中文语音数据（装 Google 语音服务更佳），回来点 ↻；'
-      + '② iPhone：设置 → 辅助功能 → 朗读内容 → 声音 → 中文，先下载一个语音；'
-      + '③ 电脑 Edge 自带晓晓/云希/云健等自然语音——手机 Edge 无法用网页接口调用它们（微软官方口径）。'
+    /* 2026-09-15 修订：本机音色为空时，第一推荐改成"用云端音色"（已实测可用、
+       不依赖设备）；系统层安装路径保留作为可选优化。删掉了对安卓基本无效的
+       "先大声朗读"引导（微软官方口径：安卓 Edge 网页接口走系统引擎，云端音不可强求）。 */
+    return '本机没有可用的中文系统语音（移动端常见）。**先在上方音色里选「云端·普通话女声」**即可正常播报；'
+      + '想让系统语音更丰富：① 安卓：设置 → 无障碍/语言与输入 → 文字转语音 → 安装中文语音数据；'
+      + '② iPhone：设置 → 辅助功能 → 朗读内容 → 声音 → 中文，先下载一个语音。'
   }
   return ''
 }
@@ -500,9 +504,12 @@ export function stopSpeak() {
   token++
   session = null
   try { window.speechSynthesis?.cancel() } catch { /* ignore */ }
+  stopCloud()                                  // 云端可能在播：一并停（单例 <audio>）
 }
 /* 暂停在原处：能原生暂停就原生暂停，不能就记住块位置并断链 */
 export function pauseSpeak() {
+  /* 云端分支：<audio>.pause() 是标准原生暂停，安卓也可靠 */
+  if (session && session.mode === 'cloud') { session.paused = true; return pauseCloud() }
   if (!ttsSupported() || !session || session.done) return false
   const synth = window.speechSynthesis
   session.paused = true
@@ -515,6 +522,13 @@ export function pauseSpeak() {
 }
 /* 继续：原生暂停的续上；否则从被打断的那一块接读（新语速即时生效） */
 export function resumeSpeak() {
+  const sc = session
+  /* 云端分支：直接 resume 同一个 <audio>，从原处续上（一个字不重读） */
+  if (sc && sc.mode === 'cloud') {
+    if (!sc.paused || sc.done) return false
+    sc.paused = false
+    return resumeCloud()
+  }
   if (!ttsSupported()) return false
   const synth = window.speechSynthesis
   const s = session
@@ -581,12 +595,39 @@ function runChunks(chunks, rate, onDone, my, voiceName) {
   return true
 }
 export async function speak(raw, { rate = ttsRate(), onDone } = {}) {
-  if (!ttsSupported()) return false
+  if (!ttsSupported() && !cloudSupported()) return false
   const my = ++token
+  /* ① 显式选了云端音色 → 直接走云端（不走系统语音表，手机也能出声） */
+  const pref = ttsVoicePref()
+  if (isCloudVoice(pref)) {
+    try { window.speechSynthesis?.cancel() } catch { /* ignore */ }
+    stopCloud()
+    const chunks = chunkSpeechText(raw, CLOUD_CHUNK_MAX)
+    if (!chunks.length) return false
+    await sleep(CHUNK_GAP)
+    if (my !== token) return false
+    return speakCloud(chunks, rate, onDone, my)
+  }
+  if (!ttsSupported()) {
+    /* 无 speechSynthesis 但可播音频（部分 WebView）→ 云端兜底 */
+    const chunks = chunkSpeechText(raw, CLOUD_CHUNK_MAX)
+    if (!chunks.length || !cloudSupported()) return false
+    return speakCloud(chunks, rate, onDone, my)
+  }
   const synth = window.speechSynthesis
   /* 先拿到语音再开口（见 waitVoice 注释）；等待期间若被静音/新播报取代，直接放弃 */
   const voice = await waitVoice()
   if (my !== token) return false
+  /* ② 「自动」档且设备没有任何中文系统音 → 云端兜底（否则手机上等于没声音）。
+     显式选过某个系统音色却拿不到（换设备/换浏览器）→ 也回落云端，保证出声。 */
+  if (!voice && cloudSupported()) {
+    stopCloud()
+    const cchunks = chunkSpeechText(raw, CLOUD_CHUNK_MAX)
+    if (!cchunks.length) return false
+    await sleep(CHUNK_GAP)
+    if (my !== token) return false
+    return speakCloud(cchunks, rate, onDone, my)
+  }
   const chunks = chunkSpeechText(raw, chunkMaxFor(voice))
   if (!chunks.length) return false
   /* 新一轮开口前一律 cancel：旧链可能正卡在块间隙（此时 speaking/pending 都是 false，
@@ -597,4 +638,98 @@ export async function speak(raw, { rate = ttsRate(), onDone } = {}) {
   await sleep(CHUNK_GAP)
   if (my !== token) return false
   return runChunks(chunks, rate, onDone, my, voice ? voice.name : null)
+}
+
+/* ═══════════ 云端音色（2026-09-15，修「手机端选不了其他语音」）═══════════
+   为什么走到这一步：安卓网页接口默认调**系统 TTS 引擎**，手机没装中文语音数据时
+   getVoices() 返回空 → 下拉只剩「自动」、播报也没声（用户真机症状）。设备侧无法解决，
+   于是把合成搬到云端：不依赖设备语音库，任何设备都能出声、可切换。
+
+   实测结论（2026-09-15，本机 + 真实浏览器 CDP，证据见 logs/）：
+   · 微软 Edge Read Aloud 的 WS 端点：Node 侧 403；**浏览器里必败**——WebSocket 的
+     Origin 由浏览器写死、JS 无法伪造，端点拒收本站 Origin（CDP 实测 ERROR）。不采用。
+   · 百度 tts.baidu.com：已加白名单 Referer 校验（"Not verified user. err_no=502"）。弃用。
+   · **百度翻译发音 fanyi.baidu.com/gettts 可用**：不带 Referer 即返回 audio/mpeg。
+     实测：默认 referrer 策略下 <audio> 播放失败（MEDIA_ERR_SRC_NOT_SUPPORTED），
+     在页面注入 <meta name="referrer" content="no-referrer"> 后立即成功（2.77s 音频）。
+     → 该通路的前置条件是「页面不带 Referer」，已在 index.html 静态声明。
+   · spd 有效区间实测：3/5/7 返回音频，0、9、12 返回空 → 语速只映射到这三档。
+
+   播放用 <audio>：原生 pause/resume（安卓 speechSynthesis 的 pause 等于 cancel，
+   云端这条反而更稳），且媒体元素播放不受 CORS 约束——fetch 读字节会被拦，故只播不读。 */
+export const CLOUD_VOICE_ID = '__cloud_baidu__'
+export const CLOUD_VOICES = [
+  { name: CLOUD_VOICE_ID, label: '云端·普通话女声（不挑设备·推荐手机用）', accent: '', quality: 'cloud', cloud: true }
+]
+export const isCloudVoice = (name) => name === CLOUD_VOICE_ID
+export const cloudSupported = () => typeof window !== 'undefined' && typeof window.Audio === 'function'
+/* 语速 → spd（只映射到实测可用的三档，避免请求到空音频） */
+export function cloudSpd(rate) {
+  const r = clampRate(rate)
+  if (r <= 0.85) return 3
+  if (r <= 1.15) return 5
+  return 7
+}
+/* 云端块长：URL 安全（实测 2000 字会 414），150 字/块 ≈ URL 1.5KB，留足余量 */
+export const CLOUD_CHUNK_MAX = 150
+export function cloudTtsUrl(text, rate = TTS_RATE) {
+  return 'https://fanyi.baidu.com/gettts?lan=zh&source=web&spd=' + cloudSpd(rate)
+    + '&text=' + encodeURIComponent(String(text ?? ''))
+}
+/* ── 云端播放器（单例 <audio>）──
+   移动端要求"首次播放落在用户手势里"，故 unlockCloudAudio() 在手势内播一个静音
+   短片把该元素解锁；之后换 src 续播不再被拦。失败静默、绝不抛。 */
+let cloudAudio = null
+function ensureCloudAudio() {
+  if (!cloudSupported()) return null
+  if (!cloudAudio) { cloudAudio = new window.Audio(); cloudAudio.preload = 'auto' }
+  return cloudAudio
+}
+const SILENT_WAV = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAgD4AAIA+AAABAAgAZGF0YQAAAAA='
+let cloudUnlocked = false
+export function unlockCloudAudio() {
+  const a = ensureCloudAudio()
+  if (!a) return false
+  if (cloudUnlocked) return true
+  try {
+    a.src = SILENT_WAV; a.volume = 0
+    const p = a.play()
+    if (p && p.catch) p.catch(() => {})
+    cloudUnlocked = true
+    setTimeout(() => { try { a.pause(); a.volume = 1 } catch { /* ignore */ } }, 120)
+    return true
+  } catch { return false }
+}
+export function stopCloud() { const a = cloudAudio; if (a) { try { a.pause(); a.src = '' } catch { /* ignore */ } } }
+export function pauseCloud() { const a = cloudAudio; if (!a) return false; try { a.pause(); return true } catch { return false } }
+export function resumeCloud() { const a = cloudAudio; if (!a) return false; try { const p = a.play(); if (p && p.catch) p.catch(() => {}); return true } catch { return false } }
+/* 云端逐块串行播放：单块失败跳过继续，绝不整段挂死 */
+export function speakCloud(chunks, rate, onDone, my) {
+  if (!cloudSupported() || !chunks || !chunks.length) return false
+  const tok = my === undefined ? ++token : my
+  const a = ensureCloudAudio()
+  if (!a) return false
+  const sess = { mode: 'cloud', chunks, i: 0, paused: false, done: false, voiceName: CLOUD_VOICE_ID }
+  session = sess
+  const step = () => {
+    if (tok !== token || sess.paused) return
+    if (sess.i >= chunks.length) {
+      sess.done = true
+      if (onDone) onDone()
+      return
+    }
+    const text = chunks[sess.i++]
+    try { a.src = cloudTtsUrl(text, rate); const p = a.play(); if (p && p.catch) p.catch(() => {}) } catch { setTimeout(step, 150) }
+  }
+  a.onended = () => { if (tok === token) step() }
+  a.onerror = () => { if (tok === token) step() }
+  step()
+  return true
+}
+/* 「自动」档的引擎决策（纯函数，可回归）：显式选了云端/系统就照办；
+   自动档下——设备有中文系统音用系统（离线、零延迟），没有才用云端（否则手机等于没声音）。 */
+export function engineFor(autoVoice, pref, cloudOK) {
+  if (isCloudVoice(pref)) return 'cloud'
+  if (pref) return 'sys'
+  return autoVoice ? 'sys' : (cloudOK ? 'cloud' : 'sys')
 }
