@@ -13,7 +13,7 @@ import { imageFor, diagramDataUri, diagramTitle } from '../lib/diagrams'
    此前与 stats/ability/Learn 各写一遍 Fisher-Yates）。 */
 import { shuffledOrder } from '../lib/util.js'
 /* 解析语音播报（2026-09-13 增量）：启封自动朗读解析，🔊 一键可关，语速 1.25 */
-import { speak, stopSpeak, pauseSpeak, resumeSpeak, unlockSpeech, ttsSupported, ttsEnabled as ttsPrefEnabled, setTtsEnabled, voiceNote, voiceAdvice, voiceGuideText, currentVoices, listVoices, ttsVoicePref, setTtsVoice, ttsRate, setTtsRate, fmtRate, voiceDiag, warmUpVoices, CLOUD_VOICES, CLOUD_VOICE_ID, unlockCloudAudio, RATE_MIN, RATE_MAX, RATE_STEP } from '../lib/tts.js'
+import { speak, stopSpeak, pauseSpeak, resumeSpeak, unlockSpeech, ttsSupported, ttsEnabled as ttsPrefEnabled, setTtsEnabled, voiceNote, voiceAdvice, voiceGuideText, currentVoices, listVoices, ttsVoicePref, setTtsVoice, ttsRate, setTtsRate, fmtRate, voiceDiag, warmUpVoices, EDGE_VOICES, CLOUD_VOICE_ID, isCloudVoice, unlockCloudAudio, RATE_MIN, RATE_MAX, RATE_STEP } from '../lib/tts.js'
 
 /* 题干渲染：填空题把 {空} 显示为下划线占位 */
 function Stem({ q }) {
@@ -712,13 +712,17 @@ export default function Practice() {
                       <select className="chip" style={{ fontSize: 11, maxWidth: 230 }}
                         aria-label="播报音色" value={voiceSel || ''}
                         onChange={(e) => applyVoice(e.target.value)}>
-                        <option value="">自动（有系统音用系统，没有就用云端）</option>
-                        {/* 云端音色：不依赖设备语音库，手机/任何设备都能出声、可切换
-                            （通路与前置条件见 tts.js 云端段注释 + index.html 的 no-referrer） */}
-                        <optgroup label="云端音色（任意设备可用）">
-                          {CLOUD_VOICES.map((v) => (
-                            <option key={v.name} value={v.name}>{v.label}</option>
+                        <option value="">自动（推荐：与电脑端同音色）</option>
+                        {/* 微软神经音 = 电脑端 Edge 的同一批音色（云健/晓晓/云希…）。
+                            浏览器与 Supabase 运行时都拿不到它们（Origin 限制），故走两跳代理：
+                            手机 → Supabase 函数 → Vercel Node 代理 → 微软。 */}
+                        <optgroup label="微软神经音（与电脑端一致）">
+                          {EDGE_VOICES.map((v) => (
+                            <option key={v.id} value={v.id}>{v.label}</option>
                           ))}
+                        </optgroup>
+                        <optgroup label="备用线路">
+                          <option value={CLOUD_VOICE_ID}>百度女声（微软线路不通时用）</option>
                         </optgroup>
                         {voiceList.length > 0 && (
                           <optgroup label="本机系统音色">
@@ -737,8 +741,8 @@ export default function Practice() {
                     {/* 空列表 + 已选云端时，把"引擎看到了什么"和"现在用的是谁"都摊开
                         （2026-09-15）：手机无 devtools，用户截图即可反馈，避免靠猜。 */}
                     <span style={{ fontSize: 10.5, opacity: .68, lineHeight: 1.32, maxWidth: 262 }}>
-                      {voiceSel === CLOUD_VOICE_ID
-                        ? `已选云端音色：不依赖本机语音库，任何设备都能出声。本机可见语音 ${voiceDiag().total} 条。`
+                      {isCloudVoice(voiceSel)
+                        ? `已选云端音色（${voiceSel === CLOUD_VOICE_ID ? '百度备用线路' : '微软神经音'}）：不依赖本机语音库，手机与电脑同一音色。本机可见语音 ${voiceDiag().total} 条。`
                         : voiceList.length > 0
                           ? `已读取 ${voiceList.length} 个中文音色，可任选（含粤语/台湾/方言）· ${voiceAdvice()}`
                           : (() => {

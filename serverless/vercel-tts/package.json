@@ -1,0 +1,9 @@
+{
+  "name": "qp-tts-proxy",
+  "version": "1.0.0",
+  "private": true,
+  "description": "quiz-platform 语音代理：微软 Edge 神经音（云健/晓晓/云希…）Node 运行时合成，供 Supabase 函数二跳调用",
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}

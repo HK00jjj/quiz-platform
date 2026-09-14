@@ -1,8 +1,57 @@
 # 交接文档 · 糖果题库（quiz-platform）
 
 > 写给下一个接手的会话。读完这一份就能独立干活，不需要翻历史对话。
-> 最后更新：2026-09-15 凌晨 · 云端音色上线（手机端「选不了其他语音」终极修法），
-> 线上提交 `3bf2503`，主包 index-D5X-h9jS.js / CSS index-B8mhYqCJ.css。
+> 最后更新：2026-09-15 上午 · **手机端已能听到与电脑端完全一致的云健**（微软神经音两跳代理），
+> 线上提交 `cd683ad`。
+
+## 2026-09-15 上午增量 · 微软神经音两跳代理（手机端 = 电脑端音色）
+
+**用户诉求**：「换现在电脑端一样的声音」——桌面默认是云健（`zh-CN-YunjianNeural`），
+要求手机端也用同一个音色。
+
+### 为什么必须两跳（三条路的实测结论，勿再重走）
+1. **浏览器直连 Edge 朗读 WS → 必败**。WebSocket 的 `Origin` 由浏览器写死、JS 无法伪造，
+   端点拒收 `https://hk00jjj.github.io`（真实浏览器 CDP 实测 ERROR）。
+2. **Supabase Edge Runtime（Deno 隔离）直连 → 亦败**。运行时不能自定义 WS 头，
+   升级被拒（`unspecific protocol error`）；但同环境下 **HTTPS 出网正常**
+   （`voices/list` 返回 170KB，证明不是 IP 封锁）。
+3. **微软翻译的 HTTPS TTS（`api-edge.cognitive.microsofttranslator.com/tts`、
+   `edge.microsoft.com/translate/auth`）已全线 404 下线**；Bing `tfettts` 返回空；全部弃用。
+4. ✅ **Node 运行时可以**（`ws` 包支持自定义头）——本机 Node 实测合成成功。
+   但 `*.vercel.app` 在国内不可达（本机 fetch 失败）→ 故：
+
+**最终链路**：手机 → `supabase.co/functions/v1/tts`（国内可达）→ Vercel Node 代理（服务端出网）→
+微软 → MP3 原路返回。本机（国内）实测 **云健 16992B / 晓晓 15408B / 云希 15984B / 粤语 17856B，
+全部真 MP3，0.8–1.6s**；线上真机 E2E **10/10**。
+
+### 部署物与参数（都在仓库里，可重建）
+- `serverless/vercel-tts/`（= `app/serverless/vercel-tts/`）：`api/tts.js`（Node 合成，`ws` 依赖）、
+  `package.json`、`vercel.json`（显式 `@vercel/node` + `/api/tts` 路由，**缺它会被当成静态文件 404**）
+  - Vercel 项目：`qp-tts-proxy`，稳定域名 `qp-tts-proxy.vercel.app`
+  - ⚠ **新项目默认开启 Vercel Authentication**，必须 `PATCH /v9/projects/<id> {"ssoProtection":null}`，
+    否则外部请求只拿到登录页 HTML（踩过）
+  - 访问密钥：Vercel 环境变量 `QP_TTS_KEY`（值同 Supabase 函数里的 `KEY` 常量）
+- `app/supabase/functions/tts/index.ts`：Supabase 转发函数（`verify_jwt:false`，便于 `<audio src>` 直连）
+  - 部署方式（无 CLI）：`POST https://api.supabase.com/v1/projects/<ref>/functions`
+    body `{slug,name,verify_jwt:false,entrypoint_path:'index.ts',body:'<源码>'}`；同名先 `DELETE`
+  - 诊断函数 `ttsdiag` 已清理；项目 ref `khtpnbzfjggezlmnnsgt`
+- 关键常量：`TRUSTED_CLIENT_TOKEN=6A5AA1D4EAFF4E9FB37E23D68491D6F4`、
+  **`Sec-MS-GEC-Version=1-143.0.3650.75`（版本号必须跟着 edge-tts 更新，130 会 403）**、
+  GEC = `sha256(UPPER)(((unix+11644473600) 取整到 300s 秒数) * 1e7 + TOKEN)`（用 BigInt 防精度损失）
+- 二进制帧要**按前 2 字节头长裁剪**再拼 MP3，否则音频头混入协议文本
+
+### 客户端（`app/src/lib/tts.js`）
+- `EDGE_VOICES`（9 个微软音色）+ `CLOUD_VOICES`（微软组 + 百度备用）；`TTS_PROXY` 指向 Supabase 端点
+- `cloudTtsUrl(text, rate, voice)` 双线路：`zh-*` → 代理；否则 → 百度 fanyi
+- **引擎决策 `engineFor(autoQuality, pref, cloudOK)`**：显式选择优先；自动档**只有系统语音本身是
+  神经音（natural）才用系统**（桌面 Edge 的云健即此类，省一跳），老式 SAPI/网络音/无语音一律走云端
+  → 手机与电脑听到同一音色
+- 播放仍是单例 `<audio>`（原生暂停/续播；`unlockCloudAudio()` 在三处手势里解锁）
+- 回归锁：⑪ 组 28 条（双线路 URL、语速映射、块长、引擎决策）→ tts 套件 **131 断言全绿**
+
+### 已知边界
+- Vercel → 微软 若被限流，客户端会静默跳块（不挂死）；百度线路作为备用可手动选
+- 云端音频有 24h `Cache-Control`，同句重复播报不再二次合成
 
 ## 2026-09-15 凌晨增量 · 云端音色：手机端选声的终极修法（架构级）
 

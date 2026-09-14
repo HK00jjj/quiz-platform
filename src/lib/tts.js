@@ -386,12 +386,19 @@ function waitVoice(maxMs = 1500) {
 /* 给 UI 用的选声说明：把"机械感"从模糊感受变成可核对的字面信息
    （哪个音色 / 属于哪一档），并给出改进建议。 */
 export function voiceNote() {
-  if (isCloudVoice(ttsVoicePref())) return '语音：云端·普通话女声（百度，不挑设备）'
-  if (!ttsSupported()) return cloudSupported() ? '语音：云端·普通话女声（本机不支持系统语音，已走云端）' : '当前浏览器不支持语音合成'
+  const pref = ttsVoicePref()
+  if (isCloudVoice(pref)) {
+    const v = CLOUD_VOICES.find((x) => x.name === pref)
+    return '语音：' + (v ? v.label : pref) + '（云端）'
+  }
+  if (!ttsSupported()) {
+    return cloudSupported() ? '语音：微软云健（本机不支持系统语音，已走云端）' : '当前浏览器不支持语音合成'
+  }
   const v = pickVoice(window.speechSynthesis.getVoices() || [])
-  if (!v) return cloudSupported() ? '本机无中文系统音 → 自动使用云端语音' : '语音列表尚未加载，首句可能用系统默认音'
+  if (!v) return cloudSupported() ? '本机无中文系统音 → 自动使用云端微软音色' : '语音列表尚未加载，首句可能用系统默认音'
   const q = voiceQualityOf(v)
   const tag = q === 'natural' ? '自然语音' : q === 'network' ? '网络语音' : q === 'sapi' ? '老式本地语音·机器感重' : '本地语音'
+  if (q !== 'natural' && cloudSupported()) return `语音：${v.name}（${tag}）→ 已自动改用云端微软音色`
   return `语音：${v.name}（${tag}）`
 }
 /* 给 UI 用的安全取样：拿不到就返回空数组（安卓 WebView 上 speechSynthesis 可能是空壳） */
@@ -441,16 +448,17 @@ export function warmUpVoices() {
 export function voiceGuideText(listLen) {
   if (!ttsSupported()) {
     return cloudSupported()
-      ? '本机不支持系统语音合成——直接在上方选「云端音色」即可播报，无需安装任何东西。'
+      ? '本机不支持系统语音合成——直接在上方选「微软·云健」（与电脑端同一音色）即可播报，无需安装任何东西。'
       : '本浏览器内核不支持语音合成：换 Chrome / Edge / Safari 可用'
   }
   if (listLen === 0) {
-    /* 2026-09-15 修订：本机音色为空时，第一推荐改成"用云端音色"（已实测可用、
-       不依赖设备）；系统层安装路径保留作为可选优化。删掉了对安卓基本无效的
-       "先大声朗读"引导（微软官方口径：安卓 Edge 网页接口走系统引擎，云端音不可强求）。 */
-    return '本机没有可用的中文系统语音（移动端常见）。**先在上方音色里选「云端·普通话女声」**即可正常播报；'
-      + '想让系统语音更丰富：① 安卓：设置 → 无障碍/语言与输入 → 文字转语音 → 安装中文语音数据；'
-      + '② iPhone：设置 → 辅助功能 → 朗读内容 → 声音 → 中文，先下载一个语音。'
+    /* 2026-09-15 修订（第三版）：现在有了云端微软神经音，本机有没有系统音都不影响出声，
+       所以首选建议改成"选云端云健"，系统层安装路径降为可选优化。 */
+    return '本机没有可用的中文系统语音（移动端常见）。**在音色里选「微软·云健」即可**——'
+      + '它与电脑端 Edge 是同一个音色，不依赖本机语音库；'
+      + '也可只留「自动」：系统没神经音时会自动走云端。'
+      + '想让本机系统语音更丰富：安卓 设置→文字转语音→安装中文语音数据；'
+      + 'iPhone 设置→辅助功能→朗读内容→声音→中文。'
   }
   return ''
 }
@@ -606,27 +614,27 @@ export async function speak(raw, { rate = ttsRate(), onDone } = {}) {
     if (!chunks.length) return false
     await sleep(CHUNK_GAP)
     if (my !== token) return false
-    return speakCloud(chunks, rate, onDone, my)
+    return speakCloud(chunks, rate, onDone, my, pref)
   }
   if (!ttsSupported()) {
-    /* 无 speechSynthesis 但可播音频（部分 WebView）→ 云端兜底 */
+    /* 无 speechSynthesis 但可播音频（部分 WebView）→ 云端兜底（云健） */
     const chunks = chunkSpeechText(raw, CLOUD_CHUNK_MAX)
     if (!chunks.length || !cloudSupported()) return false
-    return speakCloud(chunks, rate, onDone, my)
+    return speakCloud(chunks, rate, onDone, my, CLOUD_DEFAULT_VOICE)
   }
   const synth = window.speechSynthesis
   /* 先拿到语音再开口（见 waitVoice 注释）；等待期间若被静音/新播报取代，直接放弃 */
   const voice = await waitVoice()
   if (my !== token) return false
-  /* ② 「自动」档且设备没有任何中文系统音 → 云端兜底（否则手机上等于没声音）。
-     显式选过某个系统音色却拿不到（换设备/换浏览器）→ 也回落云端，保证出声。 */
-  if (!voice && cloudSupported()) {
+  /* ② 引擎决策：自动档只有在"系统本身就是神经音"时才用系统，其余走云端 →
+     手机与电脑听到同一音色（云健）。显式选过云端音色则上方已提前返回。 */
+  if (engineFor(voice ? voiceQualityOf(voice) : null, pref, cloudSupported()) === 'cloud') {
     stopCloud()
     const cchunks = chunkSpeechText(raw, CLOUD_CHUNK_MAX)
     if (!cchunks.length) return false
     await sleep(CHUNK_GAP)
     if (my !== token) return false
-    return speakCloud(cchunks, rate, onDone, my)
+    return speakCloud(cchunks, rate, onDone, my, CLOUD_DEFAULT_VOICE)
   }
   const chunks = chunkSpeechText(raw, chunkMaxFor(voice))
   if (!chunks.length) return false
@@ -658,12 +666,35 @@ export async function speak(raw, { rate = ttsRate(), onDone } = {}) {
    播放用 <audio>：原生 pause/resume（安卓 speechSynthesis 的 pause 等于 cancel，
    云端这条反而更稳），且媒体元素播放不受 CORS 约束——fetch 读字节会被拦，故只播不读。 */
 export const CLOUD_VOICE_ID = '__cloud_baidu__'
-export const CLOUD_VOICES = [
-  { name: CLOUD_VOICE_ID, label: '云端·普通话女声（不挑设备·推荐手机用）', accent: '', quality: 'cloud', cloud: true }
+/* ── 微软神经音（与电脑端 Edge 完全一致的音色）· 2026-09-15 新增 ──
+   用户要求"手机端换成电脑端一样的声音"（桌面默认云健）。三条路实测：
+   · 浏览器直连 Edge 朗读 WS → 必败（Origin 由浏览器写死，JS 无法伪造）
+   · Supabase Edge Runtime（Deno 隔离）直连 → 亦败（不能自定义 WS 头，升级被拒）
+   · **两跳代理可行**：Supabase 函数（国内可达）→ Vercel Node 代理（可自定义头，实测成功）→ 微软
+   故这里直接指向 Supabase 端点（详见 serverless/vercel-tts/ 与 supabase/functions/tts/）。 */
+export const TTS_PROXY = 'https://khtpnbzfjggezlmnnsgt.supabase.co/functions/v1/tts'
+export const EDGE_VOICES = [
+  { id: 'zh-CN-YunjianNeural', label: '云健（男声·与电脑端一致）' },
+  { id: 'zh-CN-XiaoxiaoNeural', label: '晓晓（女声·温暖）' },
+  { id: 'zh-CN-YunxiNeural', label: '云希（男声·解说）' },
+  { id: 'zh-CN-XiaoyiNeural', label: '晓伊（女声·活泼）' },
+  { id: 'zh-CN-YunyangNeural', label: '云扬（男声·新闻）' },
+  { id: 'zh-CN-liaoning-XiaobeiNeural', label: '小北（东北官话）' },
+  { id: 'zh-CN-shaanxi-XiaoniNeural', label: '小妮（陕西官话）' },
+  { id: 'zh-HK-HiuMaanNeural', label: '曉曼（粤语）' },
+  { id: 'zh-TW-HsiaoChenNeural', label: '曉臻（台湾）' }
 ]
-export const isCloudVoice = (name) => name === CLOUD_VOICE_ID
+/* 自动档回落到云端时用哪个：云健 = 电脑端默认音（用户指定），保证"手机与电脑一致" */
+export const CLOUD_DEFAULT_VOICE = 'zh-CN-YunjianNeural'
+export const CLOUD_VOICES = [
+  ...EDGE_VOICES.map((v) => ({ name: v.id, label: '微软·' + v.label, accent: '', quality: 'neural', cloud: true })),
+  { name: CLOUD_VOICE_ID, label: '云端·普通话女声（百度·备用线路）', accent: '', quality: 'cloud', cloud: true }
+]
+const CLOUD_IDS = new Set(CLOUD_VOICES.map((v) => v.name))
+export const isCloudVoice = (name) => !!name && CLOUD_IDS.has(name)
+export const isEdgeVoice = (name) => !!name && name.indexOf('zh-') === 0
 export const cloudSupported = () => typeof window !== 'undefined' && typeof window.Audio === 'function'
-/* 语速 → spd（只映射到实测可用的三档，避免请求到空音频） */
+/* 语速 → spd（百度线路只映射到实测可用的三档，避免请求到空音频） */
 export function cloudSpd(rate) {
   const r = clampRate(rate)
   if (r <= 0.85) return 3
@@ -672,9 +703,12 @@ export function cloudSpd(rate) {
 }
 /* 云端块长：URL 安全（实测 2000 字会 414），150 字/块 ≈ URL 1.5KB，留足余量 */
 export const CLOUD_CHUNK_MAX = 150
-export function cloudTtsUrl(text, rate = TTS_RATE) {
-  return 'https://fanyi.baidu.com/gettts?lan=zh&source=web&spd=' + cloudSpd(rate)
-    + '&text=' + encodeURIComponent(String(text ?? ''))
+export function cloudTtsUrl(text, rate = TTS_RATE, voice = CLOUD_DEFAULT_VOICE) {
+  const t = encodeURIComponent(String(text ?? ''))
+  if (isEdgeVoice(voice)) {
+    return `${TTS_PROXY}?voice=${encodeURIComponent(voice)}&rate=${clampRate(rate)}&text=${t}`
+  }
+  return 'https://fanyi.baidu.com/gettts?lan=zh&source=web&spd=' + cloudSpd(rate) + '&text=' + t
 }
 /* ── 云端播放器（单例 <audio>）──
    移动端要求"首次播放落在用户手势里"，故 unlockCloudAudio() 在手势内播一个静音
@@ -703,13 +737,16 @@ export function unlockCloudAudio() {
 export function stopCloud() { const a = cloudAudio; if (a) { try { a.pause(); a.src = '' } catch { /* ignore */ } } }
 export function pauseCloud() { const a = cloudAudio; if (!a) return false; try { a.pause(); return true } catch { return false } }
 export function resumeCloud() { const a = cloudAudio; if (!a) return false; try { const p = a.play(); if (p && p.catch) p.catch(() => {}); return true } catch { return false } }
-/* 云端逐块串行播放：单块失败跳过继续，绝不整段挂死 */
-export function speakCloud(chunks, rate, onDone, my) {
+/* 云端逐块串行播放：单块失败跳过继续，绝不整段挂死。
+   voice 决定线路：微软神经音走两跳代理，百度女声走 fanyi（备用）；
+   音色在整段开始时锁定一次（与系统语音链同样的"整段同一音色"原则）。 */
+export function speakCloud(chunks, rate, onDone, my, voice) {
   if (!cloudSupported() || !chunks || !chunks.length) return false
   const tok = my === undefined ? ++token : my
   const a = ensureCloudAudio()
   if (!a) return false
-  const sess = { mode: 'cloud', chunks, i: 0, paused: false, done: false, voiceName: CLOUD_VOICE_ID }
+  const useVoice = isCloudVoice(voice) ? voice : CLOUD_DEFAULT_VOICE
+  const sess = { mode: 'cloud', chunks, i: 0, paused: false, done: false, voiceName: useVoice }
   session = sess
   const step = () => {
     if (tok !== token || sess.paused) return
@@ -719,17 +756,21 @@ export function speakCloud(chunks, rate, onDone, my) {
       return
     }
     const text = chunks[sess.i++]
-    try { a.src = cloudTtsUrl(text, rate); const p = a.play(); if (p && p.catch) p.catch(() => {}) } catch { setTimeout(step, 150) }
+    try { a.src = cloudTtsUrl(text, rate, useVoice); const p = a.play(); if (p && p.catch) p.catch(() => {}) } catch { setTimeout(step, 150) }
   }
   a.onended = () => { if (tok === token) step() }
   a.onerror = () => { if (tok === token) step() }
   step()
   return true
 }
-/* 「自动」档的引擎决策（纯函数，可回归）：显式选了云端/系统就照办；
-   自动档下——设备有中文系统音用系统（离线、零延迟），没有才用云端（否则手机等于没声音）。 */
-export function engineFor(autoVoice, pref, cloudOK) {
+/* 「自动」档的引擎决策（纯函数，可回归）：
+   显式选了云端/系统就照办；
+   自动档下——只有当"系统语音本身就是神经音"时才用系统（桌面 Edge 的云健即此类，
+   与云端同音色、还省一跳），其余情况（老式 SAPI / Google 网络音 / 干脆没有语音）
+   一律走云端，保证**手机与电脑听到同一个音色**。 */
+export function engineFor(autoQuality, pref, cloudOK) {
   if (isCloudVoice(pref)) return 'cloud'
   if (pref) return 'sys'
-  return autoVoice ? 'sys' : (cloudOK ? 'cloud' : 'sys')
+  if (!cloudOK) return 'sys'
+  return autoQuality === 'natural' ? 'sys' : 'cloud'
 }

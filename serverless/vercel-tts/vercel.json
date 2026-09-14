@@ -1,0 +1,1 @@
+{"version": 2, "builds": [{"src": "api/tts.js", "use": "@vercel/node"}], "routes": [{"src": "/api/tts", "dest": "/api/tts.js"}]}
