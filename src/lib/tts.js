@@ -61,8 +61,12 @@ export function setTtsRate(v) {
 
 const LS_KEY = 'qp.tts.enabled'
 
+/* 能力探测（2026-09-13 晚收严）：不能只看 `'speechSynthesis' in window` ——
+   部分安卓 WebView/内置浏览器会挂一个**空壳属性**（存在但 speak 不是函数），
+   那样控件会渲染出来却点了没反应。要求属性存在且 speak 可调用。 */
 export function ttsSupported() {
-  return typeof window !== 'undefined' && 'speechSynthesis' in window
+  return typeof window !== 'undefined' && !!window.speechSynthesis
+    && typeof window.speechSynthesis.speak === 'function'
 }
 
 /* 播报开关（默认开）。**只负责记忆偏好，不再顺手停声**——
@@ -73,6 +77,23 @@ export function ttsEnabled() {
 }
 export function setTtsEnabled(on) {
   try { window.localStorage.setItem(LS_KEY, on ? '1' : '0') } catch { /* 隐私模式等：仅本次会话生效 */ }
+}
+/* 移动端手势解锁（2026-09-13 晚第六轮，配合"手机版为什么没有"排查）：
+   浏览器普遍要求**第一次 speak() 落在用户手势的调用栈里**，iOS Safari 尤其严格；
+   而我们的自动播报发生在"查看解析"点击后 520ms（等蜡封动画），已脱离手势 →
+   手机上会出现"点了没声音"。做法：在点击处理函数里同步播一个 0 音量空 utterance
+   解锁引擎，之后再排队真正的解析播报。幂等，多调无害。 */
+let unlocked = false
+export function unlockSpeech() {
+  if (!ttsSupported() || unlocked) return false
+  try {
+    const u = new SpeechSynthesisUtterance(' ')
+    u.volume = 0
+    u.rate = 2
+    window.speechSynthesis.speak(u)
+    unlocked = true
+    return true
+  } catch { return false }
 }
 
 /* 播报前清洗：emoji/装饰符直接删；箭头与换行读成停顿，

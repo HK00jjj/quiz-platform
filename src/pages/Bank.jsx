@@ -4,8 +4,9 @@ import { A } from '../assets'
 import { EmptyState } from '../components'
 import { TYPES, DIFFICULTIES, DIFF_CLS, domainLabel, lastResultMap } from '../lib/stats'
 /* 题库解析手动播报（2026-09-13）：浏览页不做自动播（一次翻多张会吵），
-   只在解析标题旁给 🔊 按钮，点谁读谁；收起卡片即停。 */
-import { speak, stopSpeak } from '../lib/tts.js'
+   只在解析标题旁给 🔊 按钮，点谁读谁；收起卡片即停。
+   不支持语音合成的浏览器不渲染按钮（避免"点了没反应"）。 */
+import { speak, stopSpeak, unlockSpeech, ttsSupported } from '../lib/tts.js'
 
 const PAGE_SIZE = 50
 
@@ -216,8 +217,10 @@ export default function Bank() {
                       <p className="tarot-ans">{q.answer}</p>
                       {q.explanation && (
                         <>
-                          <h6>解析 <button className="chip" style={{ fontSize: 10, marginLeft: 6 }}
-                            title="语音播报解析内容" onClick={() => speak(q.explanation)}>🔊 播报</button></h6>
+                          <h6>解析 {ttsSupported() && (
+                            <button className="chip" style={{ fontSize: 10, marginLeft: 6 }}
+                              title="语音播报解析内容" onClick={() => { unlockSpeech(); speak(q.explanation) }}>🔊 播报</button>
+                          )}</h6>
                           <p>{q.explanation}</p>
                         </>
                       )}

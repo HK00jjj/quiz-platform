@@ -13,7 +13,7 @@ import { imageFor, diagramDataUri, diagramTitle } from '../lib/diagrams'
    此前与 stats/ability/Learn 各写一遍 Fisher-Yates）。 */
 import { shuffledOrder } from '../lib/util.js'
 /* 解析语音播报（2026-09-13 增量）：启封自动朗读解析，🔊 一键可关，语速 1.25 */
-import { speak, stopSpeak, pauseSpeak, resumeSpeak, ttsSupported, ttsEnabled as ttsPrefEnabled, setTtsEnabled, voiceNote, ttsRate, setTtsRate, fmtRate, RATE_MIN, RATE_MAX, RATE_STEP } from '../lib/tts.js'
+import { speak, stopSpeak, pauseSpeak, resumeSpeak, unlockSpeech, ttsSupported, ttsEnabled as ttsPrefEnabled, setTtsEnabled, voiceNote, ttsRate, setTtsRate, fmtRate, RATE_MIN, RATE_MAX, RATE_STEP } from '../lib/tts.js'
 
 /* 题干渲染：填空题把 {空} 显示为下划线占位 */
 function Stem({ q }) {
@@ -338,6 +338,7 @@ export default function Practice() {
 
   function doCheck() {
     if (!canSubmit) return
+    unlockSpeech()                    // 手势内解锁音频（移动端首次 speak 必须落在手势栈里）
     breakSeal()
     submitObjective(inputText)
     const ok = lastGradeAfter(inputText)
@@ -592,6 +593,14 @@ export default function Practice() {
                   {ttsOn ? `🔊 ${fmtRate(rateNow)}×` : '⏸ 已暂停'}
                 </button>
               )}
+              {/* 浏览器不支持时**不再静默消失**（用户问"手机版为什么没有"的根因之一）：
+                  给一句可见解释，并指路可用浏览器。 */}
+              {!ttsOK && (
+                <span style={{ fontSize: 10.5, color: 'var(--muted)', letterSpacing: '.3px' }}
+                  title="当前浏览器内核不支持 Web Speech 语音合成（常见于部分安卓 WebView / 旧机型 / 内置浏览器）。换 Chrome、Edge 或 Safari 打开即可使用解析语音播报。">
+                  🔇 本浏览器不支持播报
+                </span>
+              )}
             </div>
             {ttsOK && ttsOpen && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 4px 8px' }}>
@@ -696,7 +705,7 @@ export default function Practice() {
             ) : (
               <>
                 <GiltBtn size="lg" block className="reveal-btn" disabled={text.trim() === ''}
-                  onClick={() => { breakSeal(); setShowAnswer(true) }}>
+                  onClick={() => { unlockSpeech(); breakSeal(); setShowAnswer(true) }}>
                   <IconScroll /> 展开参考答案
                 </GiltBtn>
                 <p className="kbd-hint">Ctrl+Enter 展开答案</p>
