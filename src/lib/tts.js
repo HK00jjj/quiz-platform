@@ -96,12 +96,61 @@ export function unlockSpeech() {
   } catch { return false }
 }
 
-/* 播报前清洗：emoji/装饰符直接删；箭头与换行读成停顿，
-   避免引擎把「→」念成「右箭头」。/markdown 记号一并剥掉。 */
+/* 播报读法归一化（2026-09-14 晚新增，修"播报有错别音"）——**只作用于送引擎的副本，
+   屏幕上的原文一个字不改**（题干/选项/解析的显示与判分完全不受影响）。
+   动机（全库送读文本取证，`tts-text-audit.mjs`）：
+   · 单位/数学符号 4811 处（Ω ± ≈ × 或 ℃）→ 中文引擎读法不统一，"3750Ω" 有的念"欧"、
+     有的念字母 O；
+   · 希腊字母 1686 处（τ φ η β）→ 中文引擎对希腊字母基本靠猜；
+   · 拉丁缩写 14027 处（PLC/CPU/LVRT）→ 逐字母与否因引擎而异。
+   处理原则：**能无歧义读成中文的一律读中文**；有歧义的（缩写）不强改，避免改坏语义。 */
+const GREEK_READ = {
+  α: '阿尔法', β: '贝塔', γ: '伽马', δ: '德尔塔', Δ: '德尔塔', ε: '艾普西龙',
+  η: '伊塔', θ: '西塔', λ: '兰姆达', μ: '缪', ν: '纽', π: '派', ρ: '柔',
+  σ: '西格玛', Σ: '西格玛', τ: '套', φ: '斐', ω: '欧米伽', Ω: '欧姆', Ψ: '普赛', ψ: '普赛'
+}
+export function normalizeSpeech(raw) {
+  let s = String(raw ?? '')
+  /* ① 复合单位先处理（顺序敏感：kVA/kvar 必须在 kV 之前，否则 "kV·A" 会被拆成"千伏·A"） */
+  s = s.replace(/kV\s?[·・]?\s?A\b/g, '千伏安').replace(/kvar\b/gi, '千乏')   // 注意不要用 \bkvar（数字后无词边界）
+  s = s.replace(/([kK])\s?Ω/g, '千欧').replace(/([mM])\s?Ω/g, '兆欧')
+  s = s.replace(/μ\s?F/g, '微法').replace(/μ\s?A/g, '微安').replace(/μ\s?s/g, '微秒')
+    .replace(/μ\s?H/g, '微亨').replace(/μ\s?m/g, '微米')
+  s = s.replace(/Ω/g, '欧姆')
+  s = s.replace(/(℃|°\s?C)/g, '摄氏度').replace(/℉/g, '华氏度')
+  s = s.replace(/([kK])\s?V\b/g, '千伏').replace(/kV/g, '千伏').replace(/[mM]\s?A\b/g, '毫安')
+  s = s.replace(/kW|KW/g, '千瓦').replace(/kWh/g, '千瓦时').replace(/Hz/g, '赫兹')
+    .replace(/kHz/g, '千赫兹').replace(/MHz/g, '兆赫兹')
+  /* ② 数学/关系符号 */
+  s = s.replace(/≥/g, '大于等于').replace(/≤/g, '小于等于').replace(/≠/g, '不等于')
+    .replace(/≈/g, '约等于').replace(/±/g, '正负').replace(/×/g, '乘').replace(/÷/g, '除以')
+    .replace(/√/g, '根号').replace(/∞/g, '无穷大').replace(/∅/g, '空集')
+  /* ②-b 真实题库原文里高频出现的"数学排版符号"（seq 181/347 实证）：
+     U+2212 减号、上标 ²/³、间隔号 ·、等号 =、变量下标 U_F。
+     不处理的话引擎会念成"下划线 F"、"零的二次方"或直接吞掉。 */
+  s = s.replace(/\u2212/g, '减').replace(/[–—]/g, '，')
+  s = s.replace(/([0-9A-Za-z)）])²/g, '$1平方').replace(/([0-9A-Za-z)）])³/g, '$1立方')
+  s = s.replace(/([A-Za-z])_\{?([A-Za-z0-9]+)\}?/g, '$1 $2')          // U_F → U F（不念"下划线"）
+  s = s.replace(/([0-9A-Za-z)）])\s*=\s*(?=[0-9A-Za-z(（])/g, '$1 等于 ')   // 公式里的 = → 等于
+  /* ③ 希腊字母（工程口语常用译名） */
+  s = s.replace(/[Α-Ωα-ω]/g, (c) => GREEK_READ[c] ?? c)
+  /* ④ 斜杠组合：AC/DC、I/O 之类中文引擎会念成"斜杠"或吞掉，统一读成"或/斜杠"里更稳的"斜杠" */
+  s = s.replace(/([A-Za-z0-9])\s*\/\s*([A-Za-z0-9])/g, '$1 或 $2')
+  return s
+}
+
+/* 播报前清洗（2026-09-14 晚扩写）：
+   ① 剥掉**内部标注**：`[错因:…]`（规则 v6.9 的可选标签，全库 1475 处）绝不该被念出来；
+   ② 段落标签 `【概念】`（全库 9318 处）转成"概念，"——保留信息、去掉会被念成"六角括号"的符号；
+   ③ `{}` 占位残留剥成其内容（空占位直接删），避免念"大括号"；
+   ④ emoji/装饰符、markdown 记号、箭头、换行按原规则处理。 */
 export function cleanSpeechText(raw) {
   const s0 = String(raw ?? '').trim()
   if (!s0) return ''                               // 纯空白先归空，防止被换行转换洗成一个孤立「，」
-  return s0
+  return normalizeSpeech(s0)
+    .replace(/\s*\[[^\]]*[:：][^\]]*\]/g, '')      // [错因:概念缺失] 等内部标注
+    .replace(/【([^】]{1,8})】/g, '$1，')           // 【概念】→ 概念，
+    .replace(/\{([^{}]*)\}/g, '$1')                // 占位符只留内容（空占位＝删）
     .replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{FE00}-\u{FE0F}]/gu, '')
     .replace(/[*_`#>|]/g, '')
     .replace(/→/g, '，')
@@ -110,9 +159,34 @@ export function cleanSpeechText(raw) {
     .trim()
 }
 
+/* 切块边界保护（2026-09-14 晚新增）：把候选断点往后挪，避免把"词"切断。
+   全库实测被抓到的硬 bug（`tts-text-audit.mjs`）：
+   · 拉丁词被切两半 13 处：`…与LOPA（La` | `yer of Prote…`（Layer of Protection）；
+   · 数字被切碎 27 处：`…= 375` | `0Ω，即3.75kΩ`（3750Ω 被念成"三七五"+"零欧姆"）；
+   · 括号跨块 6 处：`…0.9` | `)≥79.8A`。
+   规则：断点处若"右侧是拉丁字母/数字，或左侧是拉丁字母"，或**括号不平衡**，则把断点前移到
+   该词/数字的起点；找不到安全位置就继续往后找下一个标点（最多多看 12 字，仍不行则按原逻辑硬切）。 */
+function safeCutIndex(text, cut, max) {
+  const isWordChar = (c) => /[A-Za-z0-9.]/.test(c || '')
+  const unbalanced = (s) => (s.split('（').length - s.split('）').length) !== 0
+    || (s.split('(').length - s.split(')').length) !== 0
+  /* 断点还必须满足：左边不留悬挂算子/左括号，右边不出现孤立的右括号 */
+  const okCut = (k) => {
+    const left = text[k - 1], right = text[k]
+    if (isWordChar(left) && isWordChar(right)) return false
+    if (unbalanced(text.slice(0, k))) return false
+    if (/[=（(+\-×÷·]$/.test(text.slice(0, k))) return false
+    if (/^[)）]/.test(text.slice(k))) return false
+    return true
+  }
+  for (let k = cut; k > 0 && k > cut - 24; k--) if (okCut(k)) return k
+  for (let k = cut + 1; k < Math.min(text.length, cut + 24); k++) if (okCut(k)) return k
+  return Math.min(cut, max)
+}
+
 /* 按句读切块（≤max 字/块）。先在强句读（。！？；!?;）断句，短句就近合并进同块；
    单句超长再在次级断点（，、：）回退切，实在没有断点才硬切。
-   返回的块拼起来 = 清洗后的原文（无空格文本下严格成立）。 */
+   返回的块拼起来 = 清洗后的原文（无空格文本下严格成立；边界保护只改断点位置不改内容）。 */
 export function chunkSpeechText(raw, max = 50) {
   const text = cleanSpeechText(raw)
   if (!text) return []
@@ -127,6 +201,8 @@ export function chunkSpeechText(raw, max = 50) {
       let cut = Math.max(head.lastIndexOf('，'), head.lastIndexOf('、'),
         head.lastIndexOf('：'), head.lastIndexOf(','))
       if (cut < Math.floor(max / 3)) cut = max - 1   // 找不到像样断点 → 硬切
+      cut = safeCutIndex(sent, cut + 1, max) - 1     // 边界保护：避免切断词/数字/括号
+      if (cut < 1) cut = Math.min(max - 1, sent.length - 1)
       flush()
       chunks.push(sent.slice(0, cut + 1).trim())
       sent = sent.slice(cut + 1)
@@ -139,16 +215,19 @@ export function chunkSpeechText(raw, max = 50) {
   return chunks
 }
 
-/* 选声优先级（依据见文件头注释②，2026-09-13 晚真机对拍后修正）：
-   ① 晓晓 Natural（MOS≈4.6 全能） → ② 云希 Natural（≈4.5 解说） →
-   ③ 其他 Online/Neural 神经音 → ④ Google 网络音 →
-   ⑤ 微软本地 SAPI（Huihui/Yaoyao/Kangkang，电子感强） → ⑥ 任意普通话 → ⑦ null
+/* 选声优先级（2026-09-15 用户指定：默认改用**云健**）：
+   ① 云健 Natural（用户 2026-09-15 钦点为默认） → ② 晓晓 Natural →
+   ③ 云希 Natural → ④ 其他 Online/Neural 神经音 → ⑤ Google 网络音 →
+   ⑥ 微软本地 SAPI（Huihui/Yaoyao/Kangkang，电子感强） → ⑦ 任意普通话 → ⑧ null
 
    为什么 Google 排在本地 SAPI 之前：AI 语音设计指南明确「未指定模型时浏览器会降级调用
    系统最基础的离线语音(如 Windows 旧版 SAPI5)，产生强烈电子机器感；Edge 的 Online 神经音
    与 Chrome 的 Google 语音音质最接近真人，应优先指名」；另有 TTS 工具文档把"Windows 上
    声音机械"直接归因于老 SAPI 并建议改用 Edge。修正前实测在 Chrome 里选中了 Huihui（机械），
    而当时 Google 普通话可选 —— 顺序错了。
+
+   ⚠ 用户若在声音面板里**显式选过音色**（`qp.tts.voice`），一律优先尊重其选择，
+   本优先级只在"自动"档生效。
 
    语种收口：只收普通话（zh-CN / zh-Hans），**排除粤语 zh-HK、台湾 zh-TW、方言
    zh-CN-liaoning / zh-CN-shaanxi 等**——/^zh/ 会把它们一起捞进来，念出来是另一种腔调。
@@ -239,7 +318,8 @@ export function pickVoice(voices) {
     const hit = all.find((v) => v.name === want)
     if (hit) return hit
   }
-  return pool.find((v) => /xiaoxiao|晓晓/i.test(v.name) && isNatural(v))
+  return pool.find((v) => /yunjian|云健/i.test(v.name) && isNatural(v))   // ① 默认：云健（用户 2026-09-15 指定）
+    || pool.find((v) => /xiaoxiao|晓晓/i.test(v.name) && isNatural(v))
     || pool.find((v) => /yunxi|云希/i.test(v.name) && isNatural(v))
     || pool.find((v) => isNatural(v) && !/multilingual/i.test(v.name))
     || pool.find((v) => /google/i.test(v.name))

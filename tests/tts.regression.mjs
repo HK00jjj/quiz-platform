@@ -5,7 +5,7 @@
    ② cleanSpeechText：emoji 删除、→ 与换行转停顿、markdown 记号剥离
    ③ pickVoice：选声优先级（晓晓Natural > 云希Natural > Natural > 常见微软本地音 > 任意zh） */
 import assert from 'node:assert/strict'
-import { chunkSpeechText, cleanSpeechText, pickVoice, chunkMaxFor, TTS_RATE, RATE_MIN, RATE_MAX, RATE_STEP, clampRate, fmtRate, ttsRate, sliceForResume, listVoices, voiceQualityOf, voiceAccent, voiceLabel, ttsVoicePref, resolveVoiceByName } from '../src/lib/tts.js'
+import { chunkSpeechText, cleanSpeechText, normalizeSpeech, pickVoice, chunkMaxFor, TTS_RATE, RATE_MIN, RATE_MAX, RATE_STEP, clampRate, fmtRate, ttsRate, sliceForResume, listVoices, voiceQualityOf, voiceAccent, voiceLabel, ttsVoicePref, resolveVoiceByName } from '../src/lib/tts.js'
 
 let n = 0
 const ok = (cond, msg) => { n++; assert.ok(cond, msg) }
@@ -127,5 +127,47 @@ const VS = [V('Microsoft Huihui'), V(YUNXI), V(XIAOXIAO)]
 ok(resolveVoiceByName(VS, YUNXI)?.name.includes('云希') === true, '⑧-1 按名字取回同一音色')
 ok(resolveVoiceByName(VS, '不存在的音色') === null, '⑧-2 名字失效返回 null（回退当前最优）')
 ok(resolveVoiceByName([], null) === null, '⑧-3 无名字/空表安全返回 null')
+/* ⑧-b 默认音色＝云健（用户 2026-09-15 指定）；有显式选择时仍以用户选择优先 */
+const YUNJIAN = V('Microsoft 云健 Online (Natural) - Chinese (Mandarin, Simplified)', 'zh-CN', false)
+ok(pickVoice([V(XIAOXIAO), YUNXI, YUNJIAN])?.name === YUNJIAN.name, '⑧-4 自动档首选云健')
+ok(pickVoice([V(XIAOXIAO), YUNXI])?.name.includes('晓晓') === true, '⑧-5 无云健时回落晓晓（顺序未坏）')
+
+/* ── ⑨ 播报读法归一化（2026-09-14 晚：用户报"播报有错别音"，全库取证后修）──
+   原则：只改"送引擎的副本"，屏幕原文不动。数据：单位/数学符号 4811 处、希腊字母 1686 处。 */
+ok(normalizeSpeech('3750Ω') === '3750欧姆', '⑨-1 Ω → 欧姆')
+ok(normalizeSpeech('3.75kΩ') === '3.75千欧' && normalizeSpeech('1.5MΩ') === '1.5兆欧', '⑨-2 kΩ/MΩ 复合单位优先于 Ω')
+ok(normalizeSpeech('0.22μF') === '0.22微法' && normalizeSpeech('200μA') === '200微安', '⑨-3 μF/μA → 微法/微安')
+ok(normalizeSpeech('25℃') === '25摄氏度' && normalizeSpeech('25°C') === '25摄氏度', '⑨-4 摄氏度两种写法')
+ok(normalizeSpeech('±5%') === '正负5%' && normalizeSpeech('≥1.5') === '大于等于1.5' && normalizeSpeech('≈0.8') === '约等于0.8', '⑨-5 ± / ≥ / ≈')
+ok(normalizeSpeech('3×4') === '3乘4', '⑨-6 × → 乘')
+ok(normalizeSpeech('τ=RC') === '套=RC' && normalizeSpeech('φ角') === '斐角', '⑨-7 希腊字母按工程口语译名读')
+ok(normalizeSpeech('AC/DC') === 'AC 或 DC' && normalizeSpeech('I/O') === 'I 或 O', '⑨-8 斜杠组合读成"或"（引擎念"斜杠"或直接吞掉）')
+/* ⑩ 内部标注不得入读（全库 1475 处 [错因:…] + 9318 处【】标签） */
+ok(!/\[错因/.test(cleanSpeechText('【误诊】A「短路」错。[错因:概念缺失]')), '⑩-1 [错因:…] 内部标签被剥掉，不会念出来')
+ok(cleanSpeechText('【概念】互感器是…').startsWith('概念，'), '⑩-2 【概念】→ "概念，"（去符号留停顿）')
+ok(cleanSpeechText('电流互感器二次侧严禁{开路}。') === '电流互感器二次侧严禁开路。', '⑩-3 {} 占位只留内容，不会念"大括号"')
+/* ⑪ 切块边界保护（用题库真实原文 seq 181 / 1588 / 347 的片段，见 tts-text-audit.mjs 抓的崩点） */
+const REAL_181 = 'R =（24 − 1.2 − 0.3）/ 0.006 = 22.5 / 0.006 = 3750Ω，即3.75kΩ；功耗 P = I²R = 0.006² × 3750 = 0.135W。'
+const REAL_1588 = '与LOPA（Layer of Protection Analysis）方法是上下游工具，不能颠倒分析时序。'
+const REAL_347 = '额定线电流I=P/(√3·U·cosφ·η)=15000/(1.732×380×0.85×0.9)≥29.8A，与C项写法等价。'
+const boundaryOK = (chunks) => chunks.every((c, i) => {
+  const n = chunks[i + 1]
+  if (!n) return true
+  if (/[A-Za-z0-9.]$/.test(c) && /^[A-Za-z0-9]/.test(n)) return false          // 词/数字被切断
+  if (/[=（(+\-×÷·]$/.test(c)) return false                                    // 末尾悬挂算子或左括号
+  if (/^[)）]/.test(n)) return false                                           // 开头孤立右括号
+  if ((c.split('（').length - c.split('）').length) !== 0) return false          // 块内括号不配平
+  return true
+})
+ok(boundaryOK(chunkSpeechText(REAL_181, 12)), '⑪-1 真实题 seq181：数字/单位不被切碎（3750Ω 不可切成 "375"+"0Ω"）')
+ok(boundaryOK(chunkSpeechText(REAL_1588, 24)), '⑪-2 真实题 seq1588：拉丁词不被切两半（Layer of Protection 保持完整）')
+ok(boundaryOK(chunkSpeechText(REAL_347, 18)), '⑪-3 真实题 seq347：括号不跨块、公式不悬挂算子')
+ok(chunkSpeechText(REAL_1588, 24).join('') === cleanSpeechText(REAL_1588), '⑪-4 边界保护只移断点、不改内容（拼接恒等）')
+/* ⑫ 数学排版符号（真实原文高频：U+2212 减号、上标、下标、等号、间隔号） */
+ok(/减/.test(normalizeSpeech('24 − 1.2')) && !/−/.test(normalizeSpeech('24 − 1.2')), '⑫-1 U+2212 减号 → 减（否则引擎可能吞掉）')
+ok(normalizeSpeech('I²R') === 'I平方R' && normalizeSpeech('0.006²') === '0.006平方', '⑫-2 上标 ²/³ → 平方/立方（不念"二次方符号"）')
+ok(normalizeSpeech('U_F') === 'U F' && normalizeSpeech('U_CE') === 'U CE', '⑫-3 下标写法不再念"下划线"')
+ok(/等于/.test(normalizeSpeech('0.006 = 22.5')) , '⑫-4 公式里的 = 读成"等于"')
+ok(normalizeSpeech('29.6kV·A') === '29.6千伏安' && normalizeSpeech('10.3kvar') === '10.3千乏', '⑫-5 视在功率/无功单位读法')
 
 console.log(`\ntts.regression：${n} 断言全绿`)

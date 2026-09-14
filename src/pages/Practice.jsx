@@ -684,7 +684,7 @@ export default function Practice() {
                       <select className="chip" style={{ fontSize: 11, maxWidth: 230 }}
                         aria-label="播报音色" value={voiceSel || ''}
                         onChange={(e) => applyVoice(e.target.value)}>
-                        <option value="">自动（挑本机最好的普通话）</option>
+                        <option value="">自动（默认云健）</option>
                         {voiceList.map((v) => (
                           <option key={v.name + v.lang} value={v.name}>{v.label}</option>
                         ))}
