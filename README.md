@@ -1,7 +1,54 @@
 # 交接文档 · 糖果题库（quiz-platform）
 
 > 写给下一个接手的会话。读完这一份就能独立干活，不需要翻历史对话。
-> 最后更新：2026-09-13 晚（第十三批），bundle index-eUTPFYqo.js（③续考进度云化）+ src 历史 .env blob 已清除（①安全收口）。
+> 最后更新：2026-09-15 凌晨 · 云端音色上线（手机端「选不了其他语音」终极修法），
+> 线上提交 `3bf2503`，主包 index-D5X-h9jS.js / CSS index-B8mhYqCJ.css。
+
+## 2026-09-15 凌晨增量 · 云端音色：手机端选声的终极修法（架构级）
+
+**用户症状**：安卓 Edge 上「声音」面板的音色下拉只有「自动」，做过多轮「大声朗读」+ ↻ 仍为空。
+即"手机端选不了其他语音"。
+
+**排查与事实（全部实测有据，勿再重走）**：
+1. **微软官方口径**（Q&A 5580838）：安卓 Edge 的 `speechSynthesis` 默认调**系统 TTS 引擎**；
+   Edge 云端神经音需手动用一次「大声朗读」初始化且刷新即失效；**无 JS API 可强制初始化**。
+2. **设备侧不可修**：手机没装中文语音数据时 `getVoices()` 恒空 → 任何过滤/刷新都无济于事。
+3. **Edge Read Aloud 的 WS 端点：浏览器里必败**——WebSocket 的 `Origin` 由浏览器写死、
+   JS 无法伪造，端点拒收本站 Origin（Node 侧 403，真实浏览器 CDP 实测 ERROR）。**已否定，勿再试**。
+4. `tts.baidu.com/text2audio` 已加白名单 Referer（无则 `Not verified user. err_no=502`）。弃用。
+5. 有道 dictvoice / StreamElements / 搜狗 / 腾讯 / 讯飞公开端点：500 / 401 / 返回 HTML。弃用。
+6. **可用通路：`https://fanyi.baidu.com/gettts?lan=zh&source=web&spd=N&text=...`**
+   - 不带 Referer 即返回 `audio/mpeg`；带本站 Referer 会被拒（`<audio>` 报 MEDIA_ERR_SRC_NOT_SUPPORTED）。
+   - 因此 **index.html 静态声明 `<meta name="referrer" content="no-referrer">`** 是该通路的前置条件
+     （全站 no-referrer，对本应用无副作用：Supabase/静态资源均不依赖 Referer）。
+   - `spd` 实测只有 **3 / 5 / 7** 返回音频（0/9/12 返回空），故语速只映射到这三档。
+   - 长文本 414：块长取 150 字（CLOUD_CHUNK_MAX）。
+
+**实现（`src/lib/tts.js` 云端段 + `src/pages/Practice.jsx`）**：
+- 新增 `CLOUD_VOICE_ID/CLOUD_VOICES/cloudTtsUrl/cloudSpd/cloudSupported/isCloudVoice/engineFor`；
+  播放器为单例 `<audio>`（`unlockCloudAudio` 在手势内播静音短片解锁；**原生 pause/resume**，
+  比安卓 speechSynthesis 的 pause=cancel 更可靠；媒体元素播放不受 CORS 限制，故只播不读字节）。
+- `speak()` 路由：显式选云端 → 云端；**自动档且系统无中文音 → 云端兜底**（否则手机上等于没声）。
+- 音色下拉分两组：**云端音色（任意设备可用）** + 本机系统音色；空列表时摊开引擎读数供截图。
+- 三处手势（重读/播报开关/查看解析）都补 `unlockCloudAudio()`——移动端首次播放必须落在手势栈内。
+- 回归锁：`tests/tts.regression.mjs` 新增 ⑪ 组 20 条（语速映射/URL 编码/块长/引擎决策），
+  全套件 **123 断言全绿**；run-all 14 套件 ALL GREEN。
+
+**上线与验证（六步链全过）**：build → purge → deploy `2719fe3`（云端接入）→
+deploy `3bf2503`（三处手势解锁）→ verify-deploy IDENTICAL（98 文件 0 缺 0 错 0 多）→
+push-src OK → verify-live ALL OK（98/98 200，三哈希 MATCH）。
+**真机 E2E（线上站点、真实浏览器 CDP）12/12**：选「云端·普通话女声」→ 浏览器实发
+`fanyi.baidu.com/gettts?...spd=7` → **200 audio/mpeg** → console 零 error。
+
+**已知边界（诚实记录）**：云端目前只有**百度一个普通话女声**（多音源探测里唯一可用的一家）。
+手机端"多种音色任选"仍受限于此；若将来要上晓晓/云希等神经音，唯一可行路径是
+**自建代理**（Supabase Edge Function 之类服务端转发 Edge Read Aloud，绕开浏览器 Origin 限制），
+而不是纯前端方案。
+
+**测试手法坑（已验证，避免误判）**：用 CDP 合成事件操作 React 受控 `<select>` 时，
+① 必须用 `HTMLSelectElement.prototype` 的 value setter（否则 React 的 `_valueTracker` 吞掉 change）；
+② 按 `textContent` 匹配选项会误命中第 0 项（「自动（有系统音用系统，**没有就用云端**）」文案里也含"云端"），
+**必须按 `value` 精确匹配**（`__cloud_baidu__`）。
 
 ## 2026-09-13 晚增量（第十三批）· 续考进度云化（③）+ src 历史 .env 清除（①）
 
