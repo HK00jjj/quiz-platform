@@ -337,6 +337,19 @@ export default function Practice() {
     }
   }
 
+  /* 重读（2026-09-14 用户要求"在播放开关旁边加一个重读"）：
+     从本题解析的开头重读一遍。若当前是静音态，先自动打开播报再读
+     ——"重读"这个动作本身就表达了"我要听"，静音下什么都不做会像按钮坏了。 */
+  function replayTts() {
+    if (!q) return
+    const revealed = seal === 'broken' && (phase === 'feedback' || showAnswer)
+    if (!revealed) return
+    if (!ttsOn) { setTtsOn(true); setTtsEnabled(true) }
+    spokenKeyRef.current = index + '|' + q.id
+    clearTimeout(rateRetry.current)
+    speak(spokenOf(q, lastGrade, shuffleRef.current.order))
+  }
+
   /* 换音色：落盘 → 若本题正在播报，防抖 300ms 后立刻用新音色重读（便于直接对比听感） */
   function applyVoice(name) {
     setTtsVoice(name || null)
@@ -633,6 +646,11 @@ export default function Practice() {
                     title="关闭＝暂停在原处；再点＝接着读（不会从头重读）"
                     onClick={toggleTts}>
                     {ttsOn ? '🔊 播报开' : '▶ 继续播报'}
+                  </button>
+                  <button className="chip" style={{ fontSize: 11 }}
+                    title="从开头重读本题解析（静音时点它会自动打开播报）"
+                    onClick={replayTts}>
+                    🔁 重读
                   </button>
                   <input type="range" min={RATE_MIN} max={RATE_MAX} step={RATE_STEP} value={rateNow}
                     aria-label="播报语速" style={{ flex: 1, accentColor: 'var(--teal, #3fbfa8)' }}
