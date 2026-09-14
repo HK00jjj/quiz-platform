@@ -338,6 +338,7 @@ export default function Practice() {
     setTtsOn(next)
     setTtsEnabled(next)
     if (!next) { pauseSpeak(); return }
+    unlockCloudAudio()                    // 恢复播报也在手势内：顺手解锁云端 <audio>
     if (resumeSpeak()) return
     const revealed = seal === 'broken' && (phase === 'feedback' || showAnswer)
     const key = index + '|' + q?.id
@@ -355,6 +356,7 @@ export default function Practice() {
     const revealed = seal === 'broken' && (phase === 'feedback' || showAnswer)
     if (!revealed) return
     if (!ttsOn) { setTtsOn(true); setTtsEnabled(true) }
+    unlockCloudAudio()                    // 重读按钮也是手势：解锁云端 <audio>，避免首次被浏览器拦
     spokenKeyRef.current = index + '|' + q.id
     clearTimeout(rateRetry.current)
     speak(spokenOf(q, lastGrade, shuffleRef.current.order))
@@ -840,7 +842,7 @@ export default function Practice() {
             ) : (
               <>
                 <GiltBtn size="lg" block className="reveal-btn" disabled={text.trim() === ''}
-                  onClick={() => { unlockSpeech(); breakSeal(); setShowAnswer(true) }}>
+                  onClick={() => { unlockSpeech(); unlockCloudAudio(); breakSeal(); setShowAnswer(true) }}>
                   <IconScroll /> 展开参考答案
                 </GiltBtn>
                 <p className="kbd-hint">Ctrl+Enter 展开答案</p>
