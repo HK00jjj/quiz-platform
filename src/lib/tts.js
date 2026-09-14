@@ -235,6 +235,30 @@ export function chunkSpeechText(raw, max = 50) {
    只匹配 xiaoxiao/yunxi 这类拉丁名会全部落空，故拉丁名与中文名一起匹配。 */
 const ZH_MANDARIN = /^zh[-_]?(CN|Hans)/i
 const ZH_VARIANT = /[-_](HK|TW|MO)|[-_](liaoning|shaanxi|sichuan|henan|shanxi)(\b|$)/i
+/* ═══ 2026-09-15 手机端「选不了其他语音」修复 ═══
+   症状（用户真机）：安卓 Edge 上音色下拉只有「自动」，做过多轮「大声朗读」+ ↻ 依然为空。
+
+   事实边界（Microsoft Q&A 5580838 官方答复）：
+   · 安卓 Edge 的 speechSynthesis **默认走安卓系统 TTS 引擎**，不是 Edge 云端的神经音；
+   · Edge 云端音需用户手动用一次「大声朗读」初始化，**刷新页面即失效**；
+   · **没有 JS API 可强制初始化**（浏览器防后台偷跑流量的设计决策）——所以"手机上凭空出现晓晓"
+     在技术上不可能，能修的是"别把手机上真实存在的音色过滤掉"。
+
+   代码侧真凶：语种标签只认 `^zh`。安卓系统 TTS 引擎报告的标签**不保证是 zh 开头**——
+   实际存在 `cmn-Hans-CN`（普通话的另一种 BCP-47 写法）、`zh_CN`、甚至空字符串。
+   一旦命中这种写法：listVoices 过滤后为空 → 下拉只剩「自动」；pickVoice 返回 null →
+   utterance 无 voice、按 lang 兜底 → 听感回落系统默认（用户感知的"机械音"同源）。
+   修法：标签优先（zh/cmn/yue），标签缺失或异常时按音色名兜底（中文/普通话/Chinese 系命名）。 */
+const ZH_TAG = /^(zh|cmn|yue)/i
+const ZH_NAME = /普通话|中文|國語|国语|粤语|粵語|Chinese|Mandarin|Cantonese/i
+export const zhLike = (v) => {
+  if (!v) return false
+  if (ZH_TAG.test(String(v.lang || ''))) return true
+  return ZH_NAME.test(String(v.name || ''))
+}
+/* 腔调/方言（内容侧判定，供"是否普通话"分流用；与 voiceAccent 的展示标签互补） */
+const isVariantVoice = (v) => ZH_VARIANT.test(String((v && v.lang) || ''))
+  || /粤语|粵語|台湾|台灣|Cantonese|Taiwanese|northeastern|shaanxi|zhongyuan/i.test(String((v && v.name) || ''))
 const isNatural = (v) => /natural|neural/i.test(v.name)
 /* 音色质量分层（UI 提示与块长策略都用它）：
    natural=Edge 云端神经音；network=浏览器自带网络音（Chrome 的 Google 系列）；
@@ -258,7 +282,7 @@ export function voiceAccent(v) {
   if (/zh[-_]tw/.test(lang) || /taiwanese|台灣|台湾/i.test(name)) return '台湾'
   if (/-liaoning/.test(lang) || /northeastern/i.test(name)) return '东北'
   if (/-shaanxi/.test(lang) || /shaanxi|zhongyuan/i.test(name)) return '陕西'
-  if (/zh[-_]?(cn|hans)/i.test(lang)) return ''
+  if (/^(cmn|zh[-_]?(cn|hans))/i.test(lang)) return ''   // 普通话（含 cmn-* 写法）
   return '其它'
 }
 /* 下拉里显示的名字：去掉厂商与冗长的 " - Chinese (...)" 尾巴，补上腔调/质量标签 */
@@ -283,7 +307,7 @@ export function voiceLabel(v) {
 export function listVoices(voices) {
   const rankQ = { natural: 0, network: 1, other: 2, sapi: 3 }
   return (voices || [])
-    .filter((v) => /^zh/i.test(v.lang))
+    .filter(zhLike)                                  // 2026-09-15：zh* 之外并收 cmn-* / 名字兜底
     .map((v) => {
       const accent = voiceAccent(v)
       const quality = voiceQualityOf(v)
@@ -308,9 +332,9 @@ export function setTtsVoice(name) {
   return name || null
 }
 export function pickVoice(voices) {
-  const all = (voices || []).filter((v) => /^zh/i.test(v.lang))
+  const all = (voices || []).filter(zhLike)          // 2026-09-15：同 listVoices 拓宽口径
   if (!all.length) return null
-  const mandarin = all.filter((v) => ZH_MANDARIN.test(v.lang) && !ZH_VARIANT.test(v.lang))
+  const mandarin = all.filter((v) => !isVariantVoice(v))   // 普通话（含 cmn-*/空标签+中文名）
   const pool = mandarin.length ? mandarin : all      // 一台机器只有粤语/台湾音时也不至于无音可用
   /* ① 用户在面板里点过名 → 就用它（仍可用才生效，换设备/换浏览器后自动回落） */
   const want = ttsVoicePref()
@@ -374,6 +398,37 @@ export function currentVoices() {
   if (!ttsSupported()) return []
   try { return window.speechSynthesis.getVoices() || [] } catch { return [] }
 }
+/* ── 2026-09-15 新增：诊断读数 + 引擎唤醒（手机端排障用） ──
+   手机上没有开发者工具，用户报"选不了音色"时无法自查。这里把「引擎到底看到了什么」
+   原样摊到面板上（总数/中文数/前几条 lang|name），用户截图即可反馈——避免继续靠猜。
+   两个函数都是同步内存读取或无副作用空句，安全。 */
+export function voiceDiag() {
+  if (!ttsSupported()) return { supported: false, total: 0, zh: 0, sample: [] }
+  let all = []
+  try { all = window.speechSynthesis.getVoices() || [] } catch { all = [] }
+  return {
+    supported: true,
+    total: all.length,
+    zh: all.filter(zhLike).length,
+    sample: all.slice(0, 6).map((v) => `${v.lang || '(空标签)'} | ${v.name}`)
+  }
+}
+/* 唤醒系统 TTS：部分安卓内核 getVoices() 在**首次 speak() 之前恒为空**。
+   面板打开落在用户手势栈里，此时播一个 0 音量短句即可把引擎"叫醒"，
+   随后列表通常才出现（Chromium 已知行为）。幂等，失败静默。 */
+let warmed = false
+export function warmUpVoices() {
+  if (!ttsSupported() || warmed) return false
+  try {
+    const u = new SpeechSynthesisUtterance('。')
+    u.volume = 0
+    u.rate = 2
+    u.lang = 'zh-CN'
+    window.speechSynthesis.speak(u)
+    warmed = true
+    return true
+  } catch { return false }
+}
 /* 移动端"语音列表读不出来"的规避（2026-09-14，用户报"手机端 Edge 不能选择语音"）：
    ① 安卓内核**可能根本不触发 voiceschanged**（官方问答与 WebView 长期 issue 均有记录），
       只监听该事件会在移动端永久拿到空列表 → 下拉只剩"自动"，看起来就是"不能选语音"；
@@ -385,9 +440,13 @@ export function currentVoices() {
 export function voiceGuideText(listLen) {
   if (!ttsSupported()) return '本浏览器内核不支持语音合成：换 Chrome / Edge / Safari 可用'
   if (listLen === 0) {
-    return '本机暂未暴露任何语音（移动端常见）。播报仍会用系统默认音色；'
-      + '想解锁更多音色：安卓 Edge 请先对任意网页用一次「大声朗读」再回来点 ↻；'
-      + '安卓其他浏览器可在 系统设置→无障碍→文字转语音 装中文语音数据。'
+    /* 2026-09-15 修订：删掉"先大声朗读再点 ↻"这条对安卓基本无效的引导（微软官方口径：
+       安卓 Edge 网页接口走系统 TTS 引擎，云端音初始化无 JS 可强求、刷新即失效），
+       改成用户真正能自己动手的系统层路径。 */
+    return '本机网页接口暂未暴露中文音色（移动端常见）。可尝试：'
+      + '① 安卓：设置 → 无障碍/语言与输入 → 文字转语音 → 安装中文语音数据（装 Google 语音服务更佳），回来点 ↻；'
+      + '② iPhone：设置 → 辅助功能 → 朗读内容 → 声音 → 中文，先下载一个语音；'
+      + '③ 电脑 Edge 自带晓晓/云希/云健等自然语音——手机 Edge 无法用网页接口调用它们（微软官方口径）。'
   }
   return ''
 }

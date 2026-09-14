@@ -13,7 +13,7 @@ import { imageFor, diagramDataUri, diagramTitle } from '../lib/diagrams'
    此前与 stats/ability/Learn 各写一遍 Fisher-Yates）。 */
 import { shuffledOrder } from '../lib/util.js'
 /* 解析语音播报（2026-09-13 增量）：启封自动朗读解析，🔊 一键可关，语速 1.25 */
-import { speak, stopSpeak, pauseSpeak, resumeSpeak, unlockSpeech, ttsSupported, ttsEnabled as ttsPrefEnabled, setTtsEnabled, voiceNote, voiceAdvice, voiceGuideText, currentVoices, listVoices, ttsVoicePref, setTtsVoice, ttsRate, setTtsRate, fmtRate, RATE_MIN, RATE_MAX, RATE_STEP } from '../lib/tts.js'
+import { speak, stopSpeak, pauseSpeak, resumeSpeak, unlockSpeech, ttsSupported, ttsEnabled as ttsPrefEnabled, setTtsEnabled, voiceNote, voiceAdvice, voiceGuideText, currentVoices, listVoices, ttsVoicePref, setTtsVoice, ttsRate, setTtsRate, fmtRate, voiceDiag, warmUpVoices, RATE_MIN, RATE_MAX, RATE_STEP } from '../lib/tts.js'
 
 /* 题干渲染：填空题把 {空} 显示为下划线占位 */
 function Stem({ q }) {
@@ -233,6 +233,7 @@ export default function Practice() {
   const [voiceList, setVoiceList] = useState(() => (typeof window !== 'undefined' && window.speechSynthesis
     ? listVoices(window.speechSynthesis.getVoices() || []) : []))
   const rateRetry = useRef(null)                       // 拖动滑块/换音色时的重播防抖
+  const panelPoll = useRef(null)                       // 面板展开期间的语音表轮询（2026-09-15）
   const ttsOK = useRef(ttsSupported()).current
   const spokenKeyRef = useRef(null)
   /* 语音清单是异步加载的（Chrome/Edge 首帧常为空），且**安卓内核可能根本不触发
@@ -262,8 +263,8 @@ export default function Practice() {
     spokenKeyRef.current = key
     speak(spokenOf(q, lastGrade, shuffleRef.current.order))
   }, [ttsOK, seal, phase, showAnswer, index, q?.id, ttsOn])
-  /* 卸载兜底：离开练习页/进结算页时，不留一条还在说的声音 */
-  useEffect(() => () => stopSpeak(), [])
+  /* 卸载兜底：离开练习页/进结算页时，不留一条还在说的声音；面板轮询一并清掉 */
+  useEffect(() => () => { stopSpeak(); clearInterval(panelPoll.current) }, [])
 
   if (phase === 'idle' || questions.length === 0) {
     return (
@@ -357,10 +358,30 @@ export default function Practice() {
     speak(spokenOf(q, lastGrade, shuffleRef.current.order))
   }
 
-  /* 手动重读语音清单（移动端的救命按钮：安卓 Edge 要先手动用一次「大声朗读」，
-     微软在线语音才会进列表；用户点 ↻ 即可拉到） */
+  /* 手动重读语音清单（移动端的救命按钮：部分安卓内核不触发 voiceschanged，
+     且首次 speak 之前 getVoices() 恒为空；用户点 ↻ 即可强制再读一次） */
   function refreshVoiceList() {
     setVoiceList(listVoices(currentVoices()))
+  }
+
+  /* 展开/收起「声音」面板（2026-09-15 修手机端「选不了其他语音」）：
+     展开动作落在用户手势栈里，是叫醒系统 TTS 引擎的最佳时机——
+     ① warmUpVoices() 播一个 0 音量空句（部分安卓内核"首次 speak 之后"才填充语音表）；
+     ② 立即刷新一次；
+     ③ 随后 12 秒内每 1.2s 刷新（不触发 voiceschanged 的内核也能在此期间自动出现音色，
+        用户不必手动点 ↻）。getVoices() 是同步内存读取，轮询无性能负担。 */
+  function toggleTtsPanel() {
+    const next = !ttsOpen
+    setTtsOpen(next)
+    clearInterval(panelPoll.current)
+    if (!next) return
+    warmUpVoices()
+    refreshVoiceList()
+    const t0 = Date.now()
+    panelPoll.current = setInterval(() => {
+      setVoiceList(listVoices(currentVoices()))
+      if (Date.now() - t0 > 12000) clearInterval(panelPoll.current)
+    }, 1200)
   }
 
   /* 换音色：落盘 → 若本题正在播报，防抖 300ms 后立刻用新音色重读（便于直接对比听感） */
@@ -641,7 +662,7 @@ export default function Practice() {
                 <button className="chip" style={{ fontSize: 11 }} aria-expanded={ttsOpen}
                   aria-pressed={ttsOn}
                   title={ttsOn ? `解析语音播报进行中｜${voiceNote()}` : `已暂停在原处，再点继续接着读｜${voiceNote()}`}
-                  onClick={() => { setTtsOpen((o) => !o); refreshVoiceList() }}>
+                  onClick={toggleTtsPanel}>
                   {ttsOn ? `🔊 ${fmtRate(rateNow)}×` : '⏸ 已暂停'}
                 </button>
               )}
@@ -689,16 +710,23 @@ export default function Practice() {
                           <option key={v.name + v.lang} value={v.name}>{v.label}</option>
                         ))}
                       </select>
-                      {/* ↻ 重新读取音色（移动端必需：安卓 Edge 需先用一次「大声朗读」，
-                          微软在线语音才会进列表；部分内核不触发 voiceschanged 事件） */}
+                      {/* ↻ 重新读取音色（移动端必需：部分安卓内核不触发 voiceschanged，
+                          且首次 speak 之前 getVoices() 恒为空） */}
                       <button className="chip" style={{ fontSize: 11, padding: '2px 7px' }}
-                        title="重新读取本机音色列表（安卓 Edge 请先对任意网页用一次「大声朗读」）"
+                        title="重新读取本机音色列表（若是安卓且列表为空，可按下方提示装中文语音数据）"
                         onClick={refreshVoiceList}>↻</button>
                     </div>
+                    {/* 空列表时把引擎真实读数摊开（2026-09-15）：手机无 devtools，
+                        用户截图即可反馈"引擎到底看到了什么"，避免继续靠猜。 */}
                     <span style={{ fontSize: 10.5, opacity: .68, lineHeight: 1.32, maxWidth: 262 }}>
                       {voiceList.length > 0
                         ? `已读取 ${voiceList.length} 个中文音色，可任选（含粤语/台湾/方言）· ${voiceAdvice()}`
-                        : voiceGuideText(0)}
+                        : (() => {
+                            const d = voiceDiag()
+                            return d.total > 0
+                              ? `本机共 ${d.total} 条语音，其中中文 0 条。样例：${d.sample.join('；')}（可截图反馈）`
+                              : voiceGuideText(0)
+                          })()}
                     </span>
                   </div>
                 </div>

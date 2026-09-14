@@ -5,7 +5,7 @@
    ② cleanSpeechText：emoji 删除、→ 与换行转停顿、markdown 记号剥离
    ③ pickVoice：选声优先级（晓晓Natural > 云希Natural > Natural > 常见微软本地音 > 任意zh） */
 import assert from 'node:assert/strict'
-import { chunkSpeechText, cleanSpeechText, normalizeSpeech, pickVoice, chunkMaxFor, TTS_RATE, RATE_MIN, RATE_MAX, RATE_STEP, clampRate, fmtRate, ttsRate, sliceForResume, listVoices, voiceQualityOf, voiceAccent, voiceLabel, ttsVoicePref, resolveVoiceByName } from '../src/lib/tts.js'
+import { chunkSpeechText, cleanSpeechText, normalizeSpeech, pickVoice, chunkMaxFor, TTS_RATE, RATE_MIN, RATE_MAX, RATE_STEP, clampRate, fmtRate, ttsRate, sliceForResume, listVoices, voiceQualityOf, voiceAccent, voiceLabel, ttsVoicePref, resolveVoiceByName, zhLike, voiceDiag } from '../src/lib/tts.js'
 
 let n = 0
 const ok = (cond, msg) => { n++; assert.ok(cond, msg) }
@@ -169,5 +169,34 @@ ok(normalizeSpeech('I²R') === 'I平方R' && normalizeSpeech('0.006²') === '0.0
 ok(normalizeSpeech('U_F') === 'U F' && normalizeSpeech('U_CE') === 'U CE', '⑫-3 下标写法不再念"下划线"')
 ok(/等于/.test(normalizeSpeech('0.006 = 22.5')) , '⑫-4 公式里的 = 读成"等于"')
 ok(normalizeSpeech('29.6kV·A') === '29.6千伏安' && normalizeSpeech('10.3kvar') === '10.3千乏', '⑫-5 视在功率/无功单位读法')
+
+/* ── ⑩ 中文音色识别拓宽（2026-09-15 修「手机端 Edge 选不了其他语音」的回归锁）──
+   事故背景：安卓系统 TTS 引擎报告的语种标签不保证以 zh 开头（存在 cmn-Hans-CN、空字符串），
+   旧口径 /^zh/ 会把这类设备判成「无中文音色」→ 下拉只剩「自动」+ 自动选声回落系统默认。
+   本组断言在旧实现下必然失败（cmn/空标签全部落空、listVoices 为空、pickVoice 为 null）。 */
+const MV = (name, lang) => ({ name, lang, localService: true })
+// ⑩-1 标签口径
+ok(zhLike(MV('Microsoft 云健 Online (Natural)', 'cmn-Hans-CN')), '⑩-1 cmn-Hans-CN 视为中文（旧口径漏收）')
+ok(!zhLike(MV('系统语音', '')), '⑩-2 空标签且名字无中文特征 → 不收（防把空壳收进来）')
+ok(zhLike(MV('中文（中国）', '')), '⑩-3 空标签 + 名含「中文」→ 收录')
+ok(!zhLike(MV('Microsoft David', 'en-US')), '⑩-4 en-US 不收')
+ok(zhLike(MV('X', 'zh-CN')) && zhLike(MV('X', 'zh_CN')), '⑩-5 zh-CN / zh_CN 两种写法都收')
+// ⑩-2 列表：混合清单里，cmn 与空标签中文音都要出现，英文音必须剔除
+const MIX = [MV('Microsoft 云健 Online (Natural)', 'cmn-Hans-CN'), MV('中文（中国）', ''), MV('Microsoft David', 'en-US'), MV('Microsoft 慧慧', 'zh-CN')]
+const lv = listVoices(MIX)
+ok(lv.length === 3, `⑩-6 混合清单收录 3 条中文音（实得 ${lv.length}）`)
+ok(lv.some((v) => v.name === 'Microsoft 云健 Online (Natural)'), '⑩-7 cmn 音色出现在下拉里')
+ok(lv.every((v) => !/David/.test(v.name)), '⑩-8 英文音色不进中文清单')
+// ⑩-3 自动选声：机器只有 cmn 音时不能再返回 null（旧实现必 null → 回落系统机械音）
+ok(pickVoice([MV('Microsoft 云健 Online (Natural)', 'cmn-Hans-CN')]) !== null, '⑩-9 仅 cmn 音时自动选声不再落空')
+ok(pickVoice([MV('中文（中国）', '')]) !== null, '⑩-10 仅空标签中文音时自动选声不落空')
+// ⑩-4 优先级不回退：云健 Natural 仍优先于方言/普通音
+ok(/云健/.test(pickVoice([MV('Microsoft 云健 Online (Natural)', 'cmn-Hans-CN'), MV('Microsoft 慧慧', 'zh-CN')]).name), '⑩-11 云健 Natural 优先于本地老音')
+ok(/云健/.test(pickVoice([MV('Microsoft 云健 Online (Natural)', 'cmn-Hans-CN'), MV('Microsoft 粤语', 'zh-HK')]).name), '⑩-12 普通话 Natural 优先于粤语')
+// ⑩-5 腔调标签：cmn 不该被标成「其它」
+ok(voiceAccent(MV('Microsoft 云健 Online (Natural)', 'cmn-Hans-CN')) === '', '⑩-13 cmn-Hans 识别为普通话（无腔调标签）')
+// ⑩-6 诊断读数 API 形状（Node 无 window → supported:false，不抛异常）
+const dg = voiceDiag()
+ok(dg && dg.supported === false && dg.total === 0 && Array.isArray(dg.sample), '⑩-14 voiceDiag 在无 speechSynthesis 环境安全降级')
 
 console.log(`\ntts.regression：${n} 断言全绿`)
