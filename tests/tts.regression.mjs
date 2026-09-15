@@ -319,5 +319,12 @@ ok((practiceSrc.match(/tag: 'reveal\|'/g) || []).length >= 4, '⑱-12 Practice �
 ok(/tag: 'stem\|' \+ index \+ '\|' \+ q\.id/.test(practiceSrc), '⑱-13 题干播报带 stem tag')
 ok(/currentPauseTag\(\) === expected && resumeSpeak\(\)/.test(practiceSrc) && /const expected = \(revealed \? 'reveal\|' : 'stem\|'\) \+ index \+ '\|' \+ \(q \? q\.id : ''\)/.test(practiceSrc), '⑱-14 开关续播按上下文对表：tag 匹配才 resume，过期暂停丢弃')
 ok(/export function engineFor\(autoQuality, pref, cloudOK\) \{[\s\S]*?return 'cloud'\s*\}/.test(ttsSrc), '⑱-15 engineFor：自动档云端可用一律 cloud（新决策表）')
+/* ⑱-16~19 串行排程链闭合锁（2026-09-15 下午事故）：初版只排第一块（排完只"预解码"未递归
+   schedule，中间块无 onended）→ 首块以句号收尾播完即永久静音。E2E 当时未覆盖"第二块继续播"
+   ——这组锁专堵该盲区：链必须递归闭合、排程本体抽取、全块并行预取、失败跳过也闭合。 */
+ok((ttsSrc.match(/schedule\(idx \+ 1\)/g) || []).length >= 3, '⑱-16 排程接力链闭合：schedule(idx+1) 递归出现 ≥3 处（place 失败跳块/正常续链/decode 失败续链）')
+ok(/const place = \(idx, buf\) => \{[\s\S]*?src\.start\(t, start \/ sr, dur\)/.test(ttsSrc), '⑱-17 place 排程本体：decode 完成钉上时间线（trim→fade→start(when,offset,dur)）')
+ok(/place\(idx, buf\)[\s\S]{0,200}?if \(idx \+ 1 < sess\.urls\.length\) schedule\(idx \+ 1\)/.test(ttsSrc), '⑱-18 then 正常路径续链：place 成功后必须 schedule(idx+1)，绝不断链')
+ok(/for \(let k = 1; k < sess\.urls\.length; k\+\+\) gaDecode\(sess\.urls\[k\]\)\.catch\(\(\) => \{\}\)/.test(ttsSrc), '⑱-19 全块并行预取（塞 gaCache，串行链秒取消网络等待；串行排程保顺序）')
 
 console.log(`\ntts.regression：${n} 断言全绿`)

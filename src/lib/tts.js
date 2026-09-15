@@ -926,39 +926,49 @@ export function speakCloudGA(chunks, rate, onDone, my, voice, tag) {
   session = sess
   sess.urls = chunks.map((t) => cloudTtsUrl(t, rate, useVoice))
   const FADE = 0.005
+  /* place(idx, buf)：把已解码的一块钉上时间线。顺序由 schedule 串行链保证，
+     绝不并行排程——并行 decode 完成次序不定，谁先到谁先排会把内容排乱。 */
+  const place = (idx, buf) => {
+    const ch = buf.getChannelData(0)
+    const { start, end } = gaTrimRange(ch)
+    const sr = buf.sampleRate
+    const dur = Math.max(0.02, (end - start) / sr)
+    const t = Math.max(sess.nextAt, ctx.currentTime + 0.03)
+    let src, g
+    src = ctx.createBufferSource(); src.buffer = buf
+    g = ctx.createGain()
+    g.gain.setValueAtTime(0.0001, t)
+    g.gain.linearRampToValueAtTime(1, t + FADE)
+    g.gain.setValueAtTime(1, Math.max(t + FADE, t + dur - FADE))
+    g.gain.linearRampToValueAtTime(0.0001, t + dur)
+    src.connect(g); g.connect(ctx.destination)
+    src.start(t, start / sr, dur)
+    sess.sources.push(src)
+    sess.nextAt = t + dur
+    sess.i = idx + 1
+    if (idx === sess.urls.length - 1) {
+      src.onended = () => {
+        if (tok !== token) return
+        sess.done = true
+        if (ga === sess) ga = null
+        if (session === sess) session = null
+        if (onDone) onDone()
+      }
+    }
+  }
+  /* schedule(idx)：串行接力链——decode 完成即 place，随后 schedule(idx+1)。
+     【2026-09-15 下午事故修复】初版只排第一块：排完块 idx 后只"预解码"了下一块、
+     没有递归 schedule，中间块又没挂 onended → 首块（以句号收尾）播完即永久静音。
+     网络等待由下面的全块并行预取吃掉：预取先到 → gaDecode 命中缓存秒排（无缝）；
+     预取未到 → t=currentTime+0.03 接在当前播，块间最多再等一个 RTT。 */
   const schedule = (idx) => {
     if (tok !== token || sess.done) return
     gaDecode(sess.urls[idx]).then((buf) => {
       if (tok !== token || sess.done) return
-      const ch = buf.getChannelData(0)
-      const { start, end } = gaTrimRange(ch)
-      const sr = buf.sampleRate
-      const dur = Math.max(0.02, (end - start) / sr)
-      const t = Math.max(sess.nextAt, ctx.currentTime + 0.03)
-      let src, g
       try {
-        src = ctx.createBufferSource(); src.buffer = buf
-        g = ctx.createGain()
-        g.gain.setValueAtTime(0.0001, t)
-        g.gain.linearRampToValueAtTime(1, t + FADE)
-        g.gain.setValueAtTime(1, Math.max(t + FADE, t + dur - FADE))
-        g.gain.linearRampToValueAtTime(0.0001, t + dur)
-        src.connect(g); g.connect(ctx.destination)
-        src.start(t, start / sr, dur)
+        place(idx, buf)
       } catch { if (idx + 1 < sess.urls.length) schedule(idx + 1); return }
-      sess.sources.push(src)
-      sess.nextAt = t + dur
-      sess.i = idx + 1
-      if (idx === sess.urls.length - 1) {
-        src.onended = () => {
-          if (tok !== token) return
-          sess.done = true
-          if (ga === sess) ga = null
-          if (session === sess) session = null
-          if (onDone) onDone()
-        }
-      }
-      if (idx + 1 < sess.urls.length) gaDecode(sess.urls[idx + 1]).catch(() => {})   // 预解码下一块
+      if (idx + 1 < sess.urls.length) schedule(idx + 1)
     }).catch(() => {
       if (tok !== token || sess.done) return
       if (idx + 1 < sess.urls.length) schedule(idx + 1)      // 单块失败跳过，绝不整段挂死
@@ -966,6 +976,7 @@ export function speakCloudGA(chunks, rate, onDone, my, voice, tag) {
     })
   }
   try { if (ctx.state === 'suspended') { const p = ctx.resume(); if (p && p.catch) p.catch(() => {}) } } catch { /* ignore */ }
+  for (let k = 1; k < sess.urls.length; k++) gaDecode(sess.urls[k]).catch(() => {})   // 全块并行预取（塞 gaCache，供串行链秒取）
   schedule(0)
   return true
 }
