@@ -237,6 +237,10 @@ export default function Practice() {
      必须挂在 early return 之前（Rules of Hooks）；播报文本的洗牌序直接读
      shuffleRef.current（与本帧渲染同源，重掷会念错字母）。 */
   const [ttsOn, setTtsOn] = useState(ttsPrefEnabled)
+  /* 揭晓态轨迹（2026-09-15）：切题要过两拍 commit（setSeal('intact') 在切题 effect 里），
+     「未揭晓→清场」必须只在真正离开揭晓态的那一拍打 stopSpeak——否则第二拍会把
+     题干 effect 刚开口的朗读拦腰打断（E2E 实证 audio play AbortError，第二题起不读）。 */
+  const wasRevealedRef = useRef(false)
   const [rateNow, setRateNow] = useState(ttsRate)      // 语速：自定义（0.5~2.0 无级），存 localStorage
   const [ttsOpen, setTtsOpen] = useState(false)        // 「声音」控件展开态
   const [voiceSel, setVoiceSel] = useState(ttsVoicePref)   // 显式选择的音色（null=自动）
@@ -288,7 +292,14 @@ export default function Practice() {
     try { if (window.__ttsfxArm) (window.__ttsfxLog = window.__ttsfxLog || []).push({ t: Date.now(), seal, phase, showAnswer, index, qid: q && q.id, ttsOn }) } catch { /* ignore */ }
     if (!ttsOK) return
     const revealed = seal === 'broken' && (phase === 'feedback' || showAnswer)
-    if (!revealed || !q) { stopSpeak(); spokenKeyRef.current = null; return }
+    if (!revealed || !q) {
+      /* 2026-09-15 修正：无条件 stopSpeak 会跨两拍清场——第二拍（seal broken→intact）
+         正好轰掉题干 effect 刚开的口。改为「只在真正离开揭晓态的那一拍清场」；
+         未曾揭晓就切题（主观题直接翻）时，残声由新 speak() 的 token++ 自己打断。 */
+      if (wasRevealedRef.current) { stopSpeak(); wasRevealedRef.current = false }
+      spokenKeyRef.current = null; return
+    }
+    wasRevealedRef.current = true
     if (!ttsOn) return                            // 静音中：不自动开口（揭晓后再开由开关 handler 接）
     const key = index + '|' + q.id
     if (spokenKeyRef.current === key) return      // 本题已读过：不重播（这是防叠音的闸）

@@ -294,5 +294,6 @@ ok(/stemSpokenOf\(nq\)/.test(practiceSrc) === false, '⑰-6 翻题手势预载�
 ok(learnSrc.includes("import { unlockCloudAudio } from '../lib/tts.js'"), '⑰-7 Learn.jsx 引入 unlockCloudAudio')
 ok(/async function run\(mode, opts = \{\}\) \{\s*\n\s*unlockCloudAudio\(\)/.test(learnSrc), '⑰-8 进练习手势内解锁云端 <audio>（移动端首题不被拦）')
 ok(/onClick=\{async \(\) => \{\s*\n\s*unlockCloudAudio\(\)\s*\/\/ 重开一轮/.test(practiceSrc), '⑰-9 再练错题手势内解锁云端 <audio>')
+ok(/const wasRevealedRef = useRef\(false\)/.test(practiceSrc) && /if \(wasRevealedRef\.current\) \{ stopSpeak\(\); wasRevealedRef\.current = false \}/.test(practiceSrc), '⑰-10 清场双拍守卫：stopSpeak 只在真正离开揭晓态那一拍打（否则第二拍轰掉题干朗读，E2E 实证）')
 
 console.log(`\ntts.regression：${n} 断言全绿`)
