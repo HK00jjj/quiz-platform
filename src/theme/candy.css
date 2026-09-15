@@ -373,7 +373,6 @@ body, button, input, textarea, select {
   filter: none !important;
   overflow: hidden;
 }
-.card-flip-cover img { display: none !important; }
 .card-flip-cover::after {
   content: ''; position: absolute; inset: 0; opacity: .55;
   background-image:
@@ -384,9 +383,9 @@ body, button, input, textarea, select {
     radial-gradient(circle 9px at 26% 78%, rgba(255, 255, 255, .88) 98%, transparent),
     radial-gradient(circle 5px at 60% 88%, rgba(255, 255, 255, .75) 98%, transparent);
 }
-/* 哥特裂纹 → 酸糖皱眉：四角涌出的酸橙绿气泡光晕（方案 3.5「做错—酸糖提神」） */
-.crack-veil { border-radius: 26px; background: radial-gradient(circle at 50% 50%, transparent 38%, rgba(168, 224, 99, .3) 100%) !important; }
-.crack-veil img { display: none !important; }
+/* 哥特裂纹 → 酸糖皱眉：四角涌出的酸橙绿气泡光晕（方案 3.5「做错—酸糖提神」）
+   ⚠ 沉浸批1 A4（2026-09-15）：crack-veil 整层下线——§36 已 background:none 全 neutralize，
+   JSX 的裂纹位图 <img> 与这里的三条残留规则一并清除。答错反馈只剩 card-flash-bad 脉冲。 */
 
 /* 三分区：题目区最亮、作答区原底、答案区糖纸封印 */
 /* §65 题干区换羊皮纸（用户反馈粉白底刺眼）：暖米轻渐变 + 暖沙色描边，与薄荷主题互补不突兀 */
@@ -436,8 +435,8 @@ body, button, input, textarea, select {
   font-weight: 600;
 }
 .opt-row:hover { border-color: var(--candy-pink) !important; background: #EAF2ED !important; transform: translateY(-2px); }
-/* 哥特符文选框图下线，改用 CSS 画的糖果选框（35% 圆角方：单选多选都读得通） */
-.opt-row .mark { position: absolute !important; width: 1px !important; height: 1px !important; opacity: 0 !important; }
+/* 哥特符文选框图下线，改用 CSS 画的糖果选框（35% 圆角方：单选多选都读得通）
+   ⚠ 沉浸批1 A4：<img class="mark"> 已从 JSX 清除，隐藏规则随之删除 */
 .opt-row::before {
   content: ''; flex: 0 0 auto; width: 20px; height: 20px; border-radius: 35%;
   border: 2px solid var(--candy-pink-lt); background: #fff;
@@ -507,8 +506,8 @@ body, button, input, textarea, select {
   background: radial-gradient(circle at 32% 28%, #D3EADF, #5FAE8F 72%);
   box-shadow: 0 0 12px rgba(95, 174, 143, .5), inset 0 1px 0 rgba(255, 255, 255, .8);
 }
-.seal-wax img { display: none !important; }
-/* §65 同轮：🍬 emoji → 火漆印纹（深薄荷四角星压印 + 内圈虚线齿环，纯 CSS） */
+/* §65 同轮：🍬 emoji → 火漆印纹（深薄荷四角星压印 + 内圈虚线齿环，纯 CSS）
+   ⚠ 沉浸批1 A4：蜡封三帧位图 <img> 已从 JSX 清除，display:none 隐藏规则随之删除 */
 .seal-wax::before { content: ''; position: absolute; inset: 4px; border-radius: 50%;
   border: 1.5px dashed rgba(255, 255, 255, .65); }
 .seal-wax::after { content: ''; position: absolute; left: 50%; top: 50%; width: 15px; height: 15px;
@@ -536,14 +535,8 @@ body, button, input, textarea, select {
 
 /* 三档自评：白底糖果按钮——§48 随三遍判定制下线（按钮已删），整套 .rate-btn 死样式一并清除 */
 
-/* 糖罐计数器 + 进度糖豆 */
-.pile-counter {
-  background: var(--jelly) !important; backdrop-filter: blur(12px);
-  border: 1px solid var(--jelly-hi) !important; border-radius: 20px !important;
-  box-shadow: 0 4px 16px rgba(127, 190, 160, .25) !important; color: var(--ink) !important;
-}
-.pile-counter.okp { color: #2FA98A !important; border-color: rgba(127, 232, 200, .75) !important; }
-.pile-counter.badp { color: #6E9B2E !important; border-color: rgba(168, 224, 99, .75) !important; }
+/* 答对/答错角标：沉浸批1 A2（2026-09-15）并入顶行 .practice-count，
+   视口对角 fixed 双胶囊（pages.css）与 candy 覆盖层一并清除 */
 .teal-glow-text { color: #2FA98A !important; text-shadow: none !important; }
 .red-glow-text { color: #6E9B2E !important; text-shadow: none !important; }
 /* §50：旧 .gem-dot 点阵四色规则已随糖浆进度条下线（元素删除），死样式清除 */

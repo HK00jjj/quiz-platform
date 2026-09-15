@@ -9,8 +9,10 @@ import { useEffect, useMemo, useState } from 'react'
    等编辑器缓冲区问题解决后，可以把本文件内容并回 components.jsx。
    ══════════════════════════════════════════════════════════════ */
 
-/* ── 气泡氛围层：12 颗半透明彩色气泡从底部缓慢上升，到顶消散（方案 1.3 / 7.5）。
+/* ── 气泡氛围层：半透明彩色气泡从底部缓慢上升，到顶消散（方案 1.3 / 7.5）。
    只动 transform/opacity；负延迟让进页时气泡已分布在全程各高度，不用等第一轮。
+   intensity 语义（沉浸批1 A3 修正）：>1 = 答题页 → 减量档 6 颗（专注场景更安静）；
+   其余页面 9 颗。此前 12/9 反着给——答题页气泡反而最多，与本意相反。
    'abyss-pulse'（答错时 Practice 派发）在这里接住，让整层短暂"变酸"（色相偏移）。 ── */
 export function Background({ intensity = 1 }) {
   const bubbles = useMemo(() => Array.from({ length: 12 }, (_, i) => ({
@@ -32,7 +34,7 @@ export function Background({ intensity = 1 }) {
     window.addEventListener('abyss-pulse', on)
     return () => { window.removeEventListener('abyss-pulse', on); if (t) clearTimeout(t) }
   }, [])
-  const shown = intensity > 1 ? bubbles : bubbles.slice(0, 9)
+  const shown = intensity > 1 ? bubbles.slice(0, 6) : bubbles.slice(0, 9)
   return (
     <div className="bg-stage" aria-hidden="true">
       <div className={'bubble-layer' + (sour ? ' sour' : '')}>

@@ -1,7 +1,30 @@
 # 交接文档 · 糖果题库（quiz-platform）
 
 > 写给下一个接手的会话。读完这一份就能独立干活，不需要翻历史对话。
-> 最后更新：2026-09-15 中午 · 句号停顿治理已上线，线上提交 `2d823c4`。
+> 最后更新：2026-09-15 下午 · 自动读题干已上线，线上提交 `5f90d28`。
+
+## 2026-09-15 下午增量 · 自动读题干（题卡到手即读，选项不读）
+
+**需求**（用户）："打开自动读题干，选项不需要读。" 原语音只有揭晓自动读「答案+解析」（2026-09-13），答题中无朗读。
+
+**实现（commit `5f90d28`，bundle index-r8uu2wUZ.js；初版 `9b07f95`）**：
+1. `Practice.jsx` 新增纯函数 `stemSpokenOf(q)`：只取 `q.stem`，**填空 `{…}` 占位符一律读成「空」**——blanksOf 就是从题干抠答案的，占位里带着参考答案，原样念=播题前先漏答案（E2E 实证："通电{断电}延时型"读成"空延时型"，而揭晓读真答案"断电/得电"，两侧分工正确）。选项文本绝不进这条链。
+2. 新增题干自动播 effect（解析 effect 之后声明）：`phase==='answering'` 且未展开解析时，新题落地即开口；deps `[ttsOK, index, q?.id, phase, showAnswer, ttsOn]`；独立"已读"闸 `stemSpokenRef`（与解析的 `spokenKeyRef` 分离）。静音中出现的题不读，开关回开靠 ttsOn 依赖补读。作答揭晓时题干若还在念，被 `speak()` 内部 token++ 短路，解析接管，不叠音。
+3. **双拍清场 bug（E2E 抓的真 bug，初版 `9b07f95` 有此缺陷）**：切题要过两拍 commit（`setSeal('intact')` 在切题 effect 里），解析 effect 的"未揭晓→无条件 stopSpeak"分支在第二拍（seal broken→intact）把题干 effect 刚开的口轰掉（audio play AbortError 实证）→ **第二题起题干不读**。修法：`wasRevealedRef` 守卫——stopSpeak 只在"真正离开揭晓态"那一拍打一发；未揭晓就切题（主观题直接翻）时残声由新 speak 的 token++ 自己打断。tts.regression ⑰-10 接线锁锁定。
+4. 入口手势解锁：`Learn.jsx run()` 与 Practice 结算页"再练错题"补 `unlockCloudAudio()`（移动端首题题干播报不被浏览器拦；此前只有 doCheck/重读/播报开关/查看解析四处）。
+5. **翻题手势不挂题干预载**（与解析预载不同）：`stopSpeak` 的清场（removeAttribute+load，保护"翻题后 resume 不复活旧题"语义）会把预载 src 清掉，预载白做；靠 24h CDN 缓存覆盖三遍判定的同题重读（E2E 实证第二遍 206 Range 命中缓存）。
+
+**验证**：run-all 14 套件 ALL GREEN；tts.regression **165 断言**（⑰ 组 10 条接线锁新增：占位读空/effect 挂线/闸分离/入口解锁/双拍守卫）；部署链两次全过（`9b07f95` → E2E 抓 bug → `5f90d28`）；**线上真机 E2E 11/11**（tools 在 E:/workbuddy-cc/2026-09-15-13-39-07/tools/：`stem_e2e_runner.cjs`+`stem_read_e2e.cjs`，NODE_PATH 指 managed node workspace 拿 ws）：
+- A1 题卡到手题干自动读（ttsReq text= 参数解码=题干，占位读空）✓
+- A2 题干朗读不含任何选项文本（选项不读，核心断言）✓
+- A3 题干朗读不含「正确答案」串场词 ✓
+- A4 揭晓「正确答案+解析」照常（填空题逐空口径无回归）✓
+- A5 下一题题干继续读（含同题重出的缓存路径）✓
+- A6 音频零 error / 合成请求全 200|206 / console 零 error ✓
+
+**E2E 断言口径坑（复用 harness 前必读）**：①`<audio>` 播缓存资源是 **206 Partial**（Range 再验证），"全 200"断言会误报；②翻题后题干朗读可能快于 E2E 轮询，判据窗口必须锚定在**点击时刻**而非翻题检测时刻；③三遍判定制会把答错的题立刻重新入队——"下一题"可能是同一题，head 相同属正常；④填空题无 .opt-row/.judge-card，作答驱动须先试 .fill-item input / .rune-textarea。
+
+**诚实边界**：题干首响 ≈ 云端合成 RTT（热 ~2.2s/冷 ~7s，同题重读走缓存近即时）——与解析首响同一物理下限；桌面系统语音线无此延迟。
 
 ## 2026-09-15 中午增量 · 句号停顿治理（块长分级 + 尾部提前续播）
 

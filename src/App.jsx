@@ -115,9 +115,10 @@ function Shell() {
       </span>
       <Background intensity={inPractice ? 1.6 : 1} />
       {/* §52 节日点缀层：整层点击穿透（pointer-events:none），元素全在页框空隙，
-          z-5 压在内容上但低于底部导航/弹窗；登录前不挂（BootRitual/Login 分支保持素净）；
-          答题页 compact——顶部灯串/小旗/圣诞帽按学习页 hero 定位，会压题干，撤掉 */}
-      <FestiveDecor compact={inPractice} />
+          z-5 压在内容上但低于底部导航/弹窗；登录前不挂（BootRitual/Login 分支保持素净）。
+          沉浸感批1 A1（2026-09-15 用户拍板）：答题页整层不挂——20+ 装饰件与 4 组循环动画
+          与答题专注直接竞争注意力（§68 雪花分神的前科），is-compact 半撤方案升级为全撤。 */}
+      {!inPractice && <FestiveDecor />}
       <PageBoundary>
         <Suspense fallback={
           <div style={{ display: 'flex', justifyContent: 'center', paddingTop: '38vh' }}>

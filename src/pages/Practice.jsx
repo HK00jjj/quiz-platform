@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store'
-import { A } from '../assets'
 import { GiltBtn } from '../components'
 // burstParticles 改从 CandyBoot 引：components.jsx 正被编辑器陈旧缓冲区回写成 Apple 版（只发振动、不发糖豆）
 import { burstParticles } from '../components/CandyBoot'
@@ -584,15 +583,8 @@ export default function Practice() {
           <div className="syrup-fill" style={{ width: `calc(${pct}% - 6px)` }} />
           <div className="syrup-knob" style={{ left: `clamp(15px, ${pct}%, calc(100% - 15px))` }} />
         </div>
-        <span className="practice-count">第 {index + 1} 题 / 共 {questions.length} 题</span>
+        <span className="practice-count">第 {index + 1} 题 / 共 {questions.length} 题 · <b className="teal-glow-text">✓{results.filter(Boolean).length}</b> <b className="red-glow-text">✗{results.filter((v) => !v).length}</b></span>
         <button className="chip" style={{ fontSize: 11 }} onClick={() => { abortSession(); navigate('/') }}>✕ 退出</button>
-      </div>
-
-      <div className={'pile-counter okp'}>
-        <span className="pile">✓</span> 答对 <b className="teal-glow-text">{results.filter(Boolean).length}</b>
-      </div>
-      <div className={'pile-counter badp'}>
-        <span className="pile">✗</span> 答错 <b className="red-glow-text">{results.filter((v) => !v).length}</b>
       </div>
 
       <div className="q-card-wrap" key={q.id + '-' + index}>
@@ -600,12 +592,8 @@ export default function Practice() {
         <div className={'q-flipper' + (flipped ? ' is-front' : '')}>
         <div className={'q-card ' + flash}>
           {combo >= 3 && !answered && <span className="combo-pop" style={{ zIndex: 8 }}>✦ {combo} 连击！</span>}
-          {/* 答错了：真实裂纹素材三帧自四角向中心蔓延（与牌面同 2:3 比例，零变形） */}
-          {flash === 'bad-flash' && (
-            <div className="crack-veil" aria-hidden="true">
-              {A.cracks.map((s, k) => <img key={k} className={'c' + (k + 1)} src={s} alt="" decoding="async" />)}
-            </div>
-          )}
+          {/* 答错反馈：card-flash-bad 一次性阴影脉冲（pages.css）。旧哥特裂纹位图层已下线——
+              candy §36 早已 background:none 全 neutralize，这里连 DOM 一起清掉（沉浸批1 A4） */}
           {/* 牌面：内缩进尖拱/藤蔓/龙首纹样之内，正文可滚、主操作钉在牌底 */}
           <div className="q-face">
           <div className="q-face-scroll">
@@ -647,8 +635,7 @@ export default function Practice() {
                     onClick={() => q.type === '单选题'
                       ? setChoice(o.orig)
                       : setMulti((m) => m.includes(o.orig) ? m.filter((x) => x !== o.orig) : [...m, o.orig].sort())}>
-                    <img className="mark" decoding="async" alt="" aria-hidden="true"
-                      src={(q.type === '单选题' ? A.markRadio : A.markCheck)[selected ? 'on' : 'off']} />
+                    {/* 选框是 .opt-row::before 纯 CSS 糖果圆角方（哥特符文位图已下线，沉浸批1 A4） */}
                     <span>{o.disp}. {o.text}</span>
                   </button>
                 )
@@ -670,7 +657,6 @@ export default function Practice() {
                     }
                     return (
                       <button key={label} disabled={answered} className={`judge-card ${cls} ${extra}`}
-                        style={{ backgroundImage: `url(${label === '正确' ? A.judgeCard.ok : A.judgeCard.no})` }}
                         aria-pressed={judge === label} onClick={() => setJudge(label)}>
                         <span className="judge-label">{label}</span>
                       </button>
@@ -809,9 +795,8 @@ export default function Practice() {
             {seal === 'broken' && fbImgUri && <img src={fbImgUri} alt={diagramTitle(imageFor(q.id))} style={{ display: 'block', maxWidth: '100%', margin: '0 auto 10px', background: '#fff', border: '1px solid #e5d9c3', borderRadius: 8 }} />}
             {seal !== 'broken' && (
               <div className={'seal-lock ' + seal}>
-                <span className="seal-wax" aria-hidden="true">
-                  {A.waxSeal.map((s, k) => <img key={k} className={'f' + (k + 1)} src={s} alt="" decoding="async" />)}
-                </span>
+                {/* 封缄是 .seal-wax 纯 CSS 糖豆（candy.css §65）：哥特蜡封三帧位图已下线（沉浸批1 A4） */}
+                <span className="seal-wax" aria-hidden="true" />
                 <span>{objective ? '答案已封印 · 查看解析后启封' : '参考答案已隐藏 · 展开后显示'}</span>
               </div>
             )}
@@ -918,10 +903,8 @@ export default function Practice() {
           </div>
           </div>
         </div>
-        {/* 牌背（p6）：自身再转 180°，使 flipper 在 180° 时它朝外 */}
-        <div className="card-flip-cover" style={{ backgroundImage: `url(${A.cardBack})` }} aria-hidden="true">
-          <img src={A.roseWindow} alt="" />
-        </div>
+        {/* 牌背（candy.css §37 马卡龙渐变+波点）：玫瑰窗位图与内联 p6 背景已下线（沉浸批1 A4） */}
+        <div className="card-flip-cover" aria-hidden="true" />
         </div>
       </div>
       {/* 自绘音色弹层（2026-09-15）：portal 到 body —— 卡片是 3D 变换容器，fixed 元素
