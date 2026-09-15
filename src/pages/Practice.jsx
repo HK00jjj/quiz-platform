@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store'
 import { A } from '../assets'
@@ -230,8 +231,26 @@ export default function Practice() {
   const [rateNow, setRateNow] = useState(ttsRate)      // 语速：自定义（0.5~2.0 无级），存 localStorage
   const [ttsOpen, setTtsOpen] = useState(false)        // 「声音」控件展开态
   const [voiceSel, setVoiceSel] = useState(ttsVoicePref)   // 显式选择的音色（null=自动）
+  const [voiceOpen, setVoiceOpen] = useState(false)        // 自绘音色弹层（2026-09-15：替代原生 select）
   const [voiceList, setVoiceList] = useState(() => (typeof window !== 'undefined' && window.speechSynthesis
     ? listVoices(window.speechSynthesis.getVoices() || []) : []))
+  /* 自绘音色弹层的选项（2026-09-15）：**扁平列表、不带分组标题行**（用户截图红框要求去除
+     "云端音色（任意设备可用）""本机系统音色"这类标题行）。顺序：自动 → 微软神经音
+     （与电脑端 Edge 同一批）→ 百度备用线路 → 本机系统音色。 */
+  const voiceOptions = useMemo(() => [
+    { value: '', label: '自动（与电脑端同音色）' },
+    ...EDGE_VOICES.map((v) => ({ value: v.id, label: v.label })),
+    { value: CLOUD_VOICE_ID, label: '百度女声（备用线路）' },
+    ...voiceList.map((v) => ({ value: v.name, label: v.label })),
+  ], [voiceList])
+  const voiceCurLabel = (voiceOptions.find((o) => o.value === (voiceSel || '')) || {}).label || (voiceSel || '自动')
+  /* 弹层打开时按 Esc 关闭（桌面习惯；移动端点遮罩关闭） */
+  useEffect(() => {
+    if (!voiceOpen) return
+    const onKey = (e) => { if (e.key === 'Escape') setVoiceOpen(false) }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [voiceOpen])
   const rateRetry = useRef(null)                       // 拖动滑块/换音色时的重播防抖
   const panelPoll = useRef(null)                       // 面板展开期间的语音表轮询（2026-09-15）
   /* 面板可用性：系统语音或云端音频任一可用即渲染（2026-09-15——手机可能没有
@@ -709,29 +728,16 @@ export default function Practice() {
                   <span style={{ fontSize: 11, opacity: .7, paddingTop: 3 }}>音色</span>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <select className="chip" style={{ fontSize: 11, maxWidth: 230 }}
-                        aria-label="播报音色" value={voiceSel || ''}
-                        onChange={(e) => applyVoice(e.target.value)}>
-                        <option value="">自动（推荐：与电脑端同音色）</option>
-                        {/* 微软神经音 = 电脑端 Edge 的同一批音色（云健/晓晓/云希…）。
-                            浏览器与 Supabase 运行时都拿不到它们（Origin 限制），故走两跳代理：
-                            手机 → Supabase 函数 → Vercel Node 代理 → 微软。 */}
-                        <optgroup label="微软神经音（与电脑端一致）">
-                          {EDGE_VOICES.map((v) => (
-                            <option key={v.id} value={v.id}>{v.label}</option>
-                          ))}
-                        </optgroup>
-                        <optgroup label="备用线路">
-                          <option value={CLOUD_VOICE_ID}>百度女声（微软线路不通时用）</option>
-                        </optgroup>
-                        {voiceList.length > 0 && (
-                          <optgroup label="本机系统音色">
-                            {voiceList.map((v) => (
-                              <option key={v.name + v.lang} value={v.name}>{v.label}</option>
-                            ))}
-                          </optgroup>
-                        )}
-                      </select>
+                      {/* 自绘音色选择器（2026-09-15，用户反馈"一点选择语音就占满整个手机画面"）：
+                          ⚠ 原用原生 <select>：安卓上会弹出**系统全屏选择器**（无法改样式、必然占满屏），
+                          且 optgroup 标题在原生弹层里会变成多余的分组行（用户截图红框那几行）。
+                          现改为「按钮 + 页面内弹层」：高度 ≤46vh、可滚动、样式随主题，
+                          并且**不再渲染分组标题行**（"云端音色（任意设备可用）""本机系统音色"等一律去掉）。 */}
+                      <button className="chip" style={{ fontSize: 11, maxWidth: 232, textAlign: 'left' }}
+                        aria-haspopup="listbox" aria-expanded={voiceOpen}
+                        onClick={() => { setVoiceOpen((o) => !o); refreshVoiceList() }}>
+                        {voiceCurLabel} <span style={{ opacity: .55 }}>▾</span>
+                      </button>
                       {/* ↻ 重新读取音色（移动端必需：部分安卓内核不触发 voiceschanged，
                           且首次 speak 之前 getVoices() 恒为空） */}
                       <button className="chip" style={{ fontSize: 11, padding: '2px 7px' }}
@@ -875,6 +881,37 @@ export default function Practice() {
         </div>
         </div>
       </div>
+      {/* 自绘音色弹层（2026-09-15）：portal 到 body —— 卡片是 3D 变换容器，fixed 元素
+          放它内部会被变换坐标系"吞掉"（定位错乱/被裁剪），必须挂到 document.body。
+          高度 ≤46vh、可滚动：不再像安卓原生 select 那样占满整屏。 */}
+      {voiceOpen && createPortal(
+        <>
+          <div onClick={() => setVoiceOpen(false)}
+            style={{ position: 'fixed', inset: 0, zIndex: 79, background: 'rgba(45,32,38,.30)' }} />
+          <div role="listbox" aria-label="播报音色"
+            style={{ position: 'fixed', left: 12, right: 12, bottom: 'calc(var(--nav-h, 58px) + 12px)', zIndex: 80,
+              maxHeight: '46vh', overflowY: 'auto', overscrollBehavior: 'contain',
+              background: 'var(--cream, #FFFDF8)', border: '2px solid var(--candy-pink-lt, #F3CBD3)',
+              borderRadius: 14, padding: 6, boxShadow: '0 12px 32px rgba(90,60,70,.24)' }}>
+            {voiceOptions.map((o) => {
+              const sel = (voiceSel || '') === o.value
+              return (
+                <button key={o.value || 'auto'} role="option" aria-selected={sel}
+                  onClick={() => { applyVoice(o.value); setVoiceOpen(false) }}
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
+                    width: '100%', padding: '9px 10px', margin: '1px 0', fontSize: 12.5, lineHeight: 1.35,
+                    textAlign: 'left', border: 'none', borderRadius: 10,
+                    background: sel ? 'linear-gradient(180deg,#EAF2ED,#DFECE5)' : 'transparent',
+                    color: '#2E6E58', cursor: 'pointer' }}>
+                  <span style={{ minWidth: 0 }}>{o.label}</span>
+                  {sel && <span style={{ color: 'var(--candy-pink-dk, #E08CA0)', fontWeight: 700 }}>✓</span>}
+                </button>
+              )
+            })}
+          </div>
+        </>,
+        document.body
+      )}
     </div>
   )
 }
