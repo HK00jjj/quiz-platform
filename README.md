@@ -1,7 +1,37 @@
 # 交接文档 · 糖果题库（quiz-platform）
 
 > 写给下一个接手的会话。读完这一份就能独立干活，不需要翻历史对话。
-> 最后更新：2026-09-15 傍晚 · GA 排程链断链修复上线（`884cfb6`，src 备份 `f55aeac`）——初版只排第一块的致命 bug 已修，线上真机 E2E **14/14**（含 A8 多块续播锁）。
+> 最后更新：2026-09-15 晚 · 语音预载提速上线（"点解析/翻题就出声"）——tts.regression **195 断言**。
+
+## 2026-09-15 晚增量 · 语音预载提速（"点解析/翻题就出声"）
+
+**需求**（用户）："点击解析，语音出声音还是很慢" → 追加"题干出声音也是一样的目的，最快。"
+
+**根因**（读盘取证）：`prefetchCloudFirst` 只在点解析手势里调用（Practice.jsx 查看解析/展开参考答案 onClick）——预载 fetch 与 speak **同时刻发起，无提前量**，首响=合成 RTT（热 ~2.2s/冷 ~7s）。此前各批修的是"块间无缝/停源断链/响度"，首响延迟本身未动。
+
+**实现（GA 缓存预载三层，开口零网络零解码秒排）**：
+1. **tts.js 新增 `prefetchGACache(raw, rate)`**：仅 GA 线 fetch+decode 进 gaCache，**不碰 `<audio>` 双缓冲**（不与题干朗读抢元素）；URL 与 speak() 云端分支逐字节同参（同 chunkSpeechText(cm,150)/同音色决策/同 rate）；同 URL 并发共享 promise（幂等不双请求）。**gaCache 是 JS Map，免疫 stopSpeak 清场——这是解除"翻题不挂预载"旧禁令的前提**（该禁令只针对 `<audio>` src 预载会被清场吃掉）。
+2. **Practice.jsx 三处预载**：①题干 effect 预载解析首块（null 版；填空多空补 splitExpected(expectedParts) 版，单空两版 URL 相同 gaWarm 幂等）②**flipToNext 手势预载下一题题干**（questions[index+1] 队列已定——三遍判制重入队发生在判分时；360ms 翻牌动画=合成窗口）③结算"再练错题"预载首题。手势 prefetchCloudFirst 保留兜底（幂等，命中即跳过）。
+3. **Learn.jsx run() 预载首题**（手势到首题落地间的路由/装载时间=合成窗口）。
+4. **stemSpokenOf/splitExpected export 收敛 validate.js 真源**（Practice/Learn 同口径引用防漂移；⑰-1/2 锁随迁）。
+
+**命中口径**：选择/判断 `grade.expected === q.answer`（gradeObjective 同参大写化，题库规范答案已大写无空格）→ 单版预载即命中；简答 lastGrade 恒 null → 单版命中；填空多空补第二版。任何落空由手势兜底，最坏回到原行为（热 ~2.2s）。
+
+**回归锁**：tts.regression **188→195**（⑱-24a~g：GA-only 守卫/无 audio 副作用/题干 effect+flipToNext+入口三层接线/真源收敛；⑰-1/2/6/7 口径随迁——⑰-6 旧"翻题不挂预载"锁升级为 GA 预载锁）。run-all **14 套件 ALL GREEN**。
+
+**验证**：build 主包 `index-CZzZnwlT.js` 534.32 kB；六步链（deploy `96a1c74` 待核实）+ 线上真机 E2E 结果见下轮补记。
+
+**诚实边界**：秒点解析（<RTT）时预载未完成，开口回落原 2.2s 下限（同 URL 共享 promise 不重复请求）；答题中途改语速/音色 → 预载 URL 失效（开口自然回退老路径）；百度线不预载（`<audio>` 元素会与题干朗读冲突），仍走手势预载；gaCache 无淘汰机制（既有架构，每题新增 1-2 条目与解析全文块同阶）。
+
+## 2026-09-15 傍晚增量 II · 响度补正 + 题干重读
+
+**需求**（用户真机验收，两条）："语音声音太小了" "重读对题干没有效果"（附截图）。
+
+**响度取证**（tools/loudness_probe.cjs，CDP 解码线上微软代理 MP3 实测）：150/300 字两样本 **peak -7.5/-4.9dBFS、RMS ≈ -24dBFS**——微软合成响度天然偏轻（正常语音 ≈ -16 LUFS），且非 GA 相对旧 `<audio>` 线的回归（两线播放时都是 gain/volume=1）。峰值余量充足 → **主增益 1.6x（+4.1dB）**：最坏峰 0.566×1.6=0.906 不削波；**DynamicsCompressor 限幅器**（threshold -1.5dBFS 起压、ratio 20、attack 2ms）兜底防个别更高峰文本爆音。GA 会话链：`块gain(fade) → sess.master(1.6) → sess.lim → destination`；`stopGASources` 断链防节点泄漏。**诚实边界：百度备用线（`<audio>`）与 native 线不增强（audio.volume 上限 1）；响度值 1.6 为当前定值，嫌大/嫌小可调 sess.master.gain。**
+
+**重读取证**：`replayTts` 原先 `if (!revealed) return`——未揭晓静默返回；且**声音控件整个在解析区**，题干阶段连按钮都不可见。两层修复：①**replayTts 分语境**——答题中重读题干 `stemSpokenOf(q)`（tag='stem|…'），揭晓后重读答案+解析（09-14 语义不变），静音态自动开播保留；②**题干区加精简声音条**（`ttsOK && !answered && !showAnswer` 时显示：🔊 开关 toggleTts + 🔁 重读题干 replayTts），揭晓后消失由解析区完整控件接管。
+
+**验证**：tts.regression **188 断言** GREEN（⑱-20 响度链/⑱-21 停源断链/⑱-22 重读分语境/⑱-23 题干声音条）；六步链全绿（deploy **`65c3b62`** 父=`884cfb6` → IDENTICAL 134 文件 → LIVE 134/134 200）；**线上真机 E2E 15/15 PASS**——A9 重读题干实证 `starts=1 reqs=0`（gaCache 命中秒排零网络）；A8 断链修复持续有效（gapTail=0）。**E2E 口径补充**：翻题 stop 旧源后，新会话首块 when 可落在旧会话历史排程区间内（如本轮 8.52 落在 [5.08,28.13)）——旧区间此时已无声，属**合法**；A7 重叠判据仅适用于"同一未停会话"语境，A8 衔接链判定天然不受干扰。
 
 ## 2026-09-15 傍晚增量 · GA 排程链断链修复（"解析读到第一个句号就不读了"）
 

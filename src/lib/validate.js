@@ -561,7 +561,7 @@ function loose(s) {
    用题干空数做裁判，所以「答案本体含逗号/斜杠」也不会被误切。
    单空多候选（2026-09-11）：段内用 / 分隔（"固体异物/固体物质"），
    checkFillBlank 要求段内主候选 = 题干挖空内容。 */
-function splitExpected(q) {
+export function splitExpected(q) {
   const n = Math.max(blanksOf(q.stem).length, 1)
   const raw = String(q.answer ?? '')
   const byPipe = raw.split('|').map((p) => p.trim()).filter(Boolean)
@@ -570,6 +570,16 @@ function splitExpected(q) {
   if (byAny.length === n) return byAny
   return byPipe.length > 0 ? byPipe : [raw.trim()]
 }
+
+/* ── 题干播报文本（纯函数，2026-09-15 用户钦定：题卡到手自动读题干，选项不读）──
+   填空题的 {…} 占位符一律读成「空」：blanksOf 就是从题干里抠答案的，占位里往往
+   带着参考答案——原样念出来等于播题前先漏答案。选项文本绝不进这条链。
+   2026-09-15 晚自 Practice.jsx 移入并 export：Learn 入口预载首题也要同一口径，
+   集中一处防漂移（朗读文本口径唯一真源=本文件）。 */
+export function stemSpokenOf(q) {
+  return String(q.stem ?? '').replace(/\{[^{}]*\}/g, '空')
+}
+
 export function normalizeAnswer(type, input) {
   const t = String(input ?? '').trim()
   if (!t) return null

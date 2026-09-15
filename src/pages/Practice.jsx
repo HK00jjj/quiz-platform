@@ -7,7 +7,7 @@ import { GiltBtn } from '../components'
 import { burstParticles } from '../components/CandyBoot'
 import { IconReveal, IconScroll, IconRetry } from '../components/CandyIcons'
 import { isObjective, domainLabel, DIFF_CLS } from '../lib/stats'
-import { gradeObjective, blanksOf } from '../lib/validate'
+import { gradeObjective, blanksOf, splitExpected, stemSpokenOf } from '../lib/validate'
 import { imageFor, diagramDataUri, diagramTitle } from '../lib/diagrams'
 /* 选项随机化用的位置排列（#6）。实现收敛到 lib/util.js（2026-09-11 审查整改：
    此前与 stats/ability/Learn 各写一遍 Fisher-Yates）。 */
@@ -15,7 +15,7 @@ import { shuffledOrder } from '../lib/util.js'
 /* 解析语音播报（2026-09-13 增量）：启封自动朗读解析，🔊 一键可关，语速 1.25。
    2026-09-15 增量（用户钦定）：题卡到手自动读【题干】，选项不读——同一个 🔊 开关
    管两段（答题中读题干、揭晓后读答案+解析），各自有「已读」闸互不挤占。 */
-import { speak, stopSpeak, pauseSpeak, resumeSpeak, unlockSpeech, ttsSupported, ttsEnabled as ttsPrefEnabled, setTtsEnabled, voiceNote, voiceAdvice, voiceGuideText, currentVoices, listVoices, ttsVoicePref, setTtsVoice, ttsRate, setTtsRate, fmtRate, voiceDiag, warmUpVoices, EDGE_VOICES, CLOUD_VOICE_ID, isCloudVoice, unlockCloudAudio, prefetchCloudFirst, currentPauseTag, RATE_MIN, RATE_MAX, RATE_STEP } from '../lib/tts.js'
+import { speak, stopSpeak, pauseSpeak, resumeSpeak, unlockSpeech, ttsSupported, ttsEnabled as ttsPrefEnabled, setTtsEnabled, voiceNote, voiceAdvice, voiceGuideText, currentVoices, listVoices, ttsVoicePref, setTtsVoice, ttsRate, setTtsRate, fmtRate, voiceDiag, warmUpVoices, EDGE_VOICES, CLOUD_VOICE_ID, isCloudVoice, unlockCloudAudio, prefetchCloudFirst, currentPauseTag, prefetchGACache, RATE_MIN, RATE_MAX, RATE_STEP } from '../lib/tts.js'
 
 /* 题干渲染：填空题把 {空} 显示为下划线占位 */
 function Stem({ q }) {
@@ -60,13 +60,6 @@ function spokenOf(q, lastGrade, order) {
   const parts = [`正确答案：${ans}`]
   if (q.explanation) parts.push(`解析：${remap(q.explanation)}`)
   return parts.join('。')
-}
-
-/* ── 题干播报文本（纯函数，2026-09-15 用户钦定：题卡到手自动读题干，选项不读）──
-   填空题的 {…} 占位符一律读成「空」：blanksOf 就是从题干里抠答案的，占位里往往
-   带着参考答案——原样念出来等于播题前先漏答案。选项文本绝不进这条链。 */
-function stemSpokenOf(q) {
-  return String(q.stem ?? '').replace(/\{[^{}]*\}/g, '空')
 }
 
 export default function Practice() {
@@ -323,6 +316,19 @@ export default function Practice() {
     if (stemSpokenRef.current === key) return   // 本题题干已读过：不重播（防叠音闸）
     stemSpokenRef.current = key
     speak(stemSpokenOf(q), { tag: 'stem|' + index + '|' + q.id })
+    /* 解析首块预载（2026-09-15 晚"点解析就出声"）：题卡到手即后台预合成揭晓文本首块进
+       GA 缓存，揭晓开口时 gaCache 命中零网络零解码秒排。命中口径：
+       选择/判断 grade.expected===q.answer（gradeObjective 同参大写化，题库规范答案已
+       大写无空格）→ 单版预载即命中；简答 lastGrade 恒 null（自评）单版即命中；填空题
+       多空揭晓读「第N空：…」（expectedParts），补预载 splitExpected 真函数版（单空两版
+       URL 相同，gaWarm 同 URL 幂等共享 promise，不产生双请求）。任何落空由手势
+       prefetchCloudFirst 兜底，最坏回到原行为（热 ~2.2s）。 */
+    const ord = shuffleRef.current.order
+    prefetchGACache(spokenOf(q, null, ord))
+    if (q.type === '填空题') {
+      const parts = splitExpected(q)
+      if (parts.length > 1) prefetchGACache(spokenOf(q, { correct: true, expectedParts: parts }, ord))
+    }
   }, [ttsOK, index, q?.id, phase, showAnswer, ttsOn])
   /* 卸载兜底：离开练习页/进结算页时，不留一条还在说的声音；面板轮询一并清掉 */
   useEffect(() => () => { stopSpeak(); clearInterval(panelPoll.current) }, [])
@@ -510,6 +516,13 @@ export default function Practice() {
   function flipToNext() {
     if (flying.current) return
     flying.current = true
+    /* 下一题题干首块预载（2026-09-15 晚"翻题就出声"）：手势内对 questions[index+1]
+       发起 GA 预合成，360ms 翻牌动画正好是合成窗口，新题落地开口 gaCache 命中秒排。
+       gaCache 是 JS Map，不受 stopSpeak 清场影响——解除"翻题不挂预载"旧禁令（该禁令
+       针对 <audio> src 预载会被清场吃掉；GA 缓存线免疫）。队列已定（三遍判制重入队
+       发生在判分时），index+1 即下一题；末题越界由 if 守卫。 */
+    const nxt = questions[index + 1]
+    if (nxt) prefetchGACache(stemSpokenOf(nxt))
     setFlipped(false)
     // 300ms = .q-flipper 退出时长，留 60ms 余量再切题
     setTimeout(() => { flying.current = false; next() }, 360)
@@ -566,7 +579,12 @@ export default function Practice() {
                 <GiltBtn tone="danger" onClick={async () => {
                   unlockCloudAudio()          // 重开一轮的手势内解锁云端 <audio>：首题题干播报不被浏览器拦
                   const n = await startSession('wrong', { size: 0 })
-                  if (n > 0) { startAt.current = Date.now(); setElapsed(0) }
+                  if (n > 0) {
+                    startAt.current = Date.now(); setElapsed(0)
+                    /* 首题题干首块预载（2026-09-15 晚）：结算→练习页的路由/装载时间变成合成窗口 */
+                    const qs = useStore.getState().sessionQuestions
+                    if (qs && qs[0]) prefetchGACache(stemSpokenOf(qs[0]))
+                  }
                   else navigate('/')
                 }}><IconRetry /> 再练错题（{wrongN}）</GiltBtn>
               )}

@@ -1105,6 +1105,22 @@ export function prefetchCloudFirst(raw, rate = ttsRate()) {
   const url = cloudTtsUrl(chunks[0], rate, useVoice)
   try { if (idle.src !== url) idle.src = url; return true } catch { return false }
 }
+/* 答题期后台预载（2026-09-15 晚"点解析/翻题就出声"）：只走 GA 线 fetch+decode 进
+   gaCache，不碰 <audio> 元素——不与正在朗读的题干抢双缓冲元素，也不受 stopSpeak
+   清场影响（gaCache 是 JS Map）。URL 与 speak() 云端分支逐字节同参（同
+   chunkSpeechText(cm, CLOUD_CHUNK_MAX) 切块/同音色决策/同语速），揭晓开口时首块
+   gaDecode 直接命中缓存秒排（A9 已实证 gaCache 命中 reqs=0）。幂等：同 URL 并发
+   共享同一 promise，不产生重复请求。失败静默。 */
+export function prefetchGACache(raw, rate = ttsRate()) {
+  if (!cloudSupported() || !webAudioOK()) return false
+  const pref = ttsVoicePref()
+  const useVoice = isCloudVoice(pref) ? pref : CLOUD_DEFAULT_VOICE
+  if (!isEdgeVoice(useVoice)) return false      // GA 管线仅 Edge 神经音；百度线仍由手势 prefetchCloudFirst 兜底
+  const cm = cloudChunkMaxFor(useVoice)
+  const chunks = chunkSpeechText(raw, cm, CLOUD_CHUNK_MAX)
+  if (!chunks.length) return false
+  try { gaWarm(cloudTtsUrl(chunks[0], rate, useVoice)); return true } catch { return false }
+}
 /* 「自动」档的引擎决策（纯函数，可回归）：
    显式选了云端/系统就照办；
    自动档下 2026-09-15 下午起 **云端可用一律走云端**：GA 管线把块解码裁静音后采样级
