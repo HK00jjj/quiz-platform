@@ -5,7 +5,7 @@
    ② cleanSpeechText：emoji 删除、→ 与换行转停顿、markdown 记号剥离
    ③ pickVoice：选声优先级（晓晓Natural > 云希Natural > Natural > 常见微软本地音 > 任意zh） */
 import assert from 'node:assert/strict'
-import { chunkSpeechText, cleanSpeechText, normalizeSpeech, pickVoice, chunkMaxFor, TTS_RATE, RATE_MIN, RATE_MAX, RATE_STEP, clampRate, fmtRate, ttsRate, sliceForResume, listVoices, voiceQualityOf, voiceAccent, voiceLabel, ttsVoicePref, resolveVoiceByName, zhLike, voiceDiag, cloudTtsUrl, cloudSpd, engineFor, isCloudVoice, isEdgeVoice, EDGE_VOICES, CLOUD_VOICES, CLOUD_CHUNK_MAX, cloudSupported, CLOUD_VOICE_ID, CLOUD_DEFAULT_VOICE, prefetchCloudFirst } from '../src/lib/tts.js'
+import { chunkSpeechText, cleanSpeechText, normalizeSpeech, pickVoice, chunkMaxFor, TTS_RATE, RATE_MIN, RATE_MAX, RATE_STEP, clampRate, fmtRate, ttsRate, sliceForResume, listVoices, voiceQualityOf, voiceAccent, voiceLabel, ttsVoicePref, resolveVoiceByName, zhLike, voiceDiag, cloudTtsUrl, cloudSpd, engineFor, isCloudVoice, isEdgeVoice, EDGE_VOICES, CLOUD_VOICES, CLOUD_CHUNK_MAX, CLOUD_CHUNK_MAX_EDGE, cloudChunkMaxFor, cloudSupported, CLOUD_VOICE_ID, CLOUD_DEFAULT_VOICE, prefetchCloudFirst } from '../src/lib/tts.js'
 
 let n = 0
 const ok = (cond, msg) => { n++; assert.ok(cond, msg) }
@@ -263,5 +263,19 @@ ok(cloudSupported() === false, '⑪-28 Node 无 window → cloudSupported() 安�
    Node 无 window.Audio → 新 API 必须安全降级（返回 false 不抛）。预载命中/块间零 gap
    的行为验证由线上真机 E2E（CDP 计时）承担，此处锁 Node 形状。 */
 ok(prefetchCloudFirst('按SB2→KM吸合') === false, '⑮-1 Node 无 window：手势预载安全返回 false')
+
+/* ── ⑯ 首块小/后续大分块（2026-09-15，修"句号后面顿一下"）──
+   微软两跳代理后端实测上限 300 字（probe：450 字 → 400 {"error":"text too long","max":300}）。
+   首块保持 150（首响快：合成 RTT 与块长正相关，实测 150 字热合成 ≈2.2s），
+   后续块 300（块边界减半 = 句号停顿减半）。 */
+const long16 = Array.from({ length: 12 }, (_, i) => `第${i + 1}条要点用于验证分块长度切换，句尾用句号收束。`).join('')
+const cs16 = chunkSpeechText(long16, CLOUD_CHUNK_MAX_EDGE, CLOUD_CHUNK_MAX)
+ok(cs16.length > 1, '⑯-1 长文按新参数分为多块')
+ok(cs16[0].length <= CLOUD_CHUNK_MAX, '⑯-2 首块 ≤150（首响优先）')
+ok(cs16.slice(1).every((c) => c.length <= CLOUD_CHUNK_MAX_EDGE), '⑯-3 后续块 ≤300（后端实测上限）')
+ok(cs16.join('') === cleanSpeechText(long16), '⑯-4 firstMax 分块拼接恒等（不丢字）')
+ok(chunkSpeechText(long16, 200).every((c) => c.length <= 200), '⑯-5 默认参数兼容：单参时 firstMax=max')
+ok(cloudChunkMaxFor('zh-CN-YunjianNeural') === CLOUD_CHUNK_MAX_EDGE, '⑯-6 微软两跳线块长 300')
+ok(cloudChunkMaxFor(CLOUD_VOICE_ID) === CLOUD_CHUNK_MAX, '⑯-7 百度线块长 150')
 
 console.log(`\ntts.regression：${n} 断言全绿`)

@@ -226,29 +226,33 @@ function safeCutIndex(text, cut, max) {
 
 /* 按句读切块（≤max 字/块）。先在强句读（。！？；!?;）断句，短句就近合并进同块；
    单句超长再在次级断点（，、：）回退切，实在没有断点才硬切。
-   返回的块拼起来 = 清洗后的原文（无空格文本下严格成立；边界保护只改断点位置不改内容）。 */
-export function chunkSpeechText(raw, max = 50) {
+   返回的块拼起来 = 清洗后的原文（无空格文本下严格成立；边界保护只改断点位置不改内容）。
+   firstMax（2026-09-15）：首块单独上限——首块小=首响快（合成 RTT 与块长正相关），
+   后续块加大=块边界少=句号处停顿少（每块是独立合成音频，自带首尾静音，
+   块边界≈句号边界，用户实测"每个句号后面顿一下"）。 */
+export function chunkSpeechText(raw, max = 50, firstMax = max) {
   const text = cleanSpeechText(raw)
   if (!text) return []
   const chunks = []
   let buf = ''
-  const flush = () => { const t = buf.trim(); if (t) chunks.push(t); buf = '' }
+  let cap = Math.max(1, Math.min(firstMax, max))    // 首块上限；flush 一块后回到 max
+  const flush = () => { const t = buf.trim(); if (t) chunks.push(t); buf = ''; cap = max }
   for (let sent of text.split(/(?<=[。！？；!?;])/g)) {
     sent = sent.trim()
     if (!sent) continue
-    while (sent.length > max) {                      // 单句超长：在次级断点回退切
-      const head = sent.slice(0, max)
+    while (sent.length > cap) {                      // 单句超长：在次级断点回退切
+      const head = sent.slice(0, cap)
       let cut = Math.max(head.lastIndexOf('，'), head.lastIndexOf('、'),
         head.lastIndexOf('：'), head.lastIndexOf(','))
-      if (cut < Math.floor(max / 3)) cut = max - 1   // 找不到像样断点 → 硬切
-      cut = safeCutIndex(sent, cut + 1, max) - 1     // 边界保护：避免切断词/数字/括号
-      if (cut < 1) cut = Math.min(max - 1, sent.length - 1)
+      if (cut < Math.floor(cap / 3)) cut = cap - 1   // 找不到像样断点 → 硬切
+      cut = safeCutIndex(sent, cut + 1, cap) - 1     // 边界保护：避免切断词/数字/括号
+      if (cut < 1) cut = Math.min(cap - 1, sent.length - 1)
       flush()
       chunks.push(sent.slice(0, cut + 1).trim())
       sent = sent.slice(cut + 1)
     }
     if (!sent) continue
-    if (buf && buf.length + sent.length > max) flush()
+    if (buf && buf.length + sent.length > cap) flush()
     buf += sent
   }
   flush()
@@ -666,7 +670,8 @@ export async function speak(raw, { rate = ttsRate(), onDone } = {}) {
        吃到 prefetch 预载的 els[0].src → 手势预载真正生效。 */
     pauseCloud()
     cloudPlaying = null
-    const chunks = chunkSpeechText(raw, CLOUD_CHUNK_MAX)
+    const cm = cloudChunkMaxFor(pref)
+    const chunks = chunkSpeechText(raw, cm, CLOUD_CHUNK_MAX)
     if (!chunks.length) return false
     /* 云端分支不再 sleep(120)：stopCloud 是同步 pause，无引擎复位需求；
        这 120ms 原是给系统语音 cancel 落地留的，省掉后首块更快开口 */
@@ -675,7 +680,7 @@ export async function speak(raw, { rate = ttsRate(), onDone } = {}) {
   }
   if (!ttsSupported()) {
     /* 无 speechSynthesis 但可播音频（部分 WebView）→ 云端兜底（云健） */
-    const chunks = chunkSpeechText(raw, CLOUD_CHUNK_MAX)
+    const chunks = chunkSpeechText(raw, CLOUD_CHUNK_MAX_EDGE, CLOUD_CHUNK_MAX)
     if (!chunks.length || !cloudSupported()) return false
     return speakCloud(chunks, rate, onDone, my, CLOUD_DEFAULT_VOICE)
   }
@@ -690,7 +695,7 @@ export async function speak(raw, { rate = ttsRate(), onDone } = {}) {
     /* 同上（2026-09-15）：保留手势预载，只停声不清 src */
     pauseCloud()
     cloudPlaying = null
-    const cchunks = chunkSpeechText(raw, CLOUD_CHUNK_MAX)
+    const cchunks = chunkSpeechText(raw, CLOUD_CHUNK_MAX_EDGE, CLOUD_CHUNK_MAX)
     if (!cchunks.length) return false
     if (my !== token) return false
     return speakCloud(cchunks, rate, onDone, my, CLOUD_DEFAULT_VOICE)
@@ -762,6 +767,14 @@ export function cloudSpd(rate) {
 }
 /* 云端块长：URL 安全（实测 2000 字会 414），150 字/块 ≈ URL 1.5KB，留足余量 */
 export const CLOUD_CHUNK_MAX = 150
+/* 2026-09-15（用户实测"句号后面顿一下"）：微软两跳代理线路后端实测上限 max:300
+   （450 字返回 {"error":"text too long","max":300}）——后续块提到 300，块边界减半；
+   首块仍 150（首响快：合成 RTT 与块长正相关，实测 150 字热合成 ≈2.2s）。
+   百度备用线路维持 150。两值经 chunkSpeechText(raw, cm, CLOUD_CHUNK_MAX) 组合：
+   首块 ≤150，后续 ≤300。 */
+export const CLOUD_CHUNK_MAX_EDGE = 300
+/* 云端线路块长决策：微软神经音（zh-* 两跳代理）用大块，百度用小块 */
+export const cloudChunkMaxFor = (voice) => isEdgeVoice(voice) ? CLOUD_CHUNK_MAX_EDGE : CLOUD_CHUNK_MAX
 export function cloudTtsUrl(text, rate = TTS_RATE, voice = CLOUD_DEFAULT_VOICE) {
   const t = encodeURIComponent(String(text ?? ''))
   if (isEdgeVoice(voice)) {
@@ -826,6 +839,16 @@ export function resumeCloud() { const a = cloudPlaying; if (!a) return false; tr
    音色在整段开始时锁定一次（与系统语音链同样的"整段同一音色"原则）。
    播放策略：下一块的 URL 已在另一元素缓冲 → 直接切过去播（零等待）；
    否则当场加载（旧行为兜底）。 */
+/* ── 尾部提前续播（2026-09-15，修"句号后面顿一下"）──
+   每块是独立合成音频，自带 ~0.1-0.3s 首尾静音；块边界≈句号边界，
+   "ended 事件派发 → step → play 管线"的串行空隙 + 两段静音 = 用户听到的停顿。
+   做法：rAF 轮询播放位，剩 TAIL_LEAD 秒（落在句尾衰减/静音区，无听感）就提前
+   step() 切到已预载的下一块——下一块的开头静音正好补齐切换空隙 → 听感连续。
+   兜底链：onended（提前切失效时照常推进）→ onerror（单块失败跳过）。
+   降级链：无 rAF（Node/老内核）用 60ms 轮询；后台标签页 rAF 暂停 → 自动回落 onended。 */
+const TAIL_LEAD = 0.18
+const rafOf = (f) => (typeof requestAnimationFrame === 'function' ? requestAnimationFrame(f) : setTimeout(f, 60))
+const cafOf = (h) => (typeof cancelAnimationFrame === 'function' ? cancelAnimationFrame(h) : clearTimeout(h))
 export function speakCloud(chunks, rate, onDone, my, voice) {
   if (!cloudSupported() || !chunks || !chunks.length) return false
   const tok = my === undefined ? ++token : my
@@ -835,6 +858,21 @@ export function speakCloud(chunks, rate, onDone, my, voice) {
   const sess = { mode: 'cloud', chunks, i: 0, paused: false, done: false, voiceName: useVoice }
   session = sess
   const urlOf = (t) => cloudTtsUrl(t, rate, useVoice)
+  let tailRaf = 0
+  const armTail = (el) => {
+    cafOf(tailRaf)
+    const tick = () => {
+      if (tok !== token || el !== cloudPlaying) return        // 会话更替/已切走：停轮询
+      if (el.paused) { tailRaf = rafOf(tick); return }        // 暂停中：保持轮询等恢复
+      const d = el.duration
+      if (isFinite(d) && d > 0 && el.currentTime > 0 && el.currentTime >= d - TAIL_LEAD) {
+        step()                                                // 尾部静音区：提前切播预载下一块
+        return
+      }
+      tailRaf = rafOf(tick)
+    }
+    tailRaf = rafOf(tick)
+  }
   const step = () => {
     if (tok !== token || sess.paused) return
     if (sess.i >= chunks.length) {
@@ -852,6 +890,7 @@ export function speakCloud(chunks, rate, onDone, my, voice) {
       if (el.src !== url) { el.src = url; try { el.load() } catch { /* ignore */ } }  // 幂等 + load() 复位残留错误态
       const p = el.play(); if (p && p.catch) p.catch(() => {})
     } catch { setTimeout(step, 150); return }
+    armTail(el)                               // 尾部提前续播轮询（onended 兜底仍在）
     if (sess.i < chunks.length) {             // 立刻预载下一块到空闲元素
       const nxt = urlOf(chunks[sess.i])
       try { if (idle.src !== nxt) idle.src = nxt } catch { /* ignore */ }
@@ -877,7 +916,10 @@ export function prefetchCloudFirst(raw, rate = ttsRate()) {
   if (!cloudSupported()) return false
   const pref = ttsVoicePref()
   const useVoice = isCloudVoice(pref) ? pref : CLOUD_DEFAULT_VOICE
-  const chunks = chunkSpeechText(raw, CLOUD_CHUNK_MAX)
+  /* 与 speak() 云端分支完全同参切块（cm + firstMax）——chunks[0] 的 URL 必须逐字节一致，
+     否则预载命中判定 idle.src===url 落空 */
+  const cm = cloudChunkMaxFor(useVoice)
+  const chunks = chunkSpeechText(raw, cm, CLOUD_CHUNK_MAX)
   if (!chunks.length) return false
   const els = ensureCloudEls()
   if (!els) return false
