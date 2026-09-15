@@ -275,6 +275,8 @@ export default function Practice() {
     }
   }, [ttsOK])
   useEffect(() => {
+    /* 取证插桩（2026-09-15，修"播一段就停"）：仅当 E2E/排障者设 window.__ttsfxArm 时记录依赖快照，线上零开销零泄漏 */
+    try { if (window.__ttsfxArm) (window.__ttsfxLog = window.__ttsfxLog || []).push({ t: Date.now(), seal, phase, showAnswer, index, qid: q && q.id, ttsOn }) } catch { /* ignore */ }
     if (!ttsOK) return
     const revealed = seal === 'broken' && (phase === 'feedback' || showAnswer)
     if (!revealed || !q) { stopSpeak(); spokenKeyRef.current = null; return }

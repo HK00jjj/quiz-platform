@@ -659,7 +659,13 @@ export async function speak(raw, { rate = ttsRate(), onDone } = {}) {
   const pref = ttsVoicePref()
   if (isCloudVoice(pref)) {
     try { window.speechSynthesis?.cancel() } catch { /* ignore */ }
-    stopCloud()
+    /* 2026-09-15 取证修正：这里原来是 stopCloud()——它会把 prefetchCloudFirst 在手势里
+       预载好的首块 src 一并清掉，预载白做（"点开解析不立马读"的残留根因）。
+       此时 token 已 ++（旧链所有回调短路），只需停声与复位指针；新会话 speakCloud
+       开头统一 detach+重挂 handler，且 step 的预载命中判定（idle.src===url）正好
+       吃到 prefetch 预载的 els[0].src → 手势预载真正生效。 */
+    pauseCloud()
+    cloudPlaying = null
     const chunks = chunkSpeechText(raw, CLOUD_CHUNK_MAX)
     if (!chunks.length) return false
     /* 云端分支不再 sleep(120)：stopCloud 是同步 pause，无引擎复位需求；
@@ -681,7 +687,9 @@ export async function speak(raw, { rate = ttsRate(), onDone } = {}) {
   /* ② 引擎决策：自动档只有在"系统本身就是神经音"时才用系统，其余走云端 →
      手机与电脑听到同一音色（云健）。显式选过云端音色则上方已提前返回。 */
   if (engineFor(voice ? voiceQualityOf(voice) : null, pref, cloudSupported()) === 'cloud') {
-    stopCloud()
+    /* 同上（2026-09-15）：保留手势预载，只停声不清 src */
+    pauseCloud()
+    cloudPlaying = null
     const cchunks = chunkSpeechText(raw, CLOUD_CHUNK_MAX)
     if (!cchunks.length) return false
     if (my !== token) return false
@@ -794,9 +802,22 @@ export function unlockCloudAudio() {
     return true
   } catch { return false }
 }
+/* ⚠ 三个实测踩中的坑（2026-09-15 E2E 取证）：
+   ① `a.src = ''` 会解析成当前页地址 → 加载失败 → 元素派发 error(code 4)——
+      若不先解绑 onended/onerror，这个"清场 error"会打进旧会话链误推块指针；
+   ② 元素带着 MEDIA_ERROR 时直接换 src 播，部分内核不解码 → 换源后显式 load() 复位；
+   ③ onerror 必须守卫"源已被清空"的情形（getAttribute('src') 为空 → 无视）。 */
+function cloudDetach(a) { try { a.onended = null; a.onerror = null } catch { /* ignore */ } }
 export function stopCloud() {
   cloudPlaying = null
-  for (const a of [cloudAudio, cloudAudio2]) { if (a) { try { a.pause(); a.src = '' } catch { /* ignore */ } } }
+  /* 2026-09-15 取证修正：`a.src=''` 会把 src 解析成当前页地址并派发 error(code 4)
+     （E2E elSnap 实证 src=http://localhost:4176/quiz-platform/）。媒体元素"卸载资源"
+     的标准姿势是 removeAttribute('src') + load()：src getter 归空、不产生假 error。 */
+  for (const a of [cloudAudio, cloudAudio2]) {
+    if (!a) continue
+    cloudDetach(a)
+    try { a.pause(); a.removeAttribute('src'); try { a.load() } catch { /* ignore */ } } catch { /* ignore */ }
+  }
 }
 export function pauseCloud() { const a = cloudPlaying; if (!a) return false; try { a.pause(); return true } catch { return false } }
 export function resumeCloud() { const a = cloudPlaying; if (!a) return false; try { const p = a.play(); if (p && p.catch) p.catch(() => {}); return true } catch { return false } }
@@ -828,7 +849,7 @@ export function speakCloud(chunks, rate, onDone, my, voice) {
     if (idle.src === url) el = idle           // 预载命中：切到已缓冲的元素，零等待接播
     cloudPlaying = el
     try {
-      if (el.src !== url) el.src = url        // 幂等：同 URL 不重设（避免打断已就绪的缓冲）
+      if (el.src !== url) { el.src = url; try { el.load() } catch { /* ignore */ } }  // 幂等 + load() 复位残留错误态
       const p = el.play(); if (p && p.catch) p.catch(() => {})
     } catch { setTimeout(step, 150); return }
     if (sess.i < chunks.length) {             // 立刻预载下一块到空闲元素
@@ -837,8 +858,13 @@ export function speakCloud(chunks, rate, onDone, my, voice) {
     }
   }
   for (const el of els) {
+    cloudDetach(el)                           // 先解绑旧会话/清场残留的 handler 再挂新的
     el.onended = () => { if (tok === token && el === cloudPlaying) step() }
-    el.onerror = () => { if (tok === token && el === cloudPlaying) step() }
+    el.onerror = () => {
+      if (tok !== token || el !== cloudPlaying) return
+      if (!el.getAttribute('src')) return     // src 被清空触发的"清场 error"：无视，不推进
+      step()
+    }
   }
   step()
   return true
