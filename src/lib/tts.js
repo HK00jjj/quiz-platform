@@ -398,6 +398,16 @@ export function pickVoice(voices) {
    Edge 首帧实测常常只列出 Huihui/Kangkang/Yaoyao 三个老音，再过一拍才补上
    14 个 Online 神经音；如果一看到列表非空就开说，第一段就是机械音。
    策略：最长等 1500ms，期间一旦出现非 SAPI 音立即开说；超时则用当前最优。 */
+/* 移动端判定（waitVoice 预算用）：安卓/iOS 的语音表要么恒空、要么必超时——
+   等 1500ms 纯浪费（engineFor 反正会判 cloud）。桌面保持 1500ms 不变：
+   Edge 首帧常只给 3 个老 SAPI 音、约几百 ms 后才补齐神经音，等是值得的。 */
+function isMobileUA() {
+  try {
+    if (typeof navigator === 'undefined') return false
+    if (navigator.userAgentData && typeof navigator.userAgentData.mobile === 'boolean') return navigator.userAgentData.mobile
+    return /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent || '')
+  } catch { return false }
+}
 function waitVoice(maxMs = 1500) {
   return new Promise((resolve) => {
     if (!ttsSupported()) return resolve(null)
@@ -652,7 +662,8 @@ export async function speak(raw, { rate = ttsRate(), onDone } = {}) {
     stopCloud()
     const chunks = chunkSpeechText(raw, CLOUD_CHUNK_MAX)
     if (!chunks.length) return false
-    await sleep(CHUNK_GAP)
+    /* 云端分支不再 sleep(120)：stopCloud 是同步 pause，无引擎复位需求；
+       这 120ms 原是给系统语音 cancel 落地留的，省掉后首块更快开口 */
     if (my !== token) return false
     return speakCloud(chunks, rate, onDone, my, pref)
   }
@@ -663,8 +674,9 @@ export async function speak(raw, { rate = ttsRate(), onDone } = {}) {
     return speakCloud(chunks, rate, onDone, my, CLOUD_DEFAULT_VOICE)
   }
   const synth = window.speechSynthesis
-  /* 先拿到语音再开口（见 waitVoice 注释）；等待期间若被静音/新播报取代，直接放弃 */
-  const voice = await waitVoice()
+  /* 先拿到语音再开口（见 waitVoice 注释）；等待期间若被静音/新播报取代，直接放弃。
+     移动端只等 300ms：语音表要么恒空要么必超时，早降云端省 1.2s+ 首响延迟 */
+  const voice = await waitVoice(isMobileUA() ? 300 : 1500)
   if (my !== token) return false
   /* ② 引擎决策：自动档只有在"系统本身就是神经音"时才用系统，其余走云端 →
      手机与电脑听到同一音色（云健）。显式选过云端音色则上方已提前返回。 */
@@ -672,7 +684,6 @@ export async function speak(raw, { rate = ttsRate(), onDone } = {}) {
     stopCloud()
     const cchunks = chunkSpeechText(raw, CLOUD_CHUNK_MAX)
     if (!cchunks.length) return false
-    await sleep(CHUNK_GAP)
     if (my !== token) return false
     return speakCloud(cchunks, rate, onDone, my, CLOUD_DEFAULT_VOICE)
   }
@@ -750,58 +761,103 @@ export function cloudTtsUrl(text, rate = TTS_RATE, voice = CLOUD_DEFAULT_VOICE) 
   }
   return 'https://fanyi.baidu.com/gettts?lan=zh&source=web&spd=' + cloudSpd(rate) + '&text=' + t
 }
-/* ── 云端播放器（单例 <audio>）──
-   移动端要求"首次播放落在用户手势里"，故 unlockCloudAudio() 在手势内播一个静音
-   短片把该元素解锁；之后换 src 续播不再被拦。失败静默、绝不抛。 */
-let cloudAudio = null
-function ensureCloudAudio() {
+/* ── 云端播放器（双 <audio> 双缓冲，2026-09-15 重构）──
+   旧实现是"播完一块才换 src 请求下一块"→ 块间裸等一次完整合成往返（两跳 0.8~3s），
+   用户听到"读一段停一下"。重构为双缓冲：A 播本块的同时 B 预载下一块（云端音频有
+   24h Cache-Control，预载必命中），A 播完切 B 立即开播 → 块间零网络等待。
+   移动端要求"首次播放落在用户手势里"，故 unlockCloudAudio() 把**两个**元素都在手势内
+   用静音短片解锁（切元素播放也免拦）；iOS Safari 可能把 preload 降级为 metadata，
+   那时预载不生效 → 退化为旧行为（块间停顿），不会更糟。失败静默、绝不抛。 */
+let cloudAudio = null       // 播放位
+let cloudAudio2 = null      // 预载位（与播放位角色按块互换）
+let cloudPlaying = null     // 当前正在播的元素（pause/resume/事件守卫都以它为准）
+function ensureCloudEls() {
   if (!cloudSupported()) return null
   if (!cloudAudio) { cloudAudio = new window.Audio(); cloudAudio.preload = 'auto' }
-  return cloudAudio
+  if (!cloudAudio2) { cloudAudio2 = new window.Audio(); cloudAudio2.preload = 'auto' }
+  return [cloudAudio, cloudAudio2]
 }
 const SILENT_WAV = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAgD4AAIA+AAABAAgAZGF0YQAAAAA='
 let cloudUnlocked = false
 export function unlockCloudAudio() {
-  const a = ensureCloudAudio()
-  if (!a) return false
+  const els = ensureCloudEls()
+  if (!els) return false
   if (cloudUnlocked) return true
   try {
-    a.src = SILENT_WAV; a.volume = 0
-    const p = a.play()
-    if (p && p.catch) p.catch(() => {})
+    for (const a of els) {              // 两个都解锁：块间会切元素，不能只解锁一个
+      a.src = SILENT_WAV; a.volume = 0
+      const p = a.play()
+      if (p && p.catch) p.catch(() => {})
+    }
     cloudUnlocked = true
-    setTimeout(() => { try { a.pause(); a.volume = 1 } catch { /* ignore */ } }, 120)
+    setTimeout(() => { try { for (const a of els) { a.pause(); a.volume = 1 } } catch { /* ignore */ } }, 120)
     return true
   } catch { return false }
 }
-export function stopCloud() { const a = cloudAudio; if (a) { try { a.pause(); a.src = '' } catch { /* ignore */ } } }
-export function pauseCloud() { const a = cloudAudio; if (!a) return false; try { a.pause(); return true } catch { return false } }
-export function resumeCloud() { const a = cloudAudio; if (!a) return false; try { const p = a.play(); if (p && p.catch) p.catch(() => {}); return true } catch { return false } }
-/* 云端逐块串行播放：单块失败跳过继续，绝不整段挂死。
+export function stopCloud() {
+  cloudPlaying = null
+  for (const a of [cloudAudio, cloudAudio2]) { if (a) { try { a.pause(); a.src = '' } catch { /* ignore */ } } }
+}
+export function pauseCloud() { const a = cloudPlaying; if (!a) return false; try { a.pause(); return true } catch { return false } }
+export function resumeCloud() { const a = cloudPlaying; if (!a) return false; try { const p = a.play(); if (p && p.catch) p.catch(() => {}); return true } catch { return false } }
+/* 云端双缓冲逐块播放：单块失败跳过继续，绝不整段挂死。
    voice 决定线路：微软神经音走两跳代理，百度女声走 fanyi（备用）；
-   音色在整段开始时锁定一次（与系统语音链同样的"整段同一音色"原则）。 */
+   音色在整段开始时锁定一次（与系统语音链同样的"整段同一音色"原则）。
+   播放策略：下一块的 URL 已在另一元素缓冲 → 直接切过去播（零等待）；
+   否则当场加载（旧行为兜底）。 */
 export function speakCloud(chunks, rate, onDone, my, voice) {
   if (!cloudSupported() || !chunks || !chunks.length) return false
   const tok = my === undefined ? ++token : my
-  const a = ensureCloudAudio()
-  if (!a) return false
+  const els = ensureCloudEls()
+  if (!els) return false
   const useVoice = isCloudVoice(voice) ? voice : CLOUD_DEFAULT_VOICE
   const sess = { mode: 'cloud', chunks, i: 0, paused: false, done: false, voiceName: useVoice }
   session = sess
+  const urlOf = (t) => cloudTtsUrl(t, rate, useVoice)
   const step = () => {
     if (tok !== token || sess.paused) return
     if (sess.i >= chunks.length) {
       sess.done = true
+      cloudPlaying = null
       if (onDone) onDone()
       return
     }
-    const text = chunks[sess.i++]
-    try { a.src = cloudTtsUrl(text, rate, useVoice); const p = a.play(); if (p && p.catch) p.catch(() => {}) } catch { setTimeout(step, 150) }
+    const url = urlOf(chunks[sess.i++])
+    let el = cloudPlaying || els[0]
+    const idle = el === els[0] ? els[1] : els[0]
+    if (idle.src === url) el = idle           // 预载命中：切到已缓冲的元素，零等待接播
+    cloudPlaying = el
+    try {
+      if (el.src !== url) el.src = url        // 幂等：同 URL 不重设（避免打断已就绪的缓冲）
+      const p = el.play(); if (p && p.catch) p.catch(() => {})
+    } catch { setTimeout(step, 150); return }
+    if (sess.i < chunks.length) {             // 立刻预载下一块到空闲元素
+      const nxt = urlOf(chunks[sess.i])
+      try { if (idle.src !== nxt) idle.src = nxt } catch { /* ignore */ }
+    }
   }
-  a.onended = () => { if (tok === token) step() }
-  a.onerror = () => { if (tok === token) step() }
+  for (const el of els) {
+    el.onended = () => { if (tok === token && el === cloudPlaying) step() }
+    el.onerror = () => { if (tok === token && el === cloudPlaying) step() }
+  }
   step()
   return true
+}
+/* 手势内预载首块（2026-09-15，修"点开解析要等一会才读"）：
+   在「展开参考答案」的点击处理里同步调用——把 520ms 蜡封动画 + speak() 链路的时间
+   全部变成首块合成/下载窗口，speakCloud 到达时 idle.src 已命中 → 直接开播。
+   音色决策与 speak() 云端分支一致：显式云端音色用它，自动档用云健。幂等，失败静默。 */
+export function prefetchCloudFirst(raw, rate = ttsRate()) {
+  if (!cloudSupported()) return false
+  const pref = ttsVoicePref()
+  const useVoice = isCloudVoice(pref) ? pref : CLOUD_DEFAULT_VOICE
+  const chunks = chunkSpeechText(raw, CLOUD_CHUNK_MAX)
+  if (!chunks.length) return false
+  const els = ensureCloudEls()
+  if (!els) return false
+  const idle = els[0] === cloudPlaying ? els[1] : els[0]
+  const url = cloudTtsUrl(chunks[0], rate, useVoice)
+  try { if (idle.src !== url) idle.src = url; return true } catch { return false }
 }
 /* 「自动」档的引擎决策（纯函数，可回归）：
    显式选了云端/系统就照办；

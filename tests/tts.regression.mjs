@@ -5,7 +5,7 @@
    ② cleanSpeechText：emoji 删除、→ 与换行转停顿、markdown 记号剥离
    ③ pickVoice：选声优先级（晓晓Natural > 云希Natural > Natural > 常见微软本地音 > 任意zh） */
 import assert from 'node:assert/strict'
-import { chunkSpeechText, cleanSpeechText, normalizeSpeech, pickVoice, chunkMaxFor, TTS_RATE, RATE_MIN, RATE_MAX, RATE_STEP, clampRate, fmtRate, ttsRate, sliceForResume, listVoices, voiceQualityOf, voiceAccent, voiceLabel, ttsVoicePref, resolveVoiceByName, zhLike, voiceDiag, cloudTtsUrl, cloudSpd, engineFor, isCloudVoice, isEdgeVoice, EDGE_VOICES, CLOUD_VOICES, CLOUD_CHUNK_MAX, cloudSupported, CLOUD_VOICE_ID, CLOUD_DEFAULT_VOICE } from '../src/lib/tts.js'
+import { chunkSpeechText, cleanSpeechText, normalizeSpeech, pickVoice, chunkMaxFor, TTS_RATE, RATE_MIN, RATE_MAX, RATE_STEP, clampRate, fmtRate, ttsRate, sliceForResume, listVoices, voiceQualityOf, voiceAccent, voiceLabel, ttsVoicePref, resolveVoiceByName, zhLike, voiceDiag, cloudTtsUrl, cloudSpd, engineFor, isCloudVoice, isEdgeVoice, EDGE_VOICES, CLOUD_VOICES, CLOUD_CHUNK_MAX, cloudSupported, CLOUD_VOICE_ID, CLOUD_DEFAULT_VOICE, prefetchCloudFirst } from '../src/lib/tts.js'
 
 let n = 0
 const ok = (cond, msg) => { n++; assert.ok(cond, msg) }
@@ -256,5 +256,12 @@ ok(engineFor('network', null, true) === 'cloud', '⑪-25 自动 + 系统是网�
 ok(engineFor(null, null, true) === 'cloud', '⑪-26 自动 + 本机无中文音 → cloud')
 ok(engineFor(null, null, false) === 'sys', '⑪-27 云端不可用时回落 sys（不臆造能力）')
 ok(cloudSupported() === false, '⑪-28 Node 无 window → cloudSupported() 安全返回 false')
+
+/* ── ⑮ 云端双缓冲与手势预载（2026-09-15，修"读一段停一下 / 点开解析要等一会"）──
+   行为设计：播本块时另一 <audio> 预载下一块（云端 24h 缓存必命中），播完切元素零等待；
+   「展开参考答案」手势内 prefetchCloudFirst 把蜡封动画 520ms 变成首块加载窗口。
+   Node 无 window.Audio → 新 API 必须安全降级（返回 false 不抛）。预载命中/块间零 gap
+   的行为验证由线上真机 E2E（CDP 计时）承担，此处锁 Node 形状。 */
+ok(prefetchCloudFirst('按SB2→KM吸合') === false, '⑮-1 Node 无 window：手势预载安全返回 false')
 
 console.log(`\ntts.regression：${n} 断言全绿`)

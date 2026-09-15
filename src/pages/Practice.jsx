@@ -14,7 +14,7 @@ import { imageFor, diagramDataUri, diagramTitle } from '../lib/diagrams'
    此前与 stats/ability/Learn 各写一遍 Fisher-Yates）。 */
 import { shuffledOrder } from '../lib/util.js'
 /* 解析语音播报（2026-09-13 增量）：启封自动朗读解析，🔊 一键可关，语速 1.25 */
-import { speak, stopSpeak, pauseSpeak, resumeSpeak, unlockSpeech, ttsSupported, ttsEnabled as ttsPrefEnabled, setTtsEnabled, voiceNote, voiceAdvice, voiceGuideText, currentVoices, listVoices, ttsVoicePref, setTtsVoice, ttsRate, setTtsRate, fmtRate, voiceDiag, warmUpVoices, EDGE_VOICES, CLOUD_VOICE_ID, isCloudVoice, unlockCloudAudio, RATE_MIN, RATE_MAX, RATE_STEP } from '../lib/tts.js'
+import { speak, stopSpeak, pauseSpeak, resumeSpeak, unlockSpeech, ttsSupported, ttsEnabled as ttsPrefEnabled, setTtsEnabled, voiceNote, voiceAdvice, voiceGuideText, currentVoices, listVoices, ttsVoicePref, setTtsVoice, ttsRate, setTtsRate, fmtRate, voiceDiag, warmUpVoices, EDGE_VOICES, CLOUD_VOICE_ID, isCloudVoice, unlockCloudAudio, prefetchCloudFirst, RATE_MIN, RATE_MAX, RATE_STEP } from '../lib/tts.js'
 
 /* 题干渲染：填空题把 {空} 显示为下划线占位 */
 function Stem({ q }) {
@@ -852,7 +852,7 @@ export default function Practice() {
             ) : (
               <>
                 <GiltBtn size="lg" block className="reveal-btn" disabled={text.trim() === ''}
-                  onClick={() => { unlockSpeech(); unlockCloudAudio(); breakSeal(); setShowAnswer(true) }}>
+                  onClick={() => { unlockSpeech(); unlockCloudAudio(); prefetchCloudFirst(spokenOf(q, lastGrade, shuffleRef.current.order)); breakSeal(); setShowAnswer(true) }}>
                   <IconScroll /> 展开参考答案
                 </GiltBtn>
                 <p className="kbd-hint">Ctrl+Enter 展开答案</p>
