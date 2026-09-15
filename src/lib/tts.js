@@ -909,6 +909,7 @@ function stopGASources() {
   if (!s) return
   s.done = true
   for (const src of s.sources) { try { src.onended = null; src.stop() } catch { /* ignore */ } }
+  try { if (s.master) s.master.disconnect(); if (s.lim) s.lim.disconnect() } catch { /* ignore */ }
   try { if (gaCtx && gaCtx.state === 'suspended') gaCtx.resume().catch?.(() => {}) } catch { /* ignore */ }
 }
 function gaDecode(url) {
@@ -925,6 +926,15 @@ export function speakCloudGA(chunks, rate, onDone, my, voice, tag) {
   ga = sess
   session = sess
   sess.urls = chunks.map((t) => cloudTtsUrl(t, rate, useVoice))
+  /* 响度链（每会话一次）：微软合成 MP3 实测（2026-09-15 傍晚 loudness_probe，150/300 字两样本）
+     peak -7.5/-4.9dBFS、RMS ≈-24dBFS——合成响度天然偏轻，用户听感"声音太小"。
+     主增益 1.6x(+4.1dB) 补到正常语音响度（最坏峰 0.566×1.6=0.906 不削波），
+     限幅器兜底（-1.5dBFS 以上才压，平时直通）防个别更高峰文本爆音。 */
+  sess.master = ctx.createGain(); sess.master.gain.value = 1.6
+  sess.lim = ctx.createDynamicsCompressor()
+  sess.lim.threshold.value = -1.5; sess.lim.knee.value = 0; sess.lim.ratio.value = 20
+  sess.lim.attack.value = 0.002; sess.lim.release.value = 0.12
+  sess.master.connect(sess.lim); sess.lim.connect(ctx.destination)
   const FADE = 0.005
   /* place(idx, buf)：把已解码的一块钉上时间线。顺序由 schedule 串行链保证，
      绝不并行排程——并行 decode 完成次序不定，谁先到谁先排会把内容排乱。 */
@@ -941,7 +951,7 @@ export function speakCloudGA(chunks, rate, onDone, my, voice, tag) {
     g.gain.linearRampToValueAtTime(1, t + FADE)
     g.gain.setValueAtTime(1, Math.max(t + FADE, t + dur - FADE))
     g.gain.linearRampToValueAtTime(0.0001, t + dur)
-    src.connect(g); g.connect(ctx.destination)
+    src.connect(g); g.connect(sess.master)
     src.start(t, start / sr, dur)
     sess.sources.push(src)
     sess.nextAt = t + dur

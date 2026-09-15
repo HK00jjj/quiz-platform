@@ -412,18 +412,22 @@ export default function Practice() {
     }
   }
 
-  /* 重读（2026-09-14 用户要求"在播放开关旁边加一个重读"）：
-     从本题解析的开头重读一遍。若当前是静音态，先自动打开播报再读
-     ——"重读"这个动作本身就表达了"我要听"，静音下什么都不做会像按钮坏了。 */
+  /* 重读（2026-09-14 用户要求"在播放开关旁边加一个重读"；2026-09-15 傍晚扩展）：
+     分语境重读——答题中（未揭晓）重读【题干】stemSpokenOf(q)（此前未揭晓直接 return
+     静默无反应，用户真机反馈"重读对题干没有效果"）；揭晓后重读【答案+解析】spokenOf(...)。
+     若当前是静音态，先自动打开播报再读——"重读"这个动作本身就表达了"我要听"。 */
   function replayTts() {
     if (!q) return
     const revealed = seal === 'broken' && (phase === 'feedback' || showAnswer)
-    if (!revealed) return
     if (!ttsOn) { setTtsOn(true); setTtsEnabled(true) }
     unlockCloudAudio()                    // 重读按钮也是手势：解锁云端 <audio>，避免首次被浏览器拦
-    spokenKeyRef.current = index + '|' + q.id
     clearTimeout(rateRetry.current)
-    speak(spokenOf(q, lastGrade, shuffleRef.current.order), { tag: 'reveal|' + index + '|' + q.id })
+    if (revealed) {
+      spokenKeyRef.current = index + '|' + q.id
+      speak(spokenOf(q, lastGrade, shuffleRef.current.order), { tag: 'reveal|' + index + '|' + q.id })
+    } else {
+      speak(stemSpokenOf(q), { tag: 'stem|' + index + '|' + q.id })
+    }
   }
 
   /* 手动重读语音清单（移动端的救命按钮：部分安卓内核不触发 voiceschanged，
@@ -614,6 +618,24 @@ export default function Practice() {
             </div>
             {/* 题面：直接写在卷轴上 */}
             <div className="parch-layer"><Stem q={q} /></div>
+            {/* 题干声音条（2026-09-15 傍晚）：声音控件原本只在解析区——答题中（未揭晓）
+                没有任何重读入口，用户真机反馈"重读对题干没有效果"。给一条精简控件：
+                🔊 开关（toggleTts：关=暂停在原处，开=接着读）+ 🔁 重读题干（replayTts 分语境）。
+                揭晓后（answered/showAnswer）本条消失，解析区完整控件接管。 */}
+            {ttsOK && !answered && !showAnswer && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6 }}>
+                <button className="chip" style={{ fontSize: 11 }} aria-pressed={ttsOn}
+                  title="关闭＝暂停在原处；再点＝接着读（不会从头重读）"
+                  onClick={toggleTts}>
+                  {ttsOn ? '🔊 题干播报' : '⏸ 已暂停'}
+                </button>
+                <button className="chip" style={{ fontSize: 11 }}
+                  title="从开头重读题干"
+                  onClick={replayTts}>
+                  🔁 重读题干
+                </button>
+              </div>
+            )}
             </section>
 
             <div className="zone-rule" aria-hidden="true" />
@@ -744,7 +766,7 @@ export default function Practice() {
                     {ttsOn ? '🔊 播报开' : '▶ 继续播报'}
                   </button>
                   <button className="chip" style={{ fontSize: 11 }}
-                    title="从开头重读本题解析（静音时点它会自动打开播报）"
+                    title="从开头重读本题（答题中重读题干，揭晓后重读答案与解析；静音时点它会自动打开播报）"
                     onClick={replayTts}>
                     🔁 重读
                   </button>

@@ -326,5 +326,15 @@ ok((ttsSrc.match(/schedule\(idx \+ 1\)/g) || []).length >= 3, '⑱-16 排程接�
 ok(/const place = \(idx, buf\) => \{[\s\S]*?src\.start\(t, start \/ sr, dur\)/.test(ttsSrc), '⑱-17 place 排程本体：decode 完成钉上时间线（trim→fade→start(when,offset,dur)）')
 ok(/place\(idx, buf\)[\s\S]{0,200}?if \(idx \+ 1 < sess\.urls\.length\) schedule\(idx \+ 1\)/.test(ttsSrc), '⑱-18 then 正常路径续链：place 成功后必须 schedule(idx+1)，绝不断链')
 ok(/for \(let k = 1; k < sess\.urls\.length; k\+\+\) gaDecode\(sess\.urls\[k\]\)\.catch\(\(\) => \{\}\)/.test(ttsSrc), '⑱-19 全块并行预取（塞 gaCache，串行链秒取消网络等待；串行排程保顺序）')
+/* ⑱-20 响度链（2026-09-15 傍晚"声音太小"）：微软合成 MP3 实测 peak -5~-7.5dBFS / RMS ≈-24dBFS
+   偏轻 → 会话级 master 增益 1.6x(+4.1dB) + 限幅器（-1.5dBFS 起压）兜底防削波；块输出接 master。 */
+ok(/sess\.master = ctx\.createGain\(\); sess\.master\.gain\.value = 1\.6/.test(ttsSrc) && /sess\.lim = ctx\.createDynamicsCompressor\(\)/.test(ttsSrc) && /g\.connect\(sess\.master\)/.test(ttsSrc) && /sess\.master\.connect\(sess\.lim\); sess\.lim\.connect\(ctx\.destination\)/.test(ttsSrc), '⑱-20 GA 响度链：master 1.6x → 限幅器 → destination（块输出接 master，实测 RMS -24dBFS 补响度）')
+ok(/if \(s\.master\) s\.master\.disconnect\(\); if \(s\.lim\) s\.lim\.disconnect\(\)/.test(ttsSrc), '⑱-21 stopGASources 断开响度链（防节点泄漏）')
+/* ⑱-22 重读分语境（2026-09-15 傍晚"重读对题干没有效果"）：replayTts 原先未揭晓直接 return
+   静默无反应 → 改为答题中重读题干、揭晓后重读解析。 */
+ok(!/if \(!revealed\) return/.test(practiceSrc) && (practiceSrc.match(/speak\(stemSpokenOf\(q\), \{ tag: 'stem\|' \+ index \+ '\|' \+ q\.id \}\)/g) || []).length >= 2, '⑱-22 replayTts 分语境：未揭晓守卫已删，题干 speak（effect+重读）≥2 处')
+/* ⑱-23 题干声音条（2026-09-15 傍晚）：声音控件原在解析区，答题中无任何重读入口
+   ——题干区加精简条（🔊 toggleTts + 🔁 重读题干 replayTts），揭晓后消失由解析区接管。 */
+ok(/ttsOK && !answered && !showAnswer && \([\s\S]*?onClick=\{toggleTts\}[\s\S]*?🔁 重读题干[\s\S]*?onClick=\{replayTts\}/.test(practiceSrc), '⑱-23 题干声音条：答题中可见（开关+重读题干），绑定 toggleTts/replayTts')
 
 console.log(`\ntts.regression：${n} 断言全绿`)

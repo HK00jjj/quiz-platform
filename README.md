@@ -1,7 +1,28 @@
 # 交接文档 · 糖果题库（quiz-platform）
 
 > 写给下一个接手的会话。读完这一份就能独立干活，不需要翻历史对话。
-> 最后更新：2026-09-15 下午 · 语音 Web Audio 无缝管线+采样级暂停续读上线（本会话部署 `63217f7`；线上 HEAD 为沉浸批2会话 `5eb1a7f`，两改动集同树合流，GA 代码已实证在线上 bundle index-9KSn5BRv.js）。
+> 最后更新：2026-09-15 傍晚 · GA 排程链断链修复上线（`884cfb6`，src 备份 `f55aeac`）——初版只排第一块的致命 bug 已修，线上真机 E2E **14/14**（含 A8 多块续播锁）。
+
+## 2026-09-15 傍晚增量 · GA 排程链断链修复（"解析读到第一个句号就不读了"）
+
+**症状**（用户真机验收发现）："解析读到第一个句号，就不会再读了。"
+
+**根因**（读盘取证，非猜测）：`speakCloudGA` 初版排完块 idx 后**只"预解码"了下一块（塞 gaCache），没有任何路径递归 `schedule(idx+1)`**，且中间块不挂 `onended`（只有最后一块挂）→ **每次 speak 实际只排第一块**。首块按句读切分恰好以句号收尾 → 播完即永久静音。用户听到的"第一个句号后不读"= 管线根本没有第二块可播。
+
+**为何溜过验收（两层盲区，教训）**：①回归 180 断言全是结构锁，没有一条锁"排程链闭合"；②E2E 的 gaLog 当时把"两条 start"（when=0.31 与 when=6.76）误读成同一次 speak 的两块——实际那是**两次独立 speak**（题干/解析）各自的第一块，断言也没覆盖"第二块继续播"。
+
+**修复（commit `884cfb6`，父=`5eb1a7f`，src 备份 `f55aeac`）**：
+1. **串行接力链**：`decode→place→schedule(idx+1)`——decode 完成即 `place`（排程本体抽成 `place(idx, buf)`），随后递归 `schedule(idx+1)`；顺序由链式结构保证（绝不并行排程——并行 decode 完成次序不定，谁先到谁先排会把内容排乱）。
+2. **全块并行预取**：`for k=1..n-1` 全部 `gaDecode`（gaWarm 同 URL 并发共享 promise）塞缓存——串行链从缓存秒取，网络等待被并行 fetch 吃掉；预取未到时 `t=max(nextAt, currentTime+0.03)` 接在当前播，块间最多再等一个 RTT。
+3. 失败语义不变：单块 decode/排程失败 → `schedule(idx+1)` 跳过；最后一块失败 → 正常 onDone。
+
+**回归锁 180→184**：⑱-16 排程链闭合（`schedule(idx+1)` ≥3 处）、⑱-17 place 本体、⑱-18 then 正常路径必续链、⑱-19 全块并行预取——专堵"只排第一块"结构回归。
+
+**E2E 断言修正（两条口径坑，harness 必读）**：
+- **`offset<1s` ≠ 从头重排**：GA 每块裁掉头部静音后 offset 本来就小（150±样本）。真"从头重读"的特征是**与既有排程重叠**——A7-2 改判据为"resume 后新增 start 的 when 均不落入已排区间 [when, when+dur)"（overlaps=0）。
+- **A8 放弃时间窗口分组**（confirmTs 漂移 ±几 ms 翻转结果，实测踩过：detail 与判定矛盾、复算 387 组 PASS 参数无一含混入项）：改为**衔接链判定**——全部 start 里存在 b 排在长块 a（dur>10s）尾部（`b.when ∈ [a.when+a.dur-0.05, +15s]`）即 PASS。第二块 decode 迟到由 +15s 容差覆盖；从头重排/新会话回退的 when 落不进尾部区间，天然不误报。
+
+**验证**：tts.regression **184 断言** GREEN；**线上真机 E2E 14/14 PASS**——A8 实证 `chain={first:3.27, second:26.32, gapTail:0}`：解析第二块 **gapTail=0** 排在首块尾部（并行预取命中缓存秒排，采样级无缝）；A7-2 overlaps=0。六步链全绿（deploy `884cfb6` 父=`5eb1a7f` → IDENTICAL 134 文件 → LIVE 134/134 200）。
 
 ## 2026-09-15 下午增量 · 语音重构：Web Audio 无缝管线 + 采样级暂停续读
 
@@ -14,7 +35,7 @@
 2. **暂停/续读 = `ctx.suspend()/resume()`**：整条时间线（含已排程的未来块）采样级冻结/恢复，续读位置天然精确——开关关再开**从暂停位置继续**，不再从头读。`toggleTts` 改 tag 对表（`currentPauseTag()` vs 期望 `reveal|index|qid` / `stem|index|qid`）：匹配→resume；过期暂停（切题后）丢弃防复活；无暂停→按当前语境正常开口。
 3. **自动档云端优先**：`engineFor` auto+cloudOK → 'cloud'（删 natural→native 分支）；native 降级为云端失败兜底。
 
-**验证**：tts.regression **180 断言** GREEN（⑱ 组 15 条：gaTrimRange 纯函数三态/GA 守卫/suspend 接线/分流器/gaWarm 预解码/tag 对表/engineFor 新表）；本地真机 E2E **13/13**（gaLog 实证采样级拼接：`start when=0.31 offset=154 dur=2.8 → when=6.76 offset=150 dur=22.64` 无缝续排；suspend→resume 后无 offset<1000 的重启）；**线上真机 E2E 13/13 PASS**（对 `5eb1a7f` 线上包复测，两改动集共存无回归）。
+**验证**：tts.regression **180 断言** GREEN（⑱ 组 15 条：gaTrimRange 纯函数三态/GA 守卫/suspend 接线/分流器/gaWarm 预解码/tag 对表/engineFor 新表）；本地真机 E2E **13/13**；**线上真机 E2E 13/13 PASS**（对 `5eb1a7f` 线上包复测，两改动集共存无回归）。【2026-09-15 傍晚更正：本节当时写的"gaLog 实证采样级拼接 when=0.31→6.76 无缝续排"是**误读**——那两条 start 是两次独立 speak 各自的第一块，当时管线只排第一块，详见上方傍晚增量节；本节功能（无缝拼接/采样级暂停续读）在断链修复后才真正完整生效。】
 
 **部署插曲（红线①实弹，教训必读）**：六步链 `63217f7` 上线后 verify MISMATCH（远端缺本代 6 文件+多 6 文件）。排查实锤：**并发会话"沉浸批2"在同一工作树构建并部署**（gh-pages 提交 `5eb1a7f` 15:18:48，B1-B4 UI 改动）——deploy-api 走 Git Data API **整树替换**，后部署者把先部署者的 dist 差量整树覆盖；且两会话共用工作树，沉浸批2构建时把本会话 src 改动一并打包上线（livecheck 实证主包含 webkitAudioContext/decodeAudioData/suspend 标记）。本会话未重部署、未动对方文件，等对方部署完成后复查：verify-deploy **IDENTICAL**（134 文件逐字节）+ livecheck 引用资产全 200 + 线上 E2E 13/13。**教训：verify MISMATCH 先查 gh-pages 最近提交人（`commits?sha=gh-pages`）再定性，别急着重部署；"线上引用 404"可能只是对方部署上传中途的瞬态。**
 
