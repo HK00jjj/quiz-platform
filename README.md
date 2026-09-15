@@ -1,7 +1,29 @@
 # 交接文档 · 糖果题库（quiz-platform）
 
 > 写给下一个接手的会话。读完这一份就能独立干活，不需要翻历史对话。
-> 最后更新：2026-09-15 上午（换账户后首战）· 电气读法词典收尾已上线，线上提交 `aaf33f4`。
+> 最后更新：2026-09-15 下午（换账户第二战）· 语音连续性 A 方案收尾已上线，线上提交 `0c180c9`。
+
+## 2026-09-15 下午增量（换账户第二战）· 语音连续性 A 方案收尾：根因取证 + 两处修复 + 部署
+
+**症状**（用户）："语音读一段，就会停顿一下，不能连续不间断读；点开解析，没有立马读，而是会加载一段时间后才读。"
+
+**取证方法**（systematic-debugging + 用户"实事求是" supreme 规则；工具在 E:/workbuddy-cc/2026-09-15-09-32-00/tools/）：
+- **minified 栈帧反编译**（stackframe_snap.cjs）：从 dist 产物按栈帧偏移提码，确认 stopSpeak/speak 调用点 = Practice.jsx 277–286 语音 effect 本体，依赖 `[ttsOK, seal, phase, showAnswer, index, q?.id, ttsOn]`；
+- **effect 依赖插桩**（Practice.jsx 内 `window.__ttsfxArm` 守卫，默认关闭零开销，线上保留作排障工具）：24 次运行全部对应真实状态迁移（切题 index 变化、揭晓 cracking→broken、done），**无自发重跑**；
+- **v6 "每 ~3s 重播同一 URL" 定性为 E2E 伪影**：E2E 每 ~2.8s 翻题、每题揭晓自动播一次（正常节奏）+ dump src 截断到 90 字符（都在 text= 参数前）造成"同一 URL"假象，实际每题文本不同。**应用层无重复播 bug**；
+- **errCode=4 根因** = stopCloud 的 `a.src=''` 把 src 解析成当前页地址并派发 error（elSnap 实证 src=http://…/quiz-platform/）；
+- v7 全部 play 被 NotAllowedError 拒 = runner 缺 autoplay 参数（环境问题非 app），v2 已加 `--autoplay-policy=no-user-gesture-required`。
+
+**修复（commit `0c180c9`，父 `be2c7f3`，bundle index-vzAAhOAF.js）**：
+1. `tts.js stopCloud()`：`a.src=''` → `removeAttribute('src')+load()`（媒体元素标准卸载姿势，消除假 error）；
+2. `tts.js speak()` 两处云端分支（显式云端音色 + engineFor 自动档）：`stopCloud()` → `pauseCloud()+cloudPlaying=null`（token 已 ++ 旧链全短路，无需清 src）——**保住 prefetchCloudFirst 在手势里预载的首块 src**，speakCloud step#1 的 `el.src!==url` 判定为假 → 不重赋不 load → 直接 play 命中缓存 → "点开解析不立马读"的残留根因拔除；
+3. `Practice.jsx` 语音 effect 加取证插桩（__ttsfxArm 守卫）。
+
+**验证**：run-all **14 套件 ALL GREEN**（tts.regression 148 断言）；E2E v8：**音频零 error PASS**、6 题 6 play 无重复、play 全部成功启动；部署链全过：build → purge DIST CLEAN（117 代目窗口内）→ deploy `0c180c9` → verify-deploy **IDENTICAL** 144/144 → push-src **`57c9711`** SRC BACKUP OK（.github/ 降级跳过属预期）→ verify-live **ALL OK** 144/144 三哈希 MATCH（首次跑 10 个旧代 chunk 404 = Pages 传播延迟，65s 后重跑 ALL OK——§925 已知现象再现）。
+
+**诚实边界**：prefetch→speak 的"首响 <1.5s"端到端判据本轮 E2E 未测到（session 6 题全客观题，无"展开参考答案"按钮可点，latency/preloaded 判据空转）——机制正确性由代码路径闭环论证，**真机主观题实测待用户验收**（预期：点"展开参考答案"后声音应立即接上、块与块之间零停顿）。
+
+**工具沉淀**（E:/workbuddy-cc/2026-09-15-09-32-00/tools/）：`cdp_runner.cjs`（浏览器+驱动同进程托管，防孤儿）、`stackframe_snap.cjs`（minified 栈帧取证）、`v7_summary.cjs`（dump 摘要）、`deploy_chain.cjs`（六步链一键 runner，token 从 Documents/Qoder/凭据.txt 读 ghp_ 格式）。
 
 ## 2026-09-15 上午增量（换账户后首战）· 电气读法词典收尾 + purge-dist 损坏修复
 
