@@ -582,8 +582,12 @@ export function pauseSpeak() {
   try { synth.cancel() } catch { /* ignore */ }
   return false
 }
-/* 继续：原生暂停的续上；否则从被打断的那一块接读（新语速即时生效） */
-export function resumeSpeak() {
+/* 继续：原生暂停的续上；否则从被打断的那一块接读（新语速即时生效）。
+   onDone（2026-09-16 可选）：**重建链分支**（原生暂停不可用 → 记块位置断链重开）
+   的完成回调——题干循环朗读（Practice）靠它"续播读完 → 接续循环"。原生暂停
+   （synth.resume）与 GA suspend 两路的链未断，完成回调仍是 speak 时传入的原闭包，
+   无需透传；只有这里重开的新链需要调用方把 onDone 再交回来。 */
+export function resumeSpeak(onDone) {
   const sc = session
   /* 云端分支：直接 resume 同一个 <audio>，从原处续上（一个字不重读） */
   if (sc && sc.mode === 'cloud') {
@@ -603,7 +607,7 @@ export function resumeSpeak() {
   const rest = sliceForResume(s)
   const keep = s.voiceName
   session = null
-  return runChunks(rest, ttsRate(), undefined, undefined, keep) !== false
+  return runChunks(rest, ttsRate(), onDone, undefined, keep) !== false
 }
 /* 纯函数（可回归）：被打断块 + 其后的剩余块；i 已自增，故取 i-1 起 */
 export function sliceForResume(s) {

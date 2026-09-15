@@ -290,7 +290,7 @@ const ttsSrc = readFileSync(new URL('../src/lib/tts.js', import.meta.url), 'utf8
 const validateSrc = readFileSync(new URL('../src/lib/validate.js', import.meta.url), 'utf8')
 ok(/export function stemSpokenOf\(q\) \{/.test(validateSrc) && /import \{ gradeObjective, blanksOf, splitExpected, stemSpokenOf \} from '\.\.\/lib\/validate'/.test(practiceSrc), '⑰-1 stemSpokenOf 纯函数收敛 validate 真源（2026-09-15 晚自 Practice 移入：Learn 入口预载同口径，Practice import 引用）')
 ok(/replace\(\/\\\{\[\^\{\}\]\*\\\}\/g, '空'\)/.test(validateSrc), '⑰-2 填空 {…} 占位符读成「空」（占位里可能带着答案，不能外读；真源随 stemSpokenOf 迁至 validate）')
-ok(/speak\(stemSpokenOf\(q\), \{ tag: 'stem\|'/.test(practiceSrc), '⑰-3 stem effect 真正调 speak(stemSpokenOf(q), {tag})')
+ok(/function startStemLoop\(text, idx, qid\) \{/.test(practiceSrc) && /speak\(text, \{ tag: 'stem\|' \+ idx \+ '\|' \+ qid, onDone \}\)/.test(practiceSrc), '⑰-3 stem 开口接线（2026-09-16 升级循环朗读：effect 调 startStemLoop，循环本体内部 speak 带 stem tag）')
 ok(/const stemSpokenRef = useRef\(null\)/.test(practiceSrc), '⑰-4 stemSpokenRef「已读」闸存在（与 spokenKeyRef 分离，防叠音）')
 ok(practiceSrc.includes('[ttsOK, index, q?.id, phase, showAnswer, ttsOn]'), '⑰-5 stem effect 依赖数组含 phase/ttsOn（揭晓时不读、开关回开能接住）')
 ok(/const nxt = questions\[index \+ 1\][\s\S]{0,80}?if \(nxt\) prefetchGACache\(stemSpokenOf\(nxt\)\)/.test(practiceSrc), '⑰-6 翻题预载已升级（2026-09-15 晚）：GA 缓存线免疫 stopSpeak 清场，flipToNext 挂下一题题干预载——旧禁令"stopSpeak 清场会吃掉预载"只针对 <audio> src 预载，GA 缓存线不受影响（详见 ⑱-24e）')
@@ -317,8 +317,8 @@ ok(/gaWarm\(cloudTtsUrl\(chunks\[0\], rate, useVoice\)\)/.test(ttsSrc), '⑱-9 p
 ok(/export function currentPauseTag\(\)/.test(ttsSrc), '⑱-10 currentPauseTag 导出（开关续播对表用）')
 ok(/\{ rate = ttsRate\(\), onDone, tag \} = \{\}/.test(ttsSrc), '⑱-11 speak() 签名携带 tag')
 ok((practiceSrc.match(/tag: 'reveal\|'/g) || []).length >= 4, '⑱-12 Practice 四处解析播报均带 reveal tag（effect/开关/重读/换音色+调速）')
-ok(/tag: 'stem\|' \+ index \+ '\|' \+ q\.id/.test(practiceSrc), '⑱-13 题干播报带 stem tag')
-ok(/currentPauseTag\(\) === expected && resumeSpeak\(\)/.test(practiceSrc) && /const expected = \(revealed \? 'reveal\|' : 'stem\|'\) \+ index \+ '\|' \+ \(q \? q\.id : ''\)/.test(practiceSrc), '⑱-14 开关续播按上下文对表：tag 匹配才 resume，过期暂停丢弃')
+ok(/tag: 'stem\|' \+ idx \+ '\|' \+ qid/.test(practiceSrc), '⑱-13 题干播报带 stem tag（2026-09-16 起在 startStemLoop 循环本体内）')
+ok(/currentPauseTag\(\) === expected && resumeSpeak\(stemLoopRef\.current \? stemLoopRef\.current\.onDone : undefined\)/.test(practiceSrc) && /const expected = \(revealed \? 'reveal\|' : 'stem\|'\) \+ index \+ '\|' \+ \(q \? q\.id : ''\)/.test(practiceSrc), '⑱-14 开关续播按上下文对表：tag 匹配才 resume（2026-09-16 起透传循环 onDone），过期暂停丢弃')
 ok(/export function engineFor\(autoQuality, pref, cloudOK\) \{[\s\S]*?return 'cloud'\s*\}/.test(ttsSrc), '⑱-15 engineFor：自动档云端可用一律 cloud（新决策表）')
 /* ⑱-16~19 串行排程链闭合锁（2026-09-15 下午事故）：初版只排第一块（排完只"预解码"未递归
    schedule，中间块无 onended）→ 首块以句号收尾播完即永久静音。E2E 当时未覆盖"第二块继续播"
@@ -333,7 +333,7 @@ ok(/sess\.master = ctx\.createGain\(\); sess\.master\.gain\.value = 1\.6/.test(t
 ok(/if \(s\.master\) s\.master\.disconnect\(\); if \(s\.lim\) s\.lim\.disconnect\(\)/.test(ttsSrc), '⑱-21 stopGASources 断开响度链（防节点泄漏）')
 /* ⑱-22 重读分语境（2026-09-15 傍晚"重读对题干没有效果"）：replayTts 原先未揭晓直接 return
    静默无反应 → 改为答题中重读题干、揭晓后重读解析。 */
-ok(!/if \(!revealed\) return/.test(practiceSrc) && (practiceSrc.match(/speak\(stemSpokenOf\(q\), \{ tag: 'stem\|' \+ index \+ '\|' \+ q\.id \}\)/g) || []).length >= 2, '⑱-22 replayTts 分语境：未揭晓守卫已删，题干 speak（effect+重读）≥2 处')
+ok(!/if \(!revealed\) return/.test(practiceSrc) && (practiceSrc.match(/startStemLoop\(stemSpokenOf\(q\), index, q\.id\)/g) || []).length >= 2, '⑱-22 replayTts 分语境：未揭晓守卫已删，题干循环入口（effect+重读）≥2 处（2026-09-16 改接线 startStemLoop）')
 /* ⑱-23 题干声音条（2026-09-15 傍晚）：声音控件原在解析区，答题中无任何重读入口
    ——题干区加精简条（🔊 toggleTts + 🔁 重读题干 replayTts），揭晓后消失由解析区接管。 */
 ok(/ttsOK && !answered && !showAnswer && \([\s\S]*?onClick=\{toggleTts\}[\s\S]*?🔁 重读题干[\s\S]*?onClick=\{replayTts\}/.test(practiceSrc), '⑱-23 题干声音条：答题中可见（开关+重读题干），绑定 toggleTts/replayTts')
@@ -343,10 +343,28 @@ ok(/ttsOK && !answered && !showAnswer && \([\s\S]*?onClick=\{toggleTts\}[\s\S]*?
 const gaPrefBody = ttsSrc.slice(ttsSrc.indexOf('export function prefetchGACache'), ttsSrc.indexOf('export function engineFor'))
 ok(/export function prefetchGACache\(raw, rate = ttsRate\(\)\)/.test(ttsSrc) && /if \(!isEdgeVoice\(useVoice\)\) return false/.test(gaPrefBody) && /gaWarm\(cloudTtsUrl\(chunks\[0\], rate, useVoice\)\); return true/.test(gaPrefBody), '⑱-24a prefetchGACache：GA 线专属（isEdgeVoice 守卫 → gaWarm 预热，URL 与 speak 云端分支同参）')
 ok(gaPrefBody.length > 0 && gaPrefBody.length < 1200 && !/ensureCloudEls|\.src = url/.test(gaPrefBody), '⑱-24b prefetchGACache 无 <audio> 双缓冲副作用（不与题干朗读抢元素）')
-ok(/speak\(stemSpokenOf\(q\), \{ tag: 'stem\|' \+ index \+ '\|' \+ q\.id \}\)\s*\n\s*\/\*[\s\S]{0,500}?prefetchGACache\(spokenOf\(q, null, ord\)\)/.test(practiceSrc), '⑱-24c 题干 effect 预载解析首块（null 版：选择/判断 expected===answer、简答 lastGrade 恒 null）')
+ok(/startStemLoop\(stemSpokenOf\(q\), index, q\.id\)[\s\S]{0,600}?prefetchGACache\(spokenOf\(q, null, ord\)\)/.test(practiceSrc), '⑱-24c 题干 effect 预载解析首块（null 版：选择/判断 expected===answer、简答 lastGrade 恒 null；2026-09-16 开口行改 startStemLoop，预载接线不变）')
 ok(/const parts = splitExpected\(q\)[\s\S]{0,80}?if \(parts\.length > 1\) prefetchGACache\(spokenOf\(q, \{ correct: true, expectedParts: parts \}, ord\)\)/.test(practiceSrc), '⑱-24d 填空多空补预载 expectedParts 版（splitExpected 真函数；单空两版 URL 相同 gaWarm 幂等不双请求）')
 ok(/const nxt = questions\[index \+ 1\][\s\S]{0,80}?if \(nxt\) prefetchGACache\(stemSpokenOf\(nxt\)\)/.test(practiceSrc), '⑱-24e 翻题手势预载下一题题干首块（360ms 翻牌动画=合成窗口，队列已定 index+1 即下一题）')
 ok((practiceSrc.match(/prefetchGACache\(stemSpokenOf\(qs\[0\]\)\)/g) || []).length >= 1 && (learnSrc.match(/prefetchGACache\(stemSpokenOf\(qs\[0\]\)\)/g) || []).length >= 1, '⑱-24f 入口预载首题：Learn run() + 结算页再练错题两处手势（装载时间=合成窗口）')
 ok(/export function stemSpokenOf/.test(validateSrc) && /import \{ gradeObjective, blanksOf, splitExpected, stemSpokenOf \} from '\.\.\/lib\/validate'/.test(practiceSrc), '⑱-24g stemSpokenOf/splitExpected 收敛 validate 真源（Practice/Learn 同口径引用防漂移）')
+
+/* ── ⑲ 题干循环朗读（2026-09-16，用户钦定"题干在我点击解析之前，不停重复读"）──
+   机制：题干一轮 speak(onDone) → 间歇 STEM_LOOP_GAP → 重开口，往复直至停止。
+   接线锁：循环句柄 + 实时状态 ref（useLayoutEffect 同步，go() 宏任务对表无竞态）
+   + 四闸（句柄比对/静音/已揭晓/已切题）+ 揭晓断链双保险（显式清句柄 + token++ 打断
+   不触发 onDone）+ 续播 onDone 透传（暂停→续播→读完接续循环）。
+   行为级验证由线上真机 E2E（CDP）承担。 */
+ok(/const STEM_LOOP_GAP = \d+/.test(practiceSrc), '⑲-1 循环轮间歇常量存在（一轮读完停一拍再读）')
+ok(/const stemLoopRef = useRef\(null\)/.test(practiceSrc), '⑲-2 循环句柄 ref 存在（🔊 暂停时保留，续播接续）')
+ok(/useLayoutEffect\(\(\) => \{\s*\n\s*ttsOnRef\.current = ttsOn\s*\n\s*answerPhaseRef\.current = phase !== 'answering' \|\| showAnswer\s*\n\s*stemKeyRef\.current = index \+ '\|' \+ \(q\?\.id \?\? ''\)\s*\n\s*\}\)/.test(practiceSrc), '⑲-3 实时状态 ref 用 useLayoutEffect 无依赖同步（go() 宏任务对表，commit 即新值无竞态）')
+ok(/function startStemLoop\(text, idx, qid\) \{[\s\S]*?stopStemLoop\(\)[\s\S]*?const go = \(\) => \{[\s\S]*?loop\.timer = setTimeout\(go, STEM_LOOP_GAP\)[\s\S]*?speak\(text, \{ tag: 'stem\|' \+ idx \+ '\|' \+ qid, onDone \}\)/.test(practiceSrc), '⑲-4 循环本体：幂等头清旧循环 → go() 对表 → onDone 间歇重开口（loop.onDone 供续播透传）')
+ok(/if \(stemLoopRef\.current !== loop\) return/.test(practiceSrc) && /if \(!ttsOnRef\.current\) return/.test(practiceSrc) && /if \(answerPhaseRef\.current\) return/.test(practiceSrc) && /if \(stemKeyRef\.current !== loop\.key\) return/.test(practiceSrc), '⑲-5 重开口四闸：句柄比对 + 静音不重开口 + 已揭晓/已提交即停（点解析即停）+ 已切题让位')
+ok(/spokenKeyRef\.current = key\s*\n\s*stopStemLoop\(\)/.test(practiceSrc), '⑲-6 揭晓开口解析前显式清循环句柄（timer 不再重入；正在读的链由解析 speak token++ 打断）')
+ok(/if \(wasRevealedRef\.current\) \{ stopSpeak\(\); wasRevealedRef\.current = false \}\s*\n\s*stopStemLoop\(\)/.test(practiceSrc), '⑲-7 离开揭晓态清场时同步终结题干循环（切题/收起解析不留悬空句柄）')
+ok(/resumeSpeak\(stemLoopRef\.current \? stemLoopRef\.current\.onDone : undefined\)/.test(practiceSrc), '⑲-8 🔊 续播透传循环 onDone（native 重建链分支：续播读完接续循环；GA suspend/原生暂停两路原闭包仍在，透传值被忽略）')
+ok(/export function resumeSpeak\(onDone\) \{/.test(ttsSrc) && /return runChunks\(rest, ttsRate\(\), onDone, undefined, keep\) !== false/.test(ttsSrc), '⑲-9 tts.js resumeSpeak 支持可选 onDone 透传（仅重建链分支使用；默认不传行为与旧版一致）')
+ok((practiceSrc.match(/startStemLoop\(stemSpokenOf\(q\), index, q\.id\)/g) || []).length >= 3, '⑲-10 循环入口接线 ≥3 处（新题自动开口/手动重读/答题期开声重启）')
+ok(/useEffect\(\(\) => \(\) => \{ stopSpeak\(\); stopStemLoop\(\); clearInterval\(panelPoll\.current\) \}, \[\]\)/.test(practiceSrc), '⑲-11 卸载兜底同时终结循环（离开练习页不留悬空句柄）')
 
 console.log(`\ntts.regression：${n} 断言全绿`)
