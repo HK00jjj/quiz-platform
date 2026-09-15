@@ -238,7 +238,7 @@ export default function Practice() {
      "云端音色（任意设备可用）""本机系统音色"这类标题行）。顺序：自动 → 微软神经音
      （与电脑端 Edge 同一批）→ 百度备用线路 → 本机系统音色。 */
   const voiceOptions = useMemo(() => [
-    { value: '', label: '自动（与电脑端同音色）' },
+    { value: '', label: '自动' },
     ...EDGE_VOICES.map((v) => ({ value: v.id, label: v.label })),
     { value: CLOUD_VOICE_ID, label: '百度女声（备用线路）' },
     ...voiceList.map((v) => ({ value: v.name, label: v.label })),
@@ -748,7 +748,7 @@ export default function Practice() {
                         （2026-09-15）：手机无 devtools，用户截图即可反馈，避免靠猜。 */}
                     <span style={{ fontSize: 10.5, opacity: .68, lineHeight: 1.32, maxWidth: 262 }}>
                       {isCloudVoice(voiceSel)
-                        ? `已选云端音色（${voiceSel === CLOUD_VOICE_ID ? '百度备用线路' : '微软神经音'}）：不依赖本机语音库，手机与电脑同一音色。本机可见语音 ${voiceDiag().total} 条。`
+                        ? `已选云端音色（${voiceSel === CLOUD_VOICE_ID ? '百度备用线路' : '微软神经音'}）：不依赖本机语音库。本机可见语音 ${voiceDiag().total} 条。`
                         : voiceList.length > 0
                           ? `已读取 ${voiceList.length} 个中文音色，可任选（含粤语/台湾/方言）· ${voiceAdvice()}`
                           : (() => {

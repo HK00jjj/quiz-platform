@@ -371,6 +371,23 @@ push-src OK → verify-live ALL OK（98/98 200，三哈希 MATCH）。
     面板 18 项（自动 + 17 个中文音色，含 6 个普通话神经音 ★自然）；
     Chrome 无云健时回落 `Google 普通话（中国大陆）`（符合设计）。
     线上 bundle `index-CwsqxUbY.js`，verify-deploy IDENTICAL + verify-live **80/80 全 200**。
+19. **手机端音色选择器重做（2026-09-15 晨，用户截图报"选择语音占满整个手机画面"+ 红框要去掉分组行）**
+    根因：**安卓上原生 `<select>` 会弹系统级全屏 picker**（样式不可控、必占满屏），且
+    `<optgroup>` 分组标题（「云端音色（任意设备可用）」「本机系统音色」「微软神经音（与电脑端一致）」）
+    在原生弹层里被渲染成多余的整行。
+    修复（`Practice.jsx`，只动音色选择块）：
+    ① **原生 select → 自绘底部弹层**：按钮（显示当前音色 + ▾）+ `createPortal` 到 `document.body`
+       的 `role="listbox"` 面板 —— **必须 portal**：卡片是 3D 变换容器，fixed 元素放内部会被
+       变换坐标系吞掉（定位错乱/被裁剪）；弹层 `max-height:46vh` 可滚动、`overscroll-behavior:contain`、
+       `z-index:80`（高于 .bottom-nav 的 50）；点遮罩/Esc 关闭；
+    ② **去掉全部分组标题行**：`voiceOptions` 扁平化为 自动 → 微软神经音（EDGE_VOICES）→ 百度备用 → 本机系统音色；
+    ③ 并发会话的 `EDGE_VOICES`（两跳代理微软神经音）与"百度备用线路"全部保留，只改呈现。
+    **验证**（`picker-verify.cjs`，手机视口 + 触摸 + Edge UA，线上）：无原生 select ✓；
+    弹层高 **421px = 46% 视口** ✓；**无分组标题行 ✓**；28 个选项（自动/云健（男声·与电脑端一致）/
+    晓晓（女声·温暖）/云希（男声·解说）/…/小北（东北）/小妮（陕西）/曉曼（粤语）/曉臻（台湾）/百度女声（备用线路））；
+    点选后弹层关闭 + `qp.tts.voice` 落盘 + 播报无报错；点遮罩可关闭。run-all ALL GREEN；
+    线上 bundle `index-r9nVANmq.js`，verify-live **109/109 全 200**（保留窗口 120 已生效）。
+    截图：`E:/workbuddy-cc/2026-09-13-22-05-50/picker_sheet.png`。
 
 ## 2026-09-13 午增量（第十一批 P0）· 真机 E2E 抓获并修复 masteryGate 接线崩溃
 

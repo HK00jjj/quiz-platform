@@ -448,15 +448,15 @@ export function warmUpVoices() {
 export function voiceGuideText(listLen) {
   if (!ttsSupported()) {
     return cloudSupported()
-      ? '本机不支持系统语音合成——直接在上方选「微软·云健」（与电脑端同一音色）即可播报，无需安装任何东西。'
+      ? '本机不支持系统语音合成——直接在上方选「微软·云健」即可播报，无需安装任何东西。'
       : '本浏览器内核不支持语音合成：换 Chrome / Edge / Safari 可用'
   }
   if (listLen === 0) {
     /* 2026-09-15 修订（第三版）：现在有了云端微软神经音，本机有没有系统音都不影响出声，
-       所以首选建议改成"选云端云健"，系统层安装路径降为可选优化。 */
+       所以首选建议改成"选云端云健"，系统层安装路径降为可选优化。
+       （2026-09-15 口径：按用户要求，不再标注"与电脑端一致"——两端音色本就相同，无需说明。） */
     return '本机没有可用的中文系统语音（移动端常见）。**在音色里选「微软·云健」即可**——'
-      + '它与电脑端 Edge 是同一个音色，不依赖本机语音库；'
-      + '也可只留「自动」：系统没神经音时会自动走云端。'
+      + '它不依赖本机语音库；也可只留「自动」：系统没神经音时会自动走云端。'
       + '想让本机系统语音更丰富：安卓 设置→文字转语音→安装中文语音数据；'
       + 'iPhone 设置→辅助功能→朗读内容→声音→中文。'
   }
@@ -674,7 +674,7 @@ export const CLOUD_VOICE_ID = '__cloud_baidu__'
    故这里直接指向 Supabase 端点（详见 serverless/vercel-tts/ 与 supabase/functions/tts/）。 */
 export const TTS_PROXY = 'https://khtpnbzfjggezlmnnsgt.supabase.co/functions/v1/tts'
 export const EDGE_VOICES = [
-  { id: 'zh-CN-YunjianNeural', label: '云健（男声·与电脑端一致）' },
+  { id: 'zh-CN-YunjianNeural', label: '云健（男声）' },
   { id: 'zh-CN-XiaoxiaoNeural', label: '晓晓（女声·温暖）' },
   { id: 'zh-CN-YunxiNeural', label: '云希（男声·解说）' },
   { id: 'zh-CN-XiaoyiNeural', label: '晓伊（女声·活泼）' },
