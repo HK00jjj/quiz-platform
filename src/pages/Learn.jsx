@@ -7,6 +7,7 @@ import { IconRetry, IconShuffle, IconNew, IconFilter, IconLearn, IconImport } fr
 import { buildSession, lastResultMap, TYPES, DIFFICULTIES, domainLabel, filtersKey } from '../lib/stats'
 import { abilityOf, zoneAdvice, masteryGate, RANKS, PROMOTION_EXAM, MASTERY, EXAM_ATTEMPTS, EXAM_WRONGS_KEY } from '../lib/ability.js'
 import { gradeObjective } from '../lib/validate'
+import { unlockCloudAudio } from '../lib/tts.js'
 import { isDue } from '../lib/fsrs'
 import { recallDue, buildRecallItems, weakDomains, RECALL_GRADES } from '../lib/recall'
 import { shouldSnapshot, buildSnapshot, pushSnapshot, trendOf } from '../lib/snapshot'
@@ -429,6 +430,7 @@ export default function Learn() {
   }
 
   async function run(mode, opts = {}) {
+    unlockCloudAudio()                  // 进练习的手势内解锁云端 <audio>（移动端首次播放必须落在手势里）：首题题干播报不被浏览器拦
     const n = await startSession(mode, opts)
     if (n > 0) navigate('/practice')
   }

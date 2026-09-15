@@ -5,6 +5,7 @@
    ② cleanSpeechText：emoji 删除、→ 与换行转停顿、markdown 记号剥离
    ③ pickVoice：选声优先级（晓晓Natural > 云希Natural > Natural > 常见微软本地音 > 任意zh） */
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 import { chunkSpeechText, cleanSpeechText, normalizeSpeech, pickVoice, chunkMaxFor, TTS_RATE, RATE_MIN, RATE_MAX, RATE_STEP, clampRate, fmtRate, ttsRate, sliceForResume, listVoices, voiceQualityOf, voiceAccent, voiceLabel, ttsVoicePref, resolveVoiceByName, zhLike, voiceDiag, cloudTtsUrl, cloudSpd, engineFor, isCloudVoice, isEdgeVoice, EDGE_VOICES, CLOUD_VOICES, CLOUD_CHUNK_MAX, CLOUD_CHUNK_MAX_EDGE, cloudChunkMaxFor, cloudSupported, CLOUD_VOICE_ID, CLOUD_DEFAULT_VOICE, prefetchCloudFirst } from '../src/lib/tts.js'
 
 let n = 0
@@ -277,5 +278,21 @@ ok(cs16.join('') === cleanSpeechText(long16), '⑯-4 firstMax 分块拼接恒等
 ok(chunkSpeechText(long16, 200).every((c) => c.length <= 200), '⑯-5 默认参数兼容：单参时 firstMax=max')
 ok(cloudChunkMaxFor('zh-CN-YunjianNeural') === CLOUD_CHUNK_MAX_EDGE, '⑯-6 微软两跳线块长 300')
 ok(cloudChunkMaxFor(CLOUD_VOICE_ID) === CLOUD_CHUNK_MAX, '⑯-7 百度线块长 150')
+
+/* ── ⑰ 题干自动播报接线锁（2026-09-15，用户钦定"自动读题干，选项不需要读"）──
+   stemSpokenOf 与 stem effect 活在 Practice.jsx（React 页面组件，Node 侧无法直接
+   import），故按 mastery-gate ⑨ 的接线锁口径锁四件事：占位符防漏答案、effect 挂线、
+   「已读」闸分离、入口手势解锁。行为级验证由线上真机 E2E（CDP 捕 utterance）承担。 */
+const practiceSrc = readFileSync(new URL('../src/pages/Practice.jsx', import.meta.url), 'utf8')
+const learnSrc = readFileSync(new URL('../src/pages/Learn.jsx', import.meta.url), 'utf8')
+ok(/function stemSpokenOf\(q\) \{/.test(practiceSrc), '⑰-1 stemSpokenOf 纯函数存在于 Practice.jsx')
+ok(/replace\(\/\\\{\[\^\{\}\]\*\\\}\/g, '空'\)/.test(practiceSrc), '⑰-2 填空 {…} 占位符读成「空」（占位里可能带着答案，不能外读）')
+ok(/speak\(stemSpokenOf\(q\)\)/.test(practiceSrc), '⑰-3 stem effect 真正调 speak(stemSpokenOf(q))')
+ok(/const stemSpokenRef = useRef\(null\)/.test(practiceSrc), '⑰-4 stemSpokenRef「已读」闸存在（与 spokenKeyRef 分离，防叠音）')
+ok(practiceSrc.includes('[ttsOK, index, q?.id, phase, showAnswer, ttsOn]'), '⑰-5 stem effect 依赖数组含 phase/ttsOn（揭晓时不读、开关回开能接住）')
+ok(/stemSpokenOf\(nq\)/.test(practiceSrc) === false, '⑰-6 翻题手势预载已按 0c180c9 结论不挂（stopSpeak 清场会吃掉预载，靠 24h 缓存）')
+ok(learnSrc.includes("import { unlockCloudAudio } from '../lib/tts.js'"), '⑰-7 Learn.jsx 引入 unlockCloudAudio')
+ok(/async function run\(mode, opts = \{\}\) \{\s*\n\s*unlockCloudAudio\(\)/.test(learnSrc), '⑰-8 进练习手势内解锁云端 <audio>（移动端首题不被拦）')
+ok(/onClick=\{async \(\) => \{\s*\n\s*unlockCloudAudio\(\)\s*\/\/ 重开一轮/.test(practiceSrc), '⑰-9 再练错题手势内解锁云端 <audio>')
 
 console.log(`\ntts.regression：${n} 断言全绿`)

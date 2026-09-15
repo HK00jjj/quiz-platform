@@ -13,7 +13,9 @@ import { imageFor, diagramDataUri, diagramTitle } from '../lib/diagrams'
 /* 选项随机化用的位置排列（#6）。实现收敛到 lib/util.js（2026-09-11 审查整改：
    此前与 stats/ability/Learn 各写一遍 Fisher-Yates）。 */
 import { shuffledOrder } from '../lib/util.js'
-/* 解析语音播报（2026-09-13 增量）：启封自动朗读解析，🔊 一键可关，语速 1.25 */
+/* 解析语音播报（2026-09-13 增量）：启封自动朗读解析，🔊 一键可关，语速 1.25。
+   2026-09-15 增量（用户钦定）：题卡到手自动读【题干】，选项不读——同一个 🔊 开关
+   管两段（答题中读题干、揭晓后读答案+解析），各自有「已读」闸互不挤占。 */
 import { speak, stopSpeak, pauseSpeak, resumeSpeak, unlockSpeech, ttsSupported, ttsEnabled as ttsPrefEnabled, setTtsEnabled, voiceNote, voiceAdvice, voiceGuideText, currentVoices, listVoices, ttsVoicePref, setTtsVoice, ttsRate, setTtsRate, fmtRate, voiceDiag, warmUpVoices, EDGE_VOICES, CLOUD_VOICE_ID, isCloudVoice, unlockCloudAudio, prefetchCloudFirst, RATE_MIN, RATE_MAX, RATE_STEP } from '../lib/tts.js'
 
 /* 题干渲染：填空题把 {空} 显示为下划线占位 */
@@ -59,6 +61,13 @@ function spokenOf(q, lastGrade, order) {
   const parts = [`正确答案：${ans}`]
   if (q.explanation) parts.push(`解析：${remap(q.explanation)}`)
   return parts.join('。')
+}
+
+/* ── 题干播报文本（纯函数，2026-09-15 用户钦定：题卡到手自动读题干，选项不读）──
+   填空题的 {…} 占位符一律读成「空」：blanksOf 就是从题干里抠答案的，占位里往往
+   带着参考答案——原样念出来等于播题前先漏答案。选项文本绝不进这条链。 */
+function stemSpokenOf(q) {
+  return String(q.stem ?? '').replace(/\{[^{}]*\}/g, '空')
 }
 
 export default function Practice() {
@@ -286,6 +295,25 @@ export default function Practice() {
     spokenKeyRef.current = key
     speak(spokenOf(q, lastGrade, shuffleRef.current.order))
   }, [ttsOK, seal, phase, showAnswer, index, q?.id, ttsOn])
+  /* ── 自动读题干（2026-09-15，用户钦定：题卡到手自动读题干，选项不读）──
+     新题落地（index/q.id 变化、phase=answering）即开口，只念 stemSpokenOf(q)。
+     与解析播报共用 ttsOn 总开关，但「已读」闸各用一把：stemSpokenRef 管题干、
+     spokenKeyRef 管解析，互不挤占——解析照旧在揭晓时读。
+     作答提交 → phase 变 feedback → 本 effect 直接退出；题干若还在念，speak()
+     内部 token++ 会把它短路，由解析播报接管，不会叠音（既有架构行为）。
+     声明顺序即执行顺序：切题时上面的解析 effect 先 stopSpeak 清场（顺带停掉
+     上一题没读完的解析），本 effect 随后开口——顺序固定，不会反过来。 */
+  const stemSpokenRef = useRef(null)
+  useEffect(() => {
+    if (!ttsOK) return
+    if (phase !== 'answering') return           // 揭晓(feedback)/结算(done)：解析播报的时段
+    if (showAnswer) return                      // 主观题已展开解析：也归解析播报
+    if (!q || !ttsOn) return                    // 静音中不自动开口；开关回开靠 ttsOn 依赖在这里接住
+    const key = index + '|' + q.id
+    if (stemSpokenRef.current === key) return   // 本题题干已读过：不重播（防叠音闸）
+    stemSpokenRef.current = key
+    speak(stemSpokenOf(q))
+  }, [ttsOK, index, q?.id, phase, showAnswer, ttsOn])
   /* 卸载兜底：离开练习页/进结算页时，不留一条还在说的声音；面板轮询一并清掉 */
   useEffect(() => () => { stopSpeak(); clearInterval(panelPoll.current) }, [])
 
@@ -517,6 +545,7 @@ export default function Practice() {
             <div className="settle-actions">
               {wrongN > 0 && (
                 <GiltBtn tone="danger" onClick={async () => {
+                  unlockCloudAudio()          // 重开一轮的手势内解锁云端 <audio>：首题题干播报不被浏览器拦
                   const n = await startSession('wrong', { size: 0 })
                   if (n > 0) { startAt.current = Date.now(); setElapsed(0) }
                   else navigate('/')
@@ -681,6 +710,7 @@ export default function Practice() {
             <section className={'zone zone-s' + (answered || showAnswer ? ' revealed' : '') + (answered && !(objective ? lastGrade?.correct : lastRating === '记得') ? ' bad' : '')}>
             {/* 这里原来是 `answered || showAnswer ? '◇ 解析' : '◇ 解析'`——两个分支完全相同的遗留三元，已收成一行。
                 🔊 播报开关（2026-09-13）：启封即自动朗读，一键静音，偏好记忆在 localStorage（lib/tts）。
+                2026-09-15：同一开关也管「题卡到手自动读题干（不读选项）」——答题中读题干，揭晓后读答案+解析。
                 浏览器不支持 speechSynthesis 时不渲染，解析区外观零变化。 */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingRight: 2 }}>
               <h5 className="zone-label">◇ 解析</h5>
