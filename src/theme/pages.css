@@ -289,34 +289,19 @@
   background: linear-gradient(100deg, rgba(107,26,58,.16), rgba(107,26,58,.05));
   color: #6d1f38; letter-spacing: 1.5px; font-size: clamp(10px, 2.4cqw, 12.5px); font-weight: 600;
 }
-/* 蜡封三帧叠放：待机只显完整态，启封时 完整→半碎→碎裂 逐帧切换 */
+/* 蜡封：沉浸批1 A4（2026-09-15）三帧位图 <img> 已从 JSX 清除，封缄由 candy.css 纯 CSS 糖豆承担；
+   这里只保留 .seal-wax 定位与启封时的 wax-flash 亮度闪（.52s 时序与 Practice.jsx breakSeal 对齐） */
 .seal-wax { position: absolute; left: 6px; top: 50%; transform: translateY(-50%);
   width: clamp(32px, 9.5cqw, 46px); aspect-ratio: 1; }
-.seal-wax img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; opacity: 0;
-  filter: drop-shadow(0 0 8px rgba(139,42,74,.55)); }
-.seal-wax img.f1 { opacity: 1; animation: breathe 3.4s ease-in-out infinite; }
 .seal-lock.cracking .seal-wax { animation: wax-flash .52s ease; }
-.seal-lock.cracking .seal-wax img.f1 { animation: wax-f1 .52s steps(1,end) forwards; }
-.seal-lock.cracking .seal-wax img.f2 { animation: wax-f2 .52s steps(1,end) forwards; }
-.seal-lock.cracking .seal-wax img.f3 { animation: wax-f3 .52s ease-out forwards; }
-@keyframes wax-f1 { 0% { opacity: 1 } 34% { opacity: 0 } 100% { opacity: 0 } }
-@keyframes wax-f2 { 0% { opacity: 0 } 34% { opacity: 1 } 68% { opacity: 0 } 100% { opacity: 0 } }
-@keyframes wax-f3 { 0% { opacity: 0 } 68% { opacity: 1; transform: scale(1) } 100% { opacity: 0; transform: scale(1.22) } }
 @keyframes wax-flash { 0% { filter: none } 30% { filter: brightness(1.8) drop-shadow(0 0 18px rgba(201,168,76,.9)) } 100% { filter: none } }
 .seal-lock.cracking { animation: seal-crack .52s ease forwards; }
 @keyframes seal-crack { 0%, 62% { opacity: 1 } 100% { opacity: 0; transform: scale(.97) } }
 /* 显影动画：墨迹自左向右写出（clip-path 是合成器友好属性），接在蜡封碎裂之后 */
 .answer-scroll-box { animation: ink-write .5s .34s cubic-bezier(.2,.7,.3,1) both; }
 @keyframes ink-write { from { clip-path: inset(0 100% 0 0); opacity: .35 } to { clip-path: inset(0 0 0 0); opacity: 1 } }
-/* 有点酸哦：真实裂纹素材三帧自四角向中心蔓延（素材 682×1024 与牌面同 2:3，零变形） */
-.crack-veil { position: absolute; inset: 0; z-index: 4; pointer-events: none; }
-.crack-veil img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: fill; opacity: 0; }
-.crack-veil img.c1 { animation: crack-f1 .9s ease both; }
-.crack-veil img.c2 { animation: crack-f2 .9s ease both; }
-.crack-veil img.c3 { animation: crack-f3 .9s ease both; }
-@keyframes crack-f1 { 0% { opacity: 0 } 8% { opacity: 1 } 34% { opacity: 0 } 100% { opacity: 0 } }
-@keyframes crack-f2 { 0% { opacity: 0 } 34% { opacity: 1 } 62% { opacity: 0 } 100% { opacity: 0 } }
-@keyframes crack-f3 { 0% { opacity: 0 } 62% { opacity: .95 } 100% { opacity: 0 } }
+/* 有点酸哦：哥特裂纹三帧位图层——沉浸批1 A4（2026-09-15）JSX 与本段样式一并下线，
+   答错反馈由 .q-card 的 card-flash-bad 一次性脉冲承担（§36 口径） */
 
 .verdict-banner { position: relative; text-align: center; padding: 6px 8px; margin-top: 0; font-size: clamp(15px, 4.2cqw, 21px); letter-spacing: 5px; font-weight: 900; animation: crack-in .4s var(--ease-pop) both; }
 .verdict-banner.ok { color: #1f5a4f; text-shadow: 0 1px 0 rgba(255,251,240,.8); }
@@ -324,10 +309,7 @@
 @keyframes tremble { 0%,100% { transform: translateX(0) } 25% { transform: translateX(-2px) } 75% { transform: translateX(2px) } }
 .combo-pop { position: absolute; top: -2px; right: 14px; font-size: 13px; color: #8a6f10; text-shadow: 0 1px 0 rgba(255,251,240,.85), 0 0 10px rgba(184,150,58,.5); animation: combo-in .5s var(--ease-pop) both; letter-spacing: 1px; }
 @keyframes combo-in { from { opacity: 0; transform: scale(.4) rotate(-8deg) } to { opacity: 1; transform: scale(1) } }
-.pile-counter { position: fixed; z-index: 30; display: flex; align-items: center; gap: 6px; padding: 5px 10px; font-size: 12px; border: 1px solid rgba(139,115,50,.5); background: rgba(13,17,23,.8); backdrop-filter: blur(4px); pointer-events: none; }
-.pile-counter .pile { font-size: 14px; }
-.pile-counter.okp { top: 14px; right: 12px; color: var(--teal-lt); border-color: rgba(58,138,126,.6); }
-.pile-counter.badp { bottom: 14px; right: 12px; color: #d98ba0; border-color: rgba(139,42,74,.6); }
+/* 答对/答错角标：沉浸批1 A2（2026-09-15）元素并入顶行 .practice-count，fixed 双胶囊随之删除 */
 
 
 /* 结算 */

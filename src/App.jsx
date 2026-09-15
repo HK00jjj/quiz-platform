@@ -147,7 +147,15 @@ export default function App() {
   const authStatus = useStore((s) => s.authStatus)
   const ready = useStore((s) => s.ready)
   const init = useStore((s) => s.init)
-  const [boot, setBoot] = useState(true)
+  /* 沉浸批2 B4：boot 仪式每会话一次——sessionStorage 记账，同标签页刷新/路由回访不再重播；
+     关掉标签页下次进入仍播（跨会话仪式感保留）。隐私模式读写异常时回退为每次都播。 */
+  const [boot, setBoot] = useState(() => {
+    try { return !sessionStorage.getItem('bootPlayed') } catch { return true }
+  })
+  const endBoot = () => {
+    try { sessionStorage.setItem('bootPlayed', '1') } catch { /* 隐私模式忽略 */ }
+    setBoot(false)
+  }
 
   useEffect(() => { init() }, [init])
 
@@ -166,7 +174,7 @@ export default function App() {
   if (authStatus !== 'signed-in') {
     return (
       <>
-        {boot && <BootRitual onDone={() => setBoot(false)} />}
+        {boot && <BootRitual onDone={endBoot} />}
         {/* 登录页原来没有气泡层：加载态（L72）与已登录的 Shell（L43）都渲染了 <Background />，
             只有这个分支漏了，所以它只剩一层平渐变、显得空。补回来与其它屏一致。 */}
         <Background />
@@ -177,7 +185,7 @@ export default function App() {
 
   return (
     <>
-      {boot && <BootRitual onDone={() => setBoot(false)} />}
+      {boot && <BootRitual onDone={endBoot} />}
       <TouchRitual />
       <HashRouter>
         <Shell />

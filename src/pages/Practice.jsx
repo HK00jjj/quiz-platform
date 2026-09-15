@@ -15,7 +15,7 @@ import { shuffledOrder } from '../lib/util.js'
 /* 解析语音播报（2026-09-13 增量）：启封自动朗读解析，🔊 一键可关，语速 1.25。
    2026-09-15 增量（用户钦定）：题卡到手自动读【题干】，选项不读——同一个 🔊 开关
    管两段（答题中读题干、揭晓后读答案+解析），各自有「已读」闸互不挤占。 */
-import { speak, stopSpeak, pauseSpeak, resumeSpeak, unlockSpeech, ttsSupported, ttsEnabled as ttsPrefEnabled, setTtsEnabled, voiceNote, voiceAdvice, voiceGuideText, currentVoices, listVoices, ttsVoicePref, setTtsVoice, ttsRate, setTtsRate, fmtRate, voiceDiag, warmUpVoices, EDGE_VOICES, CLOUD_VOICE_ID, isCloudVoice, unlockCloudAudio, prefetchCloudFirst, RATE_MIN, RATE_MAX, RATE_STEP } from '../lib/tts.js'
+import { speak, stopSpeak, pauseSpeak, resumeSpeak, unlockSpeech, ttsSupported, ttsEnabled as ttsPrefEnabled, setTtsEnabled, voiceNote, voiceAdvice, voiceGuideText, currentVoices, listVoices, ttsVoicePref, setTtsVoice, ttsRate, setTtsRate, fmtRate, voiceDiag, warmUpVoices, EDGE_VOICES, CLOUD_VOICE_ID, isCloudVoice, unlockCloudAudio, prefetchCloudFirst, currentPauseTag, RATE_MIN, RATE_MAX, RATE_STEP } from '../lib/tts.js'
 
 /* 题干渲染：填空题把 {空} 显示为下划线占位 */
 function Stem({ q }) {
@@ -124,7 +124,7 @@ export default function Practice() {
   }
 
   /* 答案揭晓后把答案区滚进可见范围。三个关键点：
-     ① 时机：蜡封在 520ms 才卸载（seal==='broken'），提前滚会让上方内容在滚动途中突然少 ~40px
+     ① 时机：蜡封卸载（seal==='broken'，时长随批2 B3 门控 300/520ms）前，提前滚会让上方内容在滚动途中突然少 ~40px
         → 目标位置移动 = 浏览器重定向/中断平滑滚动 = 顿挫感。所以等蜡封真消失后，
         再用双 rAF 等这次 DOM 变更提交并完成布局，才去测量+滚动。
      ② 测量：全程只读一次几何（双 rAF 内），不在滚动回调里反复读，避免强制同步布局。
@@ -303,7 +303,7 @@ export default function Practice() {
     const key = index + '|' + q.id
     if (spokenKeyRef.current === key) return      // 本题已读过：不重播（这是防叠音的闸）
     spokenKeyRef.current = key
-    speak(spokenOf(q, lastGrade, shuffleRef.current.order))
+    speak(spokenOf(q, lastGrade, shuffleRef.current.order), { tag: 'reveal|' + index + '|' + q.id })
   }, [ttsOK, seal, phase, showAnswer, index, q?.id, ttsOn])
   /* ── 自动读题干（2026-09-15，用户钦定：题卡到手自动读题干，选项不读）──
      新题落地（index/q.id 变化、phase=answering）即开口，只念 stemSpokenOf(q)。
@@ -322,7 +322,7 @@ export default function Practice() {
     const key = index + '|' + q.id
     if (stemSpokenRef.current === key) return   // 本题题干已读过：不重播（防叠音闸）
     stemSpokenRef.current = key
-    speak(stemSpokenOf(q))
+    speak(stemSpokenOf(q), { tag: 'stem|' + index + '|' + q.id })
   }, [ttsOK, index, q?.id, phase, showAnswer, ttsOn])
   /* 卸载兜底：离开练习页/进结算页时，不留一条还在说的声音；面板轮询一并清掉 */
   useEffect(() => () => { stopSpeak(); clearInterval(panelPoll.current) }, [])
@@ -388,22 +388,27 @@ export default function Practice() {
     : text
   const canSubmit = objective ? inputText.trim().length > 0 : true
 
-  /* 播报开关 = 暂停/继续（2026-09-13 晚第五轮，用户指令"开和关都暂停在原处，不重复读"）：
-     关 → pauseSpeak（桌面原生 pause 原地停；不支持时记住块位置），**不清进度、不清键**；
-     开 → 优先 resumeSpeak 接着读；只有"本题从未读过"（键不匹配）才从头开口。
-     已读完的题再开只是取消静音，不会重头再读一遍。 */
+  /* 播报开关 = 暂停/继续（2026-09-13 晚第五轮"开和关都暂停在原处"，2026-09-15 下午加严）：
+     关 → pauseSpeak（GA 线=suspend 冻结时间线，位置采样级精确；native=pause 原地停；
+          不支持原生暂停时记住块位置），**不清进度、不清键**；
+     开 → 先对表：暂停会话的 tag 必须等于当前界面期望的上下文（揭晓期=reveal 键、
+          答题期=stem 键）才 resumeSpeak 续播——**从暂停位置继续，一个字不重**；
+          不匹配（例如答题时暂停了题干、揭晓后才开声）→ 丢弃过期暂停，按当前上下文
+          从头开新口。都没有 → 老规矩：揭晓态且本题没读过才开口。 */
   function toggleTts() {
     const next = !ttsOn
     setTtsOn(next)
     setTtsEnabled(next)
     if (!next) { pauseSpeak(); return }
-    unlockCloudAudio()                    // 恢复播报也在手势内：顺手解锁云端 <audio>
-    if (resumeSpeak()) return
+    unlockCloudAudio()                    // 恢复播报也在手势内：顺手解锁云端 <audio>/AudioContext
     const revealed = seal === 'broken' && (phase === 'feedback' || showAnswer)
+    const expected = (revealed ? 'reveal|' : 'stem|') + index + '|' + (q ? q.id : '')
+    if (currentPauseTag() === expected && resumeSpeak()) return
+    if (currentPauseTag()) stopSpeak()               // 过期的暂停会话：丢弃，落入下方按当前上下文开口
     const key = index + '|' + q?.id
     if (revealed && q && spokenKeyRef.current !== key) {
       spokenKeyRef.current = key
-      speak(spokenOf(q, lastGrade, shuffleRef.current.order))
+      speak(spokenOf(q, lastGrade, shuffleRef.current.order), { tag: 'reveal|' + index + '|' + q.id })
     }
   }
 
@@ -418,7 +423,7 @@ export default function Practice() {
     unlockCloudAudio()                    // 重读按钮也是手势：解锁云端 <audio>，避免首次被浏览器拦
     spokenKeyRef.current = index + '|' + q.id
     clearTimeout(rateRetry.current)
-    speak(spokenOf(q, lastGrade, shuffleRef.current.order))
+    speak(spokenOf(q, lastGrade, shuffleRef.current.order), { tag: 'reveal|' + index + '|' + q.id })
   }
 
   /* 手动重读语音清单（移动端的救命按钮：部分安卓内核不触发 voiceschanged，
@@ -456,7 +461,7 @@ export default function Practice() {
     if (ttsOn && q && spokenKeyRef.current === index + '|' + q.id) {
       clearTimeout(rateRetry.current)
       rateRetry.current = setTimeout(
-        () => speak(spokenOf(q, lastGrade, shuffleRef.current.order)), 300)
+        () => speak(spokenOf(q, lastGrade, shuffleRef.current.order), { tag: 'reveal|' + index + '|' + q.id }), 300)
     }
     /* 首播之后再拉一次：部分内核要"说过一次"才补齐语音表 */
     setTimeout(refreshVoiceList, 1800)
@@ -470,7 +475,7 @@ export default function Practice() {
     if (ttsOn && q && spokenKeyRef.current === index + '|' + q.id) {
       clearTimeout(rateRetry.current)
       rateRetry.current = setTimeout(
-        () => speak(spokenOf(q, lastGrade, shuffleRef.current.order), { rate: val }), 450)
+        () => speak(spokenOf(q, lastGrade, shuffleRef.current.order), { rate: val, tag: 'reveal|' + index + '|' + q.id }), 450)
     }
   }
 

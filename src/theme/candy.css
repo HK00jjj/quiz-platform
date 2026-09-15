@@ -1,4 +1,4 @@
-/* ══════════════════════════════════════════════════════════════
+﻿/* ══════════════════════════════════════════════════════════════
    candy.css —— 「糖果题库」果冻糖果风主题层
    叠在 gothic 的 global.css / pages.css 之后（见 main.jsx 的 import 顺序），
    只做覆盖、不重写：旧规则里所有 var(--gold-text)/var(--teal) 之类 token
@@ -390,7 +390,9 @@ body, button, input, textarea, select {
 /* 三分区：题目区最亮、作答区原底、答案区糖纸封印 */
 /* §65 题干区换羊皮纸（用户反馈粉白底刺眼）：暖米轻渐变 + 暖沙色描边，与薄荷主题互补不突兀 */
 .zone-q {
-  background: linear-gradient(165deg, rgba(252, 247, 236, .92), rgba(247, 239, 221, .84)) !important;
+  /* 沉浸批2 B2①（2026-09-15）：羊皮纸加深一档（小样 b2v1）——原 .92 半透明过亮，
+     题干在整卡上"浮"；改实色暖米渐变，读题区成为卡面最沉稳的一块。 */
+  background: linear-gradient(165deg, #F6EED9, #F0E4C8) !important;
   border: 1px solid #E6DAC2 !important;
   border-radius: var(--r-sm) !important;
   box-shadow: 0 2px 12px rgba(180, 160, 120, .15), inset 0 1px 0 rgba(255, 255, 255, .8) !important;
@@ -1037,7 +1039,8 @@ body, button, input, textarea, select {
    创建成本全压在同一帧 → 224ms。模糊掉的背景本来就是柔和粉彩渐变 + 慢速气泡，
    与“更不透明的奶白”几乎无视觉差别，所以按“降级技术而不是删掉效果”的原则：
    去掉 backdrop-filter，底色提到 .84 保证文字对比度。
-   保留：底部导航（1 层常驻、iOS 标准材质）与答题页 .pile-counter（两个小元素）。
+   保留：底部导航（1 层常驻、iOS 标准材质）。答题页 .pile-counter 原也在白名单，
+   沉浸批1 A2 已把角标并入顶行文字（元素删除），不再需要这一豁免。
    追加在文件末尾以同特异性后来居上，不需要去改前面那条分组规则。 */
 .panel, .entry-card, .settle-card, .empty-state, .filter-group,
 .stat-card, .ach-card, .book-card, .modal-card, .import-panel, .setting-card {
@@ -1129,9 +1132,6 @@ body, button, input, textarea, select {
   box-shadow: 0 0 0 4px rgba(242, 86, 74, .22), 0 8px 24px rgba(242, 86, 74, .3) !important;
 }
 .judge-card.j-false.selected .judge-label { color: var(--bad-ink) !important; }
-.crack-veil { background: radial-gradient(circle at 50% 50%, transparent 38%, rgba(242, 86, 74, .28) 100%) !important; }
-.pile-counter.okp { color: var(--ok-ink) !important; border-color: rgba(127, 232, 200, .75) !important; }
-.pile-counter.badp { color: var(--bad-ink) !important; border-color: rgba(242, 86, 74, .6) !important; }
 .tag.red { color: var(--bad-ink) !important; border-color: rgba(242, 86, 74, .55) !important; }
 
 /* ══════════════════════════════════════════════════════════
@@ -1628,7 +1628,9 @@ body, button, input, textarea, select {
    规则：粉主色占约六成，薄荷/柠檬/薰衣草只做点缀，面积不均等否则显花显廉价。
    ① 背景渐变改权重：粉族 0–58% 占主，薄荷 58–82%、薰衣草 82–100% 压缩成点缀尾段
       （原来是均等三段，正是“显花”的来源）。用更浅的粉保持上一轮的清透。 */
-body { background: linear-gradient(160deg, #FFF8FA 0%, #EAF2ED 58%, #F0FFFA 82%, #F4F1FF 100%) !important; }
+/* 沉浸批2 B1（2026-09-15）：尾段三色各加深一档——原尾段过亮，页面下半部"飘"、
+   题卡沉不进背景；只动尾段不动粉族主段（0-58% 保持上一轮的清透）。 */
+body { background: linear-gradient(160deg, #FFF8FA 0%, #E2EEE7 58%, #E6F5EC 82%, #ECE7F8 100%) !important; }
 /* ② 彩糖针 sprinkle 点缀：12 根 3×11px 圆头小棒、四色循环、静态零动画（不占每帧合成成本），
       散在四角与边缘、opacity .45，只当“撒在桌面上的糖针”不当图案。 */
 .candy-sprinkles { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
@@ -1711,8 +1713,8 @@ body { background: linear-gradient(160deg, #FFF8FA 0%, #EAF2ED 58%, #F0FFFA 82%,
       - crack-veil 的径向红晕撤掉——裂纹位图早已 display:none（L388），这层只剩
         红晕在染整个题面，正是用户箭头指的「题目区变红」的来源；
       - card-flash-bad 的一次性阴影脉冲保留（提交瞬间 0.9s 自愈，不进入持续状态）。
-   ④ 答案框（answer-scroll-box）答错时用纯白底：旧值 .72 半透白会透出解析区的红。 */
-.crack-veil { background: none !important; }
+   ④ 答案框（answer-scroll-box）答错时用纯白底：旧值 .72 半透白会透出解析区的红。
+   ⚠ 沉浸批1 A4：crack-veil JSX 层已整个删除，本节对它的 background:none 规则随之清除。 */
 .answer-scroll-box.bad { background: #fff !important; }
 
 /* ════════ §34（2026-09-05）导航托盘的派对装点 ════════
@@ -1841,9 +1843,6 @@ body { background: linear-gradient(160deg, #FFF8FA 0%, #EAF2ED 58%, #F0FFFA 82%,
   /* ② hero 副标：放宽占幅 + 均衡折行，不再出「4 / 天」孤字尾行 */
   .candy-hero .hero-copy { max-width: 64% !important; }
   .candy-hero .hero-copy p { font-size: 12px !important; text-wrap: balance; }
-  /* ③ 答题页答对/答错角标收紧 */
-  .pile-counter { padding: 3px 8px !important; font-size: 11px !important; gap: 4px !important; }
-  .pile-counter .pile { font-size: 12px !important; }
 }
 
 /* ══ §50 答题页糖浆进度条（方案 B 拍板 + 用户口径「圆润、糖浆一点点灌满」） ══
@@ -1937,8 +1936,8 @@ body { background: linear-gradient(160deg, #FFF8FA 0%, #EAF2ED 58%, #F0FFFA 82%,
   .ftree { left: 4%; }
   .ftent { right: 4%; }
 }
-/* §52b 答题页 compact：只撤小旗（用户口径——答题界面去掉小旗就行，其余全保留） */
-.festive-layer.is-compact .fbunting { display: none; }
+/* ⚠ 沉浸批1 A1（2026-09-15 用户拍板）：答题页整层不挂 FestiveDecor（App.jsx 条件渲染），
+   原 §52b「compact 只撤小旗」与 §68「compact 雪花减速」两组 is-compact 规则成死样式，随之清除。 */
 
 /* ══ §55 字体沉浸感（方案 B 拍板：清爽雅黑——字体不动，修排版病灶） ══
    晕的病灶：题干 600 加粗、阅读面字重偏高、1-6px 字距、作答框等宽字体（中文落宋体渲染）。
@@ -1997,14 +1996,6 @@ body { background: linear-gradient(160deg, #FFF8FA 0%, #EAF2ED 58%, #F0FFFA 82%,
   opacity: 1 !important; display: flex !important; color: #6E9A87 !important;
 }
 
-/* ══ §68 答题页雪花减速（用户反馈飘落分散注意力，只动答题页） ══
-   compact 模式下落速放慢 4~5 倍（40~60s），接近「凝在空中」但仍活着；
-   负 delay 保留（雪花初始位置按新时长比例分布）。学习页等其他页面不变。 */
-.festive-layer.is-compact .fflake { animation-duration: 45s; }
-.festive-layer.is-compact .ff2 { animation-duration: 55s; }
-.festive-layer.is-compact .ff3 { animation-duration: 40s; }
-.festive-layer.is-compact .ff4 { animation-duration: 60s; }
-
 /* ══ §69c 焦点黑框消除（用户反馈「黑框」真因：键盘流程序 click 不移动焦点，
    浏览器默认 focus outline 滞留在旧选项上）。答题区交互控件统一关闭 outline，
    选中状态（绿框）本身即视觉锚点，无障碍不受损（Enter 流不依赖焦点环）。 ══ */
@@ -2027,3 +2018,18 @@ body { background: linear-gradient(160deg, #FFF8FA 0%, #EAF2ED 58%, #F0FFFA 82%,
 .recall-weak-copy { min-width: 0; flex: 1; }
 .recall-weak-copy h4 { margin: 0 0 2px; font-size: 13.5px; color: var(--pink-ink); letter-spacing: .4px; }
 .recall-weak-copy p { margin: 0; font-size: 12px; line-height: 1.6; color: var(--muted, #666); }
+
+/* ══ 沉浸批2 B1（2026-09-15）答题舞台静态聚焦光 ══
+   空间纵深：背景尾段加深后，舞台中央叠一束恒定的顶部漫射光——题卡被"打亮"、
+   四周渐隐进背景，聚光灯语义替代装饰堆砌。纯静态一层径向渐变，零动画零 blur（§5）。
+   z-index 用 -1 而非 0：::before 是 stage 的定位子元素，z-index:0 会画在普通流
+   内容（题卡）之上造成整卡发白；-1 才垫在 stage 内容与 body 渐变之间。
+   idle 空态与 settle 结算页复用同一 stage（pages.css L74），光同现、氛围一致。 */
+.practice-stage::before {
+  content: '';
+  position: absolute;
+  inset: -40px;
+  background: radial-gradient(60% 50% at 50% 38%, rgba(255, 255, 255, .65), transparent 70%);
+  z-index: -1;
+  pointer-events: none;
+}

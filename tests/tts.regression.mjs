@@ -6,7 +6,7 @@
    ③ pickVoice：选声优先级（晓晓Natural > 云希Natural > Natural > 常见微软本地音 > 任意zh） */
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
-import { chunkSpeechText, cleanSpeechText, normalizeSpeech, pickVoice, chunkMaxFor, TTS_RATE, RATE_MIN, RATE_MAX, RATE_STEP, clampRate, fmtRate, ttsRate, sliceForResume, listVoices, voiceQualityOf, voiceAccent, voiceLabel, ttsVoicePref, resolveVoiceByName, zhLike, voiceDiag, cloudTtsUrl, cloudSpd, engineFor, isCloudVoice, isEdgeVoice, EDGE_VOICES, CLOUD_VOICES, CLOUD_CHUNK_MAX, CLOUD_CHUNK_MAX_EDGE, cloudChunkMaxFor, cloudSupported, CLOUD_VOICE_ID, CLOUD_DEFAULT_VOICE, prefetchCloudFirst } from '../src/lib/tts.js'
+import { chunkSpeechText, cleanSpeechText, normalizeSpeech, pickVoice, chunkMaxFor, TTS_RATE, RATE_MIN, RATE_MAX, RATE_STEP, clampRate, fmtRate, ttsRate, sliceForResume, listVoices, voiceQualityOf, voiceAccent, voiceLabel, ttsVoicePref, resolveVoiceByName, zhLike, voiceDiag, cloudTtsUrl, cloudSpd, engineFor, isCloudVoice, isEdgeVoice, EDGE_VOICES, CLOUD_VOICES, CLOUD_CHUNK_MAX, CLOUD_CHUNK_MAX_EDGE, cloudChunkMaxFor, cloudSupported, CLOUD_VOICE_ID, CLOUD_DEFAULT_VOICE, prefetchCloudFirst, gaTrimRange, speakCloudGA, currentPauseTag } from '../src/lib/tts.js'
 
 let n = 0
 const ok = (cond, msg) => { n++; assert.ok(cond, msg) }
@@ -248,10 +248,11 @@ ok(EDGE_VOICES.length >= 5 && EDGE_VOICES[0].id === 'zh-CN-YunjianNeural', '⑪-
 ok(CLOUD_VOICES.some((v) => v.name === CLOUD_VOICE_ID), '⑪-18 云端表含百度备用线路')
 ok(isCloudVoice('zh-CN-YunjianNeural') && isCloudVoice(CLOUD_VOICE_ID) && !isCloudVoice('Microsoft Huihui'), '⑪-19 isCloudVoice 只认云端 id')
 ok(isEdgeVoice('zh-CN-YunjianNeural') && !isEdgeVoice(CLOUD_VOICE_ID), '⑪-20 isEdgeVoice 区分两条线路')
-// ⑪-5 引擎决策：显式选择优先；自动档只有"系统本身是神经音"才用系统，其余一律云端
+// ⑪-5 引擎决策：显式选择优先；自动档云端可用一律云端（2026-09-15 下午改：GA 管线零块边界，
+// 桌面 native 逐 utterance 网络合成有 0.3~1s 块间隙=句号卡顿主因）
 ok(engineFor('sapi', CLOUD_VOICE_ID, true) === 'cloud', '⑪-21 显式选云端 → cloud')
 ok(engineFor('natural', 'Microsoft Huihui', true) === 'sys', '⑪-22 显式选系统音 → sys')
-ok(engineFor('natural', null, true) === 'sys', '⑪-23 自动 + 系统是神经音 → sys（桌面 Edge 省一跳）')
+ok(engineFor('natural', null, true) === 'cloud', '⑪-23 自动 + 系统是神经音 → cloud（GA 零边界优先，不再省一跳留块间隙）')
 ok(engineFor('sapi', null, true) === 'cloud', '⑪-24 自动 + 系统只老式音 → cloud（与电脑端同音色）')
 ok(engineFor('network', null, true) === 'cloud', '⑪-25 自动 + 系统是网络音 → cloud')
 ok(engineFor(null, null, true) === 'cloud', '⑪-26 自动 + 本机无中文音 → cloud')
@@ -285,9 +286,10 @@ ok(cloudChunkMaxFor(CLOUD_VOICE_ID) === CLOUD_CHUNK_MAX, '⑯-7 百度线块长 
    「已读」闸分离、入口手势解锁。行为级验证由线上真机 E2E（CDP 捕 utterance）承担。 */
 const practiceSrc = readFileSync(new URL('../src/pages/Practice.jsx', import.meta.url), 'utf8')
 const learnSrc = readFileSync(new URL('../src/pages/Learn.jsx', import.meta.url), 'utf8')
+const ttsSrc = readFileSync(new URL('../src/lib/tts.js', import.meta.url), 'utf8')
 ok(/function stemSpokenOf\(q\) \{/.test(practiceSrc), '⑰-1 stemSpokenOf 纯函数存在于 Practice.jsx')
 ok(/replace\(\/\\\{\[\^\{\}\]\*\\\}\/g, '空'\)/.test(practiceSrc), '⑰-2 填空 {…} 占位符读成「空」（占位里可能带着答案，不能外读）')
-ok(/speak\(stemSpokenOf\(q\)\)/.test(practiceSrc), '⑰-3 stem effect 真正调 speak(stemSpokenOf(q))')
+ok(/speak\(stemSpokenOf\(q\), \{ tag: 'stem\|'/.test(practiceSrc), '⑰-3 stem effect 真正调 speak(stemSpokenOf(q), {tag})')
 ok(/const stemSpokenRef = useRef\(null\)/.test(practiceSrc), '⑰-4 stemSpokenRef「已读」闸存在（与 spokenKeyRef 分离，防叠音）')
 ok(practiceSrc.includes('[ttsOK, index, q?.id, phase, showAnswer, ttsOn]'), '⑰-5 stem effect 依赖数组含 phase/ttsOn（揭晓时不读、开关回开能接住）')
 ok(/stemSpokenOf\(nq\)/.test(practiceSrc) === false, '⑰-6 翻题手势预载已按 0c180c9 结论不挂（stopSpeak 清场会吃掉预载，靠 24h 缓存）')
@@ -295,5 +297,27 @@ ok(learnSrc.includes("import { unlockCloudAudio } from '../lib/tts.js'"), '⑰-7
 ok(/async function run\(mode, opts = \{\}\) \{\s*\n\s*unlockCloudAudio\(\)/.test(learnSrc), '⑰-8 进练习手势内解锁云端 <audio>（移动端首题不被拦）')
 ok(/onClick=\{async \(\) => \{\s*\n\s*unlockCloudAudio\(\)\s*\/\/ 重开一轮/.test(practiceSrc), '⑰-9 再练错题手势内解锁云端 <audio>')
 ok(/const wasRevealedRef = useRef\(false\)/.test(practiceSrc) && /if \(wasRevealedRef\.current\) \{ stopSpeak\(\); wasRevealedRef\.current = false \}/.test(practiceSrc), '⑰-10 清场双拍守卫：stopSpeak 只在真正离开揭晓态那一拍打（否则第二拍轰掉题干朗读，E2E 实证）')
+
+/* ── ⑱ GA 无缝管线 + 暂停续播上下文对表（2026-09-15 下午，"彻底解决卡顿/停顿"+"关再开从原处续"）──
+   GA：fetch 块 MP3 → decodeAudioData → gaTrimRange 裁首尾合成静音 → AudioContext 时间线
+   采样级拼接（块间零间隙）。暂停=ctx.suspend()（冻结时间线，采样级位置），续播=resume()。
+   Node 无 window：入口必须安全返回 false；纯函数（gaTrimRange）直接回归。 */
+ok((() => { const sp = new Float32Array(4000); for (let i = 1000; i < 3000; i++) sp[i] = 0.5 * Math.sin(i * 0.1)
+  const r = gaTrimRange(sp); return r.start === 1000 && r.end === 3000 })(), '⑱-1 gaTrimRange 裁掉首尾合成静音（±1000 采样）')
+ok((() => { const s = new Float32Array(100); const r = gaTrimRange(s); return r.start === 0 && r.end === 100 })(), '⑱-2 全静音音频不越权裁剪（返回全区间）')
+ok((() => { const sp = new Float32Array(100); for (let i = 0; i < 100; i++) sp[i] = 0.5 + 0.2 * Math.sin(i * 0.3)
+  const r = gaTrimRange(sp); return r.start === 0 && r.end === 100 })(), '⑱-3 无静音音频不裁剪')
+ok(speakCloudGA(['测试文本'], 1, null, undefined, CLOUD_DEFAULT_VOICE, 'reveal|1|x') === false, '⑱-4 Node 无 window：GA 入口安全返回 false')
+ok(currentPauseTag() === '', '⑱-5 Node 无会话：currentPauseTag 安全返回空串')
+ok(/const webAudioOK = \(\) =>/.test(ttsSrc) && /function gaCtxOf\(\)/.test(ttsSrc) && /export function speakCloudGA\(/.test(ttsSrc), '⑱-6 GA 管线主体存在（webAudioOK/gaCtxOf/speakCloudGA）')
+ok(/function stopGASources\(\)/.test(ttsSrc) && /stopGASources\(\)\s+\/\/ GA 会话/.test(ttsSrc), '⑱-7 stopCloud 接管 GA 清场（旧源全停，防叠音）')
+ok(/if \(isEdgeVoice\(voice\) && webAudioOK\(\)\) return speakCloudGA/.test(ttsSrc), '⑱-8 线路分派：微软代理线 → GA；百度线（无 CORS）→ 旧 <audio> 管线')
+ok(/gaWarm\(cloudTtsUrl\(chunks\[0\], rate, useVoice\)\)/.test(ttsSrc), '⑱-9 prefetchCloudFirst 微软线预热 GA 解码缓存')
+ok(/export function currentPauseTag\(\)/.test(ttsSrc), '⑱-10 currentPauseTag 导出（开关续播对表用）')
+ok(/\{ rate = ttsRate\(\), onDone, tag \} = \{\}/.test(ttsSrc), '⑱-11 speak() 签名携带 tag')
+ok((practiceSrc.match(/tag: 'reveal\|'/g) || []).length >= 4, '⑱-12 Practice 四处解析播报均带 reveal tag（effect/开关/重读/换音色+调速）')
+ok(/tag: 'stem\|' \+ index \+ '\|' \+ q\.id/.test(practiceSrc), '⑱-13 题干播报带 stem tag')
+ok(/currentPauseTag\(\) === expected && resumeSpeak\(\)/.test(practiceSrc) && /const expected = \(revealed \? 'reveal\|' : 'stem\|'\) \+ index \+ '\|' \+ \(q \? q\.id : ''\)/.test(practiceSrc), '⑱-14 开关续播按上下文对表：tag 匹配才 resume，过期暂停丢弃')
+ok(/export function engineFor\(autoQuality, pref, cloudOK\) \{[\s\S]*?return 'cloud'\s*\}/.test(ttsSrc), '⑱-15 engineFor：自动档云端可用一律 cloud（新决策表）')
 
 console.log(`\ntts.regression：${n} 断言全绿`)

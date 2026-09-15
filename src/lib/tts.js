@@ -617,11 +617,11 @@ export function resolveVoiceByName(voices, name) {
 }
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 const CHUNK_GAP = 120
-function runChunks(chunks, rate, onDone, my, voiceName) {
+function runChunks(chunks, rate, onDone, my, voiceName, tag) {
   if (!chunks || !chunks.length) return false
   const tok = my === undefined ? ++token : my
   const synth = window.speechSynthesis
-  const sess = { chunks, i: 0, paused: false, nativePaused: false, done: false, voiceName: voiceName || null }
+  const sess = { chunks, i: 0, paused: false, nativePaused: false, done: false, voiceName: voiceName || null, tag: tag || '' }
   session = sess
   const live = []                       // ① 保活：防 GC 丢 voice
   let gapTimer = null, watchdog = null
@@ -656,50 +656,50 @@ function runChunks(chunks, rate, onDone, my, voiceName) {
   next()
   return true
 }
-export async function speak(raw, { rate = ttsRate(), onDone } = {}) {
+export async function speak(raw, { rate = ttsRate(), onDone, tag } = {}) {
   if (!ttsSupported() && !cloudSupported()) return false
   const my = ++token
-  /* ① 显式选了云端音色 → 直接走云端（不走系统语音表，手机也能出声） */
+  /* ① 显式选了云端音色 → 直接走云端（不走系统语音表，手机也能出声）。
+     tag：本条播报的上下文键（如 reveal|3|q12 / stem|3|q12），暂停/续播用它与
+     当前界面状态对表——不匹配的过期暂停会话由调用方丢弃，防止"续播出上一题的声音"。 */
   const pref = ttsVoicePref()
   if (isCloudVoice(pref)) {
     try { window.speechSynthesis?.cancel() } catch { /* ignore */ }
-    /* 2026-09-15 取证修正：这里原来是 stopCloud()——它会把 prefetchCloudFirst 在手势里
-       预载好的首块 src 一并清掉，预载白做（"点开解析不立马读"的残留根因）。
-       此时 token 已 ++（旧链所有回调短路），只需停声与复位指针；新会话 speakCloud
-       开头统一 detach+重挂 handler，且 step 的预载命中判定（idle.src===url）正好
-       吃到 prefetch 预载的 els[0].src → 手势预载真正生效。 */
-    pauseCloud()
-    cloudPlaying = null
+    handoverCloud()
     const cm = cloudChunkMaxFor(pref)
     const chunks = chunkSpeechText(raw, cm, CLOUD_CHUNK_MAX)
     if (!chunks.length) return false
     /* 云端分支不再 sleep(120)：stopCloud 是同步 pause，无引擎复位需求；
        这 120ms 原是给系统语音 cancel 落地留的，省掉后首块更快开口 */
     if (my !== token) return false
-    return speakCloud(chunks, rate, onDone, my, pref)
+    return speakCloudLine(chunks, rate, onDone, my, pref, tag)
   }
-  if (!ttsSupported()) {
-    /* 无 speechSynthesis 但可播音频（部分 WebView）→ 云端兜底（云健） */
-    const chunks = chunkSpeechText(raw, CLOUD_CHUNK_MAX_EDGE, CLOUD_CHUNK_MAX)
-    if (!chunks.length || !cloudSupported()) return false
-    return speakCloud(chunks, rate, onDone, my, CLOUD_DEFAULT_VOICE)
+  const autoCloud = !pref && cloudSupported()
+  if (!ttsSupported() || autoCloud) {
+    /* ② 无 speechSynthesis 但可播音频（部分 WebView）→ 云端兜底（云健）；
+       ③ 自动档 + 云端可用 → **云端优先**（2026-09-15 下午改）：
+          桌面 native 把长文切成 180 字块逐 utterance 网络合成，块间隙 0.3~1s
+          （块边界≈句号边界，即用户报的"每个句号顿一下"）；GA 管线解码裁静音后
+          采样级拼接，零块边界，且同一微软音色、还省掉 waitVoice 至多 1.5s 的等待。
+          失败（函数 502/断网）时回落 native，不臆造能力。 */
+    try { window.speechSynthesis?.cancel() } catch { /* ignore */ }
+    handoverCloud()
+    const cvoice = CLOUD_DEFAULT_VOICE
+    const cchunks = chunkSpeechText(raw, cloudChunkMaxFor(cvoice), CLOUD_CHUNK_MAX)
+    if (!cchunks.length || !cloudSupported()) return false
+    if (my !== token) return false
+    const r = await speakCloudLine(cchunks, rate, onDone, my, cvoice, tag)
+    if (r) return r
+    if (!ttsSupported()) return false          // 没有退路：到此为止
+    /* 云端失败 → 继续往下走 native 回落 */
   }
   const synth = window.speechSynthesis
   /* 先拿到语音再开口（见 waitVoice 注释）；等待期间若被静音/新播报取代，直接放弃。
-     移动端只等 300ms：语音表要么恒空要么必超时，早降云端省 1.2s+ 首响延迟 */
+     移动端只等 300ms：语音表要么恒空要么必超时，早降云端省 1.2s+ 首响延迟
+     （2026-09-15 下午：自动档已在上方提前走云端，能落到这里的只有显式系统音色
+     与云端失败回落，不再经过 engineFor）。 */
   const voice = await waitVoice(isMobileUA() ? 300 : 1500)
   if (my !== token) return false
-  /* ② 引擎决策：自动档只有在"系统本身就是神经音"时才用系统，其余走云端 →
-     手机与电脑听到同一音色（云健）。显式选过云端音色则上方已提前返回。 */
-  if (engineFor(voice ? voiceQualityOf(voice) : null, pref, cloudSupported()) === 'cloud') {
-    /* 同上（2026-09-15）：保留手势预载，只停声不清 src */
-    pauseCloud()
-    cloudPlaying = null
-    const cchunks = chunkSpeechText(raw, CLOUD_CHUNK_MAX_EDGE, CLOUD_CHUNK_MAX)
-    if (!cchunks.length) return false
-    if (my !== token) return false
-    return speakCloud(cchunks, rate, onDone, my, CLOUD_DEFAULT_VOICE)
-  }
   const chunks = chunkSpeechText(raw, chunkMaxFor(voice))
   if (!chunks.length) return false
   /* 新一轮开口前一律 cancel：旧链可能正卡在块间隙（此时 speaking/pending 都是 false，
@@ -709,7 +709,7 @@ export async function speak(raw, { rate = ttsRate(), onDone } = {}) {
   session = null
   await sleep(CHUNK_GAP)
   if (my !== token) return false
-  return runChunks(chunks, rate, onDone, my, voice ? voice.name : null)
+  return runChunks(chunks, rate, onDone, my, voice ? voice.name : null, tag)
 }
 
 /* ═══════════ 云端音色（2026-09-15，修「手机端选不了其他语音」）═══════════
@@ -801,6 +801,9 @@ function ensureCloudEls() {
 const SILENT_WAV = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAgD4AAIA+AAABAAgAZGF0YQAAAAA='
 let cloudUnlocked = false
 export function unlockCloudAudio() {
+  /* GA（Web Audio）：每次手势都顺手 resume——移动端 AudioContext 必须在手势栈里
+     从 suspended 变 running；重复 resume 无害。legacy 元素解锁仍只做一次。 */
+  try { const c = gaCtxOf(); if (c && c.state === 'suspended') { const p = c.resume(); if (p && p.catch) p.catch(() => {}) } } catch { /* ignore */ }
   const els = ensureCloudEls()
   if (!els) return false
   if (cloudUnlocked) return true
@@ -822,6 +825,7 @@ export function unlockCloudAudio() {
    ③ onerror 必须守卫"源已被清空"的情形（getAttribute('src') 为空 → 无视）。 */
 function cloudDetach(a) { try { a.onended = null; a.onerror = null } catch { /* ignore */ } }
 export function stopCloud() {
+  stopGASources()                             // GA 会话（若有）：停掉全部已排程源
   cloudPlaying = null
   /* 2026-09-15 取证修正：`a.src=''` 会把 src 解析成当前页地址并派发 error(code 4)
      （E2E elSnap 实证 src=http://localhost:4176/quiz-platform/）。媒体元素"卸载资源"
@@ -832,8 +836,156 @@ export function stopCloud() {
     try { a.pause(); a.removeAttribute('src'); try { a.load() } catch { /* ignore */ } } catch { /* ignore */ }
   }
 }
-export function pauseCloud() { const a = cloudPlaying; if (!a) return false; try { a.pause(); return true } catch { return false } }
-export function resumeCloud() { const a = cloudPlaying; if (!a) return false; try { const p = a.play(); if (p && p.catch) p.catch(() => {}); return true } catch { return false } }
+export function pauseCloud() {
+  if (ga) { ga.paused = true; try { gaCtxOf().suspend(); return true } catch { return false } }
+  const a = cloudPlaying; if (!a) return false
+  try { a.pause(); return true } catch { return false }
+}
+export function resumeCloud() {
+  if (ga) { ga.paused = false; try { const p = gaCtxOf().resume(); if (p && p.catch) p.catch(() => {}); return true } catch { return false } }
+  const a = cloudPlaying; if (!a) return false
+  try { const p = a.play(); if (p && p.catch) p.catch(() => {}); return true } catch { return false }
+}
+/* ═══════════ 无缝播放管线 · Web Audio（2026-09-15 下午，"彻底解决卡顿/停顿"）═══════════
+   为什么重造播放器：旧双 <audio> 管线里每块是独立合成的 MP3，自带首尾静音（微软神经音
+   实测 ~0.1-0.3s），块边界≈句号边界——TAIL_LEAD 提前切播只能盖住一部分，用户真机仍闻
+   块间顿挫。GA 管线把"块"从播放概念里彻底抹掉：
+     fetch(块URL) → decodeAudioData 解码成 PCM → 【裁掉首尾合成静音】→ 在 AudioContext
+     时间线上与上一块【采样级精确拼接】(src.start(when, offset, duration))。
+   块间零间隙、零元素切换、零网络等待（下一块在上一块播放期间已解码好排队）；
+   句号处只剩微软音色天然的语言韵律停顿（真人也一样），技术性顿挫归零。
+   暂停/续播 = ctx.suspend()/resume()：冻结整条时间线（含已排程的未来块），
+   位置精确到采样，续播一个字不重——这是"播报关再开从原处继续"的机制级保证。
+   降级：不支持 Web Audio 的老内核走旧 <audio> 管线（speakCloud 原样保留）；
+   百度备用线路无 CORS（fetch 读不到字节）也走旧管线——只有微软两跳代理
+   （Supabase 函数带 Access-Control-Allow-Origin:*）能进 GA。 */
+const webAudioOK = () => {
+  if (typeof window === 'undefined') return false
+  const AC = window.AudioContext || window.webkitAudioContext
+  return typeof AC === 'function' && AC.prototype && typeof AC.prototype.decodeAudioData === 'function'
+}
+let gaCtx = null
+function gaCtxOf() {
+  if (!webAudioOK()) return null
+  try {
+    if (!gaCtx) {
+      const AC = window.AudioContext || window.webkitAudioContext
+      gaCtx = new AC()
+    }
+    return gaCtx
+  } catch { return null }
+}
+/* 解码缓存（跨会话复用）：重读/同题重出（三遍判定制）时 decode 一次即秒开；
+   失败的 url 从缓存剔除，允许下次重试。 */
+const gaCache = new Map()
+function gaWarm(url) {
+  if (gaCache.has(url)) return gaCache.get(url)
+  const p = (async () => {
+    const ctx = gaCtxOf()
+    const r = await fetch(url)
+    if (!r.ok) throw new Error('http ' + r.status)
+    const ab = await r.arrayBuffer()
+    const buf = await (ctx.decodeAudioData(ab.slice(0)))
+    return buf
+  })()
+  gaCache.set(url, p)
+  p.catch(() => gaCache.delete(url))
+  return p
+}
+/* 纯函数（可回归）：按振幅找语音实体的 [start,end) 采样区间。
+   阈值 1% FS：合成静音 padding 的振幅远低于此，真人气口不至于误裁。
+   全静音（合成失败的空音频）→ 返回全区间，不越权删内容。 */
+export function gaTrimRange(data, TH = 0.01) {
+  const n = data.length
+  let start = 0, end = n
+  for (let i = 0; i < n; i++) { if (Math.abs(data[i]) >= TH) { start = i; break } }
+  for (let i = n - 1; i >= start; i--) { if (Math.abs(data[i]) >= TH) { end = i + 1; break } }
+  return { start, end }
+}
+let ga = null          // { mode:'cloud', ga:true, tok, tag, urls, i, nextAt, sources, paused, done, chunks, voiceName }
+function stopGASources() {
+  const s = ga
+  ga = null
+  if (!s) return
+  s.done = true
+  for (const src of s.sources) { try { src.onended = null; src.stop() } catch { /* ignore */ } }
+  try { if (gaCtx && gaCtx.state === 'suspended') gaCtx.resume().catch?.(() => {}) } catch { /* ignore */ }
+}
+function gaDecode(url) {
+  return gaWarm(url)
+}
+export function speakCloudGA(chunks, rate, onDone, my, voice, tag) {
+  if (!webAudioOK() || !cloudSupported() || !chunks || !chunks.length) return false
+  const ctx = gaCtxOf()
+  if (!ctx) return false
+  const tok = my === undefined ? ++token : my
+  const useVoice = isEdgeVoice(voice) ? voice : CLOUD_DEFAULT_VOICE
+  stopGASources()                              // 旧 GA 会话（若有）：停源，回调已由 token 短路
+  const sess = { mode: 'cloud', ga: true, tok, tag: tag || '', chunks, urls: [], i: 0, nextAt: 0, sources: [], paused: false, done: false, voiceName: useVoice }
+  ga = sess
+  session = sess
+  sess.urls = chunks.map((t) => cloudTtsUrl(t, rate, useVoice))
+  const FADE = 0.005
+  const schedule = (idx) => {
+    if (tok !== token || sess.done) return
+    gaDecode(sess.urls[idx]).then((buf) => {
+      if (tok !== token || sess.done) return
+      const ch = buf.getChannelData(0)
+      const { start, end } = gaTrimRange(ch)
+      const sr = buf.sampleRate
+      const dur = Math.max(0.02, (end - start) / sr)
+      const t = Math.max(sess.nextAt, ctx.currentTime + 0.03)
+      let src, g
+      try {
+        src = ctx.createBufferSource(); src.buffer = buf
+        g = ctx.createGain()
+        g.gain.setValueAtTime(0.0001, t)
+        g.gain.linearRampToValueAtTime(1, t + FADE)
+        g.gain.setValueAtTime(1, Math.max(t + FADE, t + dur - FADE))
+        g.gain.linearRampToValueAtTime(0.0001, t + dur)
+        src.connect(g); g.connect(ctx.destination)
+        src.start(t, start / sr, dur)
+      } catch { if (idx + 1 < sess.urls.length) schedule(idx + 1); return }
+      sess.sources.push(src)
+      sess.nextAt = t + dur
+      sess.i = idx + 1
+      if (idx === sess.urls.length - 1) {
+        src.onended = () => {
+          if (tok !== token) return
+          sess.done = true
+          if (ga === sess) ga = null
+          if (session === sess) session = null
+          if (onDone) onDone()
+        }
+      }
+      if (idx + 1 < sess.urls.length) gaDecode(sess.urls[idx + 1]).catch(() => {})   // 预解码下一块
+    }).catch(() => {
+      if (tok !== token || sess.done) return
+      if (idx + 1 < sess.urls.length) schedule(idx + 1)      // 单块失败跳过，绝不整段挂死
+      else { sess.done = true; if (ga === sess) ga = null; if (session === sess) session = null; if (onDone) onDone() }
+    })
+  }
+  try { if (ctx.state === 'suspended') { const p = ctx.resume(); if (p && p.catch) p.catch(() => {}) } } catch { /* ignore */ }
+  schedule(0)
+  return true
+}
+/* 新云端会话接管：GA 旧源直接停；旧元素管线只 pause 不清 src（0c180c9 结论：保手势预载） */
+function handoverCloud() {
+  if (ga) { stopGASources(); return }
+  pauseCloud()
+  cloudPlaying = null
+}
+/* 云端线路分派（2026-09-15 下午）：微软代理线 → GA 无缝管线（CORS 可读字节）；
+   百度备用线无 CORS → 旧 <audio> 管线。 */
+function speakCloudLine(chunks, rate, onDone, my, voice, tag) {
+  if (isEdgeVoice(voice) && webAudioOK()) return speakCloudGA(chunks, rate, onDone, my, voice, tag)
+  return speakCloud(chunks, rate, onDone, my, voice)
+}
+/* 暂停会话的上下文键（Practice 开关续播对表用；Node/无会话 → ''） */
+export function currentPauseTag() {
+  const s = session
+  return (s && s.paused && !s.done) ? (s.tag || '') : ''
+}
 /* 云端双缓冲逐块播放：单块失败跳过继续，绝不整段挂死。
    voice 决定线路：微软神经音走两跳代理，百度女声走 fanyi（备用）；
    音色在整段开始时锁定一次（与系统语音链同样的"整段同一音色"原则）。
@@ -849,13 +1001,14 @@ export function resumeCloud() { const a = cloudPlaying; if (!a) return false; tr
 const TAIL_LEAD = 0.18
 const rafOf = (f) => (typeof requestAnimationFrame === 'function' ? requestAnimationFrame(f) : setTimeout(f, 60))
 const cafOf = (h) => (typeof cancelAnimationFrame === 'function' ? cancelAnimationFrame(h) : clearTimeout(h))
-export function speakCloud(chunks, rate, onDone, my, voice) {
+export function speakCloud(chunks, rate, onDone, my, voice, tag) {
   if (!cloudSupported() || !chunks || !chunks.length) return false
+  stopGASources()                              // GA → legacy 接手：先停掉 GA 已排程源
   const tok = my === undefined ? ++token : my
   const els = ensureCloudEls()
   if (!els) return false
   const useVoice = isCloudVoice(voice) ? voice : CLOUD_DEFAULT_VOICE
-  const sess = { mode: 'cloud', chunks, i: 0, paused: false, done: false, voiceName: useVoice }
+  const sess = { mode: 'cloud', chunks, i: 0, paused: false, done: false, voiceName: useVoice, tag: tag || '' }
   session = sess
   const urlOf = (t) => cloudTtsUrl(t, rate, useVoice)
   let tailRaf = 0
@@ -917,10 +1070,14 @@ export function prefetchCloudFirst(raw, rate = ttsRate()) {
   const pref = ttsVoicePref()
   const useVoice = isCloudVoice(pref) ? pref : CLOUD_DEFAULT_VOICE
   /* 与 speak() 云端分支完全同参切块（cm + firstMax）——chunks[0] 的 URL 必须逐字节一致，
-     否则预载命中判定 idle.src===url 落空 */
+     否则预载命中判定落空 */
   const cm = cloudChunkMaxFor(useVoice)
   const chunks = chunkSpeechText(raw, cm, CLOUD_CHUNK_MAX)
   if (!chunks.length) return false
+  /* GA 线（微软代理）：预取 = fetch+decode 进 gaCache，开口时免网络免解码 */
+  if (isEdgeVoice(useVoice) && webAudioOK()) {
+    try { gaWarm(cloudTtsUrl(chunks[0], rate, useVoice)); return true } catch { return false }
+  }
   const els = ensureCloudEls()
   if (!els) return false
   const idle = els[0] === cloudPlaying ? els[1] : els[0]
@@ -929,12 +1086,13 @@ export function prefetchCloudFirst(raw, rate = ttsRate()) {
 }
 /* 「自动」档的引擎决策（纯函数，可回归）：
    显式选了云端/系统就照办；
-   自动档下——只有当"系统语音本身就是神经音"时才用系统（桌面 Edge 的云健即此类，
-   与云端同音色、还省一跳），其余情况（老式 SAPI / Google 网络音 / 干脆没有语音）
-   一律走云端，保证**手机与电脑听到同一个音色**。 */
+   自动档下 2026-09-15 下午起 **云端可用一律走云端**：GA 管线把块解码裁静音后采样级
+   拼接，零块边界；而桌面 native 对 Online 神经音是逐 utterance 网络合成（块间隙
+   0.3~1s，块边界≈句号边界 = 用户报的卡顿），且 GA 与 native 用的是同一个微软音色，
+   音质相同、还省掉 waitVoice 等待。云端不可用才回系统（不臆造能力）。 */
 export function engineFor(autoQuality, pref, cloudOK) {
   if (isCloudVoice(pref)) return 'cloud'
   if (pref) return 'sys'
   if (!cloudOK) return 'sys'
-  return autoQuality === 'natural' ? 'sys' : 'cloud'
+  return 'cloud'
 }
