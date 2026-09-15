@@ -388,6 +388,12 @@ push-src OK → verify-live ALL OK（98/98 200，三哈希 MATCH）。
     点选后弹层关闭 + `qp.tts.voice` 落盘 + 播报无报错；点遮罩可关闭。run-all ALL GREEN；
     线上 bundle `index-r9nVANmq.js`，verify-live **109/109 全 200**（保留窗口 120 已生效）。
     截图：`E:/workbuddy-cc/2026-09-13-22-05-50/picker_sheet.png`。
+20. **音色标注口径统一（2026-09-15 晨，用户指令"云健不用特意标注与电脑端一致"）**：
+    两端音色本就相同（EDGE_VOICES 走两跳代理），该标注属冗余。改动：
+    `云健（男声·与电脑端一致）→ 云健（男声）`；`自动（与电脑端同音色）→ 自动`；
+    `voiceGuideText()` 两处指南与 Practice 已选云端提示里的"与电脑端/手机与电脑同一音色"字样删除。
+    **验证**：线上 Practice chunk `与电脑端=0`、`云健（男声）=1`；run-all ALL GREEN；
+    线上 bundle `index-Ruvy-lD3.js`，verify-live **115/115 全 200**。
 
 ## 2026-09-13 午增量（第十一批 P0）· 真机 E2E 抓获并修复 masteryGate 接线崩溃
 

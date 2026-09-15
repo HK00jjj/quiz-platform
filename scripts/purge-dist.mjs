@@ -95,7 +95,7 @@ if (existsSync(distAssets)) {
      【2026-09-13 晚 路由分割适配】App.jsx 起 React.lazy 把四页拆成独立 chunk，且
      chunkFileNames 统一为 index-<hash>.js（见 vite.config.js）——每代构建从 1 个 bundle
      变成 1 主包 + 4 懒加载 chunk ≈ 5 个文件。RETAIN 从 6 提到 30，仍覆盖约 6 代生成窗口
-     （约 2 周 ≈ 15MB），旧缓存自愈语义不变。 */
+     （约 2 周 ≈ 15MB），旧缓存自愈语义不变。
      【2026-09-14 事故后加码】保留窗口 30 → **120**：当天 8+ 次部署 + 每代 6 个文件，
      30 项只够 5 代，而用户浏览器/运营商缓存的 index.html 可能更久 —— 实测旧代
      chunk（BGWZcjOS / Wn4XYHl1 / DupMCO-S …）已被删成 404，直接导致"点开练习页

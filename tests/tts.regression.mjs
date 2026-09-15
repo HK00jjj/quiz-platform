@@ -43,7 +43,7 @@ ok(chunkSpeechText('Motor rated current is 12.5A, and the insulation class is F.
 
 /* ── ② 清洗 ── */
 ok(!/[✦★✓✗]/u.test(cleanSpeechText('✦ 连击 ✓ 答对 ✗')), '②-1 装饰符/对错符删除')
-ok(cleanSpeechText('按SB2→KM吸合') === '按SB2，KM吸合', '②-2 箭头转停顿')
+ok(cleanSpeechText('按SB2→KM吸合') === '按SB 2，K M吸合', '②-2 箭头转停顿；SB2/KM 代号逐字母读（2026-09-15 词典新口径）')
 ok(cleanSpeechText('第一行\n第二行') === '第一行，第二行', '②-3 换行转停顿')
 ok(cleanSpeechText('**重点**与`代码`') === '重点与代码', '②-4 markdown 记号剥离')
 ok(cleanSpeechText('正常文字保持不变') === '正常文字保持不变', '②-5 正常文字原样')
@@ -140,8 +140,8 @@ ok(normalizeSpeech('0.22μF') === '0.22微法' && normalizeSpeech('200μA') === 
 ok(normalizeSpeech('25℃') === '25摄氏度' && normalizeSpeech('25°C') === '25摄氏度', '⑨-4 摄氏度两种写法')
 ok(normalizeSpeech('±5%') === '正负5%' && normalizeSpeech('≥1.5') === '大于等于1.5' && normalizeSpeech('≈0.8') === '约等于0.8', '⑨-5 ± / ≥ / ≈')
 ok(normalizeSpeech('3×4') === '3乘4', '⑨-6 × → 乘')
-ok(normalizeSpeech('τ=RC') === '套=RC' && normalizeSpeech('φ角') === '斐角', '⑨-7 希腊字母按工程口语译名读')
-ok(normalizeSpeech('AC/DC') === 'AC 或 DC' && normalizeSpeech('I/O') === 'I 或 O', '⑨-8 斜杠组合读成"或"（引擎念"斜杠"或直接吞掉）')
+ok(normalizeSpeech('τ=RC') === '套=R C', '⑨-7 希腊字母按工程口语译名读；RC 代号逐字母（2026-09-15 词典口径）')
+ok(normalizeSpeech('AC/DC') === 'A C 或 D C' && normalizeSpeech('I/O') === 'I 或 O', '⑨-8 斜杠组合读成"或"，两端缩写再逐字母（2026-09-15 词典口径）')
 /* ⑩ 内部标注不得入读（全库 1475 处 [错因:…] + 9318 处【】标签） */
 ok(!/\[错因/.test(cleanSpeechText('【误诊】A「短路」错。[错因:概念缺失]')), '⑩-1 [错因:…] 内部标签被剥掉，不会念出来')
 ok(cleanSpeechText('【概念】互感器是…').startsWith('概念，'), '⑩-2 【概念】→ "概念，"（去符号留停顿）')
@@ -169,6 +169,25 @@ ok(normalizeSpeech('I²R') === 'I平方R' && normalizeSpeech('0.006²') === '0.0
 ok(normalizeSpeech('U_F') === 'U F' && normalizeSpeech('U_CE') === 'U CE', '⑫-3 下标写法不再念"下划线"')
 ok(/等于/.test(normalizeSpeech('0.006 = 22.5')) , '⑫-4 公式里的 = 读成"等于"')
 ok(normalizeSpeech('29.6kV·A') === '29.6千伏安' && normalizeSpeech('10.3kvar') === '10.3千乏', '⑫-5 视在功率/无功单位读法')
+/* ⑬ 基础单位 V/A/W（2026-09-15 用户实测"220伏读成220v"——单独的拉丁单位字母必须读中文） */
+ok(normalizeSpeech('220V') === '220伏' && normalizeSpeech('0.5 V') === '0.5伏', '⑬-1 220V → 220伏（含空格写法）')
+ok(normalizeSpeech('0.5A') === '0.5安' && normalizeSpeech('135W') === '135瓦', '⑬-2 A/W 同理（0.5安 / 135瓦）')
+ok(normalizeSpeech('12AB') === '12AB', '⑬-3 选项串 "12AB" 不受影响（A 后接字母不映射）')
+ok(normalizeSpeech('2A型插座') === '2A型插座', '⑬-4 "A型" 类写法不误伤')
+ok(normalizeSpeech('6V6') === '6V 6' && normalizeSpeech('VFD') === 'V F D', '⑬-5 型号"6V6"数字前留空；VFD 已入词典逐字母（2026-09-15 新口径）')
+ok(normalizeSpeech('2kWh') === '2千瓦时', '⑫-6 kWh 顺序修正（原 kW 先行会把 kWh 拆成"千瓦h"）')
+/* ⑭ 电气自动化读法词典（2026-09-15 用户指令"所有电气自动化相关的都映射上去"；
+   词形来源=全库缩写清单 acronym_inventory.txt：PLC 1560 / PE 1288 / NPN 479 …） */
+ok(normalizeSpeech('PLC编程').includes('P L C'), '⑭-1 PLC → P L C（全库最高频缩写 1560 处）')
+ok(normalizeSpeech('DC24V继电器').includes('D C') && normalizeSpeech('DC24V继电器').includes('24伏'), '⑭-2 DC24V → D C 24伏')
+ok(normalizeSpeech('TN-S接地').includes('T N') && !/TN-S/.test(normalizeSpeech('TN-S接地')), '⑭-3 TN-S → T N S（不念"杠"）')
+ok(normalizeSpeech('cosφ=0.85').includes('功率因数') && !/cos/i.test(normalizeSpeech('cosφ=0.85')), '⑭-4 cosφ → 功率因数（须在希腊字母替换前）')
+ok(normalizeSpeech('IP54').includes('I P') && normalizeSpeech('GB50168').includes('国标'), '⑭-5 IP/GB 标准代号读法')
+ok(normalizeSpeech('IGBT模块') === 'I G B T模块', '⑭-6 IGBT 逐字母')
+ok(normalizeSpeech('0.5kA') === '0.5千安' && normalizeSpeech('0.6ms') === '0.6毫秒' && normalizeSpeech('5mm') === '5毫米', '⑭-7 补充单位 kA/ms/mm')
+ok(normalizeSpeech('1450r/min') === '1450转每分' && normalizeSpeech('45°') === '45度', '⑭-8 r/min 与孤立角度')
+ok(normalizeSpeech('AI通道') === 'A I通道' && normalizeSpeech('DI信号') === 'D I信号', '⑭-9 AI/DI 通道代号逐字母')
+ok(normalizeSpeech('Modbus协议').includes('Modbus') && normalizeSpeech('ON') === 'ON', '⑭-10 不在表里的词（协议名/ON）保持原样')
 
 /* ── ⑩ 中文音色识别拓宽（2026-09-15 修「手机端 Edge 选不了其他语音」的回归锁）──
    事故背景：安卓系统 TTS 引擎报告的语种标签不保证以 zh 开头（存在 cmn-Hans-CN、空字符串），

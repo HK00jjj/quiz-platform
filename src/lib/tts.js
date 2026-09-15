@@ -119,8 +119,25 @@ export function normalizeSpeech(raw) {
   s = s.replace(/Ω/g, '欧姆')
   s = s.replace(/(℃|°\s?C)/g, '摄氏度').replace(/℉/g, '华氏度')
   s = s.replace(/([kK])\s?V\b/g, '千伏').replace(/kV/g, '千伏').replace(/[mM]\s?A\b/g, '毫安')
-  s = s.replace(/kW|KW/g, '千瓦').replace(/kWh/g, '千瓦时').replace(/Hz/g, '赫兹')
+  /* 2026-09-15（用户实测"220伏读成220v"）：**单独的 V/A/W 是纯拉丁字母，中文引擎按字母念**
+     ——必须映射成中文单位。负向断言防误伤：A 后不接字母/型类组（避免 "12AB" 选项串、"2A型"）；
+     V/W 要求词边界（"6V6" 电子管型号、"VFD" 缩写不受影响）。 */
+  s = s.replace(/(\d(?:\.\d+)?)\s?V\b/g, '$1伏')
+  s = s.replace(/(\d(?:\.\d+)?)\s?A(?![A-Za-z型类组项])/g, '$1安')
+  s = s.replace(/(\d(?:\.\d+)?)\s?W\b/g, '$1瓦').replace(/(\d(?:\.\d+)?)\s?Wh\b/g, '$1瓦时')
+  s = s.replace(/kWh/gi, '千瓦时').replace(/kW/g, '千瓦').replace(/Hz/g, '赫兹')
     .replace(/kHz/g, '千赫兹').replace(/MHz/g, '兆赫兹')
+  /* ①-b 电气补充单位（2026-09-15 用户指令"所有电气自动化相关的都映射上去"；
+     词形来源=全库缩写清单 acronym_inventory.txt，非拍脑袋）： */
+  s = s.replace(/(\d(?:\.\d+)?)\s?kA\b/g, '$1千安').replace(/(\d(?:\.\d+)?)\s?MA\b/g, '$1兆安')
+    .replace(/(\d(?:\.\d+)?)\s?mV\b/g, '$1毫伏').replace(/(\d(?:\.\d+)?)\s?MW\b/g, '$1兆瓦')
+    .replace(/(\d(?:\.\d+)?)\s?mW\b/g, '$1毫瓦').replace(/(\d(?:\.\d+)?)\s?GW\b/g, '$1吉瓦')
+    .replace(/(\d(?:\.\d+)?)\s?nF\b/g, '$1纳法').replace(/(\d(?:\.\d+)?)\s?pF\b/g, '$1皮法')
+    .replace(/(\d(?:\.\d+)?)\s?mH\b/g, '$1毫亨').replace(/(\d(?:\.\d+)?)\s?ms\b/g, '$1毫秒')
+    .replace(/(\d(?:\.\d+)?)\s?mm\b/g, '$1毫米').replace(/(\d(?:\.\d+)?)\s?cm\b/g, '$1厘米')
+    .replace(/(\d(?:\.\d+)?)\s?km\b/g, '$1千米').replace(/(\d(?:\.\d+)?)\s?MPa\b/g, '$1兆帕')
+    .replace(/(\d(?:\.\d+)?)\s?kPa\b/g, '$1千帕').replace(/(\d(?:\.\d+)?)\s?Pa\b/g, '$1帕')
+    .replace(/(\d(?:\.\d+)?)\s?r\/min\b/gi, '$1转每分').replace(/(\d(?:\.\d+)?)\s?°(?!\s?[CF])/g, '$1度')
   /* ② 数学/关系符号 */
   s = s.replace(/≥/g, '大于等于').replace(/≤/g, '小于等于').replace(/≠/g, '不等于')
     .replace(/≈/g, '约等于').replace(/±/g, '正负').replace(/×/g, '乘').replace(/÷/g, '除以')
@@ -132,10 +149,33 @@ export function normalizeSpeech(raw) {
   s = s.replace(/([0-9A-Za-z)）])²/g, '$1平方').replace(/([0-9A-Za-z)）])³/g, '$1立方')
   s = s.replace(/([A-Za-z])_\{?([A-Za-z0-9]+)\}?/g, '$1 $2')          // U_F → U F（不念"下划线"）
   s = s.replace(/([0-9A-Za-z)）])\s*=\s*(?=[0-9A-Za-z(（])/g, '$1 等于 ')   // 公式里的 = → 等于
+  /* ②-c 三角函数读法（cosφ/tanφ/sinφ 是全库高频；必须在 ③ 希腊字母替换之前，
+     否则会变成"cos斐"。工程口语：cosφ = 功率因数。） */
+  s = s.replace(/cos\s?φ/gi, '功率因数').replace(/tan\s?φ/gi, '正切').replace(/sin\s?φ/gi, '正弦')
   /* ③ 希腊字母（工程口语常用译名） */
   s = s.replace(/[Α-Ωα-ω]/g, (c) => GREEK_READ[c] ?? c)
   /* ④ 斜杠组合：AC/DC、I/O 之类中文引擎会念成"斜杠"或吞掉，统一读成"或/斜杠"里更稳的"斜杠" */
   s = s.replace(/([A-Za-z0-9])\s*\/\s*([A-Za-z0-9])/g, '$1 或 $2')
+  /* ④-b 连字符与"字母紧贴数字"：TN-S→TN S、RS485→RS 485、L1→L 1、GB50168→GB 50168
+     （中文引擎会把 "TN-S" 念成"T N 杠 S"、"L1" 念成整团）。 */
+  s = s.replace(/([A-Za-z])\s?-\s?([A-Za-z0-9])/g, '$1 $2')
+  s = s.replace(/([A-Za-z])(\d)/g, '$1 $2')
+  /* ⑤ 缩写逐字母读（电气口语标准）：PLC→P L C、AC→A C、DC→D C、RCD→R C D…
+     词形来源=全库缩写清单（acronym_inventory.txt，PLC 1560 / PE 1288 / NPN 479 …）。
+     不在表里的词保持原样（Modbus/Profinet 这类可读成单词的协议名不动）。
+     注意：必须放在单位/斜杠/连字符规则之后，否则会被二次拆散。 */
+  const TOKEN_READ = {
+    PLC: 'P L C', AC: 'A C', DC: 'D C', PE: 'P E', PEN: 'P E N', NPN: 'N P N', PNP: 'P N P',
+    TN: 'T N', TT: 'T T', IT: 'I T', KM: 'K M', RCD: 'R C D', RCBO: 'R C B O', MCB: 'M C B', MCCB: 'M C C B',
+    SPD: 'S P D', LED: 'L E D', LCD: 'L C D', HMI: 'H M I', SCADA: 'S C A D A', DCS: 'D C S',
+    PID: 'P I D', PWM: 'P W M', SPWM: 'S P W M', SVPWM: 'S V P W M', VFD: 'V F D', IGBT: 'I G B T',
+    UPS: 'U P S', EMC: 'E M C', EMI: 'E M I', CPU: 'C P U', DSP: 'D S P', MCU: 'M C U',
+    IEC: 'I E C', CT: 'C T', PT: 'P T', TTL: 'T T L', MOV: 'M O V', RC: 'R C', IO: 'I O',
+    IP: 'I P', RS: 'R S', GTO: 'G T O', SCR: 'S C R', RTU: 'R T U', OPC: 'O P C', MQTT: 'M Q T T',
+    AI: 'A I', AO: 'A O', DI: 'D I', DO: 'D O', GB: '国标',
+    PNP: 'P N P', SIL: 'S I L', LVD: 'L V D', ELV: 'E L V', SELV: 'S E L V', PELV: 'P E L V'
+  }
+  s = s.replace(/\b[A-Za-z]{2,8}\b/g, (w) => TOKEN_READ[w.toUpperCase()] ?? w)
   return s
 }
 
