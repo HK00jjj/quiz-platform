@@ -1,7 +1,20 @@
 # 交接文档 · 糖果题库（quiz-platform）
 
 > 写给下一个接手的会话。读完这一份就能独立干活，不需要翻历史对话。
-> 最后更新：2026-09-16 午后 · PageBoundary 真机取证增强 + __BUILD_ID__ 注入——真机错误从此可观测。
+> 最后更新：2026-09-16 午后 II · 题干朗读改单次（读一遍即止）——循环朗读当日即废。
+
+## 2026-09-16 午后 II 增量 · 题干朗读改单次（deploy `5a1918a`，parent=203b4a9）
+
+**触发**（用户）："题干修改成读一次，不自动重复读了"——同日晨间刚按"点解析前不停重复读"上线循环朗读（a3ee727/605d25d/dfc5fdf 三连），午后用户改令回单次。演进史：09-15 钦定自动读题干 → 09-16 晨升级循环 → 09-16 午改回单次。
+**手术（最小改动，架构全保留）**：
+- Practice.jsx `startStemLoop` 的 onDone 从「间歇 setTimeout(go, STEM_LOOP_GAP) 重排」改为「`stemLoopRef.current = null` 句柄落地即终结」——读完只此一遍，绝不自动重排；`STEM_LOOP_GAP` 常量删除；`stopStemLoop` 简化为纯清句柄（timer 字段已无）。
+- **原样保留**：句柄比对/四闸（handover/muted/revealed/switched，go() 启动对表）/取证探针 `__stemLoopLog`/揭晓断链双保险（336 行显式清句柄 + token++）/wasRevealedRef 守卫（⑲-7 防跨拍误杀）/🔊 暂停-续播透传 onDone（native 重建链读完同样只此一遍）。
+- 手动入口语义不变：🔁 重读题干/答题期开声重启=主动再读一遍（读完仍一遍即止）；两处 title 文案同步（"读一遍即止，不自动重复"/"题干到手自动读一遍"）。
+- tts.regression ⑲ 段改单次口径：⑲-1 锁 STEM_LOOP_GAP **已删**；⑲-4 锁 onDone 落地不重排 + **负向锁** `!/setTimeout\(go,/`；其余（四闸/停止锁/卸载兜底/透传）不动。**207 断言全绿**。
+**并发会话合规（红线①实战）**：开工排查发现 App.jsx（PageBoundary 取证增强，13:38）非本会话改动——核实 gh-pages HEAD `203b4a9` 即该会话**自己的部署**，工作树==src 分支==线上三方一致 → 本次构建不携带任何未上线内容（经用户确认"只部署题干改动"后按此定案部署；注：用户拍板时取证增强已在拟部署的树上且已上线，实际增量仅 Practice.jsx+tts.regression.mjs+本文件）。
+**验证**：verify-live 六新产物（主包 index-BWbVNcfN.js/Practice chunk index-DBw7LkpR.js 等）sha256 与本地 dist **字节级全等** + 新文案命中/旧循环文案「读完继续循环」消失。**线上真机 E2E 8/8 PASS**（新工具 workspace：`tools/stem_single_e2e.cjs`+`stem_single_runner.cjs`，单次口径：S2 单次锁=16s 静置窗内 blocked:null 的 go 恰好 1 次；S3b 停止锁；S4 新题 go 恰 1 次；S5 零 error）。
+**E2E 判据教训（复用必读）**：①stemSpokenOf 会把 V 规范化为「伏」——squeeze 前缀匹配对含单位字符的题干**假阴性**（"用500V兆欧表" vs "用500伏…"），开口判据以 __stemLoopLog 的 go 探针为主，ttsReq 仅辅助；②新题 go 在 tN+~600ms 即发生——循环版驱动用 `tN+1500` 过滤窗是为数第 2/3 轮，单次口径必须收窄到 tN+200，否则新题首次开口被滤掉误判 opens=0。
+
 
 ## 2026-09-16 午后增量 · PageBoundary 真机取证增强 + __BUILD_ID__（错误可观测性）
 
@@ -9,7 +22,11 @@
 **修复**（只补可观测性，不动业务逻辑）：
 - `app/src/App.jsx` PageBoundary：①componentDidCatch 把错误落 `localStorage('qa_page_err')`（t/build/msg/stack/componentStack/href/ua）；②卡片加「📋 复制错误详情」按钮——clipboard API 优先（https 安全上下文），execCommand+textarea 兜底旧内核，成功后"✅ 已复制"；③错误正文 `<details>` 可展开（msg+stack）。chunk 错误分支（"页面资源已更新"）行为不变。
 - `app/vite.config.js`：`define: { __BUILD_ID__: 构建时刻 ISO 串 }` 注入产物，取证记录与复制文本都带它——报障时对上构建代际，补"无本地 git"盲区。
-**回归**：run-all 14 套件 ALL GREEN（tts.regression 207）。**部署**：六步链全绿（gh-pages **`203b4a9`**，parent=dfc5fdf；verify-deploy IDENTICAL → push-src `1666cbf`（.github/** 缺 workflow scope 跳过=已知降级）→ verify-live 首轮 130/134（4 文件含新 chunk 均为 Pages 传播延迟，主 JS 复检已 MATCH）→ 70s 重跑 **ALL OK 134/134** 三哈希 MATCH）。**验收路径**：真机再现 → 展开详情/一键复制 → 粘给会话 → 按 stack 定位根因；qa_page_err 持久在 localStorage，刷新不丢。
+**回归**：run-all 14 套件 ALL GREEN（tts.regression 207）。**部署**：六步链全绿（gh-pages **`203b4a9`**，parent=dfc5fdf；verify-deploy IDENTICAL → push-src `1666cbf`（.github/** 缺 workflow scope 跳过=已知降级）→ verify-live 首轮 130/134（4 文件含新 chunk 均为 Pages 传播延迟，主 JS 复检已 MATCH）→ 70s 重跑 **ALL OK 134/134** 三哈希 MATCH）。
+
+**根因闭环（用户 13:56 一键回录取证，部署 `e637ee4`）**：取证文本直指 `ReferenceError: cloudSupported is not defined`（`#/practice` 渲染期，build=203b4a9 本代；UA=VivoBrowser 30.9.3.1 / Chrome 146 / Android 16——**内核极新，上午"旧内核 svh"推断作废**，布局修复无害保留）。根因：Practice.jsx:292 `useRef(ttsSupported() || cloudSupported())` 的 `cloudSupported` **漏 import**——桌面 Chrome `ttsSupported()`=true **短路**永不求值右侧 → 桌面 E2E/回归全绿（结构性盲区）；vivo 无系统 TTS（speechSynthesis.speak 非函数）左侧 false → 求值未导入标识符 → 必崩。修复：import 补 `cloudSupported`；tts.regression 加 ⑳-1（本例专锁）+ ⑳-2（**通用锁**：tts.js 全部导出在 Practice 主体引用必须已 import，防整类短路掩盖）→ **209 断言全绿**。新增探针 `tools/diag/no_tts_probe.cjs`（屏蔽 speechSynthesis 模拟无系统 TTS 手机，登录→进练习→判崩溃/渲染）：修复前线上 **REPRODUCED**（msg 与真机回传一字不差）→ 修复后 **ALL OK**。部署 `e637ee4`（parent 见下节）verify-deploy IDENTICAL + verify-live 首轮 ALL OK 三哈希 MATCH。
+
+**⚠ 并发部署冲突（重要教训）**：203b4a9（05:48Z）与 e637ee4（06:11Z）之间，**另一会话**于 06:07Z 部署了 `5a1918a`（"题干朗读改单次——读一遍即止不自动重复(用户钦定)；删STEM_LOOP_GAP；句柄/四闸架构保留"）——两会话共用同一本地权威副本与部署链。经源码核查：5a1918a 的单次化改动直接落在共享 `Practice.jsx`（UI title/E2E 口径同步改，STEM_LOOP_GAP 已不存在），e637ee4 构建于其上，**线上现状=单次朗读 + cloudSupported 修复 + PageBoundary 取证增强**，无功能丢失；但"循环 vs 单次"最终以哪个为准须用户本人确认。**同一部署链同时只允许一个会话操作。**
 
 ## 2026-09-16 上午增量 · 手机布局适配 + 循环三修 + 轻声保护（deploy `dfc5fdf`，父=605d25d）
 
