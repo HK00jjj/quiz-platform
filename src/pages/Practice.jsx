@@ -344,10 +344,17 @@ export default function Practice() {
     const loop = { key: idx + '|' + qid, timer: null, onDone: null }
     stemLoopRef.current = loop
     const go = () => {
-      if (stemLoopRef.current !== loop) return
-      if (!ttsOnRef.current) return             // 静音：不重开口（🔊 关=暂停在原处，句柄保留）
-      if (answerPhaseRef.current) return        // 点解析/提交判分：解析接管，循环到此为止
-      if (stemKeyRef.current !== loop.key) return   // 已切题：让位新题的循环
+      let blocked = null
+      if (stemLoopRef.current !== loop) blocked = 'handover'
+      else if (!ttsOnRef.current) blocked = 'muted'
+      else if (answerPhaseRef.current) blocked = 'revealed'   // 点解析/提交判分：解析接管，循环到此为止
+      else if (stemKeyRef.current !== loop.key) blocked = 'switched'   // 已切题：让位新题的循环
+      /* 取证插桩（2026-09-16，与解析 effect 的 __ttsfxArm 同闸同惯例）：仅当 E2E/排障者
+         设 window.__ttsfxArm 时记录每次重开口尝试与拦截原因——线上零开销零泄漏。
+         E2E 依据：循环=blocked:null 的 go ≥3 次（首轮/重读轮/循环轮）；
+         停止锁=揭晓时刻之后 blocked:null 的 go 必须为 0。 */
+      try { if (window.__ttsfxArm) (window.__stemLoopLog = window.__stemLoopLog || []).push({ t: Date.now(), key: loop.key, blocked }) } catch { /* ignore */ }
+      if (blocked) return
       const onDone = () => {
         if (stemLoopRef.current !== loop) return
         loop.timer = setTimeout(go, STEM_LOOP_GAP)  // 一轮读完：间歇后重读
