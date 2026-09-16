@@ -349,16 +349,17 @@ ok(/const nxt = questions\[index \+ 1\][\s\S]{0,80}?if \(nxt\) prefetchGACache\(
 ok((practiceSrc.match(/prefetchGACache\(stemSpokenOf\(qs\[0\]\)\)/g) || []).length >= 1 && (learnSrc.match(/prefetchGACache\(stemSpokenOf\(qs\[0\]\)\)/g) || []).length >= 1, '⑱-24f 入口预载首题：Learn run() + 结算页再练错题两处手势（装载时间=合成窗口）')
 ok(/export function stemSpokenOf/.test(validateSrc) && /import \{ gradeObjective, blanksOf, splitExpected, stemSpokenOf \} from '\.\.\/lib\/validate'/.test(practiceSrc), '⑱-24g stemSpokenOf/splitExpected 收敛 validate 真源（Practice/Learn 同口径引用防漂移）')
 
-/* ── ⑲ 题干循环朗读（2026-09-16，用户钦定"题干在我点击解析之前，不停重复读"）──
-   机制：题干一轮 speak(onDone) → 间歇 STEM_LOOP_GAP → 重开口，往复直至停止。
-   接线锁：循环句柄 + 实时状态 ref（useLayoutEffect 同步，go() 宏任务对表无竞态）
+/* ── ⑲ 题干单次朗读（2026-09-16 二改，用户钦定"题干修改成读一次，不自动重复读了"）──
+   机制：题卡到手 go() 对表三闸 → speak 一遍 → 读完 onDone 只落地句柄，绝不自动重排。
+   （当日晨间曾按"点解析前不停重复读"升级为循环朗读，同日用户改令回单次——演进史见 Practice.jsx 注释。）
+   接线锁：朗读句柄 + 实时状态 ref（useLayoutEffect 同步，go() 宏任务对表无竞态）
    + 四闸（句柄比对/静音/已揭晓/已切题）+ 揭晓断链双保险（显式清句柄 + token++ 打断
-   不触发 onDone）+ 续播 onDone 透传（暂停→续播→读完接续循环）。
+   不触发 onDone）+ 续播 onDone 透传（暂停→续播→读完同样只此一遍）。
    行为级验证由线上真机 E2E（CDP）承担。 */
-ok(/const STEM_LOOP_GAP = \d+/.test(practiceSrc), '⑲-1 循环轮间歇常量存在（一轮读完停一拍再读）')
-ok(/const stemLoopRef = useRef\(null\)/.test(practiceSrc), '⑲-2 循环句柄 ref 存在（🔊 暂停时保留，续播接续）')
+ok(!/\bSTEM_LOOP_GAP\b/.test(practiceSrc), '⑲-1 轮间歇常量已删（单次朗读：读完即止，不存在"下一轮"）')
+ok(/const stemLoopRef = useRef\(null\)/.test(practiceSrc), '⑲-2 朗读句柄 ref 存在（🔊 暂停时保留，续播透传）')
 ok(/useLayoutEffect\(\(\) => \{\s*\n\s*ttsOnRef\.current = ttsOn\s*\n\s*answerPhaseRef\.current = phase !== 'answering' \|\| showAnswer\s*\n\s*stemKeyRef\.current = index \+ '\|' \+ \(q\?\.id \?\? ''\)\s*\n\s*\}\)/.test(practiceSrc), '⑲-3 实时状态 ref 用 useLayoutEffect 无依赖同步（go() 宏任务对表，commit 即新值无竞态）')
-ok(/function startStemLoop\(text, idx, qid\) \{[\s\S]*?stopStemLoop\(\)[\s\S]*?const go = \(\) => \{[\s\S]*?loop\.timer = setTimeout\(go, STEM_LOOP_GAP\)[\s\S]*?speak\(text, \{ tag: 'stem\|' \+ idx \+ '\|' \+ qid, onDone \}\)/.test(practiceSrc), '⑲-4 循环本体：幂等头清旧循环 → go() 对表 → onDone 间歇重开口（loop.onDone 供续播透传）')
+ok(/function startStemLoop\(text, idx, qid\) \{[\s\S]*?const go = \(\) => \{[\s\S]*?stemLoopRef\.current = null[\s\S]*?speak\(text, \{ tag: 'stem\|' \+ idx \+ '\|' \+ qid, onDone \}\)/.test(practiceSrc) && !/setTimeout\(go,/.test(practiceSrc), '⑲-4 朗读本体：幂等头清旧句柄 → go() 对表 → onDone 仅落地句柄不重排（单次即止；loop.onDone 仍供续播透传）')
 ok(/if \(stemLoopRef\.current !== loop\) blocked = 'handover'/.test(practiceSrc) && /if \(!ttsOnRef\.current\) blocked = 'muted'/.test(practiceSrc) && /else if \(answerPhaseRef\.current\) blocked = 'revealed'/.test(practiceSrc) && /else if \(stemKeyRef\.current !== loop\.key\) blocked = 'switched'/.test(practiceSrc) && /if \(blocked\) return/.test(practiceSrc), '⑲-5 重开口四闸：句柄比对 + 静音不重开口 + 已揭晓/已提交即停（点解析即停）+ 已切题让位（2026-09-16 起为 blocked 链式探针形态，语义同旧 if-return）')
 ok(/spokenKeyRef\.current = key\s*\n\s*stopStemLoop\(\)/.test(practiceSrc), '⑲-6 揭晓开口解析前显式清循环句柄（timer 不再重入；正在读的链由解析 speak token++ 打断）')
 /* ⑲-7（2026-09-16 修正）：stopStemLoop 必须与 stopSpeak 同在 wasRevealedRef 守卫内——
@@ -371,5 +372,25 @@ ok(/export function resumeSpeak\(onDone\) \{/.test(ttsSrc) && /return runChunks\
 ok((practiceSrc.match(/startStemLoop\(stemSpokenOf\(q\), index, q\.id\)/g) || []).length >= 3, '⑲-10 循环入口接线 ≥3 处（新题自动开口/手动重读/答题期开声重启）')
 ok(/useEffect\(\(\) => \(\) => \{ stopSpeak\(\); stopStemLoop\(\); clearInterval\(panelPoll\.current\) \}, \[\]\)/.test(practiceSrc), '⑲-11 卸载兜底同时终结循环（离开练习页不留悬空句柄）')
 ok(/window\.__stemLoopLog/.test(practiceSrc) && /else if \(answerPhaseRef\.current\) blocked = 'revealed'/.test(practiceSrc) && /else if \(stemKeyRef\.current !== loop\.key\) blocked = 'switched'/.test(practiceSrc), '⑲-12 循环取证探针（__ttsfxArm 同闸，线上零开销）：go() 记录每次重开口尝试与拦截原因（revealed/muted/switched/handover）——E2E 停止锁（揭晓后 blocked:null 的 go 必须为 0）的数据源')
+
+/* ⑳（2026-09-16 午后 真机 ReferenceError 回归锁）：Practice「ttsSupported() || cloudSupported()」
+   ——桌面 Chrome ttsSupported()=true **短路**，cloudSupported 标识符永不求值 → E2E/回归全绿；
+   vivo 等无系统 TTS 环境（speechSynthesis.speak 非函数）左侧 false → 求值右侧 →
+   ReferenceError: cloudSupported is not defined → 整页崩进错误边界（用户真机取证实锤）。
+   漏 import 被 || 短路掩盖，是桌面 E2E 的结构性盲区。 */
+ok(/import \{[^}]*\bcloudSupported\b[^}]*\} from '\.\.\/lib\/tts\.js'/.test(practiceSrc), '⑳-1 Practice import 列表必须含 cloudSupported（2026-09-16 真机崩根因：短路求值掩盖漏 import，无系统 TTS 环境必崩）')
+/* ⑳-2 通用锁：对 tts.js 全部导出逐个检查——凡在 Practice 主体（import 行之外）被引用且
+   不是本地同名声明，就必须出现在 import 列表。防整类"短路/条件路径掩盖漏 import"。 */
+{
+  const ttsExports = [...ttsSrc.matchAll(/export (?:function|const) ([A-Za-z_$][\w$]*)/g)].map((m) => m[1])
+  const imp = practiceSrc.match(/import \{([^}]*)\} from '\.\.\/lib\/tts\.js'/)
+  if (imp) {
+    const imported = new Set(imp[1].split(',').map((s) => s.trim().split(/\s+as\s+/)[0].trim()).filter(Boolean))
+    const body = practiceSrc.replace(/import \{[^}]*\} from '\.\.\/lib\/tts\.js'/, '')
+    const local = new Set([...body.matchAll(/(?:function|const|let|var)\s+([A-Za-z_$][\w$]*)/g)].map((m) => m[1]))
+    const missing = ttsExports.filter((x) => !imported.has(x) && !local.has(x) && new RegExp('\\b' + x + '\\b').test(body))
+    ok(missing.length === 0, '⑳-2 Practice 引用 tts.js 导出必须全部 import（缺失: ' + (missing.join(',') || '无') + '；通用锁防短路掩盖）')
+  }
+}
 
 console.log(`\ntts.regression：${n} 断言全绿`)

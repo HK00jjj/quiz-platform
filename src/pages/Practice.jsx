@@ -15,7 +15,7 @@ import { shuffledOrder } from '../lib/util.js'
 /* 解析语音播报（2026-09-13 增量）：启封自动朗读解析，🔊 一键可关，语速 1.25。
    2026-09-15 增量（用户钦定）：题卡到手自动读【题干】，选项不读——同一个 🔊 开关
    管两段（答题中读题干、揭晓后读答案+解析），各自有「已读」闸互不挤占。 */
-import { speak, stopSpeak, pauseSpeak, resumeSpeak, unlockSpeech, ttsSupported, ttsEnabled as ttsPrefEnabled, setTtsEnabled, voiceNote, voiceAdvice, voiceGuideText, currentVoices, listVoices, ttsVoicePref, setTtsVoice, ttsRate, setTtsRate, fmtRate, voiceDiag, warmUpVoices, EDGE_VOICES, CLOUD_VOICE_ID, isCloudVoice, unlockCloudAudio, prefetchCloudFirst, currentPauseTag, prefetchGACache, RATE_MIN, RATE_MAX, RATE_STEP } from '../lib/tts.js'
+import { speak, stopSpeak, pauseSpeak, resumeSpeak, unlockSpeech, ttsSupported, cloudSupported, ttsEnabled as ttsPrefEnabled, setTtsEnabled, voiceNote, voiceAdvice, voiceGuideText, currentVoices, listVoices, ttsVoicePref, setTtsVoice, ttsRate, setTtsRate, fmtRate, voiceDiag, warmUpVoices, EDGE_VOICES, CLOUD_VOICE_ID, isCloudVoice, unlockCloudAudio, prefetchCloudFirst, currentPauseTag, prefetchGACache, RATE_MIN, RATE_MAX, RATE_STEP } from '../lib/tts.js'
 
 /* 题干渲染：填空题把 {空} 显示为下划线占位 */
 function Stem({ q }) {
@@ -61,11 +61,6 @@ function spokenOf(q, lastGrade, order) {
   if (q.explanation) parts.push(`解析：${remap(q.explanation)}`)
   return parts.join('。')
 }
-
-/* 题干循环朗读的轮间歇（2026-09-16）：一轮读完 → 停 3s → 再读。
-   初版 1.2s（当时按"够一次点暂停/点解析的决断窗口"定），用户实测反馈：
-   上一遍还没听清理解就开始读下一遍——延长到 3s，留足消化时间。 */
-const STEM_LOOP_GAP = 3000
 
 export default function Practice() {
   const navigate = useNavigate()
@@ -322,14 +317,14 @@ export default function Practice() {
       /* 2026-09-15 修正：无条件 stopSpeak 会跨两拍清场——第二拍（seal broken→intact）
          正好轰掉题干 effect 刚开的口。改为「只在真正离开揭晓态的那一拍清场」；
          未曾揭晓就切题（主观题直接翻）时，残声由新 speak() 的 token++ 自己打断。 */
-      /* 2026-09-16 修复「下一题后题干只读一遍不循环」：stopStemLoop 同样必须挂
-         wasRevealedRef 守卫——切题过两拍 commit（setSeal('intact') 在切题 effect），
-         第一拍题干 effect 刚 startStemLoop 建好循环，第二拍（seal→intact）本 effect
-         因 seal 依赖重跑，无条件 stopStemLoop 会把新循环句柄清掉 → 一轮读完 onDone
-         发现句柄为空 → 循环死（症状=只读一遍）。挪进守卫后：揭晓→答题那拍清的是
-         上一题的旧句柄（幂等无害）；答题中切题（主观题直接翻）不清，旧循环由新
-         startStemLoop 的幂等头终结。「点解析即停」不受影响——揭晓开口前 304 行
-         显式 stopStemLoop + 解析 speak token++ 打断，双保险断链原样保留。 */
+      /* 2026-09-16 修复「下一题后题干静音不再开口」（循环时代症状="只读一遍不循环"）：
+         stopStemLoop 同样必须挂 wasRevealedRef 守卫——切题过两拍 commit（setSeal('intact')
+         在切题 effect），第一拍题干 effect 刚 startStemLoop 建好句柄，第二拍（seal→intact）
+         本 effect 因 seal 依赖重跑，无条件 stopStemLoop 会把新朗读句柄清掉 → 开口前 go()
+         的句柄闸判 handover → 该题静音。挪进守卫后：揭晓→答题那拍清的是上一题的旧句柄
+         （幂等无害）；答题中切题（主观题直接翻）不清，旧朗读由新 startStemLoop 的幂等头
+         终结。「点解析即停」不受影响——揭晓开口前 336 行显式 stopStemLoop + 解析 speak
+         token++ 打断，双保险断链原样保留。 */
       if (wasRevealedRef.current) { stopSpeak(); stopStemLoop(); wasRevealedRef.current = false }
       spokenKeyRef.current = null; return
     }
@@ -338,13 +333,13 @@ export default function Practice() {
     const key = index + '|' + q.id
     if (spokenKeyRef.current === key) return      // 本题已读过：不重播（这是防叠音的闸）
     spokenKeyRef.current = key
-    stopStemLoop()                                // 2026-09-16：揭晓开口前清循环句柄——解析接管，题干循环到此为止
+    stopStemLoop()                                // 2026-09-16：揭晓开口前清朗读句柄——解析接管，题干到此为止
     speak(spokenOf(q, lastGrade, shuffleRef.current.order), { tag: 'reveal|' + index + '|' + q.id })
   }, [ttsOK, seal, phase, showAnswer, index, q?.id, ttsOn])
   /* ── 自动读题干（2026-09-15，用户钦定：题卡到手自动读题干，选项不读）
-     → 2026-09-16 升级为【循环朗读】（用户钦定："题干在我点击解析之前，不停重复读"）──
-     新题落地（index/q.id 变化、phase=answering）即开口，只念 stemSpokenOf(q)，
-     一轮读完间歇 STEM_LOOP_GAP 再读，往复直至停止（见 startStemLoop 的三闸）。
+     → 2026-09-16 一度升级为循环朗读，同日二改（用户钦定："题干修改成读一次，
+     不自动重复读了"）→ 现行为：新题落地读【一遍】即止，绝不自动重读。
+     想再听：🔊/🔁 手动重读，读完仍是一遍即止。
      与解析播报共用 ttsOn 总开关，但「已读」闸各用一把：stemSpokenRef 管题干、
      spokenKeyRef 管解析，互不挤占——解析照旧在揭晓时读。
      作答提交 → phase 变 feedback → 本 effect 直接退出；题干若还在念，解析开口的
@@ -352,10 +347,10 @@ export default function Practice() {
      声明顺序即执行顺序：切题时上面的解析 effect 先 stopSpeak 清场（顺带停掉
      上一题没读完的解析），本 effect 随后开口——顺序固定，不会反过来。 */
   const stemSpokenRef = useRef(null)
-  /* 循环朗读的实时状态镜像：go() 的 setTimeout 是宏任务，重开口前必须对表"当下"
-     的界面状态，而不是启动循环那一帧的闭包。useLayoutEffect 无依赖同步——commit
+  /* 朗读句柄的实时状态镜像：go() 的 setTimeout 是宏任务，开口前必须对表"当下"
+     的界面状态，而不是启动那一帧的闭包。useLayoutEffect 无依赖同步——commit
      即新值，先于一切宏任务回调（doCheck→setState 那一拍的 flush 里就绪），无竞态。 */
-  const stemLoopRef = useRef(null)               // 循环句柄 { key, timer, onDone }（🔊 暂停时保留）
+  const stemLoopRef = useRef(null)               // 朗读句柄 { key, onDone }（🔊 暂停时保留，供续播透传）
   const ttsOnRef = useRef(ttsOn)
   const answerPhaseRef = useRef(false)           // true=已提交判分或已展开解析（答题期已结束）
   const stemKeyRef = useRef('')
@@ -365,38 +360,37 @@ export default function Practice() {
     stemKeyRef.current = index + '|' + (q?.id ?? '')
   })
   function stopStemLoop() {
-    const L = stemLoopRef.current
-    stemLoopRef.current = null
-    if (L) clearTimeout(L.timer)
+    stemLoopRef.current = null                  // 清句柄：旧 onDone 句柄比对失败空转，单次朗读自然终止
   }
-  /* 循环本体：一轮 speak(onDone) → 间歇 → go() 对表三闸（静音/已揭晓/已切题，任一
-     命中即静默终止）→ 重开口。四条保险绳：
+  /* 朗读本体（2026-09-16 二改"读一次"）：开口前 go() 对表三闸（静音/已揭晓/已切题，
+     任一命中即不开口）→ speak 一遍 → 读完 onDone 只做句柄落地，不重排任何后续朗读。
+     四条保险绳（架构原样保留，单次语义下依然各司其职）：
      ① go() 三闸（实时 ref）；
      ② 句柄比对（新 startStemLoop/显式 stopStemLoop 即接管，旧 onDone 空转）；
      ③ 揭晓开口解析前解析 effect 显式 stopStemLoop()；
      ④ 正在读的链被解析 speak() token++ 打断时不触发 onDone（tts.js 既有语义），
-        循环自然死——绝不与解析播报叠音。 */
+        绝不与解析播报叠音。 */
   function startStemLoop(text, idx, qid) {
-    stopStemLoop()                              // 幂等头：任何入口（新题/重读/开声重启）先终结旧循环
-    const loop = { key: idx + '|' + qid, timer: null, onDone: null }
+    stopStemLoop()                              // 幂等头：任何入口（新题/重读/开声重启）先终结旧朗读
+    const loop = { key: idx + '|' + qid, onDone: null }
     stemLoopRef.current = loop
     const go = () => {
       let blocked = null
       if (stemLoopRef.current !== loop) blocked = 'handover'
       else if (!ttsOnRef.current) blocked = 'muted'
-      else if (answerPhaseRef.current) blocked = 'revealed'   // 点解析/提交判分：解析接管，循环到此为止
-      else if (stemKeyRef.current !== loop.key) blocked = 'switched'   // 已切题：让位新题的循环
+      else if (answerPhaseRef.current) blocked = 'revealed'   // 点解析/提交判分：解析接管，题干不开口
+      else if (stemKeyRef.current !== loop.key) blocked = 'switched'   // 已切题：让位新题的朗读
       /* 取证插桩（2026-09-16，与解析 effect 的 __ttsfxArm 同闸同惯例）：仅当 E2E/排障者
-         设 window.__ttsfxArm 时记录每次重开口尝试与拦截原因——线上零开销零泄漏。
-         E2E 依据：循环=blocked:null 的 go ≥3 次（首轮/重读轮/循环轮）；
+         设 window.__ttsfxArm 时记录每次开口尝试与拦截原因——线上零开销零泄漏。
+         E2E 依据（单次口径）：blocked:null 的 go 恰好 1 次（题卡到手读一遍）；
          停止锁=揭晓时刻之后 blocked:null 的 go 必须为 0。 */
       try { if (window.__ttsfxArm) (window.__stemLoopLog = window.__stemLoopLog || []).push({ t: Date.now(), key: loop.key, blocked }) } catch { /* ignore */ }
       if (blocked) return
       const onDone = () => {
         if (stemLoopRef.current !== loop) return
-        loop.timer = setTimeout(go, STEM_LOOP_GAP)  // 一轮读完：间歇后重读
+        stemLoopRef.current = null              // 一轮读完：句柄落地即终结——不自动重读（2026-09-16 钦定"读一次"）
       }
-      loop.onDone = onDone                      // 🔊 续播时透传给 resumeSpeak（native 重建链分支用）
+      loop.onDone = onDone                      // 🔊 续播时透传给 resumeSpeak（native 重建链分支用），读完同样只此一遍
       speak(text, { tag: 'stem|' + idx + '|' + qid, onDone })
     }
     go()
@@ -409,7 +403,7 @@ export default function Practice() {
     const key = index + '|' + q.id
     if (stemSpokenRef.current === key) return   // 本题题干已读过：不重播（防叠音闸）
     stemSpokenRef.current = key
-    startStemLoop(stemSpokenOf(q), index, q.id) // 2026-09-16：自动开口升级为循环朗读
+    startStemLoop(stemSpokenOf(q), index, q.id) // 2026-09-16 二改：自动开口=读一遍即止，不自动重读
     /* 解析首块预载（2026-09-15 晚"点解析就出声"）：题卡到手即后台预合成揭晓文本首块进
        GA 缓存，揭晓开口时 gaCache 命中零网络零解码秒排。命中口径：
        选择/判断 grade.expected===q.answer（gradeObjective 同参大写化，题库规范答案已
@@ -424,7 +418,7 @@ export default function Practice() {
       if (parts.length > 1) prefetchGACache(spokenOf(q, { correct: true, expectedParts: parts }, ord))
     }
   }, [ttsOK, index, q?.id, phase, showAnswer, ttsOn])
-  /* 卸载兜底：离开练习页/进结算页时，不留一条还在说的声音；循环句柄与面板轮询一并清掉 */
+  /* 卸载兜底：离开练习页/进结算页时，不留一条还在说的声音；朗读句柄与面板轮询一并清掉 */
   useEffect(() => () => { stopSpeak(); stopStemLoop(); clearInterval(panelPoll.current) }, [])
 
   if (phase === 'idle' || questions.length === 0) {
@@ -500,31 +494,32 @@ export default function Practice() {
     setTtsOn(next)
     setTtsEnabled(next)
     ttsOnRef.current = next                    // 手动同步实时 ref：关声瞬间 go() 就要看到，不等 layout effect
-    if (!next) { pauseSpeak(); return }        // 暂停在原处；循环句柄保留，续播读完接续循环
+    if (!next) { pauseSpeak(); return }        // 暂停在原处；句柄保留，续播接着读完这（仅有的）一遍
     unlockCloudAudio()                    // 恢复播报也在手势内：顺手解锁云端 <audio>/AudioContext
     const revealed = seal === 'broken' && (phase === 'feedback' || showAnswer)
     const expected = (revealed ? 'reveal|' : 'stem|') + index + '|' + (q ? q.id : '')
     if (currentPauseTag() === expected && resumeSpeak(stemLoopRef.current ? stemLoopRef.current.onDone : undefined)) return
-    // ↑ 续播透传循环 onDone（2026-09-16）：native"记块位置重建链"分支需要它接续循环；
-    //   GA suspend/原生 pause 两路链未断，onDone 原闭包仍在，透传值被忽略。揭晓态时
-    //   句柄已被解析 effect 清掉 → 传 undefined，行为与旧版完全一致。
+    // ↑ 续播透传朗读 onDone（2026-09-16）：native"记块位置重建链"分支需要它在读完时
+    //   落地句柄（单次语义：续播读完也只此一遍，不重排）；GA suspend/原生 pause 两路链
+    //   未断，onDone 原闭包仍在，透传值被忽略。揭晓态时句柄已被解析 effect 清掉 →
+    //   传 undefined，行为与旧版完全一致。
     if (currentPauseTag()) stopSpeak()               // 过期的暂停会话：丢弃，落入下方按当前上下文开口
     const key = index + '|' + q?.id
     if (revealed && q && spokenKeyRef.current !== key) {
       spokenKeyRef.current = key
-      stopStemLoop()                                 // 揭晓态开声：解析接管，终结题干循环句柄
+      stopStemLoop()                                 // 揭晓态开声：解析接管，终结题干朗读句柄
       speak(spokenOf(q, lastGrade, shuffleRef.current.order), { tag: 'reveal|' + index + '|' + q.id })
     } else if (!revealed && q && phase === 'answering' && !showAnswer) {
-      /* 答题期开声且无可续的暂停会话（如间隙期静音）：重启题干循环——"不停重复读" */
+      /* 答题期开声且无可续的暂停会话（如间隙期静音）：再读一遍题干——单次口径，读完即止 */
       startStemLoop(stemSpokenOf(q), index, q.id)
     }
   }
 
   /* 重读（2026-09-14 用户要求"在播放开关旁边加一个重读"；2026-09-15 傍晚扩展）：
-     分语境重读——答题中（未揭晓）重读【题干】stemSpokenOf(q) 并进入循环朗读
-     （2026-09-16：重读一遍就停太孤零，重读=重新进入"点解析前不停重复读"的状态）；
-     揭晓后重读【答案+解析】spokenOf(...)。若当前是静音态，先自动打开播报再读
-     ——"重读"这个动作本身就表达了"我要听"。 */
+     分语境重读——答题中（未揭晓）重读【题干】stemSpokenOf(q)（2026-09-16 二改：
+     读一遍即止，不再进入循环——想多听几遍就多按几次）；揭晓后重读【答案+解析】
+     spokenOf(...)。若当前是静音态，先自动打开播报再读——"重读"这个动作本身就
+     表达了"我要听"。 */
   function replayTts() {
     if (!q) return
     const revealed = seal === 'broken' && (phase === 'feedback' || showAnswer)
@@ -747,12 +742,12 @@ export default function Practice() {
             {ttsOK && !answered && !showAnswer && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6 }}>
                 <button className="chip" style={{ fontSize: 11 }} aria-pressed={ttsOn}
-                  title="题干会反复朗读直到你点解析。关闭＝暂停在原处；再点＝接着读（不会从头重读）"
+                  title="题干到手自动读一遍，不自动重复。关闭＝暂停在原处；再点＝接着读（不会从头重读）"
                   onClick={toggleTts}>
                   {ttsOn ? '🔊 题干播报' : '⏸ 已暂停'}
                 </button>
                 <button className="chip" style={{ fontSize: 11 }}
-                  title="从开头重读题干（读完继续循环，点解析即停）"
+                  title="从开头重读题干（读一遍即止，不自动重复）"
                   onClick={replayTts}>
                   🔁 重读题干
                 </button>

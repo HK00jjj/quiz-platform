@@ -9,7 +9,7 @@
 **修复**（只补可观测性，不动业务逻辑）：
 - `app/src/App.jsx` PageBoundary：①componentDidCatch 把错误落 `localStorage('qa_page_err')`（t/build/msg/stack/componentStack/href/ua）；②卡片加「📋 复制错误详情」按钮——clipboard API 优先（https 安全上下文），execCommand+textarea 兜底旧内核，成功后"✅ 已复制"；③错误正文 `<details>` 可展开（msg+stack）。chunk 错误分支（"页面资源已更新"）行为不变。
 - `app/vite.config.js`：`define: { __BUILD_ID__: 构建时刻 ISO 串 }` 注入产物，取证记录与复制文本都带它——报障时对上构建代际，补"无本地 git"盲区。
-**回归**：run-all 14 套件 ALL GREEN（tts.regression 207）。**验收路径**：真机再现 → 展开详情/一键复制 → 粘给会话 → 按 stack 定位根因；qa_page_err 持久在 localStorage，刷新不丢。
+**回归**：run-all 14 套件 ALL GREEN（tts.regression 207）。**部署**：六步链全绿（gh-pages **`203b4a9`**，parent=dfc5fdf；verify-deploy IDENTICAL → push-src `1666cbf`（.github/** 缺 workflow scope 跳过=已知降级）→ verify-live 首轮 130/134（4 文件含新 chunk 均为 Pages 传播延迟，主 JS 复检已 MATCH）→ 70s 重跑 **ALL OK 134/134** 三哈希 MATCH）。**验收路径**：真机再现 → 展开详情/一键复制 → 粘给会话 → 按 stack 定位根因；qa_page_err 持久在 localStorage，刷新不丢。
 
 ## 2026-09-16 上午增量 · 手机布局适配 + 循环三修 + 轻声保护（deploy `dfc5fdf`，父=605d25d）
 
