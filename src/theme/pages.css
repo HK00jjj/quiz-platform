@@ -180,6 +180,9 @@
 .q-face-scroll {
   flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden;
   scroll-behavior: smooth; overscroll-behavior: contain; scrollbar-gutter: stable both-edges;
+  /* 真机系统字体放大时，长英文串/代号在窄容器内可能超宽——溢出即断词换行，
+     内容保持可读而不是被 overflow-x:hidden 裁掉（2026-09-16 横拖锁配套）。 */
+  overflow-wrap: break-word;
 }
 .q-face-scroll::-webkit-scrollbar { width: 5px; }
 .q-face-foot { flex: 0 0 auto; padding-top: 8px; }

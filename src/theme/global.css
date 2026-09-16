@@ -53,13 +53,27 @@ html, body, #root { min-height: 100%; }
    scrollbar-gutter:stable 让槽位常驻，滚动条出现与否都不再改变布局宽度。
    移动端/覆盖式滚动条环境此属性无副作用。 */
 html { scrollbar-gutter: stable; }
+/* §移动端整页横拖锁（2026-09-16 午后 III，用户真机报"轻微拖动整页横向滑动偏移"）：
+   此前只锁 body{overflow-x:hidden}——部分国产壳浏览器（vivo 实测症状）在 viewport 级
+   未完整采纳 body 的 overflow 传播，html 未锁时横向手势仍能拖动整页。三层收紧：
+   ①html/body 双锁，hidden（老内核兜底）→ clip（Chrome 90+，连程序滚动都禁，滚动容器不产生）；
+   ②overscroll-behavior-x:none 禁横向 overscroll 与边缘手势（纵向 pull-to-refresh 不受影响）；
+   ③body touch-action:pan-y pinch-zoom——横向手势直接不进入页面平移判定（纵滚与双指缩放保留）；
+   input[type=range]（语速滑块）单独恢复 touch-action:none，否则横向拖滑块会被 pan-y 吃掉。
+   全站无自定义 swipe/touchmove 手势（grep 实证），无其他横向交互需豁免。 */
+html, body {
+  overflow-x: hidden;
+  overflow-x: clip;
+  overscroll-behavior-x: none;
+}
 body {
   background: linear-gradient(180deg, var(--bg-0) 0%, var(--bg-1) 100%) fixed;
   color: var(--gold-text);
   font-family: 'Noto Serif SC', 'Songti SC', 'STSong', 'SimSun', serif;
   -webkit-font-smoothing: antialiased;
-  overflow-x: hidden;
+  touch-action: pan-y pinch-zoom;
 }
+input[type="range"] { touch-action: none; }
 button { font-family: inherit; cursor: pointer; }
 input, textarea, select { font-family: inherit; }
 ::selection { background: rgba(58,138,126,.35); color: #e8e2d0; }
