@@ -86,7 +86,16 @@
    正面是 p19 九切片卷轴（比例无关），牌背 p6 用 cover 居中裁切（不拉伸玫瑰窗）。 */
 .q-card-wrap {
   position: relative; animation: rise-in .5s ease both; perspective: 1600px;
+  width: 94vw;
   width: min(94vw, 620px);
+  /* 高度渐进增强链（2026-09-16 修手机端布局崩坏）：
+     svh 需 Chromium 108+。老内核（87~107 很常见：国产手机浏览器/WebView）svh 无效 →
+     整条 height 声明失效 → 回落到 vh = **地址栏收起时的最大视口**；用户地址栏展开时
+     可视区比 vh 小 ~100px → 卡牌溢出可视区 → 页级滚动 + 钉底"查看解析"压住选项
+     （用户真机截图症状；其余页面是普通文档流多滚一点无异常感，唯独本页对视口敏感）。
+     渐进顺序：vh 兜底（所有内核）→ min(vh,宽比) → JS 接管（Practice.jsx：不支持 svh
+     时用 innerHeight 实时算，比任何视口单位都准；108+ 不接管零行为变化）。 */
+  height: calc(100vh - 96px);
   height: min(calc(100vh - 96px), calc(min(94vw, 620px) / 0.5));
   height: min(calc(100svh - 96px), calc(min(94vw, 620px) / 0.5));
   margin: 0 auto;
@@ -159,7 +168,7 @@
 .zone-a { padding: 2px 2px 4px; }
 .zone-s { padding: 6px 8px 8px; background: rgba(90,74,42,.07); border: 1px dashed rgba(107,26,58,.42); }
 .zone-s.revealed { border-style: solid; border-color: rgba(90,74,42,.32); background: rgba(90,74,42,.05); }
-.zone-label { font-size: clamp(9.5px, 2.3cqw, 11.5px); letter-spacing: 3px; color: #7a5f1f; font-weight: 700; margin-bottom: 7px; }
+.zone-label { font-size: 10.5px; font-size: clamp(9.5px, 2.3cqw, 11.5px); letter-spacing: 3px; color: #7a5f1f; font-weight: 700; margin-bottom: 7px; }
 /* 分区之间的铜质藤蔓分隔条（p44） */
 .zone-rule { height: clamp(8px, 2.4cqw, 14px); margin: 8px 0; opacity: .55;
   background: url('/quiz-platform/img/p44.png') center / contain no-repeat; }
@@ -198,7 +207,7 @@
 }
 /* 谜面：题目区已经有自己的底板与分隔，这里不再加框线 */
 .parch-layer { position: relative; margin-top: 6px; padding: 0; }
-.q-stem { position: relative; margin: 0; padding: 0; line-height: 1.95; font-size: clamp(14.5px, 3.5cqw, 18px);
+.q-stem { position: relative; margin: 0; padding: 0; line-height: 1.95; font-size: 15.5px; font-size: clamp(14.5px, 3.5cqw, 18px);
   font-weight: 600; color: #231509; background: none; box-shadow: none; text-shadow: none; }
 /* 输入框在羊皮纸上需要比周围更亮一点才读得出“这是要写的地方”（只限牌面内，不影响设置/导入页） */
 .q-face .rune-input, .q-face .rune-textarea {

@@ -176,6 +176,13 @@ export function normalizeSpeech(raw) {
     PNP: 'P N P', SIL: 'S I L', LVD: 'L V D', ELV: 'E L V', SELV: 'S E L V', PELV: 'P E L V'
   }
   s = s.replace(/\b[A-Za-z]{2,8}\b/g, (w) => TOKEN_READ[w.toUpperCase()] ?? w)
+  /* ⑥ 轻声弱化保护（2026-09-16，用户实测"'功能'的'能'读不出来"）：
+     取证（PCM 包络对比，tools/diag/）：云健把"功能[须|需]"连读里的"能"压成极轻
+     轻声——能量仅邻字一半（功 0.15 vs 能 0.04~0.10），1.35x 下 ≈0.15s，手机外放
+     听感=吞字；而"功能"后无"须/需"时"能"读原调清晰。插入半角空格后实测："能"
+     恢复原调 néng（能量 0.14 与"功"0.18 相当），代价 ~0.22s 微停顿。仅限高风险
+     连读（后接 须/需），其余语境的"功能"原样不动。 */
+  s = s.replace(/功能(?=[须需])/g, '功 能')
   return s
 }
 

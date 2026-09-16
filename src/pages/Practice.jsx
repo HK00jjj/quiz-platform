@@ -62,9 +62,10 @@ function spokenOf(q, lastGrade, order) {
   return parts.join('。')
 }
 
-/* 题干循环朗读的轮间歇（2026-09-16）：一轮读完 → 停 1.2s → 再读。
-   全零间隙会变成催眠循环，用户来不及点暂停；1.2s 恰好够一次「点 🔊 / 点解析」的决断窗口。 */
-const STEM_LOOP_GAP = 1200
+/* 题干循环朗读的轮间歇（2026-09-16）：一轮读完 → 停 3s → 再读。
+   初版 1.2s（当时按"够一次点暂停/点解析的决断窗口"定），用户实测反馈：
+   上一遍还没听清理解就开始读下一遍——延长到 3s，留足消化时间。 */
+const STEM_LOOP_GAP = 3000
 
 export default function Practice() {
   const navigate = useNavigate()
@@ -119,6 +120,35 @@ export default function Practice() {
     clearTimeout(sealTimer.current)
     sealTimer.current = setTimeout(() => setSeal('broken'), 520)
   }
+
+  /* ── 手机端卡牌高度兜底（2026-09-16，修"答题界面布局不适配"）──
+     根因（布局取证 + 截图比对）：.q-card-wrap 的高度走 CSS 渐进链，但 svh 需
+     Chromium 108+。老内核（87~107，国产手机浏览器/WebView 主力区间）svh 无效 →
+     回落 100vh = 地址栏**收起**时的最大视口；用户地址栏展开时可视区比 vh 小
+     ~100px → 卡牌溢出 → 页级滚动 + 钉底"查看解析"压住选项（其余页面是普通文档
+     流，多滚一点无异常感，唯独本页对视口高度敏感）。
+     接管条件：CSS.supports('height','1svh') 为假（<108）才接管——用 innerHeight
+     （当前真实可视高，地址栏展开/收起都准）实时算，resize/旋转重算；108+ 不接管，
+     CSS svh 原样生效（地址栏收放不抖动的设计意图保留）。桌面恒走 CSS，零变化。 */
+  const qWrapRef = useRef(null)
+  useEffect(() => {
+    const el = qWrapRef.current
+    if (!el) return
+    let svhOK = false
+    try { svhOK = !!(window.CSS && CSS.supports && CSS.supports('height', 'calc(100svh - 96px)')) } catch { /* 老内核无 CSS.supports → 视为需要接管 */ }
+    if (svhOK) return
+    const apply = () => {
+      const w = el.clientWidth || 320
+      const h = Math.max(420, Math.min(window.innerHeight - 96, w / 0.5))
+      el.style.height = h + 'px'
+    }
+    apply()
+    window.addEventListener('resize', apply)
+    window.addEventListener('orientationchange', apply)
+    return () => { window.removeEventListener('resize', apply); window.removeEventListener('orientationchange', apply) }
+    /* deps 带 index/q.id：.q-card-wrap 挂了 key（翻牌入场动画按题重放），key 变 = div
+       重建 = inline height 丢失，必须对新节点重新 apply（svhOK 提前 return 的分支无感）。 */
+  }, [index, q?.id])
 
   /* 答案揭晓后把答案区滚进可见范围。三个关键点：
      ① 时机：蜡封卸载（seal==='broken'，时长随批2 B3 门控 300/520ms）前，提前滚会让上方内容在滚动途中突然少 ~40px
@@ -292,8 +322,15 @@ export default function Practice() {
       /* 2026-09-15 修正：无条件 stopSpeak 会跨两拍清场——第二拍（seal broken→intact）
          正好轰掉题干 effect 刚开的口。改为「只在真正离开揭晓态的那一拍清场」；
          未曾揭晓就切题（主观题直接翻）时，残声由新 speak() 的 token++ 自己打断。 */
-      if (wasRevealedRef.current) { stopSpeak(); wasRevealedRef.current = false }
-      stopStemLoop()                        // 2026-09-16：离开揭晓态同时终结题干循环（点解析后不再循环读题干）
+      /* 2026-09-16 修复「下一题后题干只读一遍不循环」：stopStemLoop 同样必须挂
+         wasRevealedRef 守卫——切题过两拍 commit（setSeal('intact') 在切题 effect），
+         第一拍题干 effect 刚 startStemLoop 建好循环，第二拍（seal→intact）本 effect
+         因 seal 依赖重跑，无条件 stopStemLoop 会把新循环句柄清掉 → 一轮读完 onDone
+         发现句柄为空 → 循环死（症状=只读一遍）。挪进守卫后：揭晓→答题那拍清的是
+         上一题的旧句柄（幂等无害）；答题中切题（主观题直接翻）不清，旧循环由新
+         startStemLoop 的幂等头终结。「点解析即停」不受影响——揭晓开口前 304 行
+         显式 stopStemLoop + 解析 speak token++ 打断，双保险断链原样保留。 */
+      if (wasRevealedRef.current) { stopSpeak(); stopStemLoop(); wasRevealedRef.current = false }
       spokenKeyRef.current = null; return
     }
     wasRevealedRef.current = true
@@ -681,7 +718,7 @@ export default function Practice() {
         <button className="chip" style={{ fontSize: 11 }} onClick={() => { abortSession(); navigate('/') }}>✕ 退出</button>
       </div>
 
-      <div className="q-card-wrap" key={q.id + '-' + index}>
+      <div className="q-card-wrap" ref={qWrapRef} key={q.id + '-' + index}>
         {/* 真 3D 双面翻牌容器：正面(p2) 与 牌背(p6) 是同一个 preserve-3d 体的两面 */}
         <div className={'q-flipper' + (flipped ? ' is-front' : '')}>
         <div className={'q-card ' + flash}>

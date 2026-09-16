@@ -297,7 +297,7 @@ ok(/const nxt = questions\[index \+ 1\][\s\S]{0,80}?if \(nxt\) prefetchGACache\(
 ok(/import \{[^}]*unlockCloudAudio[^}]*\} from '\.\.\/lib\/tts\.js'/.test(learnSrc), '⑰-7 Learn.jsx 引入 unlockCloudAudio（import 口径放宽：允许并列其他导出）')
 ok(/async function run\(mode, opts = \{\}\) \{\s*\n\s*unlockCloudAudio\(\)/.test(learnSrc), '⑰-8 进练习手势内解锁云端 <audio>（移动端首题不被拦）')
 ok(/onClick=\{async \(\) => \{\s*\n\s*unlockCloudAudio\(\)\s*\/\/ 重开一轮/.test(practiceSrc), '⑰-9 再练错题手势内解锁云端 <audio>')
-ok(/const wasRevealedRef = useRef\(false\)/.test(practiceSrc) && /if \(wasRevealedRef\.current\) \{ stopSpeak\(\); wasRevealedRef\.current = false \}/.test(practiceSrc), '⑰-10 清场双拍守卫：stopSpeak 只在真正离开揭晓态那一拍打（否则第二拍轰掉题干朗读，E2E 实证）')
+ok(/const wasRevealedRef = useRef\(false\)/.test(practiceSrc) && /if \(wasRevealedRef\.current\) \{ stopSpeak\(\); stopStemLoop\(\); wasRevealedRef\.current = false \}/.test(practiceSrc), '⑰-10 清场双拍守卫：stopSpeak 只在真正离开揭晓态那一拍打（否则第二拍轰掉题干朗读，E2E 实证）')
 
 /* ── ⑱ GA 无缝管线 + 暂停续播上下文对表（2026-09-15 下午，"彻底解决卡顿/停顿"+"关再开从原处续"）──
    GA：fetch 块 MP3 → decodeAudioData → gaTrimRange 裁首尾合成静音 → AudioContext 时间线
@@ -361,7 +361,11 @@ ok(/useLayoutEffect\(\(\) => \{\s*\n\s*ttsOnRef\.current = ttsOn\s*\n\s*answerPh
 ok(/function startStemLoop\(text, idx, qid\) \{[\s\S]*?stopStemLoop\(\)[\s\S]*?const go = \(\) => \{[\s\S]*?loop\.timer = setTimeout\(go, STEM_LOOP_GAP\)[\s\S]*?speak\(text, \{ tag: 'stem\|' \+ idx \+ '\|' \+ qid, onDone \}\)/.test(practiceSrc), '⑲-4 循环本体：幂等头清旧循环 → go() 对表 → onDone 间歇重开口（loop.onDone 供续播透传）')
 ok(/if \(stemLoopRef\.current !== loop\) blocked = 'handover'/.test(practiceSrc) && /if \(!ttsOnRef\.current\) blocked = 'muted'/.test(practiceSrc) && /else if \(answerPhaseRef\.current\) blocked = 'revealed'/.test(practiceSrc) && /else if \(stemKeyRef\.current !== loop\.key\) blocked = 'switched'/.test(practiceSrc) && /if \(blocked\) return/.test(practiceSrc), '⑲-5 重开口四闸：句柄比对 + 静音不重开口 + 已揭晓/已提交即停（点解析即停）+ 已切题让位（2026-09-16 起为 blocked 链式探针形态，语义同旧 if-return）')
 ok(/spokenKeyRef\.current = key\s*\n\s*stopStemLoop\(\)/.test(practiceSrc), '⑲-6 揭晓开口解析前显式清循环句柄（timer 不再重入；正在读的链由解析 speak token++ 打断）')
-ok(/if \(wasRevealedRef\.current\) \{ stopSpeak\(\); wasRevealedRef\.current = false \}\s*\n\s*stopStemLoop\(\)/.test(practiceSrc), '⑲-7 离开揭晓态清场时同步终结题干循环（切题/收起解析不留悬空句柄）')
+/* ⑲-7（2026-09-16 修正）：stopStemLoop 必须与 stopSpeak 同在 wasRevealedRef 守卫内——
+   切题过两拍 commit，第一拍题干 effect 刚 startStemLoop，第二拍（seal→intact）本 effect
+   重跑时无条件 stopStemLoop 会清掉新循环句柄 → 一轮读完 onDone 句柄比对失败 →
+   循环死（线上症状"下一题后题干只读一遍"）。清旧句柄由 startStemLoop 幂等头兜底。 */
+ok(/if \(wasRevealedRef\.current\) \{ stopSpeak\(\); stopStemLoop\(\); wasRevealedRef\.current = false \}/.test(practiceSrc) && !/(wasRevealedRef\.current = false \})\s*\n\s*stopStemLoop\(\)/.test(practiceSrc), '⑲-7 离开揭晓态清场：stopStemLoop 挂 wasRevealedRef 守卫（无条件清会跨两拍误杀新题循环——"下一题后只读一遍"实证；守卫块外不得再有无条件 stopStemLoop）')
 ok(/resumeSpeak\(stemLoopRef\.current \? stemLoopRef\.current\.onDone : undefined\)/.test(practiceSrc), '⑲-8 🔊 续播透传循环 onDone（native 重建链分支：续播读完接续循环；GA suspend/原生暂停两路原闭包仍在，透传值被忽略）')
 ok(/export function resumeSpeak\(onDone\) \{/.test(ttsSrc) && /return runChunks\(rest, ttsRate\(\), onDone, undefined, keep\) !== false/.test(ttsSrc), '⑲-9 tts.js resumeSpeak 支持可选 onDone 透传（仅重建链分支使用；默认不传行为与旧版一致）')
 ok((practiceSrc.match(/startStemLoop\(stemSpokenOf\(q\), index, q\.id\)/g) || []).length >= 3, '⑲-10 循环入口接线 ≥3 处（新题自动开口/手动重读/答题期开声重启）')
