@@ -1,7 +1,25 @@
 # 交接文档 · 糖果题库（quiz-platform）
 
 > 写给下一个接手的会话。读完这一份就能独立干活，不需要翻历史对话。
-> 最后更新：2026-09-15 晚 · 语音预载提速上线（"点解析/翻题就出声"）——tts.regression **195 断言**。
+> 最后更新：2026-09-16 上午 · 手机布局适配 + 题干循环修复 + 轻声弱化保护——tts.regression **207 断言**。
+
+## 2026-09-16 上午增量 · 手机布局适配 + 循环三修 + 轻声保护（deploy `dfc5fdf`，父=605d25d）
+
+**需求**（用户，附手机截图）：①手机端答题界面布局不适配（仅此界面）；②朗读题干"功能"的"能"读不出；③点"下一题"后题干只读一遍不循环（重读按钮的循环才是对的）；④循环间隔太短；⑤点解析立即停题干改读解析。
+
+**①布局根因（读盘取证+CDP 390×844 实测）**：`.q-card-wrap` 高度链 `min(calc(100svh-96px),…)`——**svh 需 Chromium 108+**，老内核（87~107，国产手机浏览器主力区间）整条 height 无效回落 `100vh`=地址栏**收起**时的最大视口；地址栏展开时可视区比 vh 小 ~100px → 卡牌溢出 → 页级滚动+钉底按钮压选项（用户截图症状）。其余页面是普通文档流多滚无异常感，唯独本页视口敏感。本地 headless（Chrome 最新）实测布局正常 → 排除代码结构性错误，锁定内核兼容窗口。
+**修复**：CSS 渐进链 `calc(100vh-96px) → min(vh…) → min(svh…)`（老内核逐级回落）+ **JS 兜底**（Practice.jsx `qWrapRef` effect：`CSS.supports('height','1svh')` 为假才接管，innerHeight 实时算、resize/orientationchange 重算、deps 带 index/q.id——**因为 .q-card-wrap 挂了 key，切题 div 重建 inline height 丢失**；108+ 不接管零行为变化）；触屏隐藏 `.kbd-hint`（`@media (hover:none) and (pointer:coarse)`）；`.zone-label/.q-stem` 字号加 px 兜底（cqw 需 105+，声明整体失效即继承 16px）。
+
+**②"能"字读不出（PCM 包络取证，tools/diag/neng-*.cjs）**：文本管线（stemSpokenOf/cleanSpeechText/chunkSpeechText）逐字节无损；合成对比实验：完整句 vs 去"能"句时长仅差 1 帧 → 决定解码包络：**"能"其实被合成了**（full 在 0.90~1.10s 有音节能量 0.04~0.11，noneng 同位置纯静音谷）——但作为轻声能量仅邻字一半（功 0.15 vs 能 0.04~0.10），1.35x 下 ≈0.15s，手机外放听感=吞字。修复实验：插半角空格 → "能"恢复原调 néng（能量 0.14 与功 0.18 相当），代价 ~0.22s 微停顿。**落地**：normalizeSpeech 末尾 `s.replace(/功能(?=[须需])/g, '功 能')`——仅高风险连读，其余"功能"不动。短文本（≤5 字）合成被微软端填充为恰好 78 帧/1.872s（时长无区分度），做时长对照必须用长句。
+
+**③循环修复（双拍 bug 翻版）**：解析 effect（deps 含 seal/index/phase）里 `stopStemLoop()` 无条件执行——切题两拍 commit：第一拍题干 effect 刚 startStemLoop，第二拍（seal→intact）解析 effect 重跑清掉新循环句柄 → 一轮读完 onDone 句柄比对失败 → 循环死（"下一题后只读一遍"；重读按钮在稳定态调用故正常）。修法：`stopStemLoop` 挪进 `wasRevealedRef` 守卫（与 stopSpeak 同拍同守卫）；清旧句柄由 startStemLoop 幂等头兜底；"点解析即停"不受影响（揭晓开口前显式清句柄 + token++ 双保险原样）。⑲-7/⑰-10 断言随迁（正则锁新结构+负向锁守卫块外不得再有无条件 stopStemLoop）。
+**④间歇**：STEM_LOOP_GAP 1200→**3000**（用户："上一遍还没听清就开始读下一遍"）。
+**⑤**点解析即停 + 解析接管为既有机制，修复未触碰（L3a/L3b E2E 复验）。
+
+**回归**：run-all 14 套件 ALL GREEN（tts.regression **207**）。**线上真机 E2E 12/12 PASS**（新工具 E:/workbuddy-cc/2026-09-16-09-15-23/tools/：`loop_e2e_runner.cjs`+`stem_loop_e2e.cjs`，v1→v2 三教训见下）：L1 首轮 837ms 合成请求；L2 循环轮 starts 1→3；L3a 揭晓开口；L3b 停止锁 lateGo=0；L4b **下一题后循环恢复 opens=2**；L6 布局三项（wrap 733≤vh-88、内滚 auto、kbd-hint 隐藏）。
+**E2E harness 教训（复用必读）**：①未作答时"查看解析"是 **disabled**——必须先点选项/判断卡再点解析，否则整条揭晓流程是废的（v1 三条假 FAIL 根源）；②揭晓解析预载命中 gaCache 时**零新 ttsReq**（A9 口径），开口判据用 gaLog start/__stemLoopLog 的 blocked:null go，别盯请求；③短文本合成时长被微软端填充（见②），对照实验必须长句；④CDP 托管 profile 锁/孤儿 Chrome 会让下一轮静默挂死——重跑前 taskkill `remote-debugging-port=92xx` + 删 profile。
+**部署**：六步链全绿（deploy **`dfc5fdf`** → verify-deploy **IDENTICAL** 134 → push-src SRC BACKUP OK → verify-live **ALL OK** 134/134 三哈希 MATCH；首轮 verify-live 1 个旧代 chunk 404=Pages 传播延迟，70s 重跑全绿——§925 现象再现）。
+**诚实边界**：svh 老内核症状推断自"本地最新 Chrome 正常 + 用户截图症状 + svh 兼容窗口"三边锁定，未拿到用户手机 UA 实证；真机最终验收待用户。轻声规则只覆盖"功能[须|需]"，其他吞字词待用户反馈再扩词典（机制同 TOKEN_READ 演进）。
 
 ## 2026-09-15 晚增量 · 语音预载提速（"点解析/翻题就出声"）
 
