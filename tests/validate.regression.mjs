@@ -52,11 +52,15 @@ check('comprehensive missing both = error', hasMsg(validateItems([base({ 题型:
 // ── 2026-09-09 v4.13 命题侧自适应退役：v4.12 verdict 复算闸整体移除，原 gate 用例随之退役 ──
 check("gate retired: 换挡声明字段不再被校验（任意值均不产生自适应闸 issue）", !validateItems([base({ 源题难度: "应用", 适配决策: "降档", 难度: "基础" })], false).some((i) => i.where === "自适应闸"))
 
-// ── 2026-09-12 全流程颗粒度对齐：知识域 K1~K27 枚举闸回归锁（域统计链的入库端入口） ──
+// ── 2026-09-12 全流程颗粒度对齐：知识域枚举闸回归锁（域统计链的入库端入口） ──
+// ── 2026-09-16 v6.12 K28~K33 扩域：枚举扩至 K1~K33，消息与边界用例同步 ──
 check('非法知识域 K99 = error', hasMsg(validateItems([base({ 知识域: 'K99' })], false), '知识域'))
-check('非法知识域 K99 = error（消息含 K1~K27 提示）', hasMsg(validateItems([base({ 知识域: '电机学' })], false), '应取K1~K27'))
+check('非法知识域 K99 = error（消息含 K1~K33 提示）', hasMsg(validateItems([base({ 知识域: '电机学' })], false), '应取K1~K33'))
 check('缺失知识域 = error', hasMsg(validateItems([{ ...base(), 知识域: undefined }], false), '缺少字段“知识域”'))
 check('边界 K27 合法', !hasMsg(validateItems([base({ 知识域: 'K27' })], false), '知识域'))
+check('边界 K33 合法（新增域尾界）', !hasMsg(validateItems([base({ 知识域: 'K33' })], false), '知识域'))
+check('新增域 K28/K30/K31 合法', !hasMsg(validateItems([base({ 知识域: 'K28' }), base({ 知识域: 'K30', 知识点: 'x2' }), base({ 知识域: 'K31', 知识点: 'x3' })], false), '知识域'))
+check('K34 越界 = error（新尾界外仍拦截）', hasMsg(validateItems([base({ 知识域: 'K34' })], false), '应取K1~K33'))
 
 
 console.log(`\nregression: ${pass} pass, ${fail} fail`)

@@ -40,7 +40,7 @@ import { DIAGRAM_IDS } from './diagrams.js'
 export const TYPE_LIST = ['单选题', '多选题', '判断题', '填空题', '简答题', '计算分析题', '综合设计/故障诊断题']
 const DIFFS = ['基础', '应用', '综合']
 const COG = ['记忆', '理解', '应用', '分析', '评价', '创造']
-const DOMAINS = Array.from({ length: 27 }, (_, i) => `K${i + 1}`)
+const DOMAINS = Array.from({ length: 33 }, (_, i) => `K${i + 1}`)
 const META_MAP = { 基础: ['记忆', '理解'], 应用: ['应用', '分析'], 综合: ['评价', '创造'] }
 /* v6.8 解析长度口径：上限上调（旧 300/400/500 会扼杀"概念先行 + 完整结论链"），
    同时新设信息量下限——正文（剥去【】标记后）低于下限即判"解析过于简单"。 */
@@ -196,7 +196,7 @@ export class Validator {
     const d = str(it.难度)
     if (!DIFFS.includes(d)) this.err(w, `难度“${d}”非法`)
     const dom = str(it.知识域)
-    if (!DOMAINS.includes(dom)) this.err(w, `知识域“${dom}”非法，应取K1~K27`)
+    if (!DOMAINS.includes(dom)) this.err(w, `知识域“${dom}”非法，应取K1~K33`)
     const cog = str(it.认知层级)
     if (!COG.includes(cog)) this.err(w, `认知层级“${cog}”非法`)
     if (!str(it.知识点).trim()) this.err(w, '“知识点”为空')

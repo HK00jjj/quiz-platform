@@ -16,7 +16,7 @@ import { todayStr, streakLength } from '../lib/dates'
 import { repo } from '../lib/db'
 import { pickExamProgress } from '../lib/exam-progress'
 
-const DOMAINS_ALL = Array.from({ length: 27 }, (_, i) => `K${i + 1}`)
+const DOMAINS_ALL = Array.from({ length: 33 }, (_, i) => `K${i + 1}`)
 
 function FilterModal({ title, filters, onToggle, onClose, onStart, count, startLabel, note }) {
   const [dim, setDim] = useState('types')
@@ -25,7 +25,7 @@ function FilterModal({ title, filters, onToggle, onClose, onStart, count, startL
     { key: 'domains', label: '知识域', options: DOMAINS_ALL, text: domainLabel },
     { key: 'difficulties', label: '难度', options: DIFFICULTIES }
   ]
-  /* 知识域 chip 的值仍是 K1~K27（筛选逻辑与 settings 里存的过滤器都认它），
+  /* 知识域 chip 的值仍是 K1~K33（筛选逻辑与 settings 里存的过滤器都认它），
      但显示走 text 换成中文域名——光看 K17 谁也不知道是什么（#8）。 */
   const cur = dims.find((d) => d.key === dim)
   return (

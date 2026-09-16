@@ -28,6 +28,14 @@
 
 **⚠ 并发部署冲突（重要教训）**：203b4a9（05:48Z）与 e637ee4（06:11Z）之间，**另一会话**于 06:07Z 部署了 `5a1918a`（"题干朗读改单次——读一遍即止不自动重复(用户钦定)；删STEM_LOOP_GAP；句柄/四闸架构保留"）——两会话共用同一本地权威副本与部署链。经源码核查：5a1918a 的单次化改动直接落在共享 `Practice.jsx`（UI title/E2E 口径同步改，STEM_LOOP_GAP 已不存在），e637ee4 构建于其上，**线上现状=单次朗读 + cloudSupported 修复 + PageBoundary 取证增强**，无功能丢失；但"循环 vs 单次"最终以哪个为准须用户本人确认。**同一部署链同时只允许一个会话操作。**
 
+## 2026-09-16 午后 III 增量 · 移动端整页横拖锁（deploy `93da95d`，parent=e637ee4）
+
+**需求**（用户）：手机答题界面轻微拖动整个页面横向滑动/偏移一侧——要求整页固定不可拖，保留内容纵向滚动。
+**取证**：`tools/diag/hscroll_probe.cjs`（390×844 触屏仿真 → 登录 → 进练习 → 根级 scrollWidth + 全元素越界扫描）。桌面仿真稳态 **doc.scrollWidth=vw 无溢出**（body overflow-x:hidden 已锁；越界的全是 absolute 装饰彩带/气泡，不参与根滚动区）→ 真机可拖主因=**壳浏览器层**：此前只锁 body 未锁 html，vivo 类国产壳对 viewport 级 overflow 传播不完整；叠加可能的系统字体放大瞬时溢出与横向 overscroll 手势。已知误判教训：body.scrollWidth 可超 vw（装饰溢出被 clip 裁剪），**判据必须是 documentElement.scrollWidth vs vw（根级可滚性）**。
+**修复（三层锁，global.css）**：①`html,body{overflow-x:hidden→clip}` 渐进双锁（clip 90+ 连程序滚动都禁）；②`overscroll-behavior-x:none` 禁横向边缘手势（纵向 pull-to-refresh 不受影响）；③`body{touch-action:pan-y pinch-zoom}` 横向手势不进平移判定（纵滚/双指缩放保留）+ `input[type=range]{touch-action:none}` 豁免语速滑块（grep 实证全站无其他横向手势）。配套 `.q-face-scroll{overflow-wrap:break-word}`（字体放大时长串断词不被裁）。**E2E**：stem_loop_e2e 新增 L6d（doc.scrollWidth ≤ vw）。
+**验证**：run-all 14 套 ALL GREEN；部署 `93da95d`（verify-deploy IDENTICAL → push-src `e7510ce` → verify-live 首轮 ALL OK 三哈希 MATCH，CSS +144B）→ hscroll_probe 复验线上：**根级无溢出 + clip 双锁生效**，越界者全为被裁装饰。
+**待用户**：真机验收——横拖应完全锁死，纵向滚动/缩放/语速滑块不受影响。
+
 ## 2026-09-16 上午增量 · 手机布局适配 + 循环三修 + 轻声保护（deploy `dfc5fdf`，父=605d25d）
 
 **需求**（用户，附手机截图）：①手机端答题界面布局不适配（仅此界面）；②朗读题干"功能"的"能"读不出；③点"下一题"后题干只读一遍不循环（重读按钮的循环才是对的）；④循环间隔太短；⑤点解析立即停题干改读解析。
@@ -3708,3 +3716,10 @@ badge 加 position:relative。molten 熔炉区、🥅 标题小图标等其余�
 
 ### §70d 补充（同日·三次反馈）：黑框真因=浏览器 focus outline
 §70c 重构后用户仍见黑框（数字/↑↓ 后停留在先前交互的选项上，鼠标点别处即消失）→ 真因：**浏览器默认 focus outline**——键盘流的程序 click() 不移动焦点，轮廓滞留在早前真实交互的元素上。修复：答题控件（.opt-row/.judge-card/.q-face-foot button）focus/:focus-visible 一律 outline:none（选中绿框本身即视觉锚点）。真机（含真实键击 press）：outlineOnSelected=none、kbd-cursor 0、单选唯一选中、多选 A+B 并存正常。部署 gh-pages `5837590`（首次上传中断已续传），src 同步，verify-live ALL OK。
+
+## 自动追加 · v6.12 出题规则扩域上线（2026-09-16）
+
+- 规则 v6.11 → **v6.12**（审查 22 项修订 + K28~K33 扩域；MD5 857e93b6eebe438fd3a44c01f0c783fc；修订案/审查报告在 Documents/Qoder/命题流水线/）。
+- 代码：validate.js 枚举 K1~K33 + 消息'应取K1~K33'；stats.js DOMAIN_NAMES +K28~K33；Learn.jsx DOMAINS_ALL 33；validate.regression.mjs 新增 K33 尾界/K34 拦截/K28K30K31 合法断言（24 pass 0 fail，run-all ALL GREEN）。
+- 白名单未扩（K28~K33 暂无标准，按定律兜底）；候选标准三重核证与三条自动化重建仍待批。
+- 部署：commit e7fe909（gh-pages），pages status=built。
