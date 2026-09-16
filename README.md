@@ -1,7 +1,15 @@
 # 交接文档 · 糖果题库（quiz-platform）
 
 > 写给下一个接手的会话。读完这一份就能独立干活，不需要翻历史对话。
-> 最后更新：2026-09-16 上午 · 手机布局适配 + 题干循环修复 + 轻声弱化保护——tts.regression **207 断言**。
+> 最后更新：2026-09-16 午后 · PageBoundary 真机取证增强 + __BUILD_ID__ 注入——真机错误从此可观测。
+
+## 2026-09-16 午后增量 · PageBoundary 真机取证增强 + __BUILD_ID__（错误可观测性）
+
+**触发**（用户 13:29 手机截图）：真机打开出现兜底错误卡「这个页面出了点问题」。诊断发现关键缺口——componentDidCatch 只 console.error，文案"已记录错误信息"名不符实，**真机错误完全不可观测**：截图走的是非 chunk 分支（isChunk=false，React 外壳/背景已渲染，属运行时渲染错误）；同份代码桌面 E2E 12/12 全过 → 手机环境特有；无远端上报、无本地留痕 → 无从取证。且部署链走 GitHub Data API、本地无 .git，连"用户跑的是哪代构建"都判不了。
+**修复**（只补可观测性，不动业务逻辑）：
+- `app/src/App.jsx` PageBoundary：①componentDidCatch 把错误落 `localStorage('qa_page_err')`（t/build/msg/stack/componentStack/href/ua）；②卡片加「📋 复制错误详情」按钮——clipboard API 优先（https 安全上下文），execCommand+textarea 兜底旧内核，成功后"✅ 已复制"；③错误正文 `<details>` 可展开（msg+stack）。chunk 错误分支（"页面资源已更新"）行为不变。
+- `app/vite.config.js`：`define: { __BUILD_ID__: 构建时刻 ISO 串 }` 注入产物，取证记录与复制文本都带它——报障时对上构建代际，补"无本地 git"盲区。
+**回归**：run-all 14 套件 ALL GREEN（tts.regression 207）。**验收路径**：真机再现 → 展开详情/一键复制 → 粘给会话 → 按 stack 定位根因；qa_page_err 持久在 localStorage，刷新不丢。
 
 ## 2026-09-16 上午增量 · 手机布局适配 + 循环三修 + 轻声保护（deploy `dfc5fdf`，父=605d25d）
 

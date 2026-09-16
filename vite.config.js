@@ -25,6 +25,10 @@ const spa404Fallback = () => {
 export default defineConfig({
   base: '/quiz-platform/',
   plugins: [react(), spa404Fallback()],
+  /* __BUILD_ID__（2026-09-16）：把构建时刻注入产物。部署链走 GitHub Data API、本地无 git
+     仓库，此前线上排障无法分辨用户跑的是哪一代构建；现在 PageBoundary 的错误取证记录
+     与「复制错误详情」都携带它，报障时一眼对上部署哈希对应的构建。 */
+  define: { __BUILD_ID__: JSON.stringify(new Date().toISOString()) },
   // emptyOutDir:false：构建不清空 dist（WorkBuddy 的 safe-delete 垫片会拦截 rmSync 导致构建崩溃）。
   // 孤儿产物统一由 scripts/purge-dist.mjs 的语义不变式闸清理。
   // emptyOutDir:false：构建不清空 dist（WorkBuddy 的 safe-delete 垫片会拦截 rmSync 导致构建崩溃）。

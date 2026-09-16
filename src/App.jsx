@@ -35,14 +35,58 @@ const Settings = lazyPage(() => import('./pages/Settings'))
 const Practice = lazyPage(() => import('./pages/Practice'))
 
 /* 兜底 ErrorBoundary：任何页面级异常（含刷新后仍拉不到 chunk）都给出可操作提示，
-   不再出现"一片空白、什么都没有"。 */
+   不再出现"一片空白、什么都没有"。
+   2026-09-16 真机取证增强：此前错误只进 console，文案却写"已记录错误信息"——
+   实际用户侧不可观测（手机报障拿不到任何细节），远程排障断链。现在：
+   ① componentDidCatch 把错误落到 localStorage('qa_page_err')，含构建标识/UA/堆栈；
+   ② 卡片提供「复制错误详情」按钮（clipboard API 优先，execCommand 兜底旧内核）；
+   ③ 错误正文可展开查看。真机报"这个页面出了点问题"时一键复制即可回传取证。 */
 class PageBoundary extends React.Component {
-  constructor(props) { super(props); this.state = { err: null } }
+  constructor(props) { super(props); this.state = { err: null, copied: false } }
   static getDerivedStateFromError(err) { return { err } }
-  componentDidCatch(err) { try { console.error('[PageBoundary]', err) } catch { /* ignore */ } }
+  componentDidCatch(err, info) {
+    try { console.error('[PageBoundary]', err) } catch { /* ignore */ }
+    try {
+      const detail = {
+        t: new Date().toISOString(),
+        build: typeof __BUILD_ID__ !== 'undefined' ? __BUILD_ID__ : 'unknown',
+        msg: String((err && err.message) || err || ''),
+        stack: String((err && err.stack) || ''),
+        comp: String((info && info.componentStack) || ''),
+        href: String((typeof location !== 'undefined' && location.href) || ''),
+        ua: String((typeof navigator !== 'undefined' && navigator.userAgent) || '')
+      }
+      localStorage.setItem('qa_page_err', JSON.stringify(detail, null, 1))
+    } catch { /* ignore */ }
+  }
+  /* 复制取证文本：clipboard API 需 https 安全上下文（本站满足），旧内核或异常时走 execCommand 兜底 */
+  copyDetail() {
+    const read = () => {
+      try {
+        return localStorage.getItem('qa_page_err')
+          || String((this.state.err && this.state.err.message) || this.state.err || '')
+      } catch { return '' }
+    }
+    const done = () => this.setState({ copied: true })
+    const fallback = () => {
+      try {
+        const ta = document.createElement('textarea')
+        ta.value = read(); ta.setAttribute('readonly', '')
+        ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0'
+        document.body.appendChild(ta); ta.select()
+        document.execCommand('copy'); document.body.removeChild(ta); done()
+      } catch { /* ignore */ }
+    }
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(read()).then(done, fallback)
+      else fallback()
+    } catch { fallback() }
+  }
   render() {
     if (!this.state.err) return this.props.children
-    const msg = String((this.state.err && this.state.err.message) || this.state.err || '')
+    const err = this.state.err
+    const msg = String((err && err.message) || err || '')
+    const stack = String((err && err.stack) || '')
     const isChunk = /dynamically imported module|Loading chunk|import\(\)/i.test(msg)
     return (
       <div className="panel" style={{ margin: '18px auto', maxWidth: 420, padding: '16px 18px', textAlign: 'center' }}>
@@ -50,9 +94,18 @@ class PageBoundary extends React.Component {
         <p style={{ fontSize: 13, lineHeight: 1.6, opacity: .85 }}>
           {isChunk
             ? '本站刚发布过新版本，你手上的页面还是旧的。点下面的按钮刷新即可恢复（不会丢进度）。'
-            : '已记录错误信息。刷新一次通常就能恢复；若反复出现请告诉我。'}
+            : '已记录错误信息。刷新一次通常就能恢复；若反复出现，请点「复制错误详情」把内容发给我，便于定位。'}
         </p>
-        <button className="chip" style={{ marginTop: 10 }} onClick={() => window.location.reload()}>🔄 刷新页面</button>
+        {!isChunk && stack && (
+          <details style={{ margin: '6px 0 0', textAlign: 'left' }}>
+            <summary style={{ fontSize: 12, opacity: .7, cursor: 'pointer' }}>查看错误详情</summary>
+            <pre style={{ fontSize: 11, lineHeight: 1.5, whiteSpace: 'pre-wrap', wordBreak: 'break-all', maxHeight: 180, overflow: 'auto', opacity: .75 }}>{msg + '\n' + stack}</pre>
+          </details>
+        )}
+        <div style={{ marginTop: 10, display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
+          <button className="chip" onClick={() => window.location.reload()}>🔄 刷新页面</button>
+          {!isChunk && <button className="chip" onClick={() => this.copyDetail()}>{this.state.copied ? '✅ 已复制' : '📋 复制错误详情'}</button>}
+        </div>
       </div>
     )
   }
