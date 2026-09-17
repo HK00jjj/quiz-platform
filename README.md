@@ -1,7 +1,7 @@
 # 交接文档 · 糖果题库（quiz-platform）
 
 > 写给下一个接手的会话。读完这一份就能独立干活，不需要翻历史对话。
-> 最后更新：2026-09-16 午后 II · 题干朗读改单次（读一遍即止）——循环朗读当日即废。
+> 最后更新：2026-09-17 晚 · 答题界面移动端居中修复（§71，deploy `06ee5d0`）
 
 ## 2026-09-16 午后 II 增量 · 题干朗读改单次（deploy `5a1918a`，parent=203b4a9）
 
@@ -3723,3 +3723,19 @@ badge 加 position:relative。molten 熔炉区、🥅 标题小图标等其余�
 - 代码：validate.js 枚举 K1~K33 + 消息'应取K1~K33'；stats.js DOMAIN_NAMES +K28~K33；Learn.jsx DOMAINS_ALL 33；validate.regression.mjs 新增 K33 尾界/K34 拦截/K28K30K31 合法断言（24 pass 0 fail，run-all ALL GREEN）。
 - 白名单未扩（K28~K33 暂无标准，按定律兜底）；候选标准三重核证与三条自动化重建仍待批。
 - 部署：commit e7fe909（gh-pages），pages status=built。
+
+## 2026-09-17 晚增量 · 答题界面移动端居中修复（§71）
+
+**触发**（用户）：「修复手机端答题界面未居中显示：答题区域在移动端各类屏幕尺寸下均水平垂直居中，布局不溢出、不偏移，保持现有答题功能与样式风格不变。」
+
+**根因（CDP 移动视口 390×844 + 360×640 取证，mprobe.cjs 量测）**：
+1. **水平偏移**：`.app-shell` 是 flex column，`.practice-stage` 带 `margin:0 auto`——flex item 带水平 auto margin 时 stretch 失效、宽度退化为 fit-content，被 `.practice-top` 不可收缩内容（`.syrup-bar` min-width:120px + nowrap 计数文字）的 max-content(~380px) 撑宽溢出视口：360 屏 stage 379.6>360，卡牌中心偏右 **9.8px**、右缘截 19.6px、退出 chip 被压竖排两行。
+2. **垂直不居中**：stage 块级流顶对齐；卡牌高算式的 96px 预算按进度行 ~30px 估，实际 64px（chip 竖排）。
+3. **页面可滚**：`.practice-stage::before` 光晕 `inset:-40px` 把 scrollHeight 撑出 40px（360 屏总可滚 52px），界面可被滑离正位。
+
+**修复（只动答题分支，idle 空态/settle 结算页零影响）**：
+- `Practice.jsx`：答题分支 stage 加 `practice-play` 类；老内核 JS 接管 apply() 内新增 stage `minHeight=innerHeight` 同步（dvh 无效时分母也钉准）。
+- `pages.css`：新增 `.practice-play`（flex column + **width:100%**（fit-content 不再参与）+ min-width:0）+ `.practice-play .practice-top{margin-top:auto}`；`.q-card-wrap` 宽度 `min(94vw,620px)` → `100%+max-width:620px`（对称化），高度算式宽度项 `94vw` → `100vw-24px`，margin 改 `0 auto auto`（垂直 auto 参与安全居中，内容超高时归零退化为顶对齐可滚——规避 justify-content:center 溢出顶部不可达坑）。
+- `candy.css`：`.practice-stage::before` inset:-40px→0（渐变 70% 处已透明，无可见截断）；`.syrup-bar` min-width:120px→0（宽屏 flex:1 照常吃满，窄屏可收缩）。
+
+**验证（全绿）**：390×844 / 360×640 / 414×896 / 768×1024 / 1440×900 五尺寸水平偏移全部 0、overflowX/Y 全 false、组垂直空隙差 ≤2px；桌面 940/620 上限行为不变；退出 chip 恢复单行。六步链部署 commit `06ee5d0`（pages built），src `1283f6b`，verify-live **PASS**（dist 全量 122 资产 sha256 全等 + practice-play 载体特征确认）。线上登录态复测 390/360：偏移 0、零滚动、空隙差 2px。取证工具沉淀在工作区 tools/：`mprobe.cjs`（demo 模式）/`mprobe-live.cjs`（线上登录版）——spawn Chrome+CDP 移动视口，点「随机练习」入口后量测 .practice-stage/.practice-top/.q-card-wrap 居中度并截图。
