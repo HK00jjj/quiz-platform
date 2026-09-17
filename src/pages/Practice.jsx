@@ -136,6 +136,12 @@ export default function Practice() {
       const w = el.clientWidth || 320
       const h = Math.max(420, Math.min(window.innerHeight - 96, w / 0.5))
       el.style.height = h + 'px'
+      /* 2026-09-17 居中修复配套：stage 的 min-height 只有 100vh/100dvh 两级——老内核
+         dvh 无效时回落 100vh（地址栏收起的最大视口），地址栏展开时 stage 比 innerHeight
+         高 ~100px，卡牌即使被上面的接管修准了，"flex 安全居中"的分母（stage 高）仍是
+         错的 → 组在可视区内偏上 + 底部露出一段可滚空白。这里用与卡牌同一数据源
+         （innerHeight）同步钉准 stage 高度；svhOK 分支不进来，dvh/svh 原样生效。 */
+      if (el.parentElement) el.parentElement.style.minHeight = window.innerHeight + 'px'
     }
     apply()
     window.addEventListener('resize', apply)
@@ -702,7 +708,7 @@ export default function Practice() {
      旧 .gem-row 点阵撤下——三遍判定制后会话动辄 200+ 题，点阵密度爆表 */
   const pct = questions.length ? (results.length / questions.length) * 100 : 0
   return (
-    <div className="practice-stage">
+    <div className="practice-stage practice-play">
       <div className="practice-top">
         <div className="syrup-bar" role="progressbar" aria-label="答题进度"
           aria-valuenow={Math.round(pct)} aria-valuemin={0} aria-valuemax={100}>

@@ -76,6 +76,24 @@
    而竖直方向本来只差 ~7px（手机剩余空隙 14.8px，上下 28 / 36.8 已接近居中），不值得拿两个页面去换 */
 .practice-stage { position: relative; z-index: 1; min-height: 100vh; min-height: 100dvh; padding: 14px 12px 16px; max-width: 940px; margin: 0 auto; }
 .practice-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; padding: 0 4px; }
+/* ── 2026-09-17 移动端答题界面居中修复（仅答题分支，idle 空态 / settle 结算页不受影响）──
+   根因（CDP 390×844 + 360×640 实测取证）：
+   ① 垂直不居中：stage 块级流顶对齐，卡牌高算式的 96px 预算按"进度行 ~30px"估算，
+      实际 64px（退出 chip 竖排两行）→ 组整体偏上、小屏触底；
+   ② 水平不居中：.app-shell 是 flex column，stage 作 flex item 受 min-width:auto 约束，
+      被 .practice-top 不可收缩的 nowrap 文字（min-content ~380px）撑宽溢出视口
+      （360 屏 stage 379.6 > 360，卡牌中心偏右 9.8px，右缘被截 19.6px）；
+   ③ 页面可滚：.practice-stage::before 光晕 inset:-40px 把 scrollHeight 撑出 40px，
+      界面整体可被滑离正位（另见 candy.css 该处的修复）。
+   修法（flex 安全居中）：
+   · stage 变 flex column + min-width:0（②的解：允许 item 收缩回容器宽）；
+   · .practice-top margin-top:auto + .q-card-wrap margin-bottom:auto（在基础规则里）
+     → 剩余空间上下均分 = 「进度行+题卡」整组垂直居中；内容超高时 auto 归零
+     退化为顶部对齐、页级滚动可达——规避 justify-content:center 的溢出顶部不可达坑；
+   · .practice-top 自身 min-width:0 + candy.css 把 .syrup-bar 的 min-width:120px 放开
+     → 进度行可收缩，360 屏不再撑宽，退出 chip 恢复单行（practice-top 64→~32px）。 */
+.practice-play { display: flex; flex-direction: column; width: 100%; min-width: 0; }
+.practice-play .practice-top { width: 100%; min-width: 0; margin-top: auto; }
 /* §50：旧 .gem-row/.gem-dot 点阵已随糖浆进度条下线，样式清除（权威层新块 .syrup-bar） */
 .practice-count { font-size: 12px; letter-spacing: 2px; color: var(--muted); white-space: nowrap; }
 /* 题卡尺寸：高度优先。旧写法用宽度×0.72 推高度，在手机竖屏下宽度被 94vw 卡住，
@@ -86,8 +104,14 @@
    正面是 p19 九切片卷轴（比例无关），牌背 p6 用 cover 居中裁切（不拉伸玫瑰窗）。 */
 .q-card-wrap {
   position: relative; animation: rise-in .5s ease both; perspective: 1600px;
-  width: 94vw;
-  width: min(94vw, 620px);
+  /* 2026-09-17 修移动端居中：旧 width:min(94vw,620px) 在 <400px 屏上宽于 stage 内容盒
+     (100vw-24px)，块级溢出时 margin:0 auto 解析为 0 → 卡牌左贴齐右溢出（360 屏实测
+     偏右 9.8px，根因还有 stage 被 min-content 撑宽，见 .practice-play）。改 100%+
+     max-width 后恒等于内容盒宽，左右各 12px 对称；高度算式的宽度项同步改 100vw-24px
+     （stage 修撑宽后 100vw-24px ≡ stage 内容盒宽；大屏 max-width:940 生效时该项 ≥620
+     被 620 截住，与卡牌实际宽一致）。 */
+  width: 100%;
+  max-width: 620px;
   /* 高度渐进增强链（2026-09-16 修手机端布局崩坏）：
      svh 需 Chromium 108+。老内核（87~107 很常见：国产手机浏览器/WebView）svh 无效 →
      整条 height 声明失效 → 回落到 vh = **地址栏收起时的最大视口**；用户地址栏展开时
@@ -96,9 +120,12 @@
      渐进顺序：vh 兜底（所有内核）→ min(vh,宽比) → JS 接管（Practice.jsx：不支持 svh
      时用 innerHeight 实时算，比任何视口单位都准；108+ 不接管零行为变化）。 */
   height: calc(100vh - 96px);
-  height: min(calc(100vh - 96px), calc(min(94vw, 620px) / 0.5));
-  height: min(calc(100svh - 96px), calc(min(94vw, 620px) / 0.5));
-  margin: 0 auto;
+  height: min(calc(100vh - 96px), calc(min(100vw - 24px, 620px) / 0.5));
+  height: min(calc(100svh - 96px), calc(min(100vw - 24px, 620px) / 0.5));
+  /* 水平 auto 居中 + 垂直 margin-bottom:auto（flex 安全居中的下半）：配合 .practice-play
+     的 .practice-top margin-top:auto，剩余空间上下均分 = 组垂直居中；内容超高时 auto
+     解析为 0 退化为顶部对齐，页级滚动可达（flex justify-content:center 的溢出裁剪坑规避）。 */
+  margin: 0 auto auto;
 }
 /* 真 3D 双面翻牌：正反两面同属一个 preserve-3d 体，各自 backface-visibility:hidden，
    翻转全程只有一面朝外。旧的“牌背覆盖层”自带不透明暗色矩形（#10171d）且不在同一 3D 体，

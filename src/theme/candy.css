@@ -1852,7 +1852,12 @@ body { background: linear-gradient(160deg, #FFF8FA 0%, #E2EEE7 58%, #E6F5EC 82%,
    只动 width/left 一次性微区域过渡（<60px 高的条，无连续动画成本），
    无 infinite、无 blur，prefers-reduced-motion 直接跳变。 */
 .syrup-bar {
-  position: relative; flex: 1; height: 18px; min-width: 120px;
+  position: relative; flex: 1; height: 18px;
+  /* 2026-09-17 居中修复：旧 min-width:120px 是 .practice-top 不可收缩的主因之一，
+     360 屏上进度行 min-content ~380px 把 .practice-stage（flex item）撑宽到 379.6px
+     → 卡牌整体偏右 9.8px、退出 chip 被压成竖排两行。放开后进度条在宽屏照常吃满
+     （flex:1），窄屏按剩余空间收缩（360 屏实测仍有 ~66px 可视进度），布局优先。 */
+  min-width: 0;
   border-radius: 999px !important;
   background: #FFF7DC !important;
   border: 1px solid #F5E6A3 !important;
@@ -2034,7 +2039,11 @@ body { background: linear-gradient(160deg, #FFF8FA 0%, #E2EEE7 58%, #E6F5EC 82%,
 .practice-stage::before {
   content: '';
   position: absolute;
-  inset: -40px;
+  /* 2026-09-17 居中修复：原 inset:-40px 让光晕四向出血，::before 是 absolute 定位子元素，
+     会把 stage 的 scrollHeight/scrollWidth 各撑出 40px（CDP 实测 390×844 下 scrollH 884>844）
+     → 答题页凭空多出 40px 纵向滚动，界面可被滑离正位。渐变本身 70% 处已衰减到透明，
+     inset:0 不产生可见截断（截图比对确认），scrollHeight 回到 = 视口高。 */
+  inset: 0;
   background: radial-gradient(60% 50% at 50% 38%, rgba(255, 255, 255, .65), transparent 70%);
   z-index: -1;
   pointer-events: none;
