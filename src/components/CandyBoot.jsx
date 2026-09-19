@@ -52,7 +52,7 @@ export function Background({ intensity = 1 }) {
    因为错题重练是学习页的一个入口。 ── */
 /* 导航图标从 emoji 换成自绘 SVG（CandyIcons.jsx）。emoji 不能充当图标系统（craft-floor），
    且各平台渲染不一致、无法跟主题色走；自绘细线图标能继承 tone 色。 */
-import { IconLearn, IconImport, IconBank, IconSettings } from './CandyIcons'
+import { IconLearn, IconImport, IconBank, IconSettings, IconDiag } from './CandyIcons'
 
 const NAV_ITEMS = [
   { key: 'learn', label: '学习', icon: <IconLearn />, to: '/', tone: 'pink' },
@@ -63,6 +63,12 @@ const NAV_ITEMS = [
   /* 书库原来只能从「检测入库成功后那个按钮」或手打 #/bank 到达（底部导航早先被摘掉了），
      而它是全站唯一能删单题的地方，藏得太深。按用户要求插回导入与设置之间。
      tone 用 lemon：pink/mint/lav 已被前三项占掉，柠檬是糖果四色里唯一还没上导航的。 */
+  /* 诊断入口（2026-09-18 · P1 细粒度诊断上线）：Dashboard 掌握度仪表盘 + Insight 错因画像。
+     tone 复用 lemon（与书库同色系——两者都属"数据类"页面，且不新增未定义的 CSS tone 类，
+     避免动 candy.css）。图标用 emoji 字符串：BottomNav 渲染处直接放 {it.icon}，字符串合法。 */
+  /* P0-5（2026-09-19）：图标从 emoji '📊' 换成自绘 <IconDiag />——emoji 各平台渲染不一致、
+     不随主题色走，此前导航 4 项 SVG + 1 项 emoji 属图标体系缺口。 */
+  { key: 'diag', label: '诊断', icon: <IconDiag />, to: '/dashboard', tone: 'lemon' },
   { key: 'settings', label: '设置', icon: <IconSettings />, to: '/settings', tone: 'lav' }
 ]
 

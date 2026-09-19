@@ -33,6 +33,12 @@ const Bank = lazyPage(() => import('./pages/Bank'))
 const Import = lazyPage(() => import('./pages/Import'))
 const Settings = lazyPage(() => import('./pages/Settings'))
 const Practice = lazyPage(() => import('./pages/Practice'))
+/* 诊断两页（2026-09-18 P1）：Dashboard 掌握度仪表盘 / Insight 错因与干扰项画像。
+   同样走 lazyPage（含 chunk 404 自愈兜底），避免给首屏增包。
+   Path（2026-09-18 S3）：学习路径（KST 外/内边缘），归诊断家族，入口在 Dashboard。 */
+const Dashboard = lazyPage(() => import('./pages/Dashboard'))
+const Insight = lazyPage(() => import('./pages/Insight'))
+const Path = lazyPage(() => import('./pages/Path'))
 
 /* 兜底 ErrorBoundary：任何页面级异常（含刷新后仍拉不到 chunk）都给出可操作提示，
    不再出现"一片空白、什么都没有"。
@@ -133,7 +139,7 @@ function Shell() {
   /* /stats 已整页下线：它的入口（📊 星象）早就按用户要求摘掉了，页面成了只能手打 URL 到达的孤儿，
      而它一个人占着剩余哥特位图（身份证卡/头像框/星盘/奖杯/徽章框）的一大半。
      Route 删除后 #/stats 会被下面的 path="*" 兼到重定向回首页，不会 404。 */
-  const activeKey = { '/': 'learn', '/bank': 'bank', '/import': 'import', '/settings': 'settings' }[location.pathname]
+  const activeKey = { '/': 'learn', '/bank': 'bank', '/import': 'import', '/settings': 'settings', '/dashboard': 'diag', '/insight': 'diag', '/path': 'diag' }[location.pathname]
   /* 页面切换：直接跳转。
      原来的「法阵转移」有两个问题：① 它铺的 .nav-veil 用的是 A.roseWindow（哥特玫瑰彩窗），
      在糖果主题里就是切页时一闪而过的不符图案；② 它先 setTimeout 300ms 才 navigate，
@@ -184,6 +190,9 @@ function Shell() {
             <Route path="/import" element={<Import />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/practice" element={<Practice />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/insight" element={<Insight />} />
+            <Route path="/path" element={<Path />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>

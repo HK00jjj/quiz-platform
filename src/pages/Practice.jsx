@@ -89,6 +89,10 @@ export default function Practice() {
                 // §64 键盘 ↑↓ 指针（-1=未激活）
 
   const [showAnswer, setShowAnswer] = useState(false) // 主观题答案展开
+  /* F1 反馈分级（2026-09-18）：review 模式 = 先自查再揭晓（retrieval practice 的生成效应）。
+     review 提交后进入自查态：蜡封保持封印、对错特效全部静默，学习者点「对答案」才启封。
+     learn/wrong/random/relearn/exam 保持现行即时揭晓，行为一字不变。 */
+  const [selfCheck, setSelfCheck] = useState(false)
   const [flash, setFlash] = useState('')
   const [flipped, setFlipped] = useState(false)   // 卡牌 3D 翻面
   const [seal, setSeal] = useState('intact')      // 答案封印：intact → cracking → broken
@@ -103,6 +107,7 @@ export default function Practice() {
     setChoice(null); setMulti([]); setJudge(null); setFills(blanksOf(q?.stem ?? '').map(() => ''))
     setText(''); setShowAnswer(false); setFlash('')
     clearTimeout(sealTimer.current); setSeal('intact')
+    setSelfCheck(false)   // F1：自查态随切题重置
     // 新卡牌入场：先见牌背，再 3D 翻到正面（上一题已翻回牌背，这里只留极短停留避免同帧交错）
     setFlipped(false)
     const t = setTimeout(() => setFlipped(true), 120)
@@ -598,6 +603,13 @@ export default function Practice() {
     if (!canSubmit) return
     unlockSpeech()                    // 手势内解锁音频（移动端首次 speak 必须落在手势栈里）
     unlockCloudAudio()                // 云端通路同样是"首次播放须在手势内"（<audio> 解锁）
+    /* F1 反馈分级：review 先自查（提交判分但延迟启封、特效静默）——
+       提交本身照常（三遍判制/记录不受影响），只是"看结果"的时机交给学习者。 */
+    if (sessionMode === 'review') {
+      submitObjective(inputText)
+      setSelfCheck(true)
+      return
+    }
     breakSeal()
     submitObjective(inputText)
     const ok = lastGradeAfter(inputText)
@@ -766,7 +778,11 @@ export default function Practice() {
             {/* ── 分区二 · 作答区 ── */}
             <section className="zone zone-a">
             <h5 className="zone-label">{objective ? '◇ 作答' : '◇ 誊 写 作 答'}</h5>
-            <div className="q-answer-zone">
+            <div className="q-answer-zone" {...(isChoice
+              /* P0-3（2026-09-19）：选择题补 ARIA——容器 radiogroup/group，选项 radio/checkbox + aria-checked。
+                 判断题原本已有 aria-pressed，此前选择题是视觉选中而无语义，读屏无法获知作答状态。 */
+              ? { role: q.type === '多选题' ? 'group' : 'radiogroup', 'aria-label': q.type === '多选题' ? '多选作答' : '单选作答' }
+              : {})}>
               {isChoice && optItems.map((o) => {
                 /* selected / cls / 点击全用原始字母 o.orig，只有渲染出来的前缀用 o.disp */
                 const selected = q.type === '单选题' ? choice === o.orig : multi.includes(o.orig)
@@ -781,6 +797,8 @@ export default function Practice() {
                 } else if (selected) cls = 'selected'
                 return (
                   <button key={o.oi} disabled={answered}
+                    role={q.type === '多选题' ? 'checkbox' : 'radio'}
+                    aria-checked={selected}
                     className={`opt-row ${q.type === '多选题' ? 'square' : ''} ${cls}`}
                     onClick={() => q.type === '单选题'
                       ? setChoice(o.orig)
@@ -943,7 +961,19 @@ export default function Practice() {
             )}
             {/* §38：题图只在点击解析（蜡封启封）后随答案一起显示，答题前不渲染 */}
             {seal === 'broken' && fbImgUri && <img src={fbImgUri} alt={diagramTitle(imageFor(q.id))} style={{ display: 'block', maxWidth: '100%', margin: '0 auto 10px', background: '#fff', border: '1px solid #e5d9c3', borderRadius: 8 }} />}
-            {seal !== 'broken' && (
+            {selfCheck && seal !== 'broken' && (
+              <div style={{ margin: '2px 0 10px', padding: '10px 12px', borderRadius: 10, background: 'rgba(63,191,168,.10)', border: '1px dashed rgba(63,191,168,.45)' }}>
+                <div style={{ fontSize: 12.5, lineHeight: 1.6, letterSpacing: '.3px' }}>
+                  🔍 <b>复习自查</b>：答案已提交。先在脑中完整回想「为什么是这个答案」，再启封对照——
+                  回想比直接看解析记得更牢（生成效应）。
+                </div>
+                <button className="chip" style={{ fontSize: 12.5, padding: '5px 14px', marginTop: 8 }}
+                  onClick={() => { unlockSpeech(); unlockCloudAudio(); breakSeal() }}>
+                  我已回想，对答案
+                </button>
+              </div>
+            )}
+            {seal !== 'broken' && !selfCheck && (
               <div className={'seal-lock ' + seal}>
                 {/* 封缄是 .seal-wax 纯 CSS 糖豆（candy.css §65）：哥特蜡封三帧位图已下线（沉浸批1 A4） */}
                 <span className="seal-wax" aria-hidden="true" />
@@ -960,6 +990,24 @@ export default function Practice() {
                     {(objective ? grade?.correct : lastRating === '记得') ? '答对了' : '答错了'}
                   </div>
                 )}
+                {/* N1 混淆点个性化反馈（2026-09-18 · F5）：答错的选择题，从解析【误诊】段
+                    提取"选X（混淆点：…）"——把你所选的那个选项对应的真实常见误区直接点名。
+                    数据链路：v7.1 干扰项规范（流水线侧写入解析文本）→ 作答反馈层解析呈现。
+                    诚实降级：存量题解析无混淆点标注时本条不渲染（有标注题 100% 生效）。 */}
+                {objective && grade && !grade.correct && (() => {
+                  const sel = String(grade.normalized ?? '').trim()
+                  const m = sel.match(/^[A-E]$/) ? [...String(q.explanation ?? '').matchAll(/选(?:项)?\s*([A-E])[^（(]{0,40}[（(]混淆点[:：]\s*([^）]+)）|选(?:项)?\s*([A-E])[^：:]{0,40}混淆点[:：]\s*([^，。；）]+)/g)] : []
+                  const hit = m.find((x) => (x[1] ?? x[3]) === sel)
+                  if (!hit) return null
+                  const conf = (hit[2] ?? hit[4] ?? '').trim().slice(0, 60)
+                  if (!conf) return null
+                  const disp = origToDisp[sel] ?? sel
+                  return (
+                    <p style={{ margin: '2px 0 8px', padding: '7px 10px', borderRadius: 8, background: 'rgba(255,224,102,.18)', fontSize: 12.5, lineHeight: 1.7, letterSpacing: '.3px' }}>
+                      💡 你选的 <b>{disp}</b> 正是一个常见误区：{conf}
+                    </p>
+                  )
+                })()}
                 {/* 多选"错在哪"文字提示（2026-09-11 审查整改 · 纯文字通道）：
                     §37 用户裁决「答错时正确答案不变绿、选项行不复述答案」——选项配色与
                     勾选状态一行未动，这里只在解析区补一行字，把漏选/错选显式化。

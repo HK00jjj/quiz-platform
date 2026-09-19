@@ -119,9 +119,9 @@
      （用户真机截图症状；其余页面是普通文档流多滚一点无异常感，唯独本页对视口敏感）。
      渐进顺序：vh 兜底（所有内核）→ min(vh,宽比) → JS 接管（Practice.jsx：不支持 svh
      时用 innerHeight 实时算，比任何视口单位都准；108+ 不接管零行为变化）。 */
-  height: calc(100vh - 96px);
-  height: min(calc(100vh - 96px), calc(min(100vw - 24px, 620px) / 0.5));
-  height: min(calc(100svh - 96px), calc(min(100vw - 24px, 620px) / 0.5));
+  height: calc(100vh - var(--play-head-h, 108px));
+  height: min(calc(100vh - var(--play-head-h, 108px)), calc(min(100vw - 24px, 620px) / 0.5));
+  height: min(calc(100svh - var(--play-head-h, 108px)), calc(min(100vw - 24px, 620px) / 0.5));
   /* 水平 auto 居中 + 垂直 margin-bottom:auto（flex 安全居中的下半）：配合 .practice-play
      的 .practice-top margin-top:auto，剩余空间上下均分 = 组垂直居中；内容超高时 auto
      解析为 0 退化为顶部对齐，页级滚动可达（flex justify-content:center 的溢出裁剪坑规避）。 */

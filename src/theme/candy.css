@@ -565,6 +565,10 @@ body, button, input, textarea, select {
 .chip {
   background: var(--cream) !important; border: 2px solid var(--candy-pink-lt) !important;
   color: #4E7A62 !important; border-radius: 20px !important;
+  /* 2026-09-19 P0-1 触摸目标达标：交互 chip 原实测≈28px（低于 44px 无障碍线），
+     统一拉到 36px 基准（触摸设备见文末 P0 块升到 44px）；inline-flex 保证文字垂直居中。 */
+  display: inline-flex !important; align-items: center !important; justify-content: center !important;
+  min-height: 36px !important; padding: 7px 14px !important;
   transition: background .2s var(--smooth-ease), border-color .2s var(--smooth-ease), color .2s var(--smooth-ease), transform .15s var(--jelly-ease);
 }
 .chip:hover { border-color: var(--candy-pink) !important; color: var(--pink-ink) !important; }
@@ -2021,7 +2025,30 @@ body { background: linear-gradient(160deg, #FFF8FA 0%, #E2EEE7 58%, #E6F5EC 82%,
 .recall-sub { margin: 0 0 12px; font-size: 12px; line-height: 1.7; color: var(--muted, #666); }
 .recall-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 8px 0; border-top: 1px dashed rgba(95, 174, 143, .25); }
 .recall-domain { font-size: 13px; color: var(--ink, #333); display: flex; align-items: baseline; gap: 8px; }
-.recall-domain i { font-style: normal; font-size: 11px; color: var(--muted, #999); }
+/* ══════════════════════════════════════════════════════════════════════════
+   §P0 UI/UX 优化批（2026-09-19，对标国际领先水准 · 方案见
+   `命题流水线/UI优化方案_对标国际领先_20260919.md`）
+   ① 答题卡头部高度令牌化（消除散落三处的 96px 魔法数与进度行耦合）
+   ② 键盘可见焦点环（承接 §69c：鼠标流不显示的原意保留，键盘流必须可见）
+   ③ 触摸设备 chip 抬到 44px 无障碍线
+   全部为增量覆盖，不改既有设计决策（§37「答错不绿」等口径保持）。
+   ══════════════════════════════════════════════════════════════════════════ */
+:root {
+  /* ① 答题卡高度预算 = 舞台上下内边距(14+16) + 进度行(≈44，含 P0-1 放大后的 chip) + 外边距(14) + 余量。
+     改进度行或头部控件尺寸时必须同步此值（原为 pages.css 三处硬编码 96px）。 */
+  --play-head-h: 108px;
+}
+/* ② 键盘可见焦点环（:focus-visible 仅键盘触发，鼠标点击依旧无环——§69c 原意不破坏） */
+.opt-row:focus-visible, .judge-card:focus-visible,
+.q-face-foot button:focus-visible, .chip:focus-visible,
+.btn:focus-visible, .nav-item:focus-visible {
+  outline: 2px solid var(--mint) !important;
+  outline-offset: 2px !important;
+}
+/* ③ 触摸设备（无 hover + 粗指针）：交互 chip 统一升到 44px 无障碍触摸线 */
+@media (hover: none) and (pointer: coarse) {
+  .chip { min-height: 44px !important; padding: 9px 16px !important; }
+}
 .recall-foot { display: flex; align-items: center; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
 .recall-foot span { font-size: 11.5px; color: var(--muted, #999); }
 .recall-weak { display: flex; align-items: center; gap: 14px; margin: 0 0 14px; padding: 13px 16px; border-radius: 16px; border: 1.5px dashed #E8C15A; background: #FFFBEC; }

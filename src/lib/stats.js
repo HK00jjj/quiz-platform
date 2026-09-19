@@ -4,6 +4,7 @@
    scripts/t-session.mjs 的组卷回归测试就是这么挂的。lib/validate.js 零依赖所以不受影响。 */
 import { isDue } from './fsrs.js'
 import { abilityOf, pickMatched } from './ability.js'
+import { pickByPath } from './path.js'
 /* shuffle 收敛到 util.js（2026-09-11 审查整改：此前本文件与 ability.js / Practice.jsx /
    Learn.jsx 各写一遍 Fisher-Yates，四处独立、改一处不同步另三处）。显式 .js 扩展名，
    与上面两行的原因相同——Node 直跑组卷回归脚本时需要。 */
@@ -15,6 +16,9 @@ export const DIFFICULTIES = ['基础', '应用', '综合']
 /* 难度 → 糖果胶囊配色的 ASCII 类名键（.diff-pill.d-base / .d-apply / .d-adv）。
    不直接拿中文难度名当类名，免得中文类名过压缩器出岔子。 */
 export const DIFF_CLS = { 基础: 'base', 应用: 'apply', 综合: 'adv' }
+/* K32 域名（2026-09-18 修正）：库内 94 题为「职业素养与求职」（三轮迁移后），
+   旧名"电磁场与电工新技术"系历史预扩编号、从未启用过题，改名零数据风险。
+   K33（嵌入式与微机控制）仍为空缺编号，可用于未来扩域。 */
 export const DOMAIN_NAMES = {
   K1: '电路与电工基础', K2: '模拟与数字电子技术', K3: '电机与拖动', K4: '电力电子技术',
   K5: '自动控制理论', K6: 'PLC与工业控制', K7: '传感器与检测技术', K8: '供配电与低压电器',
@@ -24,7 +28,7 @@ export const DOMAIN_NAMES = {
   K21: '工业网络安全', K22: '继电保护与二次回路', K23: 'EMC与电能质量', K24: '新能源发电与储能系统',
   K25: '电动汽车与电驱动', K26: '智能电网与能源互联网', K27: '人工智能与电气结合',
   K28: '电力系统分析与运行', K29: '高电压与高压电器', K30: '电气安规与特种作业',
-  K31: '轨道交通牵引供电', K32: '电磁场与电工新技术', K33: '嵌入式与微机控制'
+  K31: '轨道交通牵引供电', K32: '职业素养与求职', K33: '嵌入式与微机控制'
 }
 export const domainLabel = (k) => (k ? DOMAIN_NAMES[k] ?? k : '')
 export const isObjective = (type) => OBJECTIVE_TYPES.includes(type)
@@ -74,7 +78,32 @@ export function buildSession(questions, cards, records, opts) {
   switch (opts.mode) {
     case 'learn': {
       const seen = new Set(cards.map((c) => c.questionId))
-      return take(filtered.filter((q) => !seen.has(q.id)).sort((a, b) => a.seq - b.seq), opts.size)
+      /* seq 兜底池（原行为一字不动）：未进过 SRS 卡的题按入库序 */
+      const seqList = filtered.filter((q) => !seen.has(q.id)).sort((a, b) => a.seq - b.seq)
+      /* 路径优先（2026-09-18 S3）：learn 的"学新内容"从 seq 固定序升级为依赖图外边缘驱动
+         （KST 外边缘 = 前置已掌握、自身未掌握的主题——学了最有效）。
+         职责边界：路径引擎只决定**哪些题进入会话**（主题范围）；会话内穿插顺序仍交给
+         既有 expandTriple（三遍判定制随机穿插防背答案，本就应打乱）——与设计文档
+         《依赖图交付与路径引擎设计_20260918.md》§3.4 的"pickMatched 保留为会话内
+         选题器、路径引擎决定会话主题范围"分工一致。
+         安全降级（三层，逐级回落）：
+         ① 属性表/Q矩阵未入库（attributes 空）或依赖图未覆盖当前书 → pickByPath 返回
+            null → 完全退回原 seq 行为（零回归）；
+         ② 外边缘为空（全部掌握或证据不足）→ 同样退回 seq（宁可不动，不瞎推）；
+         ③ 路径题不足 size → seq 池中未被选中的题补足——依赖图只覆盖三域 980 题
+            （实测 32.3%），其余域的题仍按 seq 进入学习流，不因路径引擎而丢失。 */
+      const pathList = pickByPath({
+        questions: filtered, cards, records,
+        attributes: opts.attributes, questionAttributes: opts.questionAttributes,
+        size: opts.size, attrIds: opts.attrIds ?? null,
+      })
+      if (!pathList || !pathList.length) return take(seqList, opts.size)
+      const picked = new Set(pathList.map((q) => q.id))
+      /* 补足池：定向练习（attrIds 限定）时只从同一主题集合内补——宁可题少不跑题；
+         常规 learn 用整个 seq 兜底池，依赖图未覆盖域的题照常进入学习流。 */
+      const restPool = opts.attrIds ? seqList.filter((q) => opts.attrIds.has(q.id)) : seqList
+      const rest = restPool.filter((q) => !picked.has(q.id))
+      return take([...pathList, ...rest], opts.size)
     }
     case 'review':
       /* 原来这是 buildSession 里唯一没走 take() 的分支，hero 传的 size:20 被静默丢掉——

@@ -15,6 +15,7 @@ export default function Bank() {
   const questions = useStore((s) => s.questions)
   const records = useStore((s) => s.records)
   const cards = useStore((s) => s.cards)
+  const questionStats = useStore((s) => s.questionStats)
   const deleteQuestion = useStore((s) => s.deleteQuestion)
   const [search, setSearch] = useState('')
   const [type, setType] = useState('全部')
@@ -28,6 +29,13 @@ export default function Bank() {
 
   const domains = useMemo(() => ['全部', ...[...new Set(questions.map((q) => q.knowledgeDomain).filter(Boolean))].sort()], [questions])
   const lastMap = useMemo(() => lastResultMap(records), [records])
+  /* 题目质量（S4 回流的 question_stats）：id → { attempts, correctRate, pBand, deadOptions }。
+     只展示 n≥5 的题（样本不足不下结论，与流水线回炉口径一致）。 */
+  const statMap = useMemo(() => {
+    const m = new Map()
+    for (const s of questionStats) if (s.attempts >= 5) m.set(s.questionId, s)
+    return m
+  }, [questionStats])
   const cardMap = useMemo(() => new Map(cards.map((c) => [c.questionId, c])), [cards])
   const importedAt = useMemo(() => {
     try { return JSON.parse(localStorage.getItem('qp.importedAt.v1') || '{}') } catch { return {} }
@@ -210,6 +218,15 @@ export default function Bank() {
                       {q.difficulty && <div className="tarot-kv"><b>难度</b><span>{q.difficulty}</span></div>}
                       {q.cognitiveLevel && <div className="tarot-kv"><b>认知层</b><span>{q.cognitiveLevel}</span></div>}
                       <div className="tarot-kv"><b>掌握度</b><span>{mastered ? `已掌握 · 间隔 ${rc?.intervalDays ?? 0} 天` : touched ? `复习中 · 间隔 ${rc?.intervalDays ?? 0} 天` : '还没做过'}</span></div>
+                      {statMap.has(q.id) && (() => {
+                        const st = statMap.get(q.id)
+                        return (
+                          <div className="tarot-kv"><b>题目质量</b><span>
+                            n={st.attempts} · 实测 p={st.correctRate?.toFixed(2)}{st.pBand ? `（${st.pBand}）` : ''}
+                            {st.deadOptions ? ` · ⚠ 干扰项 ${st.deadOptions} 无人选（待替换）` : ''}
+                          </span></div>
+                        )
+                      })()}
                       <h6>题干</h6>
                       <p>{q.stem}</p>
                       {(q.options ?? []).map((o, k) => <p key={k} className="tarot-opt">{o}</p>)}

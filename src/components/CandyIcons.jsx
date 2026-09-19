@@ -55,6 +55,18 @@ export const IconSettings = () => (
   </svg>
 )
 
+/* 诊断：仪表盘（表盘弧 + 指针 + 两侧刻度）。
+   2026-09-19 P0-5：底部导航「诊断」原用 emoji 📊（注释自述为省事），
+   平台渲染不一致且不随主题色走——补自绘图标，导航五项回归统一线性体系。 */
+export const IconDiag = () => (
+  <svg {...S}>
+    <path d="M4.5 16.5a8 8 0 1 1 15 0" />
+    <path d="M12 16.5 16.2 10.2" />
+    <circle cx="12" cy="16.5" r="1.5" opacity=".55" />
+    <path d="M5.2 11.4h1.6M17.2 11.4h1.6M7.2 7.2l1.1 1.1" opacity=".55" />
+  </svg>
+)
+
 /* 错题重练：循环箭头（重练） */
 export const IconRetry = () => (
   <svg {...S}>

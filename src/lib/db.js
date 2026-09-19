@@ -44,6 +44,20 @@ const toRecord = (r) => ({
   date: fmtDate(new Date(r.answered_at)), timestamp: Date.parse(r.answered_at),
   correct: r.correct, detail: r.detail
 })
+/* 属性体系（2026-09-18 诊断引擎配套）：attributes 属性字典 + question_attributes Q 矩阵。
+   两表为纯新增表（20260918_attributes_qmatrix.sql），缺失时（未执行 DDL）返回空数组，
+   诊断页降级显示"属性体系未就绪"，不影响刷题主流程。 */
+const toAttr = (r) => ({
+  id: r.id, domain: r.domain, topicId: r.topic_id, topicName: r.topic_name, name: r.name
+})
+const toQA = (r) => ({ questionId: r.question_id, attributeId: r.attribute_id, source: r.source })
+/* 题目统计（2026-09-18 S4 回流：attempts/correct_rate/p_band/dead_options——流水线
+   item_analysis 的同口径结果，Bank 题目卡展示"题目质量"用） */
+const toStat = (r) => ({
+  questionId: r.question_id, attempts: r.attempts ?? 0,
+  correctRate: r.correct_rate == null ? null : Number(r.correct_rate),
+  pBand: r.p_band ?? null, deadOptions: r.dead_options ?? null,
+})
 
 export class CloudRepo {
   constructor(c) { this.client = c }
@@ -78,6 +92,19 @@ export class CloudRepo {
       // 只要各书题目 ID 不重叠，间隔重复与做题记录就是天然隔离的。
       this.client.from('settings').select('value').eq('key', 'books').maybeSingle()
     ])
+    /* 属性体系两表（2026-09-18 新增）：失败不阻塞主流程——DDL 未执行或网络异常时
+       降级为空数组，仅诊断页显示"未就绪"，刷题/复习/晋级全部照常。
+       question_stats 同批（S4 回流表，Bank 题目质量展示用），同样降级安全。 */
+    let attrs = [], qas = [], stats = []
+    try {
+      [attrs, qas, stats] = await Promise.all([
+        this.fetchAllPaged('attributes', 'id'),
+        this.fetchAllPaged('question_attributes', 'question_id'),
+        this.fetchAllPaged('question_stats', 'question_id'),
+      ])
+    } catch (e) {
+      console.warn('[loadAll] 属性/统计表加载失败（诊断与质量展示降级）', e)
+    }
     /* §66 修复：fetchAllPaged 直接返回行数组（无 .data 包装）——
        此前 return 仍用旧写法 q.data.map → undefined.map 必炸，登录后加载 100% 失败 */
     return {
@@ -85,7 +112,10 @@ export class CloudRepo {
       cards: c.map(toCard),
       records: r.map(toRecord),
       settings: { dailyGoal: 20, ...(s.data?.value ?? {}) },
-      books: b.data?.value ?? null
+      books: b.data?.value ?? null,
+      attributes: attrs.map(toAttr),
+      questionAttributes: qas.map(toQA),
+      questionStats: stats.map(toStat),
     }
   }
   /* 书本映射入库；失败不抛——调用方会降级到 localStorage（方案 10.5 崩溃兜底） */

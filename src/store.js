@@ -251,7 +251,9 @@ async function reloadAll() {
       /* §44：保护窗口内保留本机 settings（可能比云端新——写云端在途/失败都会造成云端旧值回灌） */
       settings: Date.now() < settingsLocalUntil ? useStore.getState().settings : data.settings,
       syncError: cloudOk ? null : '云端书架映射异常，已暂停书架同步以保护云端数据（其余功能不受影响）',
-      books: bk.books, bookOrder: bk.order, activeBookId: bk.activeBookId, assign: bk.assign
+      books: bk.books, bookOrder: bk.order, activeBookId: bk.activeBookId, assign: bk.assign,
+      attributes: data.attributes ?? [], questionAttributes: data.questionAttributes ?? [],
+      questionStats: data.questionStats ?? []
     })
     if (mutated && bootWriteAllowed) persistBooks(useStore.getState())
   } catch (e) {
@@ -413,6 +415,12 @@ export const useStore = create((set, get) => ({
   bookOrder: [],
   activeBookId: null,
   assign: {},
+  /* 属性体系（2026-09-18 诊断引擎配套）：attributes 属性字典 / questionAttributes Q 矩阵。
+     来源为 20260918 新增两表；未执行 DDL 时为空数组，诊断页降级、刷题不受影响。
+     questionStats（S4 回流）：题目质量统计，Bank 题目卡展示用，降级同上。 */
+  attributes: [],
+  questionAttributes: [],
+  questionStats: [],
   ...emptySession,
 
   init: async () => {
@@ -439,7 +447,7 @@ export const useStore = create((set, get) => ({
     client.auth.onAuthStateChange((event) => {
       if (event === 'SIGNED_OUT') {
         unsubscribe?.(); unsubscribe = null
-        set({ authStatus: 'anonymous', userEmail: null, questions: [], cards: [], records: [], settings: { dailyGoal: 20 }, syncError: null, ...emptySession })
+        set({ authStatus: 'anonymous', userEmail: null, questions: [], cards: [], records: [], settings: { dailyGoal: 20 }, syncError: null, attributes: [], questionAttributes: [], questionStats: [], ...emptySession })
       }
     })
     const { data } = await client.auth.getSession()
@@ -551,6 +559,8 @@ export const useStore = create((set, get) => ({
     lastBooksJson = ''
     set({
       allQuestions: [], questions: [], cards: [], records: [], ...emptySession,
+      attributes: useStore.getState().attributes, questionAttributes: useStore.getState().questionAttributes,
+      questionStats: useStore.getState().questionStats,
       books: bk.books, bookOrder: bk.order, activeBookId: bk.activeBookId, assign: bk.assign
     })
     await persistBooks(get())
@@ -689,7 +699,12 @@ export const useStore = create((set, get) => ({
     }
     const list = buildSession(questions, cards, records, {
       mode, size: opts.size ?? 0, now: Date.now(),
-      domains: opts.domains, types: opts.types, difficulties: opts.difficulties
+      domains: opts.domains, types: opts.types, difficulties: opts.difficulties,
+      /* S3 路径引擎（2026-09-18）：learn 模式需要属性体系两表来算外边缘；
+         未入库时为空数组，buildSession 内部自动降级 seq（安全兜底）。
+         attrIds：定向练习（Dashboard/Path"练薄弱"入口）限定属性集合，仅 learn 消费。 */
+      attributes: get().attributes, questionAttributes: get().questionAttributes,
+      attrIds: opts.attrIds
     })
     /* 三遍判定制：客观题 ×3 随机穿插、主观题保持 1 次。返回值仍报原始题数（页面计数口径不变） */
     const queue = expandTriple(list)
