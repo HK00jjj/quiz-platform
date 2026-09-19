@@ -155,7 +155,7 @@ function Shell() {
     if (!inPractice && phase !== 'idle') abortSession()
   }, [inPractice])
   return (
-    <div className="app-shell">
+    <div className={'app-shell' + (inPractice ? ' in-practice' : '')}>
       {/* 云端同步失败的唯一全局出口（§33）：答题时 persistAnswer 失败、设置/书架保存失败
           都只 set syncError，此前唯一显示点在登录页，登录后用户完全无感。
           role=status 让读屏器播报；点击即收，不阻塞任何操作。 */}
