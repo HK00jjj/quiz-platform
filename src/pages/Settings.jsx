@@ -5,7 +5,7 @@ import Bookshelf from '../components/Bookshelf'
 import { readImageMap } from '../lib/diagrams'
 import { estimateStorage, fmtBytes, HARD_LIMIT, SOFT_LIMIT } from '../lib/storageQuota'
 
-/* 设置页 · 尝味师的糖果抽屉 */
+/* 设置页 · 题库与档案 */
 export default function Settings() {
   const settings = useStore((s) => s.settings)
   const updateSettings = useStore((s) => s.updateSettings)

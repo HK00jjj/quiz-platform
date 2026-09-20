@@ -60,7 +60,7 @@ export default function Login() {
               <span className="ch-candy c3" />
             </div>
             <h1 className="login-title">电气题库</h1>
-            <p className="login-sub">尝 味 师 登 录</p>
+            <p className="login-sub">学 习 者 登 录</p>
             {/* 糖果分隔条：复用 .divider / .zone-rule 的渐变配方，纯CSS零位图。
                 原本这里是哥特铜质花纹条 A.divider(p44.png)。 */}
             <div className="login-divider" aria-hidden="true" />
