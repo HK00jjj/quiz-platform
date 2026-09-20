@@ -1183,6 +1183,10 @@ body:has(.login-stage) { background: var(--pp-bg) !important; }
     margin-bottom: 0 !important;
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
+  /* AT批修正：pages.css 给 .learn-vision 的 margin-bottom:20px 会让 Hero 在
+     stretch 等高时比入口区矮 20px（实测 347 vs 367，正好差 20）。双栏内归零；
+     移动端单列不受此规则影响，仍保留 20px 分隔。 */
+  .app-shell .learn-cols .candy-hero { margin-bottom: 0 !important; }
   /* 卡片随行轨道拉伸后（entry-grid 本就 grid-auto-rows:1fr），内边距略增避免局促 */
   .app-shell .learn-cols > .entry-grid > .entry-card { padding: 18px 20px !important; }
 
