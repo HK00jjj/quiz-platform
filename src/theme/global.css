@@ -71,6 +71,8 @@ input, textarea, select { font-family: inherit; }
 ::-webkit-scrollbar-thumb { background: linear-gradient(var(--copper-d), var(--copper), var(--copper-d)); border-radius: 4px; }
 
 .font-gothic { font-family: 'Noto Serif SC', serif; }
+/* 类名保留为历史钩子（Practice.jsx 填空题序号仍在挂）：字体栈已于 AE 批去 Cinzel，
+   现等价于系统衬线。不改名是为了避免 JSX/CSS 两处同步风险；新代码请直接用 font-family。 */
 .font-cinzel { font-family: 'Noto Serif SC', serif; }
 
 /* ═══ 全局背景层 ═══ */
@@ -311,7 +313,7 @@ input, textarea, select { font-family: inherit; }
 
 
 /* 首字下沉：羊皮纸上用暗青铜色（亮金在浅底上对比不足），大字号仍达 WCAG 大字 3:1 以上 */
-.drop-cap::first-letter { float: left; font-size: 2.1em; line-height: 1; padding: 2px 6px 0 0; color: #6b4f0e; font-family: 'Cinzel', 'Noto Serif SC', serif; text-shadow: 0 1px 0 rgba(255,253,247,.85); }
+.drop-cap::first-letter { float: left; font-size: 2.1em; line-height: 1; padding: 2px 6px 0 0; color: #6b4f0e; font-family: 'Noto Serif SC', serif; text-shadow: 0 1px 0 rgba(255,253,247,.85); }
 
 /* 列表行入场 */
 @keyframes row-in { from { opacity: 0; transform: translateY(10px) } to { opacity: 1; transform: none } }
