@@ -138,10 +138,12 @@ export default function Bookshelf() {
     flash('已创建并切换到新题库，现在是空的，去导入题目吧')
   }
   async function onSwitch(id) {
-    if (id === activeBookId || busy) return
-    setBusy(true)
-    await switchBook(id)
-    setBusy(false)
+    /* AVZ（2026-09-21 用户"切书动画生硬，一顿顿"）：原实现 setBusy(true) + await
+       persistBooks —— 网络往返期间连续切书被 busy 吞掉（每下 ~300ms 无响应 = 顿感主源）。
+       switchBook 的 UI 更新是同步 set，持久化本就可后台执行（store 快照语义保证
+       并发安全：后写者持最新态）。改为不 await、不占 busy —— 连点即时响应。 */
+    if (id === activeBookId) return
+    switchBook(id)?.catch?.(() => {})
     flash(`已切换到《${books[id]?.name ?? ''}》`)
   }
   async function onRename(id) {

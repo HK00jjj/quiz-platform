@@ -169,19 +169,30 @@ export default function Import() {
       </div>
 
       {/* 题集导入说明（2026-09-09：唯一导入通道，开关已拆除） */}
-      <div className="panel" style={{ marginBottom: 16 }}>
-        <div className="panel-title">题集导入（唯一导入通道 · 逐题检测）</div>
-        <p style={{ fontSize: 13, lineHeight: 1.9, color: 'var(--muted)' }}>
-          只做逐题校验（题型、元数据映射、选项结构、解析标记、填空与配图白名单、批内避重等通用检查），<b>任意题数（含 21）均可通过</b>；通过校验后还会与<b>库内已有题</b>做跨批撞库提示（知识点同名 / 题干高度相似，仅告警不拦截，已在库内的题自动跳过）。对应《出题规则》现行版（AI 触发词：<b>题目：</b>）；备份 JSON 粘贴后自动识别并走「备份恢复」，无需任何开关。
-        </p>
-        {/* v4.13 自适应退役：状态指数仅作展示，"复制水平声明"按钮与 fetch_level 联动文案已移除 */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginTop: 4, padding: '10px 12px', borderRadius: 12, background: 'rgba(168,216,196,.18)' }}>
-          <span style={{ fontSize: 13, color: 'var(--muted)' }}>
-            当前状态指数 <b style={{ color: '#2E6B52' }}>{Math.round(ability * 100)}</b> · 建议能力档 <b style={{ color: '#2E6B52' }}>{tier}</b>
-            <span style={{ fontSize: 12 }}>（&lt;55 新手 / 55~78 进阶 / &gt;78 熟练 · 含主观自评，仅展示参考）</span>
-          </span>
-          <span style={{ fontSize: 12, color: 'var(--muted)' }}>题目难度完全由你提供的源题决定，AI 不做升降档适配</span>
+      {/* AWX · 重设计（2026-09-21 用户"推翻重新设计"）：180 字说明墙压缩为 3 要点 + 折叠，
+          状态指数从薄荷绿色块并入头部圆环徽章。信息不丢：完整说明收进 details。 */}
+      <div className="panel import-hero" style={{ marginBottom: 16 }}>
+        <div className="import-hero-head">
+          <div>
+            <div className="panel-title" style={{ marginBottom: 2 }}>题集导入</div>
+            <div className="import-hero-sub">唯一通道 · 逐题检测 · 备份自动识别</div>
+          </div>
+          <div className="import-gauge" role="img" aria-label={`状态指数 ${Math.round(ability * 100)}，建议能力档 ${tier}`}>
+            <b>{Math.round(ability * 100)}</b>
+            <span>{tier}</span>
+          </div>
         </div>
+        <ul className="import-points">
+          <li>任意题数（含 21）均可通过</li>
+          <li>通过后与库内已有题跨批撞库，仅告警不拦截</li>
+          <li>对应《出题规则》现行版（AI 触发词：<b>题目：</b>）</li>
+        </ul>
+        <details className="import-more">
+          <summary>完整说明</summary>
+          <p>
+            只做逐题校验（题型、元数据映射、选项结构、解析标记、填空与配图白名单、批内避重等通用检查）；通过校验后与库内已有题做跨批撞库提示（知识点同名 / 题干高度相似，已在库内的题自动跳过）。备份 JSON 粘贴后自动识别并走「备份恢复」。题目难度完全由源题决定，AI 不做升降档适配；状态指数仅作展示参考（&lt;55 新手 / 55~78 进阶 / &gt;78 熟练，含主观自评）。
+          </p>
+        </details>
       </div>
 
       <div className="panel deep">

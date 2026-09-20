@@ -273,6 +273,9 @@ function ExamModal({ pool, target, size, passScore, onDone }) {
 export default function Learn() {
   const navigate = useNavigate()
   const questions = useStore((s) => s.questions)
+  /* AVZ（用户"切书生硬"）：订阅 activeBookId —— 换书时作为 learn-cols 的 key 触发
+     一次轻量淡入（.2s），统计跳变被过渡掩盖；同书渲染 key 不变，无额外重挂。 */
+  const activeBookId = useStore((s) => s.activeBookId)
   const cards = useStore((s) => s.cards)
   const records = useStore((s) => s.records)
   const settings = useStore((s) => s.settings)
@@ -506,7 +509,7 @@ export default function Learn() {
       {/* AJ批 L1/L2/L4 布局重排：Hero 与入口卡包进同一容器 ——
           移动端单列（行动区 → 快捷入口），桌面 ≥900px 双栏（行动区左 / 入口 2×2 右），
           让 T0/T1 功能在首屏一次命中（改前入口卡被压在 ~1.5 屏之下，首屏命中率 0/5）。 */}
-      <div className="learn-cols">
+      <div className="learn-cols" key={activeBookId}>
         {/* 糖果橱窗横幅（取代哥特巫师位图 A.hallVision）：纯 CSS，零位图零请求。
             三颗糖豆 + 一支旋转棒棒糖做氛围，幅度极小，不抢标题注意力 */}
         <div className="learn-vision candy-hero rise">

@@ -599,6 +599,8 @@ body, button, input, textarea, select {
 @media (prefers-reduced-motion: reduce) {
   .bubble, .entry-card::before, .boot-veil::before { animation: none !important; }
   .btn:hover, .nav-item.active, .opt-row:hover, .judge-card:hover { transform: none !important; }
+  .book-ribbon { animation: none !important; }
+  .learn-fade { animation: none !important; }
 }
 
 /* 题库书架样式已整体迁移至文件末尾「纸上书斋」段（2026-09-20 重设计，旧 emoji 卡片段移除）。 */
@@ -2053,14 +2055,18 @@ body, button, input, select, textarea {
   pointer-events: none; z-index: 2;
 }
 /* 书签丝带：靛蓝燕尾，垂在封面右上（仅使用中的书）。
-   AWY：渐变里的 --candy-pink-dk 引用是 candy 漏网，改纯靛蓝。 */
+   AWY：渐变里的 --candy-pink-dk 引用是 candy 漏网，改纯靛蓝。
+   AVZ（用户"切书生硬"）：丝带出现加 scaleY 展开（从书顶垂下），不再瞬现。 */
 .book-ribbon {
   position: absolute; top: -3px; right: 14px; width: 17px; height: 36px; z-index: 3;
   background: #2F5FD0;
   clip-path: polygon(0 0, 100% 0, 100% 100%, 50% calc(100% - 8px), 0 100%);
   filter: drop-shadow(0 2px 3px rgba(47, 95, 208, .35));
   pointer-events: none;
+  transform-origin: 50% 0;
+  animation: ribbon-in .24s var(--smooth-ease) both;
 }
+@keyframes ribbon-in { from { transform: scaleY(0); } to { transform: scaleY(1); } }
 /* 封面区：书脊色淡染 + 发丝框（先给无 color-mix 支持的中性回退，再 @supports 升级） */
 .book-face {
   position: relative; width: 100%; min-height: 74px; margin-bottom: 8px;

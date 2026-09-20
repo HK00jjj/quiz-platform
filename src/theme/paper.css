@@ -1339,16 +1339,55 @@ body:has(.login-stage) { background: var(--pp-bg) !important; }
   box-shadow: none !important; color: #9AA0A6 !important; filter: none !important;
 }
 .app-shell .step-node.active::before {
-  background: var(--pp-acc, #2F5FD0) !important; border-color: var(--pp-acc, #2F5FD0) !important;
-  color: #FFFFFF !important; box-shadow: 0 2px 8px rgba(47, 95, 208, .22) !important;
+  /* AX2（2026-09-21 用户"太重了，不符合主题调性"）：实心靛蓝大圆重量过大。
+     白瓷的强调方式 = 细边 + 字色 + 极淡光圈，不用色块填充。 */
+  background: #FFFFFF !important;
+  border: 1.5px solid var(--pp-acc, #2F5FD0) !important;
+  color: var(--pp-acc, #2F5FD0) !important;
+  box-shadow: 0 0 0 4px rgba(47, 95, 208, .06) !important;
 }
 .app-shell .step-node.active::after {
-  border-color: rgba(47, 95, 208, .35) !important; animation: none !important;
+  border-color: rgba(47, 95, 208, .22) !important; animation: none !important;
 }
 .app-shell .step-node.done::before {
-  background: #FFFFFF !important; border: 1.5px solid var(--pp-acc, #2F5FD0) !important;
-  color: var(--pp-acc, #2F5FD0) !important; box-shadow: none !important;
+  background: #FFFFFF !important; border: 1px solid var(--pp-hair, #E3E0D8) !important;
+  color: var(--pp-sub, #6E757D) !important; box-shadow: none !important;
 }
 .app-shell .step-node > span { color: var(--pp-sub, #6E757D) !important; }
 .app-shell .step-node.active > span,
 .app-shell .step-node.done > span { color: var(--pp-acc, #2F5FD0) !important; }
+
+/* AX批 · 导入页头部重构（重设计稿：说明墙→3 要点+折叠，指数并入圆环徽章）。
+   目标：首屏从「180 字文字墙 + 薄荷绿色块」变成「标题行 + 圆环徽章 + 3 勾选要点
+   + 折叠的完整说明」—— 信息不丢，视觉密度减半。 */
+.app-shell .import-hero-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
+.app-shell .import-hero-sub { font-size: 12px; color: var(--pp-sub, #6E757D); margin-top: 2px; }
+.app-shell .import-gauge {
+  flex: none; width: 58px; height: 58px; border-radius: 50%;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  border: 1.5px solid var(--pp-acc, #2F5FD0); background: #FFFFFF;
+}
+.app-shell .import-gauge b { font-size: 15px; font-weight: 600; line-height: 1.15; color: var(--pp-acc, #2F5FD0); }
+.app-shell .import-gauge span { font-size: 10.5px; color: var(--pp-sub, #6E757D); }
+.app-shell .import-points { list-style: none; margin: 10px 0 0; padding: 10px 0 0; border-top: 1px solid var(--pp-hair, #E3E0D8); }
+.app-shell .import-points li {
+  position: relative; padding: 3px 0 3px 22px;
+  font-size: 12.5px; line-height: 1.6; color: var(--pp-fg, #444441);
+}
+.app-shell .import-points li::before {
+  content: ''; position: absolute; left: 3px; top: 8px; width: 10px; height: 5px;
+  border-left: 1.7px solid var(--pp-acc, #2F5FD0); border-bottom: 1.7px solid var(--pp-acc, #2F5FD0);
+  transform: rotate(-45deg);
+}
+.app-shell .import-more { margin-top: 8px; }
+.app-shell .import-more summary {
+  cursor: pointer; font-size: 11.5px; color: var(--pp-acc, #2F5FD0); list-style: none; outline: none;
+}
+.app-shell .import-more summary::-webkit-details-marker { display: none; }
+.app-shell .import-more[open] summary { margin-bottom: 6px; }
+.app-shell .import-more p { font-size: 12px; line-height: 1.8; color: var(--pp-sub, #6E757D); margin: 0; }
+
+/* AVZ · 换书过渡：learn-cols 以 activeBookId 为 key，换书时整块轻淡入（.2s），
+   统计跳变被过渡掩盖；同书渲染 key 不变、无额外重挂。reduced-motion 已在 candy 全局关闭。 */
+.app-shell .learn-cols { animation: learn-fade .2s ease-out; }
+@keyframes learn-fade { from { opacity: .45; } to { opacity: 1; } }
