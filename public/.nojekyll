@@ -1,0 +1,11 @@
+# 本文件禁用 GitHub Pages 的 Jekyll 处理（2026-09-20 AP批）
+#
+# 为什么需要：gh-pages 分支默认经 Jekyll 处理，而 Jekyll **忽略所有以 _ 开头的文件**
+#   → _redirects / _headers 在 hk00jjj.github.io 上返回 404（实测）。
+#   虽然 gh-pages 本身不需要这两个文件，但：
+#     ① 部署链的 verify-live 会因它们 404 而永远报失败（假警报）；
+#     ② Cloudflare Pages（若从 gh-pages 分支拉取）也需要它们存在于仓库中。
+#   加入 .nojekyll 后 GitHub Pages 直接按静态文件服务全部内容，两问题一并解决。
+#
+# ⚠ 本文件对 Cloudflare Pages 无副作用（它不做 Jekyll 处理）。
+# ⚠ 文件名必须以点开头且内容无关紧要；此处放一行说明便于日后查阅（空文件同样有效）。
