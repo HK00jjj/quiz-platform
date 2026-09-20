@@ -231,14 +231,14 @@ body, button, input, textarea, select {
 .boot-half {
   position: absolute; top: 0; bottom: 0; width: 50.6%;
   background: linear-gradient(160deg, #F2F0EB 0%, #F2F0EB 52%, #F2F0EB 100%);
-  transition: transform .5s var(--jelly-ease);
+  transition: transform .3s var(--jelly-ease);
 }
 .boot-half.left { left: 0 }
 .boot-half.right { right: 0 }
 .boot-veil.s2 .boot-half.left, .boot-veil.s3 .boot-half.left { transform: translateX(-101%) }
 .boot-veil.s2 .boot-half.right, .boot-veil.s3 .boot-half.right { transform: translateX(101%) }
 .boot-center { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
-  transition: opacity .3s ease, transform .45s var(--jelly-ease); }
+  transition: opacity .2s ease, transform .28s var(--jelly-ease); }
 .boot-veil.s2 .boot-center, .boot-veil.s3 .boot-center { opacity: 0; transform: scale(.94) }
 .boot-stage { position: relative; width: 264px; height: 152px; display: flex; flex-direction: column;
   align-items: center; justify-content: center; gap: 6px; }
@@ -248,7 +248,7 @@ body, button, input, textarea, select {
   background: linear-gradient(120deg, #E4EAF6 0%, #DDEDE5 58%, #C7D2F2 100%);
   box-shadow: 0 14px 40px rgba(47,95,208,.10), inset 0 2px 0 rgba(255, 255, 255, .8);
   transform: scale(.16) rotate(-190deg);
-  transition: transform .85s var(--jelly-ease), opacity .4s ease;
+  transition: transform .5s var(--jelly-ease), opacity .25s ease;
 }
 .boot-veil.s1 .boot-foil { opacity: .94; transform: scale(1) rotate(0deg) }
 .boot-veil.s2 .boot-foil, .boot-veil.s3 .boot-foil { opacity: 0; transform: scale(1.22) rotate(7deg) }
@@ -260,24 +260,24 @@ body, button, input, textarea, select {
   position: absolute; top: 50%; left: 50%; width: 18px; height: 18px; margin: -9px 0 0 -9px; border-radius: 50%;
   background: radial-gradient(circle at 32% 28%, #E4EAF6, #2F5FD0 72%);
   box-shadow: 0 4px 12px rgba(47,95,208,.10), inset 0 1px 0 rgba(255, 255, 255, .75);
-  animation: bean-in .5s var(--jelly-ease) both;
+  animation: bean-in .3s var(--jelly-ease) both;
 }
 @keyframes bean-in {
   from { transform: translateY(70px) scale(.35); opacity: 0 }
   62% { transform: translateY(-9px) scale(1.1); opacity: 1 }
   to { transform: translateY(0) scale(1); opacity: 1 }
 }
-.boot-veil.s1 .boot-bean, .boot-veil.s2 .boot-bean, .boot-veil.s3 .boot-bean { animation: bean-open .55s var(--jelly-ease) both }
+.boot-veil.s1 .boot-bean, .boot-veil.s2 .boot-bean, .boot-veil.s3 .boot-bean { animation: bean-open .35s var(--jelly-ease) both }
 @keyframes bean-open { to { transform: rotate(220deg) scale(2.4); opacity: 0 } }
 .boot-title {
   position: relative; z-index: 1; font-size: 30px; font-weight: 900; letter-spacing: 2px;
   color: #2E8A68 !important;
   text-shadow: 0 2px 0 rgba(255, 255, 255, .95), 0 8px 22px rgba(47,95,208,.10) !important;
   opacity: 0; transform: translateY(10px);
-  transition: opacity .45s ease, transform .5s var(--jelly-ease);
+  transition: opacity .28s ease, transform .3s var(--jelly-ease);
 }
 .boot-sub { position: relative; z-index: 1; font-size: 14px; color: #8A8A8A !important;
-  opacity: 0; transition: opacity .5s ease .18s; }
+  opacity: 0; transition: opacity .3s ease .1s; }
 .boot-veil.s1 .boot-title, .boot-veil.s2 .boot-title, .boot-veil.s3 .boot-title { opacity: 1; transform: none }
 .boot-veil.s1 .boot-sub, .boot-veil.s2 .boot-sub, .boot-veil.s3 .boot-sub { opacity: 1 }
 .boot-veil.s2 .boot-title, .boot-veil.s3 .boot-title,
@@ -292,7 +292,7 @@ body, button, input, textarea, select {
 .boot-bubbles i:nth-child(4) { left: 61%; animation-delay: .05s }
 .boot-bubbles i:nth-child(5) { left: 76%; width: 30px; height: 30px; animation-delay: .16s }
 .boot-bubbles i:nth-child(6) { left: 89%; width: 18px; height: 18px; animation-delay: .26s }
-.boot-veil.s2 .boot-bubbles i, .boot-veil.s3 .boot-bubbles i { animation: boot-bubble 1.05s ease-out both }
+.boot-veil.s2 .boot-bubbles i, .boot-veil.s3 .boot-bubbles i { animation: boot-bubble .65s ease-out both }
 @keyframes boot-bubble {  0% { opacity: 1; } 100% { opacity: 1; } }
 @keyframes candy-bob {  0% { opacity: 1; } 100% { opacity: 1; } }
 

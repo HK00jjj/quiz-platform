@@ -1,4 +1,4 @@
-// 构建后清理：dist/img 里凡是没有被源码引用的文件全部删除
+﻿// 构建后清理：dist/img 里凡是没有被源码引用的文件全部删除
 // 用途：public/img 里可能残留被进程内存映射锁住、删不掉的旧素材（如 seal-*.webp），
 //       它们不该跟着上线；从 dist 清除即可，public 里的残留等解锁后再删。
 // 注意：引用集必须从【源码】取，不能从 bundle 取——assets.js 的路径是 `${BASE_URL}img/${name}`
@@ -102,7 +102,7 @@ if (existsSync(distAssets)) {
      功能全都不见了"（懒加载 chunk 404 + 无兜底）。Vite 官方与 GitHub 同类 PR 的
      口径一致：**部署侧要保留旧 chunk 一段时间**，并配合运行时 vite:preloadError
      自愈（见 app/src/lib/reload.js）。120 项 ≈ 20 代 ≈ 20~30MB，可接受。 */
-  const RETAIN = 120
+  const RETAIN = 24
   const orphanAll = readdirSync(distAssets).filter((f) => /^index-[\w-]+\.(?:js|css)$/.test(f) && !htmlRefs.has(f))
     .map((f) => ({ f, m: statSync(path.join(distAssets, f)).mtimeMs }))
     .sort((a, b) => b.m - a.m)

@@ -144,25 +144,28 @@ export function burstParticles(x, y, tone = 'gold', count = 14) {
   setTimeout(() => host.remove(), 1200)
 }
 
-/* ── 开机仪式（方案 1.2）：2 秒四段分镜，全由 CSS 驱动，JS 只负责推进 stage 类名。
-   0–0.5s   糖豆从下方弹入（bounce）
-   0.5–1.5s 糖豆旋转化开、糖纸螺旋展开，中央浮现标题与副标题
-   1.5–2.0s 糖纸向两侧剥开露出主界面，气泡从四周升起消散
-   2.0s     完全进入（底部导航由 .bottom-nav 的 nav-in 弹入）
+/* ── 开机仪式（方案 1.2）：四段分镜，全由 CSS 驱动，JS 只负责推进 stage 类名。
+   0–0.3s   糖豆从下方弹入（bounce）
+   0.3–0.9s 糖豆旋转化开、糖纸螺旋展开，中央浮现标题与副标题
+   0.9–1.25s 糖纸向两侧剥开露出主界面，气泡从四周升起消散
+   1.25s    完全进入（底部导航由 .bottom-nav 的 nav-in 弹入）
    "剥开"用左右各 50% 的两块面板 translateX 出去（而不是整层淡出），所以真的看得到拆糖纸。
-   点击任意处跳到终态；prefers-reduced-motion 下 CSS 直接给终态、无位移。 ── */
+   点击任意处跳到终态；prefers-reduced-motion 下 CSS 直接给终态、无位移。
+   ── AR批（2026-09-20）：总时长 2450→1500ms（约等比压缩）。配合 App.jsx 的并行化
+   （动画与数据加载同时进行），新会话感知等待从 ≈5.9s 降至 ≈3.5s（数据加载主导）。
+   CSS 各 transition/animation 时长同步缩短（见 candy.css §boot-veil 区）。 ── */
 export function BootRitual({ onDone }) {
   const [stage, setStage] = useState(0)
   useEffect(() => {
     const t = [
-      setTimeout(() => setStage(1), 500),
-      setTimeout(() => setStage(2), 1500),
-      setTimeout(() => setStage(3), 2050),
-      setTimeout(() => onDone?.(), 2450)
+      setTimeout(() => setStage(1), 300),
+      setTimeout(() => setStage(2), 920),
+      setTimeout(() => setStage(3), 1250),
+      setTimeout(() => onDone?.(), 1500)
     ]
     return () => t.forEach(clearTimeout)
   }, [onDone])
-  const skip = () => { setStage(3); setTimeout(() => onDone?.(), 320) }
+  const skip = () => { setStage(3); setTimeout(() => onDone?.(), 200) }
   return (
     <div className={'boot-veil s' + stage} onClick={skip} role="presentation">
       <span className="boot-half left" aria-hidden="true" />

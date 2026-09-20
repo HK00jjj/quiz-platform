@@ -216,14 +216,21 @@ export default function App() {
   useEffect(() => { init() }, [init])
 
   if (!ready) {
+    /* AR批 · 开屏动画与数据加载**并行**：原实现 ready 之后才渲染 BootRitual，
+       导致新会话要等「数据加载 + 动画」串行 ≈5.9s（tools/measure_perceived_wait.mjs 实测：
+       数据 3484ms + 动画 2483ms）。现在 loading 分支同样挂 BootRitual，两者同时进行，
+       用户等待降为 max(数据加载, 动画) —— 仪式感保留，但不再额外占用时间。 */
     return (
-      <div className="app-shell" style={{ minHeight: '100vh' }}>
-        <Background />
-        <div style={{ position: 'relative', zIndex: 1, paddingTop: '30vh' }}>
-          <div className="loading-orb" />
-          <p style={{ textAlign: 'center', color: 'var(--muted)', letterSpacing: 4, fontSize: 13 }}>成长档案加载中…</p>
+      <>
+        {boot && <BootRitual onDone={endBoot} />}
+        <div className="app-shell" style={{ minHeight: '100vh' }}>
+          <Background />
+          <div style={{ position: 'relative', zIndex: 1, paddingTop: '30vh' }}>
+            <div className="loading-orb" />
+            <p style={{ textAlign: 'center', color: 'var(--muted)', letterSpacing: 4, fontSize: 13 }}>成长档案加载中…</p>
+          </div>
         </div>
-      </div>
+      </>
     )
   }
 
