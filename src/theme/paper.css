@@ -1155,3 +1155,89 @@ body:has(.login-stage) { background: var(--pp-bg) !important; }
 /* AD批：禁用解析区滚动锚定——Chrome scroll anchoring 会在解析插入后的下一帧布局
    把 .q-face-scroll 的 scrollTop 锚回 0（自动滚动失效的终极根因）。 */
 .app-shell.in-practice .q-face-scroll, .app-shell.in-practice .grade-panel { overflow-anchor: none; }
+
+/* ═══ AJ 批（2026-09-20 · 布局重设计 L1/L2/L3/L4 落地）═══
+   依据《今日学习页布局重设计方案》四区结构：
+     A 状态条 → B 行动区（唯一主 CTA）→ C 快捷入口（T1/T2）→ D 进度回顾（折叠）
+   核心目标：T0/T1 功能首屏一次命中（改前入口卡被压在 ~1.5 屏之下，首屏命中率 0/5）。 */
+
+/* L1/L4 · 行动区与快捷入口同容器：移动端单列，桌面 ≥900px 双栏。
+   桌面不是移动端的放大版——双栏让视线一次扫过全部入口，比移动端还少一次滑动。 */
+.app-shell .learn-cols { display: block; }
+@media (min-width: 900px) {
+  .app-shell .learn-cols {
+    display: grid;
+    grid-template-columns: minmax(0, 6fr) minmax(0, 5fr);
+    gap: 16px;
+    align-items: start;
+  }
+  /* 双栏时入口区只占右栏：去掉它自己的下边距（纵向间距交给 gap），并锁 2×2 */
+  .app-shell .learn-cols > .entry-grid {
+    margin-bottom: 0 !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+/* L2 · Hero 副标：原「今日复习」面板的 hero.sub 迁到此，贴着主 CTA 说明「这一按会发生什么」
+   （如「20 道题到期，该复习了」），不再隔三张卡放在页底。
+   .hero-meta 承接原 Hero 首个 <p> 的题数 / 连学天数，降为次要信息。 */
+.app-shell .hero-sub {
+  margin: 10px 0 0 !important;
+  font-size: 13px !important; line-height: 1.6 !important;
+  color: var(--pp-sub) !important; letter-spacing: 0 !important;
+}
+.app-shell .hero-meta {
+  margin: 10px 0 0 !important;
+  font-size: 12px !important; color: var(--pp-faint) !important; letter-spacing: 0 !important;
+}
+
+/* L3 · 段位折叠区：段位/晋级属低频里程碑（examReady 四闸极严、长期为 false），
+   不再占用首屏黄金位；首屏只留一行摘要，展开才看 4 行统计 + 走势 + 距晋级提示。
+   补偿：examReady 时「进入晋级赛」按钮提到摘要行内（JSX 侧实现）——低频事件真发生时更醒目。 */
+.app-shell .rank-fold { padding: 0 !important; }                 /* 覆盖 .rank-card 的 16px 内边距，改由 summary/展开区各自控制 */
+.app-shell .rank-fold > .rank-fold-sum {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 16px; cursor: pointer;
+  list-style: none; outline: none;
+}
+.app-shell .rank-fold > .rank-fold-sum::-webkit-details-marker { display: none; }
+.app-shell .rank-fold > .rank-fold-sum::marker { content: none; }
+.app-shell .rank-badge-sm {
+  flex: 0 0 auto;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px; border-radius: 50%;
+  border: 2px solid var(--pp-hair); font-size: 14px; line-height: 1;
+}
+.app-shell .rank-fold-name { font-size: 14px; font-weight: 500; flex: 0 0 auto; }
+.app-shell .rank-fold-meta {
+  flex: 1 1 auto; min-width: 0;
+  font-size: 12px; color: var(--pp-sub);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.app-shell .rank-fold-arrow {
+  flex: 0 0 auto; font-size: 11px; color: var(--pp-faint);
+  transition: transform .2s ease;
+}
+.app-shell .rank-fold[open] .rank-fold-arrow { transform: rotate(180deg); }
+.app-shell .rank-info-fold { padding: 0 16px 14px !important; }
+.app-shell .rank-info-fold h4 { margin: 0 0 8px !important; }
+/* 摘要行内的晋级按钮：点它直进考试，点摘要其余处才展开详情 */
+.app-shell .rank-fold > .rank-fold-sum > .gilt-btn { flex: 0 0 auto; }
+
+/* L5 · 挑题筛选弹窗：断点续练提示上移 + 沿用上次条件摘要（一键清空） */
+.app-shell .filter-note {
+  margin: 0 0 10px !important;
+  padding: 8px 10px; font-size: 12.5px; line-height: 1.6;
+  color: var(--pp-acc) !important;
+  background: rgba(47, 95, 208, .06);
+  border-left: 2px solid var(--pp-acc);
+  border-radius: 2px;
+}
+.app-shell .filter-active {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  margin: 0 0 12px; padding: 8px 10px;
+  font-size: 12px; color: var(--pp-sub);
+  background: var(--pp-bg); border: 1px solid var(--pp-hair); border-radius: 2px;
+}
+.app-shell .filter-active > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.app-shell .filter-active .chip { flex: 0 0 auto; }

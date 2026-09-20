@@ -2,7 +2,8 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useStore, peekRelearnResume } from '../store'
 import { A } from '../assets'
-import { GiltBtn, EmptyState, burstParticles, FlameIcon } from '../components'
+/* AJ批 L2：burstParticles 随顶部「继续累积」按钮一并移除（该按钮已降级为纯徽章） */
+import { GiltBtn, EmptyState, FlameIcon } from '../components'
 import { IconRetry, IconShuffle, IconNew, IconFilter, IconLearn, IconImport } from '../components/CandyIcons'
 import { buildSession, lastResultMap, TYPES, DIFFICULTIES, domainLabel, filtersKey } from '../lib/stats'
 import { abilityOf, zoneAdvice, masteryGate, RANKS, PROMOTION_EXAM, MASTERY, EXAM_ATTEMPTS, EXAM_WRONGS_KEY } from '../lib/ability.js'
@@ -18,7 +19,7 @@ import { pickExamProgress } from '../lib/exam-progress'
 
 const DOMAINS_ALL = Array.from({ length: 33 }, (_, i) => `K${i + 1}`)
 
-function FilterModal({ title, filters, onToggle, onClose, onStart, count, startLabel, note }) {
+function FilterModal({ title, filters, onToggle, onClearAll, onClose, onStart, count, startLabel, note }) {
   const [dim, setDim] = useState('types')
   const dims = [
     { key: 'types', label: '题型', options: TYPES },
@@ -28,11 +29,26 @@ function FilterModal({ title, filters, onToggle, onClose, onStart, count, startL
   /* 知识域 chip 的值仍是 K1~K33（筛选逻辑与 settings 里存的过滤器都认它），
      但显示走 text 换成中文域名——光看 K17 谁也不知道是什么（#8）。 */
   const cur = dims.find((d) => d.key === dim)
+  /* AJ批 L5 · 沿用上次条件：relearnFilters 持久化在 settings，打开弹窗时本就带着上次的选择。
+     这里把它**显式化**（告知 + 一键清空），省掉"想换条件得逐项取消"的点击。 */
+  const activeParts = [
+    ...(filters.types ?? []),
+    ...(filters.domains ?? []).map(domainLabel),
+    ...(filters.difficulties ?? [])
+  ]
   return (
     <div className="modal-veil" onClick={onClose}>
       <div className="modal-box" onClick={(e) => e.stopPropagation()}>
         <button className="modal-close" onClick={onClose} aria-label="收起">✕</button>
         <h3 style={{ letterSpacing: 4, color: 'var(--pink-ink)', marginBottom: 14, fontSize: 18 }}>{title}</h3>
+        {/* AJ批 L5 · 断点续练提示上移：原来压在弹窗底部的小字里，用户一进来根本看不到 */}
+        {note && <p className="filter-note">{note}</p>}
+        {activeParts.length > 0 && (
+          <div className="filter-active">
+            <span>已沿用上次条件（{activeParts.length} 项）：{activeParts.join(' · ')}</span>
+            <button className="chip" onClick={onClearAll}>一键清空</button>
+          </div>
+        )}
         <div className="ach-tabs">
           {dims.map((d) => (
             <button key={d.key} className={'chip' + (dim === d.key ? ' on' : '')} onClick={() => setDim(d.key)}>
@@ -54,7 +70,6 @@ function FilterModal({ title, filters, onToggle, onClose, onStart, count, startL
             {startLabel}（{count} 题）
           </GiltBtn>
           <GiltBtn tone="ghost" onClick={onClose}>返回</GiltBtn>
-          {note && <span style={{ fontSize: 12, color: 'var(--ink-2)', letterSpacing: '.3px' }}>{note}</span>}
         </div>
       </div>
     </div>
@@ -476,30 +491,74 @@ export default function Learn() {
 
   return (
     <div className="page-wrap">
+      {/* AJ批 L2 · 三 CTA 收敛：本按钮原为「今日未做题时的备用开始按钮」，
+          与 Hero 主 CTA、底部今日复习面板同指 hero.run() —— 三个入口打架。
+          现降级为**纯状态徽章**（不再可点），主 CTA 唯一化交给 Hero。 */}
       <div className="learn-banner">
         <div className="brand"><IconLearn /> 电气题库</div>
-        {doneToday > 0 ? (
-          <span className="tag teal" style={{ fontSize: 13, padding: '6px 14px' }}>
-            今日已做题，成长值累积中 <FlameIcon />
-          </span>
-        ) : (
-          <GiltBtn size="sm" onClick={(e) => {
-            burstParticles(e.clientX, e.clientY, 'gold', 14)
-            hero.run()
-          }}><IconRetry /> 继续累积</GiltBtn>
-        )}
+        <span className={'tag' + (doneToday > 0 ? ' teal' : '')} style={{ fontSize: 13, padding: '6px 14px' }}>
+          {doneToday > 0
+            ? <>今日已做题，成长值累积中 <FlameIcon /></>
+            : (streak > 0 ? <>已连续学习 {streak} 天</> : <>今日还没开练</>)}
+        </span>
       </div>
 
-      {/* 糖果橱窗横幅（取代哥特巫师位图 A.hallVision）：纯 CSS，零位图零请求。
-          三颗糖豆 + 一支旋转棒棒糖做氛围，幅度极小，不抢标题注意力 */}
-      <div className="learn-vision candy-hero rise">
-        {/* 原来这里只有一个居中浮动的 caption 胶囊，整条 ~200px 渐变带大片留白显得没做完。
-            改成左文右糖：左边真标题 + 副标，右边糖豆聚成一簇（位置在 candy.css 里重排）。 */}
-        <div className="hero-copy">
-          <h2>今天想练点什么？</h2>
-          <p>{questions.length} 道题在架上{streak > 0 ? ` · 已连续学习 ${streak} 天` : ''}</p>
-          <div style={{ marginTop: 16 }}>
-            <GiltBtn size="lg" onClick={hero.run}><IconLearn /> 开始今日练习</GiltBtn>
+      {/* AJ批 L1/L2/L4 布局重排：Hero 与入口卡包进同一容器 ——
+          移动端单列（行动区 → 快捷入口），桌面 ≥900px 双栏（行动区左 / 入口 2×2 右），
+          让 T0/T1 功能在首屏一次命中（改前入口卡被压在 ~1.5 屏之下，首屏命中率 0/5）。 */}
+      <div className="learn-cols">
+        {/* 糖果橱窗横幅（取代哥特巫师位图 A.hallVision）：纯 CSS，零位图零请求。
+            三颗糖豆 + 一支旋转棒棒糖做氛围，幅度极小，不抢标题注意力 */}
+        <div className="learn-vision candy-hero rise">
+          {/* 原来这里只有一个居中浮动的 caption 胶囊，整条 ~200px 渐变带大片留白显得没做完。
+              改成左文右糖：左边真标题 + 副标，右边糖豆聚成一簇（位置在 candy.css 里重排）。 */}
+          <div className="hero-copy">
+            <h2>今天想练点什么？</h2>
+            {/* L2：原「今日复习」面板的 hero.sub 移到这里——它本就该贴着主 CTA
+                告诉用户「这一按会发生什么」（如「20 道题到期，该复习了」），
+                而不是隔三张卡放在页面底部。 */}
+            <p className="hero-sub">{hero.sub}</p>
+            <div style={{ marginTop: 16 }}>
+              <GiltBtn size="lg" onClick={hero.run}><IconLearn /> 开始今日练习</GiltBtn>
+            </div>
+            <p className="hero-meta">{questions.length} 道题在架上{streak > 0 ? ` · 已连续学习 ${streak} 天` : ''}</p>
+          </div>
+        </div>
+
+        {/* L1 · 快捷入口区（T1/T2）：从页面底部上移到 Hero 之后、段位卡之前。
+            这是最高频的操作区（错题重练被 5 条路径引用），改前需滚动约 1.5 屏才能触达。 */}
+        <div className="entry-grid">
+          {/* 四段文案改成糖果主题的直白说法（#2）：原来的「污染重阅 / 被酸糖低语侵蚀的符文 /
+              无放回抽取 20 卷 / 切牌筛选」是哥特卡牌词汇，看不出到底在干什么。
+              .art 空 div 一并删掉——哥特插图早没了，留着只白占 150px 高度。 */}
+          <div className={'entry-card rise' + (wrongCount > 0 ? ' hot' : '')} style={{ animationDelay: '.08s' }}
+            onClick={() => wrongCount > 0 && run('wrong', { size: 0 })}>
+            <span className="entry-ico ico-red" aria-hidden="true"><IconRetry /></span>
+            <div className="entry-copy">
+              <h3>错题重练</h3>
+              <p>{wrongCount > 0 ? `答错过的 ${wrongCount} 道 · 再练一遍就记牢了` : '暂时没有错题，保持住'}</p>
+            </div>
+          </div>
+          <div className="entry-card rise" style={{ animationDelay: '.16s' }} onClick={() => run('random', { size: 20 })}>
+            <span className="entry-ico ico-yellow" aria-hidden="true"><IconShuffle /></span>
+            <div className="entry-copy">
+              <h3>智能匹配练习</h3>
+              <p>按你的水平挑 {randomCount} 道（目标答对率 65~85%，随段位下移）· 状态指数 {rank.p} · 段位 {rank.official.name}</p>
+            </div>
+          </div>
+          <div className="entry-card rise" style={{ animationDelay: '.24s' }} onClick={() => newCount > 0 && run('learn')}>
+            <span className="entry-ico ico-mint" aria-hidden="true"><IconNew /></span>
+            <div className="entry-copy">
+              <h3>新题上手</h3>
+              <p>{newCount > 0 ? `${newCount} 道还没做过 · 做完自动排进复习计划` : '全部题目都做过了'}</p>
+            </div>
+          </div>
+          <div className="entry-card rise" style={{ animationDelay: '.32s' }} onClick={() => setOpenFilter('relearn')}>
+            <span className="entry-ico ico-lav" aria-hidden="true"><IconFilter /></span>
+            <div className="entry-copy">
+              <h3>挑题练习</h3>
+              <p>按题型、知识域、难度筛出想练的题 · 共 {relearnCount} 道</p>
+            </div>
           </div>
         </div>
       </div>
@@ -515,12 +574,29 @@ export default function Learn() {
         </div>
       )}
 
-      {/* 排位卡（LOL 式晋级赛）：官方段位只通过晋级赛考试获得，一级一级往上考 */}
-      <div className="rank-card rise">
-        <span className="rank-badge" style={{ borderColor: rank.official.color }}>
-          <span className="rank-emoji" aria-hidden="true">{rank.official.emoji}</span>
-        </span>
-        <div className="rank-info">
+      {/* AJ批 L3 · 段位卡改为可折叠：段位/晋级属**低频里程碑**（examReady 四闸极严、
+          长期为 false），却占着首屏黄金位，与高频操作争视线。
+          折叠后首屏只留一行摘要；展开才看 4 行统计 + 走势 + 距晋级提示。
+          补偿设计：examReady 时「进入晋级赛」按钮**提到摘要行内**（可见可点、不经展开）
+          —— 低频事件真发生时，反而比改前更醒目。 */}
+      <details className="rank-card rise rank-fold">
+        <summary className="rank-fold-sum">
+          <span className="rank-badge-sm" style={{ borderColor: rank.official.color }} aria-hidden="true">
+            {rank.official.emoji}
+          </span>
+          <b className="rank-fold-name" style={{ color: rank.official.color }}>{rank.official.name}</b>
+          <span className="rank-fold-meta">
+            覆盖 {rank.doneN}/{rank.total} · 掌握 {Math.round(rank.itemRate * 100)}%
+            {trend ? ` · 7日 ${trend.delta >= 0 ? '+' : ''}${trend.delta}` : ''}
+          </span>
+          {rank.examReady && (
+            <GiltBtn size="sm" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setExamOpen(true) }}>
+              {rank.examSaved ? `续考晋级赛（${rank.examSaved.round + 1}/${rank.examSize}）` : '进入晋级赛'}
+            </GiltBtn>
+          )}
+          <span className="rank-fold-arrow" aria-hidden="true">▾</span>
+        </summary>
+        <div className="rank-info rank-info-fold">
           <h4 style={{ color: rank.official.color }}>
             当前段位：{rank.official.name}{rank.next ? '' : ' · 已到顶'}
           </h4>
@@ -559,13 +635,16 @@ export default function Learn() {
           {rank.next && rank.covered && rank.masteryReady && !rank.examReady && (
             <p className="rank-hint">题库已全部刷穿——去导入页发下一批源题，难度随新源题上台阶（导入后晋级周期自动重开）</p>
           )}
+          {rank.examReady && (
+            <div style={{ marginTop: 12 }}>
+              <GiltBtn size="sm" onClick={() => setExamOpen(true)}>
+                {rank.examSaved ? `续考晋级赛（第 ${rank.examSaved.round + 1}/${rank.examSize} 题，已得 ${rank.examSaved.wins} 分）` : '进入晋级赛'}
+              </GiltBtn>
+            </div>
+          )}
         </div>
-        {rank.examReady && (
-          <GiltBtn size="sm" onClick={() => setExamOpen(true)}>
-            {rank.examSaved ? `续考晋级赛（第 ${rank.examSaved.round + 1}/${rank.examSize} 题，已得 ${rank.examSaved.wins} 分）` : '进入晋级赛'}
-          </GiltBtn>
-        )}
-      </div>
+      </details>
+
 
       {/* P2 自由回忆周检：到期时出清单自评；未到期但有薄弱域 → 直达「练薄弱域」 */}
       {needRecall && (
@@ -601,50 +680,10 @@ export default function Learn() {
         </div>
       )}
 
-      <div className="panel deep" style={{ textAlign: 'center' }}>
-        <h4 style={{ margin: '0 0 8px', fontSize: 14, letterSpacing: 2 }}>今 日 复 习</h4>
-        <p style={{ margin: '0 auto', maxWidth: 440, fontSize: 12.5, lineHeight: 1.7, color: 'var(--muted)', letterSpacing: 1 }}>{hero.sub}</p>
-        {streak > 0 && (
-          <p style={{ marginTop: 6, fontSize: 12, color: 'var(--pink-ink)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-            <FlameIcon /> 已连续学习 {streak} 天
-          </p>
-        )}
-      </div>
-
-      <div className="entry-grid">
-        {/* 四段文案改成糖果主题的直白说法（#2）：原来的「污染重阅 / 被酸糖低语侵蚀的符文 /
-            无放回抽取 20 卷 / 切牌筛选」是哥特卡牌词汇，看不出到底在干什么。
-            .art 空 div 一并删掉——哥特插图早没了，留着只白占 150px 高度。 */}
-        <div className={'entry-card rise' + (wrongCount > 0 ? ' hot' : '')} style={{ animationDelay: '.08s' }}
-          onClick={() => wrongCount > 0 && run('wrong', { size: 0 })}>
-          <span className="entry-ico ico-red" aria-hidden="true"><IconRetry /></span>
-          <div className="entry-copy">
-            <h3>错题重练</h3>
-          <p>{wrongCount > 0 ? `答错过的 ${wrongCount} 道 · 再练一遍就记牢了` : '暂时没有错题，保持住'}</p>
-          </div>
-        </div>
-        <div className="entry-card rise" style={{ animationDelay: '.16s' }} onClick={() => run('random', { size: 20 })}>
-          <span className="entry-ico ico-yellow" aria-hidden="true"><IconShuffle /></span>
-          <div className="entry-copy">
-            <h3>智能匹配练习</h3>
-          <p>按你的水平挑 {randomCount} 道（目标答对率 65~85%，随段位下移）· 状态指数 {rank.p} · 段位 {rank.official.name}</p>
-          </div>
-        </div>
-        <div className="entry-card rise" style={{ animationDelay: '.24s' }} onClick={() => newCount > 0 && run('learn')}>
-          <span className="entry-ico ico-mint" aria-hidden="true"><IconNew /></span>
-          <div className="entry-copy">
-            <h3>新题上手</h3>
-          <p>{newCount > 0 ? `${newCount} 道还没做过 · 做完自动排进复习计划` : '全部题目都做过了'}</p>
-          </div>
-        </div>
-        <div className="entry-card rise" style={{ animationDelay: '.32s' }} onClick={() => setOpenFilter('relearn')}>
-          <span className="entry-ico ico-lav" aria-hidden="true"><IconFilter /></span>
-          <div className="entry-copy">
-            <h3>挑题练习</h3>
-          <p>按题型、知识域、难度筛出想练的题 · 共 {relearnCount} 道</p>
-          </div>
-        </div>
-      </div>
+      {/* AJ批 L2 已删「今 日 复 习」独立面板：它是第三个同指 hero.run() 的入口
+          （另两个是顶部「继续累积」按钮与 Hero 主 CTA），且其 hero.sub 文案
+          与 streak 提示都已并入 Hero 区（.hero-sub / .hero-meta）。
+          AJ批 L1 已把四张入口卡上移到 Hero 之后（见上方 .learn-cols 容器）。 */}
 
       {/* 星象悬浮入口已删：📊「星象观测」属于哥特世界观，与糖果主题不符。
           /stats 路由保留，仍可直接访问 #/stats；以后想要统计页就重新给一个糖果入口 */}
@@ -654,6 +693,7 @@ export default function Learn() {
           title="挑题练习 · 按条件筛选"
           filters={relearnFilters}
           onToggle={(dim, v) => toggleFilter('relearn', dim, v)}
+          onClearAll={() => updateSettings({ relearnFilters: {} })}
           onClose={() => setOpenFilter(null)}
           count={relearnCount}
           startLabel="开始练习"
