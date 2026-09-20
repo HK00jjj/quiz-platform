@@ -1,0 +1,37 @@
+# Cloudflare Pages 缓存策略（2026-09-20 AP批 · P6 的核心收益）
+#
+# 背景：GitHub Pages 对**所有**文件统一下发 Cache-Control: max-age=600（实测），
+#   连内容哈希资源也不例外 → 回访用户每 10 分钟就要重新校验 174KB 首屏资源。
+#   Pages 不受此限制，可按路径精确下发。
+#
+# 策略：① 带内容哈希的资源 → 永久 immutable（文件名变则缓存自动失效）
+#      ② HTML → 必须回源校验（否则可能拿到旧 HTML 去引用已被清理的旧 bundle → 白屏）
+#      ③ 不带哈希的位图 → 7 天
+#
+# ⚠ 同一路径写两份（带 /quiz-platform/ 前缀与不带）：_redirects 的内部重写与
+#    _headers 的匹配顺序在不同场景下表现不同，两份都写可确保命中。
+# ⚠ 本文件只对 Cloudflare Pages 生效；GitHub Pages 当作普通静态文件（无害）。
+
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/quiz-platform/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/index.html
+  Cache-Control: no-cache, must-revalidate
+
+/quiz-platform/index.html
+  Cache-Control: no-cache, must-revalidate
+
+/quiz-platform/
+  Cache-Control: no-cache, must-revalidate
+
+/img/*
+  Cache-Control: public, max-age=604800
+
+/quiz-platform/img/*
+  Cache-Control: public, max-age=604800
+
+/favicon.svg
+  Cache-Control: public, max-age=604800

@@ -1,0 +1,12 @@
+# Cloudflare Pages 重写规则（2026-09-20 AP批）
+#
+# 为什么需要：本站 vite base 为 /quiz-platform/，构建产物的资源引用是**绝对路径**
+#   /quiz-platform/assets/index-xxxx.js
+# 而 Cloudflare Pages 把项目部署在**域名根**（https://<项目名>.pages.dev/），
+#   文件物理位置是 /assets/... → 直接访问会 404 白屏。
+# 本规则把带前缀的请求**内部重写**（200，非跳转）到根路径，保持 URL 不变。
+#
+# ⚠ 本文件只对 Cloudflare Pages 生效；GitHub Pages 会把它当普通静态文件（无害）。
+# ⚠ 必须放在构建产物根目录 —— 由 app/public/_redirects 经 vite 复制到 dist/ 实现。
+
+/quiz-platform/*  /:splat  200
