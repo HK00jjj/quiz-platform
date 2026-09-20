@@ -10,7 +10,7 @@ import { speak, stopSpeak, unlockSpeech, ttsSupported } from '../lib/tts.js'
 
 const PAGE_SIZE = 50
 
-/* 题库页 · 糖果书架 */
+/* 题库页 · 题库书架 */
 export default function Bank() {
   const questions = useStore((s) => s.questions)
   const records = useStore((s) => s.records)
@@ -81,7 +81,7 @@ export default function Bank() {
     return (
       <div className="page-wrap">
         <div className="panel">
-          <EmptyState img={A.emptyTable} title="糖果书架空空如也" hint="去导入页把题库导进来，这里就会陈列出来。" />
+          <EmptyState img={A.emptyTable} title="题库书架空空如也" hint="去导入页把题库导进来，这里就会陈列出来。" />
         </div>
       </div>
     )
@@ -94,7 +94,7 @@ export default function Bank() {
           「被引用却从不显示」，白占 dist 体积，而引用式审计（查 assets.js 里有没有 A.titleDecor）
           抓不到这类死素材。删掉内联样式后，titleDecor 键与 p45.png 一并清掉。 */}
       <div className="page-head">
-        <h1><span className="rune">🍬</span> 糖 果 书 架</h1>
+        <h1>题 库 书 架</h1>
         <p>导入的题目都收在这里，点开卡片看详情</p>
       </div>
 
@@ -246,7 +246,9 @@ export default function Bank() {
                           <h6>做题记录（最近 {qRecords.length} 次）</h6>
                           <div className="tarot-recs">
                             {qRecords.map((r) => (
-                              <span key={r.id} className={'tag ' + (r.correct ? 'teal' : 'red')}>{r.date} {r.correct ? '✓' : '✗'}</span>
+                              <span key={r.id} className={'tag ' + (r.correct ? 'teal' : 'red')}>{r.date} {r.correct
+    ? <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 7" /></svg>
+    : <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" aria-hidden="true"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11" /></svg>}</span>
                             ))}
                           </div>
                         </>

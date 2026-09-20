@@ -137,7 +137,7 @@ function ExamModal({ pool, target, size, passScore, onDone }) {
   if (examErr) return (
     <div className="modal-veil">
       <div className="modal-box exam-box">
-        <div className="exam-head"><span>⚔️ 晋级赛</span></div>
+        <div className="exam-head"><span>晋级赛</span></div>
         <p style={{ color: 'var(--bad, #c0392b)', fontSize: 14 }}>开考失败（fail-closed：服务端不可用时不降级到本地判分）：{examErr}</p>
         <GiltBtn size="sm" onClick={() => onDone({ aborted: true })}>关闭</GiltBtn>
       </div>
@@ -146,7 +146,7 @@ function ExamModal({ pool, target, size, passScore, onDone }) {
   if (!deck) return (
     <div className="modal-veil">
       <div className="modal-box exam-box">
-        <div className="exam-head"><span>⚔️ 晋级赛 · 服务端抽题中…</span></div>
+        <div className="exam-head"><span>晋级赛 · 服务端抽题中…</span></div>
         <div className="rank-bar"><span style={{ width: '40%', background: target.color }} /></div>
       </div>
     </div>
@@ -208,7 +208,7 @@ function ExamModal({ pool, target, size, passScore, onDone }) {
     <div className="modal-veil">
       <div className="modal-box exam-box">
         <div className="exam-head">
-          <span>⚔️ 晋级赛 · 百分制 {deck.qs.length} 题考 {passScore} 分</span>
+          <span>晋级赛 · 百分制 {deck.qs.length} 题考 {passScore} 分</span>
           <span className="exam-score">第 {round + 1}/{deck.qs.length} 题 · 已得 {wins} 分 · 冲击「{target.emoji} {target.name}」</span>
         </div>
         <div className="rank-bar" style={{ marginBottom: 12 }}><span style={{ width: `${Math.round((round / deck.qs.length) * 100)}%`, background: target.color }} /></div>
@@ -236,7 +236,7 @@ function ExamModal({ pool, target, size, passScore, onDone }) {
         )}
         {verdict && (
           <div className={'exam-verdict ' + (verdict.correct ? 'ok' : 'bad')}>
-            {verdict.correct ? '✓ 答对' : '✗ 答错'} · 正确答案：{verdict.expected}
+            {verdict.correct ? '答对' : '答错'} · 正确答案：{verdict.expected}
             {q.explanation && <p>{q.explanation}</p>}
           </div>
         )}
@@ -477,10 +477,10 @@ export default function Learn() {
   return (
     <div className="page-wrap">
       <div className="learn-banner">
-        <div className="brand"><IconLearn /> 糖果题库</div>
+        <div className="brand"><IconLearn /> 电气题库</div>
         {doneToday > 0 ? (
           <span className="tag teal" style={{ fontSize: 13, padding: '6px 14px' }}>
-            ✦ 今日已做题，成长值累积中 <FlameIcon />
+            今日已做题，成长值累积中 <FlameIcon />
           </span>
         ) : (
           <GiltBtn size="sm" onClick={(e) => {
@@ -493,16 +493,14 @@ export default function Learn() {
       {/* 糖果橱窗横幅（取代哥特巫师位图 A.hallVision）：纯 CSS，零位图零请求。
           三颗糖豆 + 一支旋转棒棒糖做氛围，幅度极小，不抢标题注意力 */}
       <div className="learn-vision candy-hero rise">
-        <span className="ch-candy c1" aria-hidden="true" />
-        <span className="ch-candy c2" aria-hidden="true" />
-        <span className="ch-candy c3" aria-hidden="true" />
-        <span className="ch-candy c4" aria-hidden="true" />
-        <span className="ch-lolli" aria-hidden="true" />
         {/* 原来这里只有一个居中浮动的 caption 胶囊，整条 ~200px 渐变带大片留白显得没做完。
             改成左文右糖：左边真标题 + 副标，右边糖豆聚成一簇（位置在 candy.css 里重排）。 */}
         <div className="hero-copy">
           <h2>今天想练点什么？</h2>
           <p>{questions.length} 道题在架上{streak > 0 ? ` · 已连续学习 ${streak} 天` : ''}</p>
+          <div style={{ marginTop: 16 }}>
+            <GiltBtn size="lg" onClick={hero.run}><IconLearn /> 开始今日练习</GiltBtn>
+          </div>
         </div>
       </div>
 
@@ -549,22 +547,22 @@ export default function Learn() {
             </p>
           )}
           {advice.level === 'too-easy' && (
-            <p className="rank-hint">⚡ 近 30 题正确率 {Math.round(advice.recentAcc * 100)}%——题库对你已偏易，去导入更高水平源题继续上分</p>
+            <p className="rank-hint">近 30 题正确率 {Math.round(advice.recentAcc * 100)}%——题库对你已偏易，去导入更高水平源题继续上分</p>
           )}
           {advice.level === 'too-hard' && (
-            <p className="rank-hint">🛟 近 30 题正确率 {Math.round(advice.recentAcc * 100)}%——题库偏难，可导入降阶源题先回血</p>
+            <p className="rank-hint">近 30 题正确率 {Math.round(advice.recentAcc * 100)}%——题库偏难，可导入降阶源题先回血</p>
           )}
           {/* 晋级→再导入联动（2026-09-09）：题库刷穿且掌握达标、但还考不了晋级赛
              （指数未到门槛或刚晋完级）→ 提醒发新源题。措辞守 v4.10 红线：
              段位只做提醒信号，难度仍由 kpProfile verdict + 新源题自身难度档决定，
              不承诺"段位到了题自动变难"。导入后新题计入覆盖闸，晋级周期自动重开。 */}
           {rank.next && rank.covered && rank.masteryReady && !rank.examReady && (
-            <p className="rank-hint">📚 题库已全部刷穿——去导入页发下一批源题，难度随新源题上台阶（导入后晋级周期自动重开）</p>
+            <p className="rank-hint">题库已全部刷穿——去导入页发下一批源题，难度随新源题上台阶（导入后晋级周期自动重开）</p>
           )}
         </div>
         {rank.examReady && (
           <GiltBtn size="sm" onClick={() => setExamOpen(true)}>
-            {rank.examSaved ? `⚔️ 续考晋级赛（第 ${rank.examSaved.round + 1}/${rank.examSize} 题，已得 ${rank.examSaved.wins} 分）` : '⚔️ 进入晋级赛'}
+            {rank.examSaved ? `续考晋级赛（第 ${rank.examSaved.round + 1}/${rank.examSize} 题，已得 ${rank.examSaved.wins} 分）` : '进入晋级赛'}
           </GiltBtn>
         )}
       </div>
@@ -572,7 +570,7 @@ export default function Learn() {
       {/* P2 自由回忆周检：到期时出清单自评；未到期但有薄弱域 → 直达「练薄弱域」 */}
       {needRecall && (
         <div className="panel recall-card rise">
-          <h4>🧠 本周自由回忆</h4>
+          <h4>本周自由回忆</h4>
           <p className="recall-sub">下面是本周练过的知识域。先在脑里把每个域的要点「讲一遍」，再如实自评——想不起来的正是下周该优先补的。这是比选择题更有效的提取练习。</p>
           {recallItems.map((it) => (
             <div className="recall-row" key={it.domain}>
@@ -594,7 +592,7 @@ export default function Learn() {
       )}
       {!needRecall && weakKp.length > 0 && (
         <div className="panel recall-weak rise">
-          <span aria-hidden="true">🧠</span>
+          
           <div className="recall-weak-copy">
             <h4>自由回忆遗留薄弱域（{new Date(lastRecall.at).toLocaleDateString('zh-CN')} 自评）</h4>
             <p>{weakKp.map((d) => domainLabel(d)).join('、')} —— 这些域你自评「讲得清」以外，优先补一轮</p>
@@ -604,15 +602,8 @@ export default function Learn() {
       )}
 
       <div className="panel deep" style={{ textAlign: 'center' }}>
-        <div style={{ display: 'flex', justifyContent: 'center', gap: 10, marginBottom: 10 }} aria-hidden="true">
-          <span className="tag teal"><IconNew /></span>
-          <span className="tag">今 日 复 习</span>
-          <span className="tag teal"><IconNew /></span>
-        </div>
-        <GiltBtn size="lg" className="block" style={{ maxWidth: 420, margin: '0 auto' }} onClick={hero.run}>
-          <IconLearn /> 开始今日练习
-        </GiltBtn>
-        <p style={{ marginTop: 10, fontSize: 12.5, color: 'var(--muted)', letterSpacing: 1 }}>{hero.sub}</p>
+        <h4 style={{ margin: '0 0 8px', fontSize: 14, letterSpacing: 2 }}>今 日 复 习</h4>
+        <p style={{ margin: '0 auto', maxWidth: 440, fontSize: 12.5, lineHeight: 1.7, color: 'var(--muted)', letterSpacing: 1 }}>{hero.sub}</p>
         {streak > 0 && (
           <p style={{ marginTop: 6, fontSize: 12, color: 'var(--pink-ink)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
             <FlameIcon /> 已连续学习 {streak} 天
@@ -627,23 +618,31 @@ export default function Learn() {
         <div className={'entry-card rise' + (wrongCount > 0 ? ' hot' : '')} style={{ animationDelay: '.08s' }}
           onClick={() => wrongCount > 0 && run('wrong', { size: 0 })}>
           <span className="entry-ico ico-red" aria-hidden="true"><IconRetry /></span>
-          <h3>错题重练</h3>
+          <div className="entry-copy">
+            <h3>错题重练</h3>
           <p>{wrongCount > 0 ? `答错过的 ${wrongCount} 道 · 再练一遍就记牢了` : '暂时没有错题，保持住'}</p>
+          </div>
         </div>
         <div className="entry-card rise" style={{ animationDelay: '.16s' }} onClick={() => run('random', { size: 20 })}>
           <span className="entry-ico ico-yellow" aria-hidden="true"><IconShuffle /></span>
-          <h3>智能匹配练习</h3>
+          <div className="entry-copy">
+            <h3>智能匹配练习</h3>
           <p>按你的水平挑 {randomCount} 道（目标答对率 65~85%，随段位下移）· 状态指数 {rank.p} · 段位 {rank.official.name}</p>
+          </div>
         </div>
         <div className="entry-card rise" style={{ animationDelay: '.24s' }} onClick={() => newCount > 0 && run('learn')}>
           <span className="entry-ico ico-mint" aria-hidden="true"><IconNew /></span>
-          <h3>新题上手</h3>
+          <div className="entry-copy">
+            <h3>新题上手</h3>
           <p>{newCount > 0 ? `${newCount} 道还没做过 · 做完自动排进复习计划` : '全部题目都做过了'}</p>
+          </div>
         </div>
         <div className="entry-card rise" style={{ animationDelay: '.32s' }} onClick={() => setOpenFilter('relearn')}>
           <span className="entry-ico ico-lav" aria-hidden="true"><IconFilter /></span>
-          <h3>挑题练习</h3>
+          <div className="entry-copy">
+            <h3>挑题练习</h3>
           <p>按题型、知识域、难度筛出想练的题 · 共 {relearnCount} 道</p>
+          </div>
         </div>
       </div>
 
@@ -652,7 +651,7 @@ export default function Learn() {
 
       {openFilter === 'relearn' && (
         <FilterModal
-          title="🍬 挑题练习 · 按条件筛选"
+          title="挑题练习 · 按条件筛选"
           filters={relearnFilters}
           onToggle={(dim, v) => toggleFilter('relearn', dim, v)}
           onClose={() => setOpenFilter(null)}

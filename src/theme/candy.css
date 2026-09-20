@@ -5,8 +5,8 @@
    在 :root 被换掉，几百条旧样式会自动跟着变糖果色。
    色值/圆角/缓动严格照《果冻糖果.txt》6.1~6.4、7.1 执行。
    两处刻意偏离方案（都是为了可读性，方案原值对比度不够）：
-     · 次要文字用 #6E6E6E 而非 #999999（#999 在奶白底只有 2.7:1，不到 AA 的 4.5:1）
-     · 标题用 #2E8A68 而非 #A8D8C4 亮粉渐变（亮粉在白底只有 2.1:1，大字也不到 3:1）
+     · 次要文字用 #6E757D 而非 #999999（#999 在奶白底只有 2.7:1，不到 AA 的 4.5:1）
+     · 标题用 #2E8A68 而非 #4A6FD4 亮粉渐变（亮粉在白底只有 2.1:1，大字也不到 3:1）
    ══════════════════════════════════════════════════════════════ */
 /* 不要用 @import 拉 Google Fonts：它是渲染阻塞资源，在访问不了 fonts.googleapis.com 的网络下
    会让 load 事件永远不触发（实测直接把页面卡死）。方案 9.1 要求的是“离线部署字体文件”，
@@ -15,67 +15,67 @@
 :root {
   /* ── 马卡龙糖果色（方案 6.1 → §61 青瓷薄荷中性化：粉系 token 重映射为薄荷家族，
      粉降为点缀色（节庆层/判断卡钉等少量保留），红绿判分语义色不动 ── */
-  --candy-pink: #A8D8C4;
-  --candy-pink-dk: #5FAE8F;
-  --candy-pink-lt: #D3EADF;
-  --mint: #7FE8C8;
-  --mint-dk: #5FD4B0;
-  --mint-lt: #B8F5E3;
-  --lemon: #FFE066;
-  --lemon-dk: #FFD43B;
-  --lav: #D4B8FF;
-  --lav-dk: #B894FF;
-  --sky: #A8D8FF;
-  --sour: #A8E063;
-  --sour-dk: #8BC34A;
-  --danger: #FFB088;
-  --danger-dk: #FF8C5A;
-  --ink: #434A51;
-  --ink-2: #646C76;
-  --ink-3: #757D87;
-  --line: #DFECE5;
+  --candy-pink: #4A6FD4;
+  --candy-pink-dk: #2F5FD0;
+  --candy-pink-lt: #E4EAF6;
+  --mint: #2F7D5C;
+  --mint-dk: #256A4C;
+  --mint-lt: #DDEDE5;
+  --lemon: #C98A1F;
+  --lemon-dk: #A87410;
+  --lav: #C7D2F2;
+  --lav-dk: #5C74C4;
+  --sky: #9FBCE8;
+  --sour: #2F7D5C;
+  --sour-dk: #256A4C;
+  --danger: #C4372E;
+  --danger-dk: #A02D26;
+  --ink: #1F2328;
+  --ink-2: #4A5158;
+  --ink-3: #6E757D;
+  --line: #E3E0D8;
   --jelly: rgba(255, 255, 255, .85);
   --jelly-hi: rgba(255, 255, 255, .9);
-  --cream: #FAFCFB;
-  --shadow-candy: 0 8px 32px rgba(127, 190, 160, .22);
-  --glow-pink: 0 0 12px rgba(95, 174, 143, .5), 0 0 24px rgba(95, 174, 143, .2);
-  --glow-mint: 0 0 12px rgba(127, 232, 200, .5), 0 0 24px rgba(127, 232, 200, .2);
-  --glow-sour: 0 0 12px rgba(168, 224, 99, .5), 0 0 24px rgba(168, 224, 99, .2);
-  --jelly-ease: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --cream: #FFFFFF;
+  --shadow-candy: 0 8px 32px rgba(31,35,40,.08);
+  --glow-pink: 0 0 12px rgba(47,95,208,.10), 0 0 24px rgba(47,95,208,.10);
+  --glow-mint: 0 0 12px rgba(47,125,92,.10), 0 0 24px rgba(47,125,92,.10);
+  --glow-sour: 0 0 12px rgba(47,125,92,.10), 0 0 24px rgba(47,125,92,.10);
+  --jelly-ease: cubic-bezier(.25,.6,.25,1);
   --smooth-ease: cubic-bezier(0.4, 0, 0.2, 1);
-  --r-xl: 28px;
-  --r-lg: 24px;
-  --r-md: 20px;
-  --r-sm: 16px;
-  --r-xs: 12px;
+  --r-xl: 16px;
+  --r-lg: 14px;
+  --r-md: 12px;
+  --r-sm: 10px;
+  --r-xs: 8px;
 
   /* ── 覆盖哥特 token：旧规则里还在用这些变量的地方自动变糖果色 ── */
-  --gold-text: #2E6E58;
-  --gilt: #A8D8C4;
+  --gold-text: #24499F;
+  --gilt: #4A6FD4;
   /* 灰字补一份冷色温 slate（§31 声称过但被陈旧缓冲区吞掉的那笔，本轮补上）。
      global.css 的哥特棕 --muted #7a6a4a 虽过 AA，但色相偏土，与糖果粉不搭。 */
-  --muted: #646C76;
-  --copper: #D3EADF;
-  --teal: #7FE8C8;
-  --teal-lt: #5FD4B0;
+  --muted: #4A5158;
+  --copper: #E4EAF6;
+  --teal: #2F7D5C;
+  --teal-lt: #256A4C;
   --teal-dk: #2FA98A;
-  --fault: #A8E063;
-  --fault-lt: #8BC34A;
-  --mid: #FFE066;
-  --ink-parch: #4A4A4A;
-  --muted: #6E6E6E;
-  --parchment-0: #FFFCFD;
-  --parchment-1: #FFFCFE;
-  --glow-teal: 0 0 12px rgba(127, 232, 200, .5), 0 0 24px rgba(127, 232, 200, .2);
-  --glow-red: 0 0 12px rgba(168, 224, 99, .5), 0 0 24px rgba(168, 224, 99, .2);
-  --glow-gold: 0 0 12px rgba(95, 174, 143, .5), 0 0 24px rgba(95, 174, 143, .2);
-  --ease-pop: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --fault: #2F7D5C;
+  --fault-lt: #256A4C;
+  --mid: #C98A1F;
+  --ink-parch: #1F2328;
+  --muted: #6E757D;
+  --parchment-0: #FFFFFF;
+  --parchment-1: #FFFFFF;
+  --glow-teal: 0 0 12px rgba(47,125,92,.10), 0 0 24px rgba(47,125,92,.10);
+  --glow-red: 0 0 12px rgba(47,125,92,.10), 0 0 24px rgba(47,125,92,.10);
+  --glow-gold: 0 0 12px rgba(47,95,208,.10), 0 0 24px rgba(47,95,208,.10);
+  --ease-pop: cubic-bezier(.25,.6,.25,1);
   --ease-flip: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* ── 基底：奶白三色渐变 + 圆润无衬线（方案 6.1 / 6.2） ── */
 html, body, #root, .app-shell {
-  background: linear-gradient(160deg, #F4FAF6 0%, #F0FFF9 52%, #F5F0FF 100%) !important;
+  background: linear-gradient(160deg, #F2F0EB 0%, #F2F0EB 52%, #F2F0EB 100%) !important;
   background-attachment: fixed !important;
   color: var(--ink);
 }
@@ -87,14 +87,10 @@ body, button, input, textarea, select {
   font-family: 'Nunito', 'Noto Sans SC', sans-serif !important;
   letter-spacing: 1px;
 }
-::selection { background: rgba(127, 190, 160, .45); color: #4A4A4A; }
+::selection { background: rgba(31,35,40,.08); color: #1F2328; }
 *::-webkit-scrollbar { width: 8px; height: 8px; }
-*::-webkit-scrollbar-thumb { background: rgba(127, 190, 160, .55); border-radius: 8px; }
+*::-webkit-scrollbar-thumb { background: rgba(31,35,40,.08); border-radius: 8px; }
 *::-webkit-scrollbar-track { background: rgba(255, 255, 255, .5); }
-
-/* ── 背景：哥特层全部下线，换成气泡氛围层（方案 1.3 / 7.5） ── */
-.bg-texture, .bg-smoke, .bg-stained, .abyss-flash, .abyss-star,
-.abyss-silhouette, .bg-vignette { display: none !important; }
 .bg-stage { background: transparent !important; overflow: hidden; }
 .bg-stage::after {
   content: ''; position: absolute; inset: 0;
@@ -103,23 +99,17 @@ body, button, input, textarea, select {
 .bubble-layer { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
 .bubble {
   position: absolute; bottom: -70px; border-radius: 50%;
-  background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, .9), rgba(127, 190, 160, .22));
+  background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, .9), rgba(31,35,40,.08));
   animation: bubble-rise linear infinite;
   will-change: transform, opacity;
 }
-.bubble.mint { background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, .9), rgba(127, 232, 200, .24)); }
-.bubble.lemon { background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, .9), rgba(255, 224, 102, .26)); }
-.bubble.lav { background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, .9), rgba(212, 184, 255, .26)); }
+.bubble.mint { background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, .9), rgba(47,125,92,.10)); }
+.bubble.lemon { background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, .9), rgba(201, 138, 31, .12)); }
+.bubble.lav { background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, .9), rgba(92, 116, 196, .10)); }
 /* 答错时整层“变酸”：粉桃气泡色相偏到酸橙绿（比逐颗改颜色便宜，且只动 filter） */
 .bubble-layer { transition: filter .45s ease; }
 .bubble-layer.sour { filter: hue-rotate(58deg) saturate(1.35); }
-@keyframes bubble-rise {
-  0% { transform: translateY(0) translateX(0) scale(.75); opacity: 0 }
-  10% { opacity: .55 }
-  50% { transform: translateY(-52vh) translateX(22px) scale(1) }
-  90% { opacity: .32 }
-  100% { transform: translateY(-108vh) translateX(-14px) scale(1.12); opacity: 0 }
-}
+@keyframes bubble-rise {  0% { opacity: 1; } 100% { opacity: 1; } }
 
 /* ── 果冻玻璃拟态：所有面板/卡片（方案 6.4） ── */
 .panel, .entry-card, .settle-card, .empty-state, .filter-group,
@@ -135,7 +125,7 @@ body, button, input, textarea, select {
 
 /* ── 按钮：果冻渐变 + 捏果冻挤压回弹（方案 6.3 / 7.1 / 9.2） ── */
 .btn {
-  background: linear-gradient(135deg, #A8D8C4 0%, #5FAE8F 50%, #A8D8C4 100%) !important;
+  background: linear-gradient(135deg, #4A6FD4 0%, #2F5FD0 50%, #4A6FD4 100%) !important;
   background-size: 200% auto !important;
   border: none !important;
   border-radius: var(--r-md) !important;
@@ -143,23 +133,23 @@ body, button, input, textarea, select {
   font-weight: 700 !important;
   letter-spacing: 1px;
   text-shadow: 0 1px 2px rgba(190, 80, 110, .4);
-  box-shadow: 0 4px 16px rgba(95, 174, 143, .3), inset 0 1px 0 rgba(255, 255, 255, .5) !important;
+  box-shadow: 0 4px 16px rgba(47,95,208,.10), inset 0 1px 0 rgba(255, 255, 255, .5) !important;
   transition: transform .2s var(--jelly-ease), box-shadow .2s ease, background-position .3s ease !important;
 }
 .btn::before, .btn::after { display: none !important; }
 .btn:hover {
   transform: translateY(-3px);
   background-position: right center;
-  box-shadow: 0 8px 24px rgba(95, 174, 143, .4), inset 0 1px 0 rgba(255, 255, 255, .5) !important;
+  box-shadow: 0 8px 24px rgba(47,95,208,.10), inset 0 1px 0 rgba(255, 255, 255, .5) !important;
 }
 .btn:active { transform: scale(.95, .93); }
 .btn.teal {
-  background: linear-gradient(135deg, #B8F5E3 0%, #5FD4B0 50%, #B8F5E3 100%) !important;
+  background: linear-gradient(135deg, #DDEDE5 0%, #256A4C 50%, #DDEDE5 100%) !important;
   box-shadow: 0 4px 16px rgba(95, 212, 176, .32), inset 0 1px 0 rgba(255, 255, 255, .55) !important;
   text-shadow: 0 1px 2px rgba(30, 120, 100, .35);
 }
 .btn.danger {
-  background: linear-gradient(135deg, #FFD0B8 0%, #FF8C5A 50%, #FFD0B8 100%) !important;
+  background: linear-gradient(135deg, #F3D2CE 0%, #A02D26 50%, #F3D2CE 100%) !important;
   box-shadow: 0 4px 16px rgba(255, 140, 90, .32), inset 0 1px 0 rgba(255, 255, 255, .55) !important;
   text-shadow: 0 1px 2px rgba(160, 70, 30, .35);
 }
@@ -168,9 +158,9 @@ body, button, input, textarea, select {
   border: 2px solid var(--candy-pink-lt) !important;
   color: var(--pink-ink) !important;
   text-shadow: none;
-  box-shadow: 0 2px 10px rgba(127, 190, 160, .18) !important;
+  box-shadow: 0 2px 10px rgba(31,35,40,.08) !important;
 }
-.btn.ghost:hover { border-color: var(--candy-pink) !important; background: #EAF2ED !important; }
+.btn.ghost:hover { border-color: var(--candy-pink) !important; background: #F7F7F4 !important; }
 .btn:disabled, .btn[disabled] {
   background: #EDEDED !important; color: #B7B7B7 !important;
   box-shadow: none !important; text-shadow: none; transform: none !important;
@@ -186,7 +176,7 @@ body, button, input, textarea, select {
 }
 .rune-input:focus, .rune-textarea:focus, input:focus, textarea:focus, select:focus {
   border-color: var(--mint) !important;
-  box-shadow: 0 0 0 4px rgba(127, 232, 200, .2) !important;
+  box-shadow: 0 0 0 4px rgba(47,125,92,.10) !important;
   outline: none;
 }
 .q-face .rune-input, .q-face .rune-textarea { background: #fff !important; }
@@ -200,7 +190,7 @@ body, button, input, textarea, select {
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid var(--jelly-hi) !important;
   border-radius: var(--r-lg) !important;
-  box-shadow: 0 8px 32px rgba(127, 190, 160, .3), inset 0 1px 0 var(--jelly-hi) !important;
+  box-shadow: 0 8px 32px rgba(31,35,40,.08), inset 0 1px 0 var(--jelly-hi) !important;
   margin: 0 16px 16px !important;
   padding: 8px 10px !important;
   background-image: none !important;
@@ -221,16 +211,16 @@ body, button, input, textarea, select {
 }
 .nav-item > span:last-child { font-size: 12px; font-weight: 600; letter-spacing: 1px; }
 .nav-item:hover { transform: translateY(-2px); }
-.nav-item.active { background: rgba(127, 190, 160, .16); color: var(--pink-ink); transform: translateY(-4px); }
+.nav-item.active { background: rgba(31,35,40,.08); color: var(--pink-ink); transform: translateY(-4px); }
 .nav-item.active .nav-emoji { filter: none; transform: scale(1.12); }
-.nav-item.tone-mint.active { background: rgba(127, 232, 200, .18); color: #2FA98A; }
-.nav-item.tone-lav.active { background: rgba(212, 184, 255, .2); color: #8A63D9; }
+.nav-item.tone-mint.active { background: rgba(47,125,92,.10); color: #2FA98A; }
+.nav-item.tone-lav.active { background: rgba(92, 116, 196, .10); color: #8A63D9; }
 .nav-item .dot {
   position: absolute; top: 4px; right: 22%; width: 9px; height: 9px; border-radius: 50%;
   background: var(--sour-dk); box-shadow: 0 0 8px rgba(139, 195, 74, .8);
   animation: candy-pulse 1.5s ease-in-out infinite;
 }
-@keyframes candy-pulse { 0%, 100% { transform: scale(1); opacity: .85 } 50% { transform: scale(1.3); opacity: 1 } }
+@keyframes candy-pulse {  0% { opacity: 1; } 100% { opacity: 1; } }
 .nav-veil { background: rgba(240, 248, 244, .92) !important; backdrop-filter: blur(6px); }
 
 /* ══ 开机仪式：2 秒四段分镜（方案 1.2）══
@@ -240,7 +230,7 @@ body, button, input, textarea, select {
 .boot-eye, .boot-rose { display: none !important; }
 .boot-half {
   position: absolute; top: 0; bottom: 0; width: 50.6%;
-  background: linear-gradient(160deg, #F4FAF6 0%, #F0FFF9 52%, #F5F0FF 100%);
+  background: linear-gradient(160deg, #F2F0EB 0%, #F2F0EB 52%, #F2F0EB 100%);
   transition: transform .5s var(--jelly-ease);
 }
 .boot-half.left { left: 0 }
@@ -255,8 +245,8 @@ body, button, input, textarea, select {
 /* 糖纸：从糖豆的位置螺旋展开（scale+rotate，不动宽高） */
 .boot-foil {
   position: absolute; inset: 0; border-radius: 32px; opacity: 0;
-  background: linear-gradient(120deg, #D3EADF 0%, #B8F5E3 58%, #D4B8FF 100%);
-  box-shadow: 0 14px 40px rgba(95, 174, 143, .3), inset 0 2px 0 rgba(255, 255, 255, .8);
+  background: linear-gradient(120deg, #E4EAF6 0%, #DDEDE5 58%, #C7D2F2 100%);
+  box-shadow: 0 14px 40px rgba(47,95,208,.10), inset 0 2px 0 rgba(255, 255, 255, .8);
   transform: scale(.16) rotate(-190deg);
   transition: transform .85s var(--jelly-ease), opacity .4s ease;
 }
@@ -268,8 +258,8 @@ body, button, input, textarea, select {
 /* 糖豆：0–0.5s 从下方弹入，0.5s 后旋转化开 */
 .boot-bean {
   position: absolute; top: 50%; left: 50%; width: 18px; height: 18px; margin: -9px 0 0 -9px; border-radius: 50%;
-  background: radial-gradient(circle at 32% 28%, #D3EADF, #5FAE8F 72%);
-  box-shadow: 0 4px 12px rgba(95, 174, 143, .45), inset 0 1px 0 rgba(255, 255, 255, .75);
+  background: radial-gradient(circle at 32% 28%, #E4EAF6, #2F5FD0 72%);
+  box-shadow: 0 4px 12px rgba(47,95,208,.10), inset 0 1px 0 rgba(255, 255, 255, .75);
   animation: bean-in .5s var(--jelly-ease) both;
 }
 @keyframes bean-in {
@@ -282,7 +272,7 @@ body, button, input, textarea, select {
 .boot-title {
   position: relative; z-index: 1; font-size: 30px; font-weight: 900; letter-spacing: 2px;
   color: #2E8A68 !important;
-  text-shadow: 0 2px 0 rgba(255, 255, 255, .95), 0 8px 22px rgba(95, 174, 143, .3) !important;
+  text-shadow: 0 2px 0 rgba(255, 255, 255, .95), 0 8px 22px rgba(47,95,208,.10) !important;
   opacity: 0; transform: translateY(10px);
   transition: opacity .45s ease, transform .5s var(--jelly-ease);
 }
@@ -295,7 +285,7 @@ body, button, input, textarea, select {
 /* 1.5–2s：气泡从四周升起消散（6 颗，一次性，不循环） */
 .boot-bubbles { position: absolute; inset: 0; pointer-events: none; }
 .boot-bubbles i { position: absolute; bottom: -40px; width: 22px; height: 22px; border-radius: 50%; opacity: 0;
-  background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, .95), rgba(127, 190, 160, .3)); }
+  background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, .95), rgba(31,35,40,.08)); }
 .boot-bubbles i:nth-child(1) { left: 10%; width: 26px; height: 26px }
 .boot-bubbles i:nth-child(2) { left: 26%; animation-delay: .1s }
 .boot-bubbles i:nth-child(3) { left: 44%; width: 16px; height: 16px; animation-delay: .2s }
@@ -303,23 +293,19 @@ body, button, input, textarea, select {
 .boot-bubbles i:nth-child(5) { left: 76%; width: 30px; height: 30px; animation-delay: .16s }
 .boot-bubbles i:nth-child(6) { left: 89%; width: 18px; height: 18px; animation-delay: .26s }
 .boot-veil.s2 .boot-bubbles i, .boot-veil.s3 .boot-bubbles i { animation: boot-bubble 1.05s ease-out both }
-@keyframes boot-bubble {
-  0% { transform: translateY(0) scale(.6); opacity: 0 }
-  22% { opacity: .75 }
-  100% { transform: translateY(-72vh) scale(1.15); opacity: 0 }
-}
-@keyframes candy-bob { 0%, 100% { transform: translateY(0) rotate(-4deg) } 50% { transform: translateY(-9px) rotate(4deg) } }
+@keyframes boot-bubble {  0% { opacity: 1; } 100% { opacity: 1; } }
+@keyframes candy-bob {  0% { opacity: 1; } 100% { opacity: 1; } }
 
 /* ── 登录：糖果之门（方案 2.3） ── */
-.login-stage { background: linear-gradient(160deg, #FFF0F5, #F0FFF9) !important; }
-.login-bg { background: linear-gradient(160deg, #FFF0F5, #F0FFF9 60%, #F5F0FF) !important; background-image: none !important; opacity: 1 !important; }
+.login-stage { background: linear-gradient(160deg, #F2F0EB, #F2F0EB) !important; }
+.login-bg { background: linear-gradient(160deg, #F2F0EB, #F2F0EB 60%, #F2F0EB) !important; background-image: none !important; opacity: 1 !important; }
 .login-vortex, .login-orb, .login-gate-frame, .login-divider { display: none !important; }
 .login-gate {
   background: var(--jelly) !important;
   backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
   border: 2px solid var(--jelly-hi) !important;
   border-radius: var(--r-xl) !important;
-  box-shadow: 0 12px 40px rgba(127, 190, 160, .35), inset 0 1px 0 var(--jelly-hi) !important;
+  box-shadow: 0 12px 40px rgba(31,35,40,.08), inset 0 1px 0 var(--jelly-hi) !important;
 }
 .login-gate-inner { border: none !important; box-shadow: none !important; background: transparent !important; }
 .login-title { color: #2E8A68 !important; text-shadow: 0 2px 0 rgba(255, 255, 255, .9) !important; }
@@ -328,7 +314,7 @@ body, button, input, textarea, select {
   background: var(--cream) !important; border: 2px solid var(--candy-pink-lt) !important;
   border-radius: var(--r-sm) !important; box-shadow: none !important;
 }
-.login-input:focus-within { border-color: var(--mint) !important; box-shadow: 0 0 0 4px rgba(127, 232, 200, .2) !important; }
+.login-input:focus-within { border-color: var(--mint) !important; box-shadow: 0 0 0 4px rgba(47,125,92,.10) !important; }
 
 /* ── 页头：去掉哥特装饰条，改成糖果标题（方案 6.2） ── */
 .page-head {
@@ -339,7 +325,7 @@ body, button, input, textarea, select {
 .page-head::before, .page-head::after { display: none !important; }
 .page-head h1, .page-head h2, .page-head .title {
   color: #2E8A68 !important;
-  text-shadow: 0 2px 0 rgba(255, 255, 255, .95), 0 6px 18px rgba(95, 174, 143, .25) !important;
+  text-shadow: 0 2px 0 rgba(255, 255, 255, .95), 0 6px 18px rgba(47,95,208,.10) !important;
 }
 .page-head p, .page-head .sub { color: var(--ink-2) !important; }
 .divider, .zone-rule {
@@ -354,22 +340,22 @@ body, button, input, textarea, select {
   border-radius: var(--r-xl) !important;
   background: var(--jelly) !important;
   backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-  box-shadow: 0 12px 40px rgba(127, 190, 160, .32), inset 0 1px 0 var(--jelly-hi) !important;
+  box-shadow: 0 12px 40px rgba(31,35,40,.08), inset 0 1px 0 var(--jelly-hi) !important;
   filter: none !important;
 }
 .q-face {
   background: none !important;
   box-shadow: none !important;
-  border-radius: 26px;
+  border-radius: 14px;
   padding: 18px 18px 14px !important;
 }
-.q-face-scroll::-webkit-scrollbar-thumb { background: rgba(127, 190, 160, .6); border-radius: 8px; }
+.q-face-scroll::-webkit-scrollbar-thumb { background: rgba(31,35,40,.08); border-radius: 8px; }
 /* 牌背（翻牌过程里露出的那一面）：马卡龙渐变 + 糖豆波点 */
 .card-flip-cover {
-  background: linear-gradient(150deg, #D3EADF 0%, #B8F5E3 52%, #D4B8FF 100%) !important;
+  background: linear-gradient(150deg, #E4EAF6 0%, #DDEDE5 52%, #C7D2F2 100%) !important;
   border-radius: var(--r-xl);
   border: 2px solid var(--jelly-hi);
-  box-shadow: 0 12px 40px rgba(127, 190, 160, .32), inset 0 1px 0 var(--jelly-hi);
+  box-shadow: 0 12px 40px rgba(31,35,40,.08), inset 0 1px 0 var(--jelly-hi);
   filter: none !important;
   overflow: hidden;
 }
@@ -392,19 +378,19 @@ body, button, input, textarea, select {
 .zone-q {
   /* 沉浸批2 B2①（2026-09-15）：羊皮纸加深一档（小样 b2v1）——原 .92 半透明过亮，
      题干在整卡上"浮"；改实色暖米渐变，读题区成为卡面最沉稳的一块。 */
-  background: linear-gradient(165deg, #F6EED9, #F0E4C8) !important;
+  background: linear-gradient(165deg, #F4EFE2, #F4EFE2) !important;
   border: 1px solid #E6DAC2 !important;
   border-radius: var(--r-sm) !important;
   box-shadow: 0 2px 12px rgba(180, 160, 120, .15), inset 0 1px 0 rgba(255, 255, 255, .8) !important;
 }
 .zone-s {
-  background: rgba(127, 190, 160, .08) !important;
+  background: rgba(31,35,40,.08) !important;
   border: 2px dashed var(--candy-pink) !important;
   border-radius: var(--r-sm) !important;
 }
 .zone-s.revealed {
   border-style: solid !important; border-color: var(--mint) !important;
-  background: rgba(127, 232, 200, .1) !important;
+  background: rgba(47,125,92,.10) !important;
 }
 .zone-label { color: var(--pink-ink) !important; }
 .q-stem { color: var(--ink) !important; font-weight: 600; }
@@ -415,14 +401,14 @@ body, button, input, textarea, select {
 .q-tags .stamp { display: none !important; }
 .type-candy {
   display: inline-flex; align-items: center; gap: 4px;
-  padding: 3px 12px; border-radius: 20px;
+  padding: 3px 12px; border-radius: 12px;
   border: 2px solid var(--candy-pink); background: var(--cream);
   color: var(--pink-ink); font-size: clamp(11px, 2.6cqw, 13px); font-weight: 700; letter-spacing: 1px;
 }
-.type-candy::before { content: '🍬'; font-size: .92em; }
+.type-candy::before { content: '1'; font-size: .92em; }
 .q-domain-tag {
   background: var(--cream) !important; border: 2px solid var(--mint) !important;
-  color: #2FA98A !important; border-radius: 20px !important; clip-path: none !important; font-weight: 700;
+  color: #2FA98A !important; border-radius: 12px !important; clip-path: none !important; font-weight: 700;
 }
 .q-tags .gem { filter: saturate(1.3) brightness(1.12) hue-rotate(-18deg); }
 
@@ -433,10 +419,10 @@ body, button, input, textarea, select {
   background: var(--cream) !important;
   color: var(--ink) !important;
   border-radius: var(--r-sm) !important;
-  box-shadow: 0 2px 10px rgba(127, 190, 160, .18) !important;
+  box-shadow: 0 2px 10px rgba(31,35,40,.08) !important;
   font-weight: 600;
 }
-.opt-row:hover { border-color: var(--candy-pink) !important; background: #EAF2ED !important; transform: translateY(-2px); }
+.opt-row:hover { border-color: var(--candy-pink) !important; background: #F7F7F4 !important; transform: translateY(-2px); }
 /* 哥特符文选框图下线，改用 CSS 画的糖果选框（35% 圆角方：单选多选都读得通）
    ⚠ 沉浸批1 A4：<img class="mark"> 已从 JSX 清除，隐藏规则随之删除 */
 .opt-row::before {
@@ -445,13 +431,13 @@ body, button, input, textarea, select {
   box-shadow: inset 0 0 0 3px rgba(255, 214, 224, .3);
   transition: all .2s var(--jelly-ease);
 }
-.opt-row.selected { border-color: var(--candy-pink-dk) !important; background: rgba(127, 190, 160, .2) !important; color: #3A3A3A !important; box-shadow: var(--glow-pink) !important; }
-.opt-row.selected::before { background: radial-gradient(circle at 32% 28%, #D3EADF, #5FAE8F); border-color: #5FAE8F; box-shadow: 0 0 10px rgba(95, 174, 143, .55); }
-.opt-row.right { border-color: var(--mint-dk) !important; background: rgba(127, 232, 200, .22) !important; color: #1F5D4C !important; }
-.opt-row.right::before { background: radial-gradient(circle at 32% 28%, #B8F5E3, #5FD4B0); border-color: #5FD4B0; }
-.opt-row.wronged { border-color: var(--sour-dk) !important; background: rgba(168, 224, 99, .2) !important; color: #4F6F1E !important; }
-.opt-row.wronged::before { background: radial-gradient(circle at 32% 28%, #DFF3B8, #8BC34A); border-color: #8BC34A; }
-.opt-row.missed { border: 2px dashed var(--mint-dk) !important; color: #2FA98A !important; background: rgba(127, 232, 200, .1) !important; }
+.opt-row.selected { border-color: var(--candy-pink-dk) !important; background: rgba(31,35,40,.08) !important; color: #3A3A3A !important; box-shadow: var(--glow-pink) !important; }
+.opt-row.selected::before { background: radial-gradient(circle at 32% 28%, #E4EAF6, #2F5FD0); border-color: #2F5FD0; box-shadow: 0 0 10px rgba(47,95,208,.10); }
+.opt-row.right { border-color: var(--mint-dk) !important; background: rgba(47,125,92,.10) !important; color: #1F5D4C !important; }
+.opt-row.right::before { background: radial-gradient(circle at 32% 28%, #DDEDE5, #256A4C); border-color: #256A4C; }
+.opt-row.wronged { border-color: var(--sour-dk) !important; background: rgba(47,125,92,.10) !important; color: #4F6F1E !important; }
+.opt-row.wronged::before { background: radial-gradient(circle at 32% 28%, #DDEDE5, #256A4C); border-color: #256A4C; }
+.opt-row.missed { border: 2px dashed var(--mint-dk) !important; color: #2FA98A !important; background: rgba(47,125,92,.10) !important; }
 
 /* 判断题：两颗对立的大糖果，各占 45%、中间 10%（方案 3.5 ③） */
 .judge-pair { gap: 10% !important; align-items: stretch !important; }
@@ -461,7 +447,7 @@ body, button, input, textarea, select {
   padding: 16px 8px 14px;
   background-image: none !important; background-color: var(--cream) !important;
   border: 2px solid var(--candy-pink-lt) !important; border-radius: var(--r-md) !important;
-  box-shadow: 0 4px 16px rgba(127, 190, 160, .25), inset 0 1px 0 rgba(255, 255, 255, .9) !important;
+  box-shadow: 0 4px 16px rgba(31,35,40,.08), inset 0 1px 0 rgba(255, 255, 255, .9) !important;
   filter: none !important;
   transition: transform .22s var(--jelly-ease), box-shadow .22s ease, border-color .22s ease, opacity .22s ease !important;
 }
@@ -469,8 +455,8 @@ body, button, input, textarea, select {
   content: '✓'; width: 42px; height: 42px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
   font-size: 23px; font-weight: 900; color: #fff;
-  background: radial-gradient(circle at 32% 28%, #BFE2D2, #5FAE8F);
-  box-shadow: 0 0 12px rgba(95, 174, 143, .45), inset 0 1px 0 rgba(255, 255, 255, .7);
+  background: radial-gradient(circle at 32% 28%, #C9D6F0, #2F5FD0);
+  box-shadow: 0 0 12px rgba(47,95,208,.10), inset 0 1px 0 rgba(255, 255, 255, .7);
 }
 /* §45：j-false 未选态配色的唯一权威定义在本文件后段（§45 块）；这里旧的绿系
    j-false 规则已被后段覆盖成死规则，为免双源误导整段删除（§37 幽灵选择器教训）。 */
@@ -479,14 +465,14 @@ body, button, input, textarea, select {
 .judge-card.j-true:hover, .judge-card.j-true.selected {
   transform: translateY(-4px) rotate(-1.2deg) scale(1.03);
   border-color: var(--candy-pink-dk) !important;
-  box-shadow: 0 0 0 4px rgba(127, 190, 160, .25), 0 8px 24px rgba(95, 174, 143, .35) !important;
+  box-shadow: 0 0 0 4px rgba(31,35,40,.08), 0 8px 24px rgba(47,95,208,.10) !important;
 }
 .judge-card.j-false:hover, .judge-card.j-false.selected {
   transform: translateY(-4px) rotate(1.2deg) scale(1.03);
   border-color: var(--sour-dk) !important;
-  box-shadow: 0 0 0 4px rgba(168, 224, 99, .28), 0 8px 24px rgba(139, 195, 74, .35) !important;
+  box-shadow: 0 0 0 4px rgba(47,125,92,.10), 0 8px 24px rgba(139, 195, 74, .35) !important;
 }
-.judge-card.j-true.selected .judge-label { color: #2E6E58 !important; }
+.judge-card.j-true.selected .judge-label { color: #24499F !important; }
 /* §45：旧绿系 .j-false.selected .judge-label 已删（死规则），选中错误标签色由 §45 块的 var(--bad-ink) 决定 */
 .judge-card.dimmed { opacity: .42; filter: grayscale(.45) !important; transform: scale(.96); }
 
@@ -494,19 +480,19 @@ body, button, input, textarea, select {
 .fill-item .no { color: #2E8A68 !important; }
 .fill-item.right .rune-input { border-color: var(--mint-dk) !important; box-shadow: var(--glow-mint) !important; }
 .fill-item.wronged .rune-input { border-color: var(--sour-dk) !important; box-shadow: var(--glow-sour) !important; }
-.subjective-area textarea { background-image: repeating-linear-gradient(transparent, transparent 30px, rgba(127, 190, 160, .28) 31px) !important; }
+.subjective-area textarea { background-image: repeating-linear-gradient(transparent, transparent 30px, rgba(31,35,40,.08) 31px) !important; }
 
 /* 糖纸封印（原蜡封）：一颗粉色糖豆 + 虚线糖纸边 */
 .seal-lock {
   border: 2px dashed var(--candy-pink) !important;
   border-radius: var(--r-xs) !important;
-  background: rgba(127, 190, 160, .1) !important;
+  background: rgba(31,35,40,.08) !important;
   color: var(--pink-ink) !important;
 }
 .seal-wax {
   width: 34px; height: 34px; border-radius: 50%; overflow: hidden;
-  background: radial-gradient(circle at 32% 28%, #D3EADF, #5FAE8F 72%);
-  box-shadow: 0 0 12px rgba(95, 174, 143, .5), inset 0 1px 0 rgba(255, 255, 255, .8);
+  background: radial-gradient(circle at 32% 28%, #E4EAF6, #2F5FD0 72%);
+  box-shadow: 0 0 12px rgba(47,95,208,.10), inset 0 1px 0 rgba(255, 255, 255, .8);
 }
 /* §65 同轮：🍬 emoji → 火漆印纹（深薄荷四角星压印 + 内圈虚线齿环，纯 CSS）
    ⚠ 沉浸批1 A4：蜡封三帧位图 <img> 已从 JSX 清除，display:none 隐藏规则随之删除 */
@@ -521,9 +507,9 @@ body, button, input, textarea, select {
   background: rgba(255, 255, 255, .72) !important;
   border: 1px solid var(--line) !important; border-left: 4px solid var(--mint-dk) !important;
   border-radius: var(--r-xs) !important;
-  box-shadow: 0 2px 12px rgba(127, 232, 200, .2) !important;
+  box-shadow: 0 2px 12px rgba(47,125,92,.10) !important;
 }
-.answer-scroll-box.bad { border-left-color: var(--sour-dk) !important; background: rgba(168, 224, 99, .12) !important; box-shadow: 0 2px 12px rgba(168, 224, 99, .22) !important; }
+.answer-scroll-box.bad { border-left-color: var(--sour-dk) !important; background: rgba(47,125,92,.10) !important; box-shadow: 0 2px 12px rgba(47,125,92,.10) !important; }
 .answer-scroll-box p { color: var(--ink) !important; }
 .answer-scroll-box h5 { color: #2FA98A !important; }
 .answer-scroll-box.bad h5 { color: #6E9B2E !important; }
@@ -549,9 +535,9 @@ body, button, input, textarea, select {
 .entry-card { position: relative; }
 .entry-card img { display: none !important; }
 .entry-card::before {
-  content: '🍬'; display: block; text-align: center;
+  content: '1'; display: block; text-align: center;
   font-size: clamp(38px, 13cqw, 56px); margin: 6px 0 2px;
-  filter: drop-shadow(0 6px 14px rgba(95, 174, 143, .35));
+  filter: drop-shadow(0 6px 14px rgba(47,95,208,.10));
   animation: candy-bob 4.6s ease-in-out infinite;
 }
 .entry-card:nth-child(1)::before { content: '🍮' }
@@ -564,7 +550,7 @@ body, button, input, textarea, select {
 /* 筛选 chips / 空状态 / 载入球 */
 .chip {
   background: var(--cream) !important; border: 2px solid var(--candy-pink-lt) !important;
-  color: #4E7A62 !important; border-radius: 20px !important;
+  color: #4E7A62 !important; border-radius: 12px !important;
   /* 2026-09-19 P0-1 触摸目标达标：交互 chip 原实测≈28px（低于 44px 无障碍线），
      统一拉到 36px 基准（触摸设备见文末 P0 块升到 44px）；inline-flex 保证文字垂直居中。 */
   display: inline-flex !important; align-items: center !important; justify-content: center !important;
@@ -574,19 +560,19 @@ body, button, input, textarea, select {
 .chip:hover { border-color: var(--candy-pink) !important; color: var(--pink-ink) !important; }
 /* §44 选中态重做（用户口径：原粉色光晕+实心底太突兀、与主题割裂）：
    去掉 glow-pink 外发光，改为果冻卡同语言的「淡糖霜底 + 同色细边 + 内高光」，
-   左侧小糖珠做选中记号，安静且仍达 AA（#2E6E58 对奶白 5.4:1）。 */
+   左侧小糖珠做选中记号，安静且仍达 AA（#24499F 对奶白 5.4:1）。 */
 .chip.on {
-  background: linear-gradient(180deg, #EAF2ED, #DFECE5) !important;
+  background: linear-gradient(180deg, #F7F7F4, #E3E0D8) !important;
   border-color: var(--candy-pink-dk) !important;
-  color: #2E6E58 !important;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .85), 0 2px 8px rgba(95, 174, 143, .14) !important;
+  color: #24499F !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .85), 0 2px 8px rgba(47,95,208,.10) !important;
 }
 .chip.on::before { content: '●'; font-size: 8px; margin-right: 6px; vertical-align: 2px; color: var(--candy-pink-dk); }
 .filter-group h4 { color: var(--pink-ink) !important; }
 .empty-state h3 { color: #2E8A68 !important; }
 .empty-state img { display: none; }
-.empty-state::before { content: '🍬'; display: block; font-size: 52px; opacity: .55; margin-bottom: 8px; }
-.loading-orb { background: radial-gradient(circle at 32% 28%, #D3EADF, #5FAE8F 70%) !important; box-shadow: 0 0 24px rgba(95, 174, 143, .5) !important; }
+.empty-state::before { content: '1'; display: block; font-size: 52px; opacity: .55; margin-bottom: 8px; }
+.loading-orb { background: radial-gradient(circle at 32% 28%, #E4EAF6, #2F5FD0 70%) !important; box-shadow: 0 0 24px rgba(47,95,208,.10) !important; }
 
 /* 粒子：颜色由 JS 内联（已改成糖豆配色），这里只保证形状圆润 */
 .particle { border-radius: 50% !important; }
@@ -596,9 +582,9 @@ body, button, input, textarea, select {
   background-image: none !important;
   background: var(--jelly) !important;
   border: 1px solid var(--jelly-hi); border-radius: var(--r-md);
-  box-shadow: 0 6px 22px rgba(127, 190, 160, .25) !important;
+  box-shadow: 0 6px 22px rgba(31,35,40,.08) !important;
 }
-.bank-item .tarot-face.back { background: linear-gradient(150deg, #D3EADF, #B8F5E3 55%, #D4B8FF) !important; }
+.bank-item .tarot-face.back { background: linear-gradient(150deg, #E4EAF6, #DDEDE5 55%, #C7D2F2) !important; }
 .tarot-face .face-in { inset: 8% 8% 8% !important; }
 /* hover 阴影：pages.css L405 的 .bank-item:hover .tarot-face 是哥特黑阴影
    0 16px 34px rgba(0,0,0,.55) + 金泛光 rgba(184,150,58,.22)。它没带 !important，
@@ -607,7 +593,7 @@ body, button, input, textarea, select {
    补一条糖果版 hover：多一个 :hover 伪类所以特异性更高，但仍需 !important 才能盖过 L615。
    只动 box-shadow，不给 .tarot-face 加 transform——3D 翻面靠 .tarot-inner 的 rotateY，
    在 .tarot-face 上叠 transform 会干扰 backface-visibility。 */
-.bank-item:hover .tarot-face { box-shadow: 0 14px 32px rgba(95, 174, 143, .42) !important; }
+.bank-item:hover .tarot-face { box-shadow: 0 14px 32px rgba(47,95,208,.10) !important; }
 
 /* 减少动效：只保留透明度/颜色，去掉位移与弹性（无障碍底线） */
 @media (prefers-reduced-motion: reduce) {
@@ -621,28 +607,28 @@ body, button, input, textarea, select {
 .bookshelf { border: 2px solid var(--candy-pink) !important; }
 .bookshelf-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
 .book-current {
-  font-size: 12px; padding: 4px 12px; border-radius: 20px; letter-spacing: 1px;
-  background: rgba(127, 232, 200, .18); border: 1px solid var(--mint); color: #2FA98A;
+  font-size: 12px; padding: 4px 12px; border-radius: 12px; letter-spacing: 1px;
+  background: rgba(47,125,92,.10); border: 1px solid var(--mint); color: #2FA98A;
 }
 .book-note {
   margin: 0 0 12px; padding: 8px 12px; border-radius: 12px; font-size: 13px;
-  background: rgba(127, 190, 160, .14); border: 1px solid var(--candy-pink-lt); color: #2E6E58;
+  background: rgba(31,35,40,.08); border: 1px solid var(--candy-pink-lt); color: #24499F;
 }
 .book-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(128px, 1fr)); gap: 12px; }
 .book-card {
   position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px;
   min-height: 160px; padding: 16px 10px 12px; cursor: pointer; overflow: hidden;
-  background: rgba(255, 255, 255, .9); border: 1px solid rgba(90, 74, 42, .18); border-radius: 16px;
-  box-shadow: 0 4px 14px rgba(127, 190, 160, .18);
+  background: rgba(255, 255, 255, .9); border: 1px solid rgba(90, 74, 42, .18); border-radius: 10px;
+  box-shadow: 0 4px 14px rgba(31,35,40,.08);
   transition: transform .22s var(--jelly-ease), border-color .2s ease, box-shadow .2s ease;
 }
-.book-card:hover { transform: translateY(-4px); border-color: var(--candy-pink); box-shadow: 0 8px 22px rgba(95, 174, 143, .28); }
+.book-card:hover { transform: translateY(-4px); border-color: var(--candy-pink); box-shadow: 0 8px 22px rgba(47,95,208,.10); }
 .book-card:focus-visible { outline: 2px solid var(--candy-pink-dk); outline-offset: 2px; }
-.book-card.on { border: 3px solid var(--mint); box-shadow: 0 0 0 4px rgba(127, 232, 200, .2); }
+.book-card.on { border: 3px solid var(--mint); box-shadow: 0 0 0 4px rgba(47,125,92,.10); }
 .book-card.empty { opacity: .72; }
 .book-spine {
   position: absolute; left: 0; top: 0; bottom: 0; width: 6px;
-  background: var(--spine, #A8D8C4); border-radius: 16px 0 0 16px;
+  background: var(--spine, #4A6FD4); border-radius: 10px 0 0 10px;
 }
 .book-icon { font-size: 32px; line-height: 1; margin-top: 2px; }
 .book-name { font-size: 14px; font-weight: 700; color: #3d2c1c; text-align: center; word-break: break-all; }
@@ -654,7 +640,7 @@ body, button, input, textarea, select {
   border: 1px solid rgba(90, 74, 42, .28); background: rgba(255, 255, 255, .85); color: #6b5a1a;
   transition: transform .18s var(--jelly-ease), border-color .18s ease, color .18s ease;
 }
-.book-op:hover { border-color: var(--candy-pink); color: #2E6E58; transform: translateY(-2px); }
+.book-op:hover { border-color: var(--candy-pink); color: #24499F; transform: translateY(-2px); }
 .book-op.danger:hover { border-color: var(--fault-lt); color: #8b2a4a; }
 .book-op:disabled { opacity: .35; cursor: default; transform: none; }
 .book-rename { width: 100%; padding: 4px 8px; font-size: 13px; text-align: center; }
@@ -665,7 +651,7 @@ body, button, input, textarea, select {
 .book-new:hover { border-style: solid !important; }
 .book-plus { font-size: 30px; line-height: 1; }
 .book-form, .book-confirm {
-  margin-top: 14px; padding: 14px; border-radius: 16px;
+  margin-top: 14px; padding: 14px; border-radius: 10px;
   background: rgba(255, 250, 251, .85); border: 1px solid var(--candy-pink-lt);
 }
 .book-form-label { display: block; margin: 10px 0 6px; font-size: 12.5px; font-weight: 700; letter-spacing: 1px; color: #6b5a1a; }
@@ -678,14 +664,14 @@ body, button, input, textarea, select {
   color: #fff; font-size: 14px; font-weight: 900;
   transition: transform .18s var(--jelly-ease), box-shadow .18s ease;
 }
-.color-dot.on { transform: scale(1.14); box-shadow: 0 0 0 3px rgba(95, 174, 143, .35); }
+.color-dot.on { transform: scale(1.14); box-shadow: 0 0 0 3px rgba(47,95,208,.10); }
 .book-icons { display: flex; flex-wrap: wrap; gap: 6px; }
 .icon-pick {
   width: 38px; height: 38px; border-radius: 12px; font-size: 18px; cursor: pointer;
   border: 1px solid rgba(90, 74, 42, .22); background: rgba(255, 255, 255, .85);
   transition: transform .18s var(--jelly-ease), border-color .18s ease, background .18s ease;
 }
-.icon-pick.on { border: 2px solid var(--candy-pink); background: rgba(127, 190, 160, .18); transform: translateY(-2px); }
+.icon-pick.on { border: 2px solid var(--candy-pink); background: rgba(31,35,40,.08); transform: translateY(-2px); }
 .book-form-ops { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; margin-top: 14px; }
 .book-confirm-title { margin: 0 0 6px; font-size: 15px; font-weight: 700; color: #8b2a4a; }
 .book-confirm-desc { margin: 0 0 10px; font-size: 12.5px; line-height: 1.8; color: rgba(44, 24, 16, .72); }
@@ -708,57 +694,57 @@ body, button, input, textarea, select {
 /* 糖果天平：水晶柱 + 横梁 + 两个糖盘；每 4.6s “settling” 一次（前 72% 完全静止，成本极低） */
 .candy-balance::before { content: ''; position: absolute; left: 50%; bottom: 10px; width: 8px; height: 34px;
   margin-left: -4px; border-radius: 4px;
-  background: linear-gradient(180deg, #B8F5E3, #5FD4B0); box-shadow: 0 0 12px rgba(127, 232, 200, .55); }
+  background: linear-gradient(180deg, #DDEDE5, #256A4C); box-shadow: 0 0 12px rgba(47,125,92,.10); }
 .candy-balance::after { content: ''; position: absolute; left: 50%; top: 18px; width: 52px; height: 4px;
   margin-left: -26px; border-radius: 4px; transform-origin: 50% 50%;
-  background: linear-gradient(90deg, #A8D8C4, #D3EADF 50%, #A8D8C4);
+  background: linear-gradient(90deg, #4A6FD4, #E4EAF6 50%, #4A6FD4);
   animation: balance-wobble 4.6s var(--jelly-ease) infinite; }
 .candy-balance .cb-pan { position: absolute; top: 22px; width: 20px; height: 12px; border-radius: 0 0 12px 12px;
-  background: radial-gradient(circle at 50% 0%, #D3EADF, #5FAE8F);
-  box-shadow: 0 3px 8px rgba(95, 174, 143, .35); }
+  background: radial-gradient(circle at 50% 0%, #E4EAF6, #2F5FD0);
+  box-shadow: 0 3px 8px rgba(47,95,208,.10); }
 .candy-balance .cb-pan.l { left: 4px; animation: pan-l 4.6s var(--jelly-ease) infinite }
 .candy-balance .cb-pan.r { right: 4px; animation: pan-r 4.6s var(--jelly-ease) infinite }
-@keyframes balance-wobble { 0%, 72%, 100% { transform: rotate(0) } 80% { transform: rotate(-5deg) } 88% { transform: rotate(3deg) } 94% { transform: rotate(-1.5deg) } }
+@keyframes balance-wobble {  0% { opacity: 1; } 100% { opacity: 1; } }
 @keyframes pan-l { 0%, 72%, 100% { transform: translateY(0) } 80% { transform: translateY(5px) } 88% { transform: translateY(-3px) } 94% { transform: translateY(1px) } }
 @keyframes pan-r { 0%, 72%, 100% { transform: translateY(0) } 80% { transform: translateY(-5px) } 88% { transform: translateY(3px) } 94% { transform: translateY(-1px) } }
 
 /* 糖果罐：玻璃罐体 + 五颗糖豆轻微晃动 + 粉桃盖子 */
 .candy-jar .cj-lid { position: absolute; top: 9px; left: 50%; width: 46px; height: 12px; margin-left: -23px;
-  border-radius: 6px; background: linear-gradient(180deg, #D3EADF, #5FAE8F);
-  box-shadow: 0 3px 10px rgba(95, 174, 143, .4), inset 0 1px 0 rgba(255, 255, 255, .8); }
+  border-radius: 6px; background: linear-gradient(180deg, #E4EAF6, #2F5FD0);
+  box-shadow: 0 3px 10px rgba(47,95,208,.10), inset 0 1px 0 rgba(255, 255, 255, .8); }
 .candy-jar .cj-body { position: absolute; bottom: 8px; left: 50%; width: 40px; height: 38px; margin-left: -20px;
   border-radius: 8px 8px 14px 14px; overflow: hidden;
   background: rgba(255, 255, 255, .45); border: 2px solid rgba(255, 255, 255, .85);
-  box-shadow: inset 0 0 12px rgba(127, 190, 160, .35), 0 4px 12px rgba(95, 174, 143, .22); }
+  box-shadow: inset 0 0 12px rgba(31,35,40,.08), 0 4px 12px rgba(47,95,208,.10); }
 .candy-jar .cj-body i { position: absolute; width: 9px; height: 9px; border-radius: 50%;
   animation: jar-jiggle 3.4s ease-in-out infinite; }
-.candy-jar .cj-body i:nth-child(1) { left: 4px; bottom: 4px; background: #5FAE8F }
-.candy-jar .cj-body i:nth-child(2) { left: 15px; bottom: 3px; background: #7FE8C8; animation-delay: .4s }
-.candy-jar .cj-body i:nth-child(3) { left: 25px; bottom: 5px; background: #FFE066; animation-delay: .8s }
-.candy-jar .cj-body i:nth-child(4) { left: 9px; bottom: 14px; background: #D4B8FF; animation-delay: 1.2s }
-.candy-jar .cj-body i:nth-child(5) { left: 21px; bottom: 15px; background: #A8D8FF; animation-delay: 1.6s }
-@keyframes jar-jiggle { 0%, 100% { transform: translateY(0) } 50% { transform: translateY(-2px) } }
+.candy-jar .cj-body i:nth-child(1) { left: 4px; bottom: 4px; background: #2F5FD0 }
+.candy-jar .cj-body i:nth-child(2) { left: 15px; bottom: 3px; background: #2F7D5C; animation-delay: .4s }
+.candy-jar .cj-body i:nth-child(3) { left: 25px; bottom: 5px; background: #C98A1F; animation-delay: .8s }
+.candy-jar .cj-body i:nth-child(4) { left: 9px; bottom: 14px; background: #C7D2F2; animation-delay: 1.2s }
+.candy-jar .cj-body i:nth-child(5) { left: 21px; bottom: 15px; background: #9FBCE8; animation-delay: 1.6s }
+@keyframes jar-jiggle {  0% { opacity: 1; } 100% { opacity: 1; } }
 
 /* 尝味人徽章：圆底轻量化（§63 反馈「背景太重」），图案换主题同源的螺旋棒棒糖
    （登录 hero .ch-lolli 同 motif，青瓷薄荷 + 奶油白螺纹，-12° 微倾做艺术化处理） */
 .candy-badge { width: 56px; height: 56px; border-radius: 50%; position: relative;
-  background: radial-gradient(circle at 34% 28%, #FBFDFC, #E1F0E9 78%);
+  background: radial-gradient(circle at 34% 28%, #FFFFFF, #F1EFE9 78%);
   border: 1.5px solid #CFE3D8;
-  box-shadow: 0 4px 14px rgba(127, 190, 160, .28), inset 0 2px 0 rgba(255, 255, 255, .9);
+  box-shadow: 0 4px 14px rgba(31,35,40,.08), inset 0 2px 0 rgba(255, 255, 255, .9);
   animation: candy-bob 5.2s ease-in-out infinite; }
 .candy-badge::before { content: ''; position: absolute; left: 50%; top: 22%;
   transform: translateX(-50%) rotate(-12deg); width: 32px; height: 32px; border-radius: 50%;
-  background: repeating-conic-gradient(#8FD4BA 0 30deg, #FFFFFF 30deg 60deg);
+  background: repeating-conic-gradient(#D9DEEA 0 30deg, #FFFFFF 30deg 60deg);
   border: 2px solid #fff;
-  box-shadow: inset 0 0 0 2px rgba(95, 174, 143, .22), 0 2px 8px rgba(127, 190, 160, .35); }
+  box-shadow: inset 0 0 0 2px rgba(47,95,208,.10), 0 2px 8px rgba(31,35,40,.08); }
 .candy-badge::after { content: ''; position: absolute; left: 50%; top: 55%;
   transform: translateX(-50%) rotate(-12deg); width: 5px; height: 19px; border-radius: 3px;
   background: linear-gradient(180deg, #E8D9C8, #C9B49A); }
 
 /* 糖果熔炉：橙红炉体 + 炉口 + 火焰跳动（火焰只动 transform/opacity，静态 blur 不参与动画） */
 .candy-furnace::before { content: ''; position: absolute; bottom: 8px; left: 50%; width: 48px; height: 40px;
-  margin-left: -24px; border-radius: 12px 12px 16px 16px;
-  background: linear-gradient(180deg, #FFC98A, #FF8C5A 70%);
+  margin-left: -24px; border-radius: 12px 12px 10px 10px;
+  background: linear-gradient(180deg, #FFC98A, #A02D26 70%);
   box-shadow: 0 6px 18px rgba(255, 140, 90, .35), inset 0 2px 0 rgba(255, 255, 255, .5); }
 .candy-furnace::after { content: ''; position: absolute; bottom: 19px; left: 50%; width: 28px; height: 14px;
   margin-left: -14px; border-radius: 8px;
@@ -766,13 +752,9 @@ body, button, input, textarea, select {
 .candy-furnace .cf-flame { position: absolute; bottom: 29px; left: 50%; width: 16px; height: 22px;
   margin-left: -8px; transform-origin: 50% 100%; filter: blur(.3px);
   border-radius: 50% 50% 46% 46% / 62% 62% 38% 38%;
-  background: linear-gradient(180deg, #FFE066, #FF9F0A 65%, #FF6A2A);
+  background: linear-gradient(180deg, #C98A1F, #FF9F0A 65%, #FF6A2A);
   animation: flame-dance 1.5s ease-in-out infinite; }
-@keyframes flame-dance {
-  0%, 100% { transform: scaleY(1) scaleX(1) translateY(0); opacity: .92 }
-  35% { transform: scaleY(1.18) scaleX(.92) translateY(-2px); opacity: 1 }
-  70% { transform: scaleY(.9) scaleX(1.08) translateY(1px); opacity: .86 }
-}
+@keyframes flame-dance {  0% { opacity: 1; } 100% { opacity: 1; } }
 
 /* ══ 导入页三步糖果流程条（方案 4.5）══
    JSX 不动：原有 .step-node.active/.done 与 .step-line.on 已经够语义，只把位图换成 CSS 糖豆节点。
@@ -780,40 +762,40 @@ body, button, input, textarea, select {
 .step-node img { display: none !important; }
 .step-node { position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px; }
 .step-node::before {
-  content: '🍬'; width: 48px; height: 48px; border-radius: 50%; font-size: 20px;
+  content: '1'; width: 48px; height: 48px; border-radius: 50%; font-size: 20px;
   display: flex; align-items: center; justify-content: center;
   background: rgba(255, 255, 255, .85); border: 1px solid rgba(255, 255, 255, .9);
-  box-shadow: 0 4px 14px rgba(127, 190, 160, .2), inset 0 1px 0 rgba(255, 255, 255, .9);
+  box-shadow: 0 4px 14px rgba(31,35,40,.08), inset 0 1px 0 rgba(255, 255, 255, .9);
   filter: grayscale(1) opacity(.55);
 }
 /* 每一步有自己的语义图标（不再三个步骤共用一把灰锁）：
    必须排在 .done 之前——两者特异性相同，靠先后顺序让“完成一律 ✓”胜出 */
-.step-node.st1::before { content: '🍬' }   /* 甜蜜值凝聚 = 粘贴题库 JSON */
-.step-node.st2::before { content: '📥' }   /* 导入检测 */
-.step-node.st3::before { content: '🍯' }   /* 封印入库 = 密封的糖罐 */
+.step-node.st1::before { content: '1' }   /* 甜蜜值凝聚 = 粘贴题库 JSON */
+.step-node.st2::before { content: '2' }   /* 导入检测 */
+.step-node.st3::before { content: '3' }   /* 封印入库 = 密封的糖罐 */
 .step-node.done::before { content: '✓'; font-weight: 900; color: #fff; filter: none;
-  background: radial-gradient(circle at 34% 28%, #B8F5E3, #5FD4B0);
-  box-shadow: 0 0 14px rgba(127, 232, 200, .45), inset 0 1px 0 rgba(255, 255, 255, .7); }
+  background: radial-gradient(circle at 34% 28%, #DDEDE5, #256A4C);
+  box-shadow: 0 0 14px rgba(47,125,92,.10), inset 0 1px 0 rgba(255, 255, 255, .7); }
 .step-node.active::before { width: 54px; height: 54px; font-size: 23px; filter: none;
-  background: radial-gradient(circle at 34% 28%, #D3EADF, #5FAE8F); color: #fff;
-  box-shadow: 0 0 18px rgba(95, 174, 143, .5), inset 0 1px 0 rgba(255, 255, 255, .7); }
+  background: radial-gradient(circle at 34% 28%, #E4EAF6, #2F5FD0); color: #fff;
+  box-shadow: 0 0 18px rgba(47,95,208,.10), inset 0 1px 0 rgba(255, 255, 255, .7); }
 /* 当前节点外圈的旋转糖环 */
 .step-node.active::after { content: ''; position: absolute; top: -5px; left: 50%; width: 66px; height: 66px;
-  margin-left: -33px; border-radius: 50%; border: 2px dashed rgba(127, 190, 160, .8);
+  margin-left: -33px; border-radius: 50%; border: 2px dashed rgba(31,35,40,.08);
   animation: candy-spin 7s linear infinite; }
-@keyframes candy-spin { to { transform: rotate(360deg) } }
+@keyframes candy-spin {  0% { opacity: 1; } 100% { opacity: 1; } }
 .step-node > span { font-size: 12.5px; letter-spacing: 1px; color: rgba(44, 24, 16, .68); }
-.step-node.active > span { color: #2E6E58; font-weight: 700; }
+.step-node.active > span { color: #24499F; font-weight: 700; }
 .step-node.done > span { color: #2FA98A; font-weight: 700; }
 .step-line { position: relative; flex: 1 1 auto; height: 2px; margin: 24px -2px 0; overflow: hidden;
   background: repeating-linear-gradient(90deg, rgba(90, 74, 42, .3) 0 6px, transparent 6px 12px); }
-.step-line.on { background: linear-gradient(90deg, #5FD4B0, #7FE8C8);
-  box-shadow: 0 0 10px rgba(127, 232, 200, .5); }
+.step-line.on { background: linear-gradient(90deg, #256A4C, #2F7D5C);
+  box-shadow: 0 0 10px rgba(47,125,92,.10); }
 .step-line.on::after { content: ''; position: absolute; top: -2px; left: 0; width: 25%; height: 6px;
   border-radius: 6px; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .95), transparent);
   animation: energy-run 1.8s linear infinite; }
 /* translateX 的百分比是相对 shine 自身（=线长的 25%），所以 400% 正好走完整条线 */
-@keyframes energy-run { from { transform: translateX(-100%) } to { transform: translateX(400%) } }
+@keyframes energy-run {  0% { opacity: 1; } 100% { opacity: 1; } }
 
 /* ══ 切页稳定化：杀掉整页模糊与入场级联 ══
    global.css 给 .page-wrap 挂了 page-in：from { opacity:0; filter:blur(6px); transform:translateY(10px) }，
@@ -836,14 +818,10 @@ body, button, input, textarea, select {
 .burst-host { position: fixed; inset: 0; z-index: 90; pointer-events: none; }
 .burst-bean {
   position: absolute; border-radius: 50%; opacity: 0;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .7), 0 2px 6px rgba(95, 174, 143, .35);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .7), 0 2px 6px rgba(47,95,208,.10);
   animation: burst-fly .95s cubic-bezier(.22, .7, .3, 1) both;
 }
-@keyframes burst-fly {
-  0% { transform: translate(0, 0) scale(.45); opacity: 0 }
-  18% { opacity: 1 }
-  100% { transform: translate(var(--bx), var(--by)) scale(1); opacity: 0 }
-}
+@keyframes burst-fly {  0% { opacity: 1; } 100% { opacity: 1; } }
 
 /* 新增动效的 reduced-motion 降级：开机仪式直接终态，循环动效全停 */
 @media (prefers-reduced-motion: reduce) {
@@ -865,13 +843,13 @@ body, button, input, textarea, select {
    用 .learn-vision.candy-hero 双类名提特异性，确保压过哥特层对 .learn-vision 的底图/尺寸规则。
    漂浮只动 transform，幅度 ≤9px：它是氛围层，不能抢标题的注意力。 */
 .learn-vision.candy-hero {
-  position: relative; overflow: hidden; height: 168px; border-radius: 28px;
+  position: relative; overflow: hidden; height: 168px; border-radius: 16px;
   display: flex; align-items: center; justify-content: center;
   background:
     radial-gradient(120% 150% at 12% 0%, rgba(255, 255, 255, .92) 0%, rgba(255, 255, 255, 0) 46%),
     linear-gradient(115deg, #E3F4ED 0%, #E4FBF3 48%, #EDE4FF 100%);
   border: 1px solid rgba(255, 255, 255, .9);
-  box-shadow: 0 12px 34px rgba(95, 174, 143, .22), inset 0 1px 0 rgba(255, 255, 255, .95);
+  box-shadow: 0 12px 34px rgba(47,95,208,.10), inset 0 1px 0 rgba(255, 255, 255, .95);
 }
 .learn-vision.candy-hero img { display: none !important; }
 /* 哥特层给 .learn-vision::after 铺了一层 rgba(13,17,23,.85) 的近黑遮罩（原本是为了压住巫师图、
@@ -881,52 +859,52 @@ body, button, input, textarea, select {
 .learn-vision.candy-hero::after {
   content: ''; position: absolute; inset: 0; pointer-events: none;
   background: linear-gradient(180deg,
-    rgba(255, 255, 255, .38) 0%, rgba(255, 255, 255, 0) 42%, rgba(127, 190, 160, .16) 100%);
+    rgba(255, 255, 255, .38) 0%, rgba(255, 255, 255, 0) 42%, rgba(31,35,40,.08) 100%);
 }
 .candy-hero .cap {
-  position: relative; z-index: 2; padding: 10px 22px; border-radius: 22px;
+  position: relative; z-index: 2; padding: 10px 22px; border-radius: 12px;
   background: rgba(255, 255, 255, .62); border: 1px solid rgba(255, 255, 255, .9);
-  color: #2E6E58; font-size: 15px; font-weight: 700; letter-spacing: 2px;
+  color: #24499F; font-size: 15px; font-weight: 700; letter-spacing: 2px;
   text-shadow: 0 1px 0 rgba(255, 255, 255, .9);
-  box-shadow: 0 4px 14px rgba(95, 174, 143, .18);
+  box-shadow: 0 4px 14px rgba(47,95,208,.10);
 }
 .ch-candy {
   position: absolute; border-radius: 50%; opacity: .88;
-  box-shadow: inset 0 -3px 8px rgba(0, 0, 0, .07), inset 0 2px 0 rgba(255, 255, 255, .85), 0 6px 18px rgba(95, 174, 143, .25);
+  box-shadow: inset 0 -3px 8px rgba(0, 0, 0, .07), inset 0 2px 0 rgba(255, 255, 255, .85), 0 6px 18px rgba(47,95,208,.10);
   animation: candy-bob 6s ease-in-out infinite;
 }
 .ch-candy.c1 { left: 9%; top: 24%; width: 46px; height: 46px;
-  background: radial-gradient(circle at 32% 28%, #EAF2ED, #5FAE8F 72%); }
+  background: radial-gradient(circle at 32% 28%, #F7F7F4, #2F5FD0 72%); }
 .ch-candy.c2 { right: 11%; top: 16%; width: 34px; height: 34px; animation-delay: -2s;
-  background: radial-gradient(circle at 32% 28%, #EAFFF8, #5FD4B0 72%); }
+  background: radial-gradient(circle at 32% 28%, #EAFFF8, #256A4C 72%); }
 .ch-candy.c3 { right: 25%; bottom: 14%; width: 26px; height: 26px; animation-delay: -4s;
-  background: radial-gradient(circle at 32% 28%, #FFFBEB, #FFE066 72%); }
+  background: radial-gradient(circle at 32% 28%, #FFFBEB, #C98A1F 72%); }
 /* 棒棒糖：棍子不转、只转糖体（把旋转放在 ::before，避免棍子跟着甩） */
 .ch-lolli { position: absolute; left: 21%; bottom: 12%; width: 54px; height: 82px; }
 .ch-lolli::before {
   content: ''; position: absolute; top: 0; left: 0; width: 54px; height: 54px; border-radius: 50%;
-  background: repeating-conic-gradient(#5FAE8F 0 18deg, #F2F9F5 18deg 36deg);
-  box-shadow: 0 8px 20px rgba(95, 174, 143, .3), inset 0 0 0 3px rgba(255, 255, 255, .75);
+  background: repeating-conic-gradient(#2F5FD0 0 18deg, #F2F9F5 18deg 36deg);
+  box-shadow: 0 8px 20px rgba(47,95,208,.10), inset 0 0 0 3px rgba(255, 255, 255, .75);
   animation: lolli-spin 14s linear infinite;
 }
 .ch-lolli::after { content: ''; position: absolute; top: 52px; left: 50%; width: 5px; height: 28px;
   margin-left: -2.5px; border-radius: 3px; background: linear-gradient(180deg, #FFFFFF, #E9DCC5); }
-@keyframes lolli-spin { to { transform: rotate(360deg) } }
+@keyframes lolli-spin {  0% { opacity: 1; } 100% { opacity: 1; } }
 
 /* 排位系统（2026-09-09 深夜，Learn 页）：LOL 式晋级赛。
    rank-card 常驻段位卡；promo-banner 考后播报；exam-* 考试弹窗。
    入场动画走全局 .rise（一次性），循环动画只挂在 22px 的 emoji 上（§5 红线：infinite 不上大元素）。 */
 .rank-card {
   display: flex; align-items: center; gap: 14px; margin: 0 0 14px;
-  padding: 14px 16px; border-radius: 16px; border: 1.5px solid rgba(95, 174, 143, .35);
-  background: rgba(255, 255, 255, .72); box-shadow: 0 8px 22px rgba(95, 174, 143, .12);
+  padding: 14px 16px; border-radius: 10px; border: 1.5px solid rgba(47,95,208,.10);
+  background: rgba(255, 255, 255, .72); box-shadow: 0 8px 22px rgba(47,95,208,.10);
 }
 .rank-badge {
   display: flex; align-items: center; justify-content: center; flex-shrink: 0;
   width: 46px; height: 46px; border-radius: 50%; border: 2px solid; background: rgba(255, 255, 255, .85);
 }
 .rank-emoji { font-size: 22px; line-height: 1; animation: rank-bob 1.8s ease-in-out infinite; }
-@keyframes rank-bob { 0%, 100% { transform: translateY(0) rotate(-6deg) } 50% { transform: translateY(-4px) rotate(6deg) } }
+@keyframes rank-bob {  0% { opacity: 1; } 100% { opacity: 1; } }
 .rank-info { min-width: 0; flex: 1; }
 .rank-info h4 { margin: 0; font-size: 14.5px; letter-spacing: .5px; }
 .rank-bar { margin: 6px 0 4px; height: 8px; border-radius: 999px; background: rgba(0, 0, 0, .08); overflow: hidden; }
@@ -935,7 +913,7 @@ body, button, input, textarea, select {
 .rank-hint { margin-top: 4px; }
 .promo-banner {
   display: flex; align-items: center; gap: 14px; margin: 0 0 14px; padding: 14px 18px;
-  border-radius: 16px; border: 1.5px solid #E8C15A;
+  border-radius: 10px; border: 1.5px solid #E8C15A;
   background: linear-gradient(115deg, #FFF6DC 0%, #FFFDF4 60%, #F0FFE9 100%);
   box-shadow: 0 10px 26px rgba(232, 193, 90, .3);
 }
@@ -961,7 +939,7 @@ body, button, input, textarea, select {
   border: 1.5px solid rgba(0, 0, 0, .12); background: rgba(255, 255, 255, .8);
 }
 .exam-opt b { color: #2E6B52; margin-right: 6px; }
-.exam-opt.on { border-color: #5FAE8F; background: rgba(168, 216, 196, .28); }
+.exam-opt.on { border-color: #2F5FD0; background: rgba(168, 216, 196, .28); }
 .exam-opt.locked { cursor: default; opacity: .82; }
 .exam-fill {
   width: 100%; padding: 10px 14px; border-radius: 12px; font-size: 14px;
@@ -981,14 +959,14 @@ body, button, input, textarea, select {
    换成奶白果冻胶囊 + 糖果色描边 */
 .tag {
   background: rgba(255, 255, 255, .8) !important;
-  border: 1px solid rgba(127, 190, 160, .9) !important;
-  border-radius: 18px !important;
+  border: 1px solid rgba(31,35,40,.08) !important;
+  border-radius: 10px !important;
   color: var(--pink-ink) !important;
-  box-shadow: 0 3px 10px rgba(95, 174, 143, .16), inset 0 1px 0 rgba(255, 255, 255, .95) !important;
+  box-shadow: 0 3px 10px rgba(47,95,208,.10), inset 0 1px 0 rgba(255, 255, 255, .95) !important;
 }
 .tag.teal {
-  border-color: rgba(127, 232, 200, .95) !important; color: #2FA98A !important;
-  box-shadow: 0 3px 10px rgba(127, 232, 200, .22), inset 0 1px 0 rgba(255, 255, 255, .95) !important;
+  border-color: rgba(47,125,92,.10) !important; color: #2FA98A !important;
+  box-shadow: 0 3px 10px rgba(47,125,92,.10), inset 0 1px 0 rgba(255, 255, 255, .95) !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1005,25 +983,25 @@ body, button, input, textarea, select {
 .sealing-anim::before {
   content: ''; position: absolute; left: 50%; top: 50%; width: 96px; height: 96px;
   margin: -48px 0 0 -48px; border-radius: 50%;
-  background: repeating-conic-gradient(#5FAE8F 0 18deg, #F2F9F5 18deg 36deg);
-  box-shadow: 0 10px 26px rgba(95, 174, 143, .35), inset 0 0 0 4px rgba(255, 255, 255, .8);
+  background: repeating-conic-gradient(#2F5FD0 0 18deg, #F2F9F5 18deg 36deg);
+  box-shadow: 0 10px 26px rgba(47,95,208,.10), inset 0 0 0 4px rgba(255, 255, 255, .8);
   animation: lolli-spin 6s linear infinite;
 }
 /* 掉落的不再是卡牌而是糖豆：nth-of-type 在 span 之间计数（那个 img 不参与） */
 .fall-card {
   width: 14px !important; height: 14px !important;
   border: none !important; border-radius: 50% !important;
-  background: radial-gradient(circle at 32% 28%, #EAF2ED, #5FAE8F 72%) !important;
-  box-shadow: 0 3px 10px rgba(95, 174, 143, .35), inset 0 1px 0 rgba(255, 255, 255, .8) !important;
+  background: radial-gradient(circle at 32% 28%, #F7F7F4, #2F5FD0 72%) !important;
+  box-shadow: 0 3px 10px rgba(47,95,208,.10), inset 0 1px 0 rgba(255, 255, 255, .8) !important;
 }
-.fall-card:nth-of-type(even) { background: radial-gradient(circle at 32% 28%, #EAFFF8, #5FD4B0 72%) !important; }
-.fall-card:nth-of-type(3n) { background: radial-gradient(circle at 32% 28%, #FFFBEB, #FFE066 72%) !important; }
+.fall-card:nth-of-type(even) { background: radial-gradient(circle at 32% 28%, #EAFFF8, #256A4C 72%) !important; }
+.fall-card:nth-of-type(3n) { background: radial-gradient(circle at 32% 28%, #FFFBEB, #C98A1F 72%) !important; }
 /* 成功框：金色辉光标题改糖果粉，顶部加一枚糖 */
 .success-box .gold-glow-text {
-  color: #2E6E58 !important;
-  text-shadow: 0 2px 0 rgba(255, 255, 255, .95), 0 6px 16px rgba(95, 174, 143, .28) !important;
+  color: #24499F !important;
+  text-shadow: 0 2px 0 rgba(255, 255, 255, .95), 0 6px 16px rgba(47,95,208,.10) !important;
 }
-.success-box::before { content: '🍬'; display: block; margin-bottom: 6px; font-size: 40px; }
+.success-box::before { content: '1'; display: block; margin-bottom: 6px; font-size: 40px; }
 
 /* 页标题的 rune 图标：哥特风的水晶球/蒸馏器换成糖果（它们在糖果页里是最显眼的异类） */
 .page-head h1 .rune { font-size: 22px; vertical-align: -1px; }
@@ -1070,7 +1048,7 @@ body, button, input, textarea, select {
 
 /* ══════════════════════════════════════════════════════════
    #1 判分双通道：对 = 薄荷绿，错 = 草莓红
-   旧版错也用绿（--sour / --fault / --glow-red 全是酸橙绿 #A8E063），
+   旧版错也用绿（--sour / --fault / --glow-red 全是酸橙绿 #2F7D5C），
    与对的 #2FA98A 同属绿系（hue 85° vs 157°），实测用户分不清对错；
    而「✗ 我答错了」按钮用的又是暖橙 --danger，同一个「错」语义跳了两个色系。
    现在统一到绿 vs 红（hue 157° vs 5°），不依赖明度差就能区分，
@@ -1081,20 +1059,20 @@ body, button, input, textarea, select {
   --bad: #FF8A7A;
   --bad-dk: #F2564A;
   --bad-ink: #C4372E;
-  --bad-wash: rgba(242, 86, 74, .12);
-  --glow-bad: 0 0 12px rgba(242, 86, 74, .45), 0 0 24px rgba(242, 86, 74, .18);
+  --bad-wash: rgba(196,55,46,.12);
+  --glow-bad: 0 0 12px rgba(196,55,46,.12), 0 0 24px rgba(196,55,46,.12);
   --ok-ink: #1B7F63;
-  /* 粉色文字专用深调：白/奶白底上一律用 var(--pink-ink)（#2E6E58，约 5.2:1，AA 达标）。
+  /* 粉色文字专用深调：白/奶白底上一律用 var(--pink-ink)（#24499F，约 5.2:1，AA 达标）。
      §33 复审：原注释里「压彩色底的几处继续用 #D14767」的豁免不再成立——.nav-item.active
      的「粉底」只是 16% 粉罩在果冻白上，实算仍只有约 4.0:1，已一并改用 --pink-ink。
      现存 #D14767 只剩三类：data-URI SVG 描边（CSS 变量进不去）、
      被变体 !important 否决的死样式（.rate-btn 基色）与幽灵选择器（.fab-stats），见 §33 清单。 */
-  --pink-ink: #2E6E58;
+  --pink-ink: #24499F;
   /* 高杠杆手法（同 §3.1）：直接重定义哥特层的错误 token，
      让 pages.css / global.css 里几百条用 var(--fault) / var(--glow-red) 的旧规则自动变色 */
   --fault: #F2564A;
   --fault-lt: #FF8A7A;
-  --glow-red: 0 0 12px rgba(242, 86, 74, .5), 0 0 24px rgba(242, 86, 74, .2);
+  --glow-red: 0 0 12px rgba(196,55,46,.12), 0 0 24px rgba(196,55,46,.12);
 }
 .verdict-banner.ok { color: var(--ok-ink) !important; }
 .verdict-banner.bad { color: var(--bad-ink) !important; }
@@ -1102,19 +1080,19 @@ body, button, input, textarea, select {
 .red-glow-text { color: var(--bad-ink) !important; }
 .answer-scroll-box h5 { color: var(--ok-ink) !important; }
 /* ⚠ background 必须显式写白：L519 有一条旧设计的 .answer-scroll-box.bad 把底色定成
-   酸橙绿 rgba(168,224,99,.12)，以前被本条末尾规则盖着；一旦本条不写 background，
-   那条绿色就会重新露出来（实测 boxBg = rgba(168,224,99,0.12)），变成红字配绿底。
+   酸橙绿 rgba(47,125,92,.10)，以前被本条末尾规则盖着；一旦本条不写 background，
+   那条绿色就会重新露出来（实测 boxBg = rgba(47,125,92,.10)），变成红字配绿底。
    值取与答对态 L513 完全相同的 rgba(255,255,255,.72)，保证「框框背景不变」。 */
 .answer-scroll-box.bad {
   border-left-color: var(--bad-dk) !important;
   background: rgba(255, 255, 255, .72) !important;
-  box-shadow: 0 2px 12px rgba(242, 86, 74, .22) !important;
+  box-shadow: 0 2px 12px rgba(196,55,46,.12) !important;
 }
 /* ⚠ 不能直接删这条：L522 还有一条原始糖果版的 .answer-scroll-box.bad h5 { color: #6E9B2E }（橄榄绿），
    一直靠本条压着。用户口径是「参考答案字体不变色」，所以要显式写成与答对态同值的
    var(--ok-ink)，而不是删掉让它回退——否则会变成橄榄绿（§18.2 同一个陷阱）。 */
 .answer-scroll-box.bad h5 { color: var(--ok-ink) !important; }
-.opt-row.wronged { border-color: var(--bad-dk) !important; background: rgba(242, 86, 74, .14) !important; color: var(--bad-ink) !important; }
+.opt-row.wronged { border-color: var(--bad-dk) !important; background: rgba(196,55,46,.12) !important; color: var(--bad-ink) !important; }
 .opt-row.wronged::before { background: radial-gradient(circle at 32% 28%, #FFD9D2, #F2564A) !important; border-color: #F2564A !important; }
 .fill-item.wronged .rune-input { border-color: var(--bad-dk) !important; box-shadow: var(--glow-bad) !important; }
 .fill-item.right .rune-input { border-color: var(--mint-dk) !important; box-shadow: var(--glow-mint) !important; }
@@ -1124,19 +1102,19 @@ body, button, input, textarea, select {
 .judge-card.j-false { border-color: var(--candy-pink-lt) !important; }
 .judge-card.j-false::before {
   content: '✗';
-  background: radial-gradient(circle at 32% 28%, #BFE2D2, #5FAE8F) !important;
-  box-shadow: 0 0 12px rgba(95, 174, 143, .45), inset 0 1px 0 rgba(255, 255, 255, .7) !important;
+  background: radial-gradient(circle at 32% 28%, #C9D6F0, #2F5FD0) !important;
+  box-shadow: 0 0 12px rgba(47,95,208,.10), inset 0 1px 0 rgba(255, 255, 255, .7) !important;
 }
 .judge-card.j-false:hover {
   border-color: var(--candy-pink) !important;
-  box-shadow: 0 0 0 4px rgba(127, 190, 160, .25), 0 8px 24px rgba(95, 174, 143, .35) !important;
+  box-shadow: 0 0 0 4px rgba(31,35,40,.08), 0 8px 24px rgba(47,95,208,.10) !important;
 }
 .judge-card.j-false.selected {
   border-color: var(--bad-dk) !important;
-  box-shadow: 0 0 0 4px rgba(242, 86, 74, .22), 0 8px 24px rgba(242, 86, 74, .3) !important;
+  box-shadow: 0 0 0 4px rgba(196,55,46,.12), 0 8px 24px rgba(196,55,46,.12) !important;
 }
 .judge-card.j-false.selected .judge-label { color: var(--bad-ink) !important; }
-.tag.red { color: var(--bad-ink) !important; border-color: rgba(242, 86, 74, .55) !important; }
+.tag.red { color: var(--bad-ink) !important; border-color: rgba(196,55,46,.12) !important; }
 
 /* ══════════════════════════════════════════════════════════
    #2 学习页入口卡：内容垂直居中
@@ -1161,8 +1139,8 @@ body, button, input, textarea, select {
   content: ''; flex: 0 0 auto; width: 7px; height: 7px; border-radius: 50%;
   background: currentColor; box-shadow: inset 0 1px 0 rgba(255, 255, 255, .75);
 }
-.diff-pill.d-base { color: #1B7F63; border-color: var(--mint); background: rgba(127, 232, 200, .18); }
-.diff-pill.d-apply { color: #96690F; border-color: var(--lemon-dk); background: rgba(255, 224, 102, .24); }
+.diff-pill.d-base { color: #1B7F63; border-color: var(--mint); background: rgba(47,125,92,.10); }
+.diff-pill.d-apply { color: #96690F; border-color: var(--lemon-dk); background: rgba(201, 138, 31, .12); }
 .diff-pill.d-adv { color: #6C46C9; border-color: var(--lav-dk); background: rgba(184, 148, 255, .2); }
 .diff-pill.tiny { font-size: clamp(8px, 4.4cqw, 10.5px); padding: 1px 6px; gap: 3px; }
 .diff-pill.tiny::before { width: 5px; height: 5px; }
@@ -1187,14 +1165,14 @@ body, button, input, textarea, select {
    换成纯 CSS 糖果奖章（.settle-medal，零位图零请求，也不再有永久旋转动画）。
    ══════════════════════════════════════════════════════════ */
 .settle-rose { display: none !important; }
-.settle-card { border-radius: 24px !important; }
+.settle-card { border-radius: 14px !important; }
 .settle-card::before { display: none !important; }
 .settle-medal {
   width: 76px; height: 76px; margin: 0 auto 10px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center; font-size: 38px;
   background: radial-gradient(circle at 34% 28%, #FFF3F6, var(--candy-pink-lt));
   border: 2px solid var(--candy-pink-lt);
-  box-shadow: 0 6px 18px rgba(95, 174, 143, .3), inset 0 1px 0 rgba(255, 255, 255, .9);
+  box-shadow: 0 6px 18px rgba(47,95,208,.10), inset 0 1px 0 rgba(255, 255, 255, .9);
 }
 .settle-title {
   margin: 0; font-size: 19px; font-weight: 900; letter-spacing: 6px; color: var(--pink-ink);
@@ -1218,10 +1196,10 @@ body, button, input, textarea, select {
 .tarot-stem { color: var(--ink) !important; text-shadow: none !important; }
 .tarot-scroll { color: var(--ink-2) !important; }
 .tarot-scroll p { text-shadow: none !important; }
-/* h6 从 #D14767 加深到 #2E6E58：牌背内层改成奶白底之后，#D14767 压白底只有约 4.0:1，
-   不够 WCAG AA 的 4.5:1；#2E6E58 约 5.2:1，且与 .tarot-foot button:hover 同源。 */
+/* h6 从 #D14767 加深到 #24499F：牌背内层改成奶白底之后，#D14767 压白底只有约 4.0:1，
+   不够 WCAG AA 的 4.5:1；#24499F 约 5.2:1，且与 .tarot-foot button:hover 同源。 */
 .tarot-scroll h6 { color: var(--pink-ink) !important; }
-/* 键值行原来 b 与 span 同为 --muted(#6E6E6E)，标签和值没有层次
+/* 键值行原来 b 与 span 同为 --muted(#6E757D)，标签和值没有层次
    （craft-floor 要求明显的字重/字号台阶）。标签用 --ink-2 + 字距、值用 --ink + 600 字重，
    两者压奶白底分别约 5.1:1 与 9:1。span 不需 !important：pages.css 没有对应规则，
    而继承来的颜色算不过普通声明。 */
@@ -1230,15 +1208,15 @@ body, button, input, textarea, select {
 .tarot-opt { color: var(--ink-2) !important; }
 .tarot-ans { color: var(--ok-ink) !important; font-weight: 700; }
 /* 这行字只有 clamp(7.5px,4.2cqw,10px)，用 --ink-3(#999) 在浅底上只剩约 2.8:1，
-   小到这个份上必须提到 --muted(#6E6E6E，约 5.0:1) 才读得清 */
+   小到这个份上必须提到 --muted(#6E757D，约 5.0:1) 才读得清 */
 .tarot-hint { color: var(--muted) !important; letter-spacing: 1px; }
 .bank-meta { color: var(--ink-2) !important; }
 .bank-search input::placeholder { color: var(--ink-3) !important; }
 /* 掌握状态宝珠：哥特的暗底金边换成糖果三色（未做=奶粉 / 复习中=浅薄荷 / 已掌握=深薄荷） */
-.tarot-orb { border-color: var(--candy-pink-lt) !important; background: #DFECE5 !important; }
+.tarot-orb { border-color: var(--candy-pink-lt) !important; background: #E3E0D8 !important; }
 .tarot-orb.half { background: var(--mint-lt) !important; border-color: var(--mint) !important; }
 .tarot-orb.full { background: var(--mint-dk) !important; border-color: var(--mint-dk) !important; box-shadow: var(--glow-mint) !important; }
-.tarot-orb.polluted { box-shadow: 0 0 0 2px rgba(242, 86, 74, .45) !important; }
+.tarot-orb.polluted { box-shadow: 0 0 0 2px rgba(196,55,46,.12) !important; }
 /* 题型印章位图（p34-1~7，七个文件内容完全相同、本来就区分不出题型）已从 JSX 删掉，
    改成 .type-candy 文字胶囊放进签条行；这条 display:none 只是防编辑器缓冲区把 img 带回来 */
 .tarot-seal { display: none !important; }
@@ -1262,7 +1240,7 @@ body, button, input, textarea, select {
 .rework-box li.err-i { color: var(--bad-ink); }
 .rework-box li.warn-i { color: #8A6D00; }
 .success-box {
-  border: 1.5px solid var(--mint-dk); background: rgba(127, 232, 200, .16); border-radius: var(--r-xs);
+  border: 1.5px solid var(--mint-dk); background: rgba(47,125,92,.10); border-radius: var(--r-xs);
 }
 /* 设置页每日目标的数字：原来是 Cinzel（woff2 是 404，实际回落到衬线）+ --teal-lt + 青色辉光，
    30px 数字在浅底上只有约 2.2:1。全站扫 Cinzel 时发现的最后一个可达页落点。 */
@@ -1271,7 +1249,7 @@ body, button, input, textarea, select {
   color: var(--pink-ink) !important; text-shadow: none !important;
 }
 /* 危险区：哥特暗红边框与 #d98ba0 标题换成草莓红通道，与上面那段说明文字同色 */
-.furnace-zone { border-color: rgba(242, 86, 74, .55) !important; }
+.furnace-zone { border-color: rgba(196,55,46,.12) !important; }
 .furnace-zone .panel-title { color: var(--bad-ink) !important; }
 
 /* ══════════════════════════════════════════════════════════
@@ -1287,20 +1265,20 @@ body, button, input, textarea, select {
    而 .modal-box / .modal-veil / .modal-close 都没有内联样式（只有标题 h3 有，所以它那条要用）。 */
 /* 遮罩不能用粉洗：上一版我写成 rgba(255,214,224,.5)，叠在本就粉彩的页面背景上
    会把整屏推成发红（用户原话「整个页面都变红了」）。改用去饱和的暖灰轻压暗：
-   20% 的 rgb(58,44,48) 叠在 #FFF0F5 上约为 rgb(215,201,205)，是个中性蟹壳灰、不带红相，
+   20% 的 rgb(58,44,48) 叠在 #F2F0EB 上约为 rgb(215,201,205)，是个中性蟹壳灰、不带红相，
    且能把白底弹窗托出来。blur 从 5px 加到 6px，靠磨砂而不是靠颜色拉开层次。 */
 .modal-veil { background: rgba(58, 44, 48, .2); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
 .modal-box {
   background: rgba(255, 255, 255, .9);
-  border: 2px solid var(--candy-pink-lt); border-radius: 24px;
-  box-shadow: 0 18px 46px rgba(95, 174, 143, .3), inset 0 1px 0 rgba(255, 255, 255, .95);
+  border: 2px solid var(--candy-pink-lt); border-radius: 14px;
+  box-shadow: 0 18px 46px rgba(47,95,208,.10), inset 0 1px 0 rgba(255, 255, 255, .95);
 }
 .modal-box::before { display: none; }   /* 哥特内描金线 */
 .modal-close {
   border: 2px solid var(--candy-pink-lt); background: #fff;
   color: var(--pink-ink); font-weight: 800;
 }
-.modal-close:hover { color: #2E6E58; border-color: var(--candy-pink-dk); box-shadow: var(--glow-pink); }
+.modal-close:hover { color: #24499F; border-color: var(--candy-pink-dk); box-shadow: var(--glow-pink); }
 /* 弹窗标题靠内联 style 写死了 color: var(--gold-text)（哥特金色），内联会压普通规则，
    所以这一条必须带 !important。色值对齐 .panel-title / .zone-label / .settle-title（约 5.0:1）。 */
 .modal-box h3 { color: var(--pink-ink) !important; }
@@ -1316,10 +1294,10 @@ body, button, input, textarea, select {
   background: rgba(255, 255, 255, .55);
 }
 .scroll-zone.drag-on {
-  border-color: var(--mint-dk); background: rgba(127, 232, 200, .12);
-  box-shadow: 0 0 0 4px rgba(127, 232, 200, .22);
+  border-color: var(--mint-dk); background: rgba(47,125,92,.10);
+  box-shadow: 0 0 0 4px rgba(47,125,92,.10);
 }
-.scroll-zone.err { border-color: var(--bad-dk); box-shadow: 0 0 0 4px rgba(242, 86, 74, .16); }
+.scroll-zone.err { border-color: var(--bad-dk); box-shadow: 0 0 0 4px rgba(196,55,46,.12); }
 
 /* 导航「学习」右上角那个绿点已按用户要求删除（JSX 里也删了，这条是防编辑器缓冲区带回来的保险）。
    它原本是 wrongCount > 0 的错题提醒，但学习页的「错题重练」卡已经有草莓红计数徽章，
@@ -1338,18 +1316,18 @@ body, button, input, textarea, select {
    滚动条 track（L89）、.bank-search input 与 .deck（被 L176 的 input/select 规则带 !important 接管）。 */
 .stepper button {
   background: #fff; border-color: var(--candy-pink-lt); color: var(--pink-ink); font-weight: 900;
-  box-shadow: 0 3px 10px rgba(127, 190, 160, .28);
+  box-shadow: 0 3px 10px rgba(31,35,40,.08);
 }
 .stepper button:hover:not(:disabled) {
-  border-color: var(--candy-pink-dk); color: #2E6E58;
-  box-shadow: 0 4px 14px rgba(95, 174, 143, .4);
+  border-color: var(--candy-pink-dk); color: #24499F;
+  box-shadow: 0 4px 14px rgba(47,95,208,.10);
 }
 /* 题库页卡片背面的「删除 / 收起」：销毁类动作走草莓红通道，与全站「错/危险」同色 */
 .tarot-foot button {
   background: #fff; border-color: var(--candy-pink-lt); color: var(--pink-ink);
-  box-shadow: 0 2px 8px rgba(127, 190, 160, .25);
+  box-shadow: 0 2px 8px rgba(31,35,40,.08);
 }
-.tarot-foot button:hover { color: #2E6E58; border-color: var(--candy-pink-dk); box-shadow: 0 3px 12px rgba(95, 174, 143, .35); }
+.tarot-foot button:hover { color: #24499F; border-color: var(--candy-pink-dk); box-shadow: 0 3px 12px rgba(47,95,208,.10); }
 .tarot-foot button.danger { color: var(--bad-ink); border-color: var(--bad); }
 .tarot-foot button.danger:hover { color: #fff; background: var(--bad-dk); border-color: var(--bad-dk); }
 
@@ -1371,7 +1349,7 @@ body, button, input, textarea, select {
    我却给它加了饱和度、渐变、柔光环三层装饰，反而脏了。下次先给最小改动。 */
 
 /* 答错的红色落点——用户第四次收窄后的最终口径，四条逐一对应：
-   ① 选错那一栏整栏变红 → .opt-row.wronged（§11 已有：红边 + rgba(242,86,74,.14) 洗底 + 红字 + 红选框圆圈）
+   ① 选错那一栏整栏变红 → .opt-row.wronged（§11 已有：红边 + rgba(196,55,46,.12) 洗底 + 红字 + 红选框圆圈）
    ② ◇解析 这个大区块的背景变红 → 下面的 .zone-s.revealed.bad（本次新增）
    ③ 答案框：字体一律不变色、底色保持白，只有左侧那条 4px 边框变红
       → .answer-scroll-box.bad 只留 border-left-color；上一轮加的 .ans-line / .lab 红字已全部撤掉
@@ -1381,11 +1359,11 @@ body, button, input, textarea, select {
    「解析背景」= 外层 ◇解析 大区块（.zone-s）。§18 我把两者搞反了，
    结果该红的区块没红、不该染红的字体染了红。以后遇到「框」字先问清是哪一层。
 
-   颜色取与薄荷版严格对称：L399 用 var(--mint)(#7FE8C8) + rgba(127,232,200,.1)，
-   这里就用 var(--bad)(#FF8A7A) + rgba(242,86,74,.1)——同明度关系、同透明度。 */
+   颜色取与薄荷版严格对称：L399 用 var(--mint)(#2F7D5C) + rgba(47,125,92,.10)，
+   这里就用 var(--bad)(#FF8A7A) + rgba(196,55,46,.12)——同明度关系、同透明度。 */
 .zone-s.revealed.bad {
   border-color: var(--bad) !important;
-  background: rgba(242, 86, 74, .1) !important;
+  background: rgba(196,55,46,.12) !important;
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -1434,9 +1412,9 @@ body, button, input, textarea, select {
    ══════════════════════════════════════════════════════════ */
 /* 导航第四色：L220 的 .nav-item.active 是粉色默认（学习），L222/L223 已有 mint（导入）与 lav（设置），
    书库插到导入与设置之间，用糖果四色里还没上导航的柠檬。
-   文字取 #8A6D00 而不是 --lemon-dk(#FFD43B)：浅黄压在奶白底上对比度不够，
+   文字取 #8A6D00 而不是 --lemon-dk(#A87410)：浅黄压在奶白底上对比度不够，
    #8A6D00 约 4.9:1，与答题页「模糊」档、Import 告警框同源。 */
-.nav-item.tone-lemon.active { background: rgba(255, 224, 102, .26); color: #8A6D00; }
+.nav-item.tone-lemon.active { background: rgba(201, 138, 31, .12); color: #8A6D00; }
 
 .bank-filters { display: flex; flex-direction: column; gap: 11px; margin-bottom: 16px; }
 .bank-fgroup { display: flex; align-items: baseline; gap: 10px; }
@@ -1457,7 +1435,7 @@ body, button, input, textarea, select {
   transition: border-color .2s ease, box-shadow .2s ease;
 }
 .deck-candy:hover { border-color: var(--candy-pink); }
-.deck-candy:focus { outline: none; border-color: var(--mint-dk); box-shadow: 0 0 0 3px rgba(127, 232, 200, .3); }
+.deck-candy:focus { outline: none; border-color: var(--mint-dk); box-shadow: 0 0 0 3px rgba(47,125,92,.10); }
 
 /* 概览条：五个数。颜色与卡片上 .tarot-orb 的三态同源（薄荷/柠檬/薰衣草）+ 草莓给答错，
    整页不引入新色相。数字用 tabular-nums，五个格子宽度不会跟着位数跳。 */
@@ -1491,7 +1469,7 @@ body, button, input, textarea, select {
    inset:8% 的这层内面板盖住了外层 84%×84% 的面积，糖果渐变只剩一圈边，等于没生效。
 
    而且它同时是一起对比度事故：L1146-1152 把牌背文字全改成了给浅底设计的深色
-   （.tarot-scroll 用 --ink-2 #6E6E6E、h6 用 #D14767、答案用 --ok-ink #1B7F63），
+   （.tarot-scroll 用 --ink-2 #6E757D、h6 用 #D14767、答案用 --ok-ink #1B7F63），
    压在这层近黑底上实测只有约 2.5:1 / 3.2:1 / 2.5:1，全部低于 WCAG AA 的 4.5:1。
    实测值：faceInBg = rgba(7,12,16,0.82)、faceInBorder = rgba(201,168,76,0.3)。
 
@@ -1504,7 +1482,7 @@ body, button, input, textarea, select {
   background: rgba(255, 255, 255, .82) !important;
   border: 1.5px solid var(--candy-pink-lt) !important;
   border-radius: var(--r-sm) !important;
-  box-shadow: 0 6px 20px rgba(95, 174, 143, .2), inset 0 1px 0 var(--jelly-hi) !important;
+  box-shadow: 0 6px 20px rgba(47,95,208,.10), inset 0 1px 0 var(--jelly-hi) !important;
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -1520,29 +1498,29 @@ body, button, input, textarea, select {
 .candy-orbs i { position: absolute; border-radius: 50%; will-change: transform; }
 .candy-orbs i:nth-child(1) {
   width: 46vmax; height: 46vmax; left: -14vmax; top: -16vmax;
-  background: radial-gradient(circle at 40% 40%, rgba(95, 174, 143, .3), rgba(95, 174, 143, 0) 68%);
+  background: radial-gradient(circle at 40% 40%, rgba(47,95,208,.10), rgba(47,95,208,.10) 68%);
   animation: orb-drift-a 26s var(--smooth-ease) infinite alternate;
 }
 .candy-orbs i:nth-child(2) {
   width: 40vmax; height: 40vmax; right: -12vmax; bottom: -14vmax;
-  background: radial-gradient(circle at 55% 45%, rgba(127, 232, 200, .26), rgba(127, 232, 200, 0) 68%);
+  background: radial-gradient(circle at 55% 45%, rgba(47,125,92,.10), rgba(47,125,92,.10) 68%);
   animation: orb-drift-b 32s var(--smooth-ease) infinite alternate;
 }
 .candy-orbs i:nth-child(3) {
   width: 26vmax; height: 26vmax; right: 6vmax; top: -9vmax;
-  background: radial-gradient(circle at 50% 50%, rgba(212, 184, 255, .22), rgba(212, 184, 255, 0) 70%);
+  background: radial-gradient(circle at 50% 50%, rgba(92, 116, 196, .10), rgba(92, 116, 196, .10) 70%);
   animation: orb-drift-a 38s var(--smooth-ease) infinite alternate-reverse;
 }
-@keyframes orb-drift-a { from { transform: translate3d(0, 0, 0) scale(1) } to { transform: translate3d(6vmax, 4vmax, 0) scale(1.1) } }
-@keyframes orb-drift-b { from { transform: translate3d(0, 0, 0) scale(1.08) } to { transform: translate3d(-5vmax, -4vmax, 0) scale(1) } }
+@keyframes orb-drift-a {  0% { opacity: 1; } 100% { opacity: 1; } }
+@keyframes orb-drift-b {  0% { opacity: 1; } 100% { opacity: 1; } }
 
 /* 2. Double-Bezel（同心双环）：用 box-shadow 叠出「外壳 + 发丝线 + 内芯」的机器感，
    不需要额外 DOM 包裹。外环半透奶白壳，中间一道奶粉发丝线，再是环境阴影。 */
 .entry-card {
   box-shadow:
     0 0 0 5px rgba(255, 255, 255, .55),
-    0 0 0 6.5px rgba(127, 190, 160, .34),
-    0 16px 38px rgba(95, 174, 143, .18),
+    0 0 0 6.5px rgba(31,35,40,.08),
+    0 16px 38px rgba(47,95,208,.10),
     inset 0 1px 0 var(--jelly-hi) !important;
   transition: transform .5s var(--jelly-ease), box-shadow .5s var(--smooth-ease);
 }
@@ -1575,11 +1553,11 @@ body, button, input, textarea, select {
   position: absolute; top: 13px; right: 13px; width: 34px; height: 34px;
   display: grid; place-items: center; border-radius: 11px;
   background: rgba(255, 255, 255, .72); border: 1px solid var(--line);
-  box-shadow: inset 0 1px 0 var(--jelly-hi), 0 3px 10px rgba(95, 174, 143, .14);
+  box-shadow: inset 0 1px 0 var(--jelly-hi), 0 3px 10px rgba(47,95,208,.10);
 }
 .entry-ico svg { width: 19px; height: 19px; display: block; }
-.entry-ico.ico-red { color: var(--bad-ink); border-color: rgba(242, 86, 74, .42); }
-.entry-ico.ico-yellow { color: #8A6D00; border-color: rgba(255, 212, 59, .6); }
+.entry-ico.ico-red { color: var(--bad-ink); border-color: rgba(196,55,46,.12); }
+.entry-ico.ico-yellow { color: #8A6D00; border-color: rgba(168, 116, 16, .12); }
 .entry-ico.ico-mint { color: var(--ok-ink); border-color: rgba(95, 212, 176, .52); }
 .entry-ico.ico-lav { color: #8A63D9; border-color: rgba(184, 148, 255, .55); }
 /* 按钮 / 标签内的自绘图标对齐：SVG 已是 1em，只需基线对齐与间距 */
@@ -1635,26 +1613,6 @@ body, button, input, textarea, select {
 /* 沉浸批2 B1（2026-09-15）：尾段三色各加深一档——原尾段过亮，页面下半部"飘"、
    题卡沉不进背景；只动尾段不动粉族主段（0-58% 保持上一轮的清透）。 */
 body { background: linear-gradient(160deg, #FFF8FA 0%, #E2EEE7 58%, #E6F5EC 82%, #ECE7F8 100%) !important; }
-/* ② 彩糖针 sprinkle 点缀：12 根 3×11px 圆头小棒、四色循环、静态零动画（不占每帧合成成本），
-      散在四角与边缘、opacity .45，只当“撒在桌面上的糖针”不当图案。 */
-.candy-sprinkles { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
-.candy-sprinkles i { position: absolute; width: 3px; height: 11px; border-radius: 2px; opacity: .45; }
-.candy-sprinkles i:nth-child(4n+1) { background: var(--candy-pink-dk); }
-.candy-sprinkles i:nth-child(4n+2) { background: var(--lemon-dk); }
-.candy-sprinkles i:nth-child(4n+3) { background: var(--mint-dk); }
-.candy-sprinkles i:nth-child(4n) { background: var(--lav-dk); }
-.candy-sprinkles i:nth-child(1) { left: 4%; top: 18%; transform: rotate(24deg); }
-.candy-sprinkles i:nth-child(2) { left: 9%; top: 64%; transform: rotate(-18deg); }
-.candy-sprinkles i:nth-child(3) { left: 14%; top: 36%; transform: rotate(40deg); }
-.candy-sprinkles i:nth-child(4) { left: 21%; top: 86%; transform: rotate(-30deg); }
-.candy-sprinkles i:nth-child(5) { left: 30%; top: 8%; transform: rotate(16deg); }
-.candy-sprinkles i:nth-child(6) { left: 44%; top: 92%; transform: rotate(-22deg); }
-.candy-sprinkles i:nth-child(7) { left: 58%; top: 6%; transform: rotate(28deg); }
-.candy-sprinkles i:nth-child(8) { left: 70%; top: 90%; transform: rotate(-14deg); }
-.candy-sprinkles i:nth-child(9) { left: 79%; top: 12%; transform: rotate(36deg); }
-.candy-sprinkles i:nth-child(10) { left: 86%; top: 40%; transform: rotate(-26deg); }
-.candy-sprinkles i:nth-child(11) { left: 92%; top: 70%; transform: rotate(18deg); }
-.candy-sprinkles i:nth-child(12) { left: 96%; top: 26%; transform: rotate(-40deg); }
 
 /* ════════ §33（2026-09-05）对比度收尾 + 全局同步提示 ════════
    1) 面板小节标题：global 基类吃 --gold-text（#2E8A68，对白底约 3.3:1），16px/900 够不到
@@ -1670,7 +1628,7 @@ body { background: linear-gradient(160deg, #FFF8FA 0%, #E2EEE7 58%, #E6F5EC 82%,
   padding: 10px 18px; border-radius: 999px;
   font-family: inherit; font-size: 12.5px; font-weight: 700; letter-spacing: .5px;
   background: rgba(255, 255, 255, .92); border: 2px solid var(--bad);
-  color: var(--bad-ink); box-shadow: 0 8px 24px rgba(242, 86, 74, .18);
+  color: var(--bad-ink); box-shadow: 0 8px 24px rgba(196,55,46,.12);
   cursor: pointer;
   animation: toast-in .28s var(--jelly-ease) both;
 }
@@ -1687,25 +1645,25 @@ body { background: linear-gradient(160deg, #FFF8FA 0%, #E2EEE7 58%, #E6F5EC 82%,
    追加在文件尾，等特异性下稳定压过 L472-491 的旧身份色块。 */
 .judge-card.right {
   border-color: var(--mint-dk) !important;
-  background-color: rgba(127, 232, 200, .22) !important;
-  box-shadow: 0 0 0 4px rgba(127, 232, 200, .2), 0 8px 24px rgba(95, 212, 176, .3) !important;
+  background-color: rgba(47,125,92,.10) !important;
+  box-shadow: 0 0 0 4px rgba(47,125,92,.10), 0 8px 24px rgba(95, 212, 176, .3) !important;
 }
 .judge-card.right .judge-label { color: #1F5D4C !important; }
 .judge-card.right::before {
   content: '✓';
-  background: radial-gradient(circle at 32% 28%, #B8F5E3, #5FD4B0);
+  background: radial-gradient(circle at 32% 28%, #DDEDE5, #256A4C);
   box-shadow: 0 0 12px rgba(95, 212, 176, .45), inset 0 1px 0 rgba(255, 255, 255, .7) !important;
 }
 .judge-card.wronged {
   border-color: var(--bad-dk) !important;
-  background-color: rgba(242, 86, 74, .14) !important;
-  box-shadow: 0 0 0 4px rgba(242, 86, 74, .2), 0 8px 24px rgba(242, 86, 74, .3) !important;
+  background-color: rgba(196,55,46,.12) !important;
+  box-shadow: 0 0 0 4px rgba(196,55,46,.12), 0 8px 24px rgba(196,55,46,.12) !important;
 }
 .judge-card.wronged .judge-label { color: var(--bad-ink) !important; }
 .judge-card.wronged::before {
   content: '✗';
   background: radial-gradient(circle at 32% 28%, #FFD9D2, #F2564A);
-  box-shadow: 0 0 12px rgba(242, 86, 74, .45), inset 0 1px 0 rgba(255, 255, 255, .7) !important;
+  box-shadow: 0 0 12px rgba(196,55,46,.12), inset 0 1px 0 rgba(255, 255, 255, .7) !important;
 }
 /* §37：missed（答错时给正确答案挂绿提示）已按用户口径撤销——判断卡与选项行都不再挂这个类，
    正确答案维持未答色，去解析框看。§35 的 .judge-card.missed 三条规则已删；
@@ -1751,10 +1709,10 @@ body { background: linear-gradient(160deg, #FFF8FA 0%, #E2EEE7 58%, #E6F5EC 82%,
   position: absolute; inset: 3px 5px; z-index: -1;
   border-radius: 14px; pointer-events: none;
 }
-.nav-item.tone-pink::before  { background: rgba(127, 190, 160, .13); }
-.nav-item.tone-mint::before  { background: rgba(127, 232, 200, .14); }
-.nav-item.tone-lemon::before { background: rgba(255, 224, 102, .16); }
-.nav-item.tone-lav::before   { background: rgba(212, 184, 255, .16); }
+.nav-item.tone-pink::before  { background: rgba(31,35,40,.08); }
+.nav-item.tone-mint::before  { background: rgba(47,125,92,.10); }
+.nav-item.tone-lemon::before { background: rgba(201, 138, 31, .12); }
+.nav-item.tone-lav::before   { background: rgba(92, 116, 196, .10); }
 .nav-item.active::before { background: transparent; }
 .nav-item.active::after {
   content: '';
@@ -1766,7 +1724,7 @@ body { background: linear-gradient(160deg, #FFF8FA 0%, #E2EEE7 58%, #E6F5EC 82%,
 /* ③ hero 糖果簇补第四色（薰衣草），四色同框但粉球最大 */
 .candy-hero .ch-candy.c4 {
   left: auto; right: 44%; top: 56%; width: 22px; height: 22px; animation-delay: -3s;
-  background: radial-gradient(circle at 32% 28%, #F3EBFF, #B894FF 72%);
+  background: radial-gradient(circle at 32% 28%, #F3EBFF, #5C74C4 72%);
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -1781,7 +1739,7 @@ body { background: linear-gradient(160deg, #FFF8FA 0%, #E2EEE7 58%, #E6F5EC 82%,
 .entry-card { transition: transform .28s var(--jelly-ease), box-shadow .28s var(--smooth-ease); }
 .entry-card:hover {
   transform: translateY(-5px);
-  box-shadow: 0 14px 34px rgba(95, 174, 143, .28), var(--shadow-candy);
+  box-shadow: 0 14px 34px rgba(47,95,208,.10), var(--shadow-candy);
 }
 .entry-card:active { transform: translateY(-1px) scale(.98); }
 .entry-ico { transition: transform .28s var(--jelly-ease); }
@@ -1816,12 +1774,7 @@ body { background: linear-gradient(160deg, #FFF8FA 0%, #E2EEE7 58%, #E6F5EC 82%,
 .confetti-drop i:nth-child(12) { left: 84%; --dx: -24px; animation-delay: .06s; }
 .confetti-drop i:nth-child(13) { left: 90%; --dx: 20px;  animation-delay: .19s; }
 .confetti-drop i:nth-child(14) { left: 96%; --dx: -16px; animation-delay: .09s; }
-@keyframes confetti-fall {
-  0%   { transform: translate3d(0, -16px, 0) rotate(0deg); opacity: 0; }
-  10%  { opacity: 1; }
-  82%  { opacity: 1; }
-  100% { transform: translate3d(var(--dx, 0), 330px, 0) rotate(520deg); opacity: 0; }
-}
+@keyframes confetti-fall {  0% { opacity: 1; } 100% { opacity: 1; } }
 
 /* ── reduced-motion 降级：彩带不撒、hover 不弹、彩旗本来就是静态 ── */
 @media (prefers-reduced-motion: reduce) {
@@ -1865,13 +1818,13 @@ body { background: linear-gradient(160deg, #FFF8FA 0%, #E2EEE7 58%, #E6F5EC 82%,
   border-radius: 999px !important;
   background: #FFF7DC !important;
   border: 1px solid #F5E6A3 !important;
-  box-shadow: inset 0 2px 6px rgba(255, 212, 59, .16), 0 3px 12px rgba(255, 224, 102, .3) !important;
+  box-shadow: inset 0 2px 6px rgba(168, 116, 16, .12), 0 3px 12px rgba(201, 138, 31, .12) !important;
 }
 .syrup-fill {
   position: absolute; top: 2px; bottom: 2px; left: 2px;
   border-radius: 999px; min-width: 0;
   background: linear-gradient(180deg, #FFEC8C, var(--lemon-dk));
-  box-shadow: inset 0 2px 3px rgba(255, 255, 255, .65), 0 1px 4px rgba(255, 212, 59, .35);
+  box-shadow: inset 0 2px 3px rgba(255, 255, 255, .65), 0 1px 4px rgba(168, 116, 16, .12);
   transition: width .55s var(--jelly-ease);
 }
 .syrup-fill::after {
@@ -1880,14 +1833,14 @@ body { background: linear-gradient(160deg, #FFF8FA 0%, #E2EEE7 58%, #E6F5EC 82%,
   width: 18px; height: 18px; border-radius: 50%;
   transform: translateY(-50%);
   background: radial-gradient(circle at 32% 28%, #FFF3B8, var(--lemon-dk) 75%);
-  box-shadow: 0 2px 6px rgba(255, 212, 59, .45);
+  box-shadow: 0 2px 6px rgba(168, 116, 16, .12);
 }
 .syrup-knob {
   position: absolute; top: 50%; transform: translate(-50%, -50%);
   width: 28px; height: 28px; border-radius: 50%;
   background: radial-gradient(circle at 32% 28%, #FFE9DD, var(--danger) 70%, #F49262);
   border: 2.5px solid #fff;
-  box-shadow: 0 4px 14px rgba(255, 176, 136, .4), 0 0 0 4px rgba(255, 224, 102, .3);
+  box-shadow: 0 4px 14px rgba(255, 176, 136, .4), 0 0 0 4px rgba(201, 138, 31, .12);
   transition: left .55s var(--jelly-ease);
   pointer-events: none;
 }
@@ -1930,11 +1883,10 @@ body { background: linear-gradient(160deg, #FFF8FA 0%, #E2EEE7 58%, #E6F5EC 82%,
 .fcstar { top: 15%; right: 30%; }
 .fcdot { top: 48%; left: 30%; }
 .fcbar { bottom: 34%; right: 5%; transform: rotate(-32deg); }
-@keyframes f-glow { 0%,100% { opacity: .66; } 50% { opacity: .95; } }
-@keyframes f-bob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
-@keyframes f-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-@keyframes f-fall { 0% { transform: translateY(0) rotate(0deg); opacity: .8; }
-  100% { transform: translateY(105vh) rotate(50deg); opacity: .35; } }
+@keyframes f-glow {  0% { opacity: 1; } 100% { opacity: 1; } }
+@keyframes f-bob {  0% { opacity: 1; } 100% { opacity: 1; } }
+@keyframes f-spin {  0% { opacity: 1; } 100% { opacity: 1; } }
+@keyframes f-fall {  0% { opacity: 1; } 100% { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) {
   .flights, .fballoon, .fflake, .fwheel { animation: none; }
 }
@@ -1987,12 +1939,12 @@ body { background: linear-gradient(160deg, #FFF8FA 0%, #E2EEE7 58%, #E6F5EC 82%,
   border: 1.5px solid var(--candy-pink-lt) !important;
   border-radius: 999px !important;
   padding: 4px 18px !important; gap: 10px !important;
-  box-shadow: inset 0 2px 5px rgba(95, 174, 143, .08), 0 2px 8px rgba(127, 190, 160, .15) !important;
+  box-shadow: inset 0 2px 5px rgba(47,95,208,.10), 0 2px 8px rgba(31,35,40,.08) !important;
   transition: border-color .2s ease, box-shadow .2s ease;
 }
 .login-input:focus-within {
   border-color: var(--mint) !important;
-  box-shadow: 0 0 0 4px rgba(127, 232, 200, .18), inset 0 2px 5px rgba(95, 212, 176, .08) !important;
+  box-shadow: 0 0 0 4px rgba(47,125,92,.10), inset 0 2px 5px rgba(95, 212, 176, .08) !important;
 }
 .login-input .icon {
   width: auto !important; border-right: none !important; font-size: inherit !important;
@@ -2020,10 +1972,10 @@ body { background: linear-gradient(160deg, #FFF8FA 0%, #E2EEE7 58%, #E6F5EC 82%,
 /* ── 闭环件（2026-09-09 晚，Learn 页）：P2 自由回忆周检 + P3 水平快照走势 ──
    视觉与 rank-card 同族：奶白面、薄荷描边、粉墨标题；入场走全局 .rise。 */
 .rank-spark { display: block; margin-top: 6px; opacity: .9; }
-.recall-card { margin: 0 0 14px; padding: 16px 18px; border-radius: 16px; border: 1.5px solid rgba(95, 174, 143, .35); background: rgba(255, 255, 255, .72); box-shadow: 0 8px 22px rgba(95, 174, 143, .12); }
+.recall-card { margin: 0 0 14px; padding: 16px 18px; border-radius: 10px; border: 1.5px solid rgba(47,95,208,.10); background: rgba(255, 255, 255, .72); box-shadow: 0 8px 22px rgba(47,95,208,.10); }
 .recall-card h4 { margin: 0 0 6px; color: var(--pink-ink); font-size: 15px; letter-spacing: .5px; }
 .recall-sub { margin: 0 0 12px; font-size: 12px; line-height: 1.7; color: var(--muted, #666); }
-.recall-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 8px 0; border-top: 1px dashed rgba(95, 174, 143, .25); }
+.recall-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 8px 0; border-top: 1px dashed rgba(47,95,208,.10); }
 .recall-domain { font-size: 13px; color: var(--ink, #333); display: flex; align-items: baseline; gap: 8px; }
 /* ══════════════════════════════════════════════════════════════════════════
    §P0 UI/UX 优化批（2026-09-19，对标国际领先水准 · 方案见
@@ -2051,7 +2003,7 @@ body { background: linear-gradient(160deg, #FFF8FA 0%, #E2EEE7 58%, #E6F5EC 82%,
 }
 .recall-foot { display: flex; align-items: center; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
 .recall-foot span { font-size: 11.5px; color: var(--muted, #999); }
-.recall-weak { display: flex; align-items: center; gap: 14px; margin: 0 0 14px; padding: 13px 16px; border-radius: 16px; border: 1.5px dashed #E8C15A; background: #FFFBEC; }
+.recall-weak { display: flex; align-items: center; gap: 14px; margin: 0 0 14px; padding: 13px 16px; border-radius: 10px; border: 1.5px dashed #E8C15A; background: #FFFBEC; }
 .recall-weak > span { font-size: 22px; line-height: 1; }
 .recall-weak-copy { min-width: 0; flex: 1; }
 .recall-weak-copy h4 { margin: 0 0 2px; font-size: 13.5px; color: var(--pink-ink); letter-spacing: .4px; }
@@ -2075,3 +2027,18 @@ body { background: linear-gradient(160deg, #FFF8FA 0%, #E2EEE7 58%, #E6F5EC 82%,
   z-index: -1;
   pointer-events: none;
 }
+
+/* ═══ ROOT TRANSPLANT 护栏（2026-09-19 · 源级换血配套）═════════ */
+/* 装饰泡泡层：纯装饰，纸面禁入 */
+.bubble, .bubble.mint, .bubble.lemon, .bubble.lav { display: none !important; }
+/* 全局字体：纸系无衬线（candy 圆体若有残留则被此处统一） */
+body, button, input, select, textarea {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+    "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif !important;
+}
+/* 数字读数等宽兜底（candy 作用域内） */
+.rank-hint, .settle-pct, .settle-grid b, .ov-cell b, .combo-pop {
+  font-variant-numeric: tabular-nums;
+}
+/* 彩色辉光兜底归零（防遗漏的 box-shadow 组合） */
+* { text-shadow: none !important; }

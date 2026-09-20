@@ -7,10 +7,10 @@ import { GiltBtn } from '../components'
    切书 = 改 activeBookId，store 里 questions 是派生值，所以全站自动换上下文。 */
 
 const COLORS = [
-  { key: 'pink', css: '#FFB6C1' }, { key: 'mint', css: '#7FE8C8' },
-  { key: 'lemon', css: '#FFE066' }, { key: 'lav', css: '#D4B8FF' },
-  { key: 'sky', css: '#A8D8FF' }, { key: 'orange', css: '#FFC98A' },
-  { key: 'lime', css: '#A8E063' }, { key: 'rose', css: '#FF8FA3' }
+  { key: 'pink', css: '#C4372E' }, { key: 'mint', css: '#2F7D5C' },
+  { key: 'lemon', css: '#C98A1F' }, { key: 'lav', css: '#2F5FD0' },
+  { key: 'sky', css: '#4A6FD4' }, { key: 'orange', css: '#A05A2C' },
+  { key: 'lime', css: '#256A4C' }, { key: 'rose', css: '#A02D26' }
 ]
 const ICONS = ['📖', '📐', '🧪', '📊', '🎨', '🎵', '🌍', '💻', '⚗️', '📝']
 const colorOf = (k) => (COLORS.find((c) => c.key === k) ?? COLORS[0]).css
@@ -74,7 +74,7 @@ export default function Bookshelf() {
   return (
     <div className="panel bookshelf">
       <div className="bookshelf-head">
-        <div className="panel-title">📚 题库书架</div>
+        <div className="panel-title">题库书架</div>
         {active && <span className="book-current">当前：{active.name}</span>}
       </div>
 
@@ -104,7 +104,7 @@ export default function Bookshelf() {
                 <span className="book-name">{b.name}</span>
               )}
               <span className="book-meta">{n === 0 ? '0 题 · 待导入' : `${n} 题`}</span>
-              {on && <span className="book-check" aria-label="使用中">✓ 使用中</span>}
+              {on && <span className="book-check" aria-label="使用中"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 7" /></svg> 使用中</span>}
               <span className="book-ops" onClick={(e) => e.stopPropagation()}>
                 <button className="book-op" title="重命名" aria-label={`重命名 ${b.name}`}
                   onClick={() => { setEditingId(id); setEditName(b.name) }}>✎</button>
@@ -141,7 +141,7 @@ export default function Bookshelf() {
               <button key={c.key} role="radio" aria-checked={color === c.key} aria-label={c.key}
                 className={'color-dot' + (color === c.key ? ' on' : '')}
                 style={{ background: c.css }} onClick={() => setColor(c.key)}>
-                {color === c.key && <span aria-hidden="true">✓</span>}
+                {color === c.key && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 7" /></svg>}
               </button>
             ))}
           </div>

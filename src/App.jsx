@@ -6,11 +6,9 @@ import { TouchRitual } from './components'
 /* 背景气泡 / 三格糖果导航 / 开机仪式改从 CandyBoot 引入：components.jsx 正被编辑器的
    陈旧缓冲区反复回写（实测同一轮内被覆盖两次），改动会被吞掉，所以拆到新文件里 */
 import { Background, BottomNav, BootRitual, useScrollReveal } from './components/CandyBoot'
-import FestiveDecor from './components/FestiveDecor'
 import { lastResultMap } from './lib/stats'
 import { reloadOnceForFreshAssets, clearReloadFlag } from './lib/reload'
 import Login from './pages/Login'
-import Learn from './pages/Learn'
 /* §性能 路由级代码分割：非首屏四个页拆成独立 chunk（首访只下载 Learn+公共件，
    bundle 557KB → 主包约 380KB；切页时按需拉取，gh-pages CDN 单文件 <20KB gzip 无感）。
    chunk 统一命名 index-*.js（vite.config chunkFileNames），纳入 purge-dist 保留窗口，
@@ -29,6 +27,7 @@ const lazyPage = (factory) => lazy(() => factory().catch(() => {
   clearReloadFlag()
   return m
 }))
+const Learn = lazyPage(() => import('./pages/Learn'))
 const Bank = lazyPage(() => import('./pages/Bank'))
 const Import = lazyPage(() => import('./pages/Import'))
 const Settings = lazyPage(() => import('./pages/Settings'))
@@ -167,18 +166,13 @@ function Shell() {
       {/* 背景景深光斑（fixed，z-index 与气泡层同为 0，DOM 在前所以画在气泡之下）。
           放在 Shell 而不是 Background 组件里：Background 也被加载态复用，而登录分支不用 Background。 */}
       <div className="candy-orbs" aria-hidden="true"><i /><i /><i /></div>
-      {/* 彩糖针点缀（糖果派对派）：12 根静态小棒、四色循环，fixed z-0 与光斑同层。
-          静态零动画，不占每帧合成成本；位置/配色全在 candy.css。 */}
-      <span className="candy-sprinkles" aria-hidden="true">
-        <i /><i /><i /><i /><i /><i /><i /><i /><i /><i /><i /><i />
-      </span>
+      {/* 彩糖针已撤（U批 2026-09-19）：纸面无撒糖。 */}
       <Background intensity={inPractice ? 1.6 : 1} />
       {/* §52 节日点缀层：整层点击穿透（pointer-events:none），元素全在页框空隙，
           z-5 压在内容上但低于底部导航/弹窗；登录前不挂（BootRitual/Login 分支保持素净）。
           沉浸感批1 A1（2026-09-15 用户拍板）：答题页整层不挂——20+ 装饰件与 4 组循环动画
           与答题专注直接竞争注意力（§68 雪花分神的前科），is-compact 半撤方案升级为全撤。 */}
-      {!inPractice && <FestiveDecor />}
-      <PageBoundary>
+          <PageBoundary>
         <Suspense fallback={
           <div style={{ display: 'flex', justifyContent: 'center', paddingTop: '38vh' }}>
             <div className="loading-orb" />

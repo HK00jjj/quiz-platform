@@ -55,7 +55,7 @@ export function Background({ intensity = 1 }) {
 import { IconLearn, IconImport, IconBank, IconSettings, IconDiag } from './CandyIcons'
 
 const NAV_ITEMS = [
-  { key: 'learn', label: '学习', icon: <IconLearn />, to: '/', tone: 'pink' },
+  { key: 'learn', label: '今日学习', icon: <IconLearn />, to: '/', tone: 'pink' },
   /* 2026-09-08 用户要求：导入与书库仅对调显示位置，功能/路由/图标 tone 均不动。
      书库插回的历史见下注。 */
   { key: 'bank', label: '书库', icon: <IconBank />, to: '/bank', tone: 'lemon' },
@@ -172,7 +172,7 @@ export function BootRitual({ onDone }) {
         <span className="boot-stage">
           <span className="boot-foil" aria-hidden="true" />
           <span className="boot-bean" aria-hidden="true" />
-          <span className="boot-title">糖果题库</span>
+          <span className="boot-title">电气题库</span>
           <span className="boot-sub">电气工程师的成长训练营</span>
         </span>
       </span>

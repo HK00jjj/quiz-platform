@@ -6,7 +6,7 @@ import { newCard, reviewCard } from './lib/fsrs'
 import { fmtDate } from './lib/dates'
 import { buildSession, expandTriple, filtersKey, isObjective } from './lib/stats'
 import { classifyImport, parseBackup, parseBank, gradeObjective, assignGlobalSeq, dropNormalizedDupes, validBookMap, normalizeBookMap } from './lib/validate'
-import { saveImageMap, mergeImageMap } from './lib/diagrams'
+import { saveImageMap, mergeImageMap } from './lib/image-map'
 
 const RESUME_KEY = 'quiz-platform.resume.v1'
 const IMPORTED_AT_KEY = 'qp.importedAt.v1'
@@ -370,7 +370,7 @@ function demoData() {
       knowledgePoint: '演示知识点' + i,
       stem: type === '填空题'
         ? 'PLC 的中文全称是{可编程逻辑控制器}，它采用{循环扫描}工作方式。'
-        : `【演示】关于电气自动化第 ${i} 颗糖果的配方解读，下列说法正确的是？`,
+        : `【演示】关于电气自动化第 ${i} 题的电路原理解读，下列说法正确的是？`,
       answer: type === '单选题' ? 'A' : type === '多选题' ? 'AC' : type === '判断题' ? (i % 2 ? '正确' : '错误')
         : type === '填空题' ? '可编程逻辑控制器|循环扫描' : '要点一：方案；要点二：选型计算；要点三：控制逻辑。',
       options: type === '单选题' ? ['A. 说法一', 'B. 说法二', 'C. 说法三', 'D. 说法四']

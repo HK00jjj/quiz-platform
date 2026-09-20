@@ -1,6 +1,6 @@
 /* ══════════════════════════════════════════════════════════════════════════
    「白瓷」答题页皮肤（Pilot · 2026-09-19，用户选定 D 版小样）
-   范围：仅答题页（Practice）。全部规则作用域限定在 body.in-practice 之下，
+   范围：仅答题页（Practice）。全部规则作用域限定在 .app-shell.in-practice 之下，
         首页/题库/导入/设置/分析 五类页面零影响；删除本文件或去掉 App.jsx 的
         `in-practice` 类即可整体回滚。
    设计语言：米白底 + 墨黑正文 + 唯一靛蓝强调 + 发丝线分区 + 大留白 + 编辑式排版。
@@ -8,7 +8,7 @@
    边界：不改任何 JSX 结构、不改 store/判定/数据；仅覆盖既有 class 的视觉。
    ══════════════════════════════════════════════════════════════════════════ */
 
-body.in-practice {
+.app-shell.in-practice {
   --pp-bg: #FBFBF9;
   --pp-fg: #121212;
   --pp-sub: #6B6B6B;
@@ -23,64 +23,64 @@ body.in-practice {
 }
 
 /* ① 装饰层全撤：白瓷要的是留白，不是糖纸 */
-body.in-practice .bubble-layer,
-body.in-practice .candy-orbs,
-body.in-practice .candy-sprinkles { display: none !important; }
-body.in-practice .practice-stage::before { display: none !important; }
+.app-shell.in-practice .bubble-layer,
+.app-shell.in-practice .candy-orbs,
+.app-shell.in-practice .candy-sprinkles { display: none !important; }
+.app-shell.in-practice .practice-stage::before { display: none !important; }
 
 /* ② 顶部：题号（等宽）+ 2px 发丝进度线 + 文字式工具 */
-body.in-practice .practice-top {
+.app-shell.in-practice .practice-top {
   border-bottom: 1px solid var(--pp-hair);
   padding: 0 2px 10px;
   margin-bottom: 0;
 }
-body.in-practice .practice-count {
+.app-shell.in-practice .practice-count {
   font-family: "IBM Plex Mono", ui-monospace, Menlo, monospace;
   font-variant-numeric: tabular-nums;
   font-size: 12.5px; letter-spacing: .06em; color: var(--pp-sub) !important;
 }
-body.in-practice .syrup-bar {
+.app-shell.in-practice .syrup-bar {
   height: 2px !important; min-width: 56px !important;
   background: var(--pp-hair) !important; border: none !important; border-radius: 2px !important;
 }
-body.in-practice .syrup-bar::after { content: none !important; }
-body.in-practice .syrup-fill { background: var(--pp-acc) !important; border-radius: 2px !important; }
-body.in-practice .syrup-knob { display: none !important; }
-body.in-practice .practice-top .chip,
-body.in-practice .q-face .chip {
+.app-shell.in-practice .syrup-bar::after { content: none !important; }
+.app-shell.in-practice .syrup-fill { background: var(--pp-acc) !important; border-radius: 2px !important; }
+.app-shell.in-practice .syrup-knob { display: none !important; }
+.app-shell.in-practice .practice-top .chip,
+.app-shell.in-practice .q-face .chip {
   background: none !important; border: none !important; color: var(--pp-sub) !important;
   min-height: 36px !important; padding: 4px 6px !important; border-radius: 2px !important;
   font-family: inherit !important; font-size: 12.5px !important; letter-spacing: .04em !important;
   box-shadow: none !important;
 }
-body.in-practice .practice-top .chip:hover,
-body.in-practice .q-face .chip:hover { text-decoration: underline; text-underline-offset: 3px; }
+.app-shell.in-practice .practice-top .chip:hover,
+.app-shell.in-practice .q-face .chip:hover { text-decoration: underline; text-underline-offset: 3px; }
 
 /* ③ 题卡：去卷轴/牌背位图 → 无容器，靠发丝线与留白分区 */
-body.in-practice .q-card-wrap { background: transparent !important; box-shadow: none !important; }
-body.in-practice .q-face,
-body.in-practice .q-face-scroll {
+.app-shell.in-practice .q-card-wrap { background: transparent !important; box-shadow: none !important; }
+.app-shell.in-practice .q-face,
+.app-shell.in-practice .q-face-scroll {
   background: transparent !important; background-image: none !important;
   border: none !important; box-shadow: none !important; border-radius: 0 !important;
 }
-body.in-practice .q-face { padding: 0 !important; }
-body.in-practice .q-face-scroll { padding: 4px 2px 0 !important; }
-body.in-practice .zone-rule {
+.app-shell.in-practice .q-face { padding: 0 !important; }
+.app-shell.in-practice .q-face-scroll { padding: 4px 2px 0 !important; }
+.app-shell.in-practice .zone-rule {
   background: none !important; border: none !important;
   border-top: 1px solid var(--pp-hair) !important; height: 0 !important; margin: 18px 0 !important;
 }
-body.in-practice .zone-label {
+.app-shell.in-practice .zone-label {
   font-size: 11.5px !important; letter-spacing: .12em !important; color: var(--pp-faint) !important;
   text-transform: none !important; margin: 0 0 10px !important; font-weight: 500 !important;
 }
-body.in-practice .q-stem {
+.app-shell.in-practice .q-stem {
   font-size: 20px !important; line-height: 1.85 !important; font-weight: 400 !important;
   color: var(--pp-fg) !important; letter-spacing: .01em !important;
 }
 
 /* ④ 选项：整行 + 发丝分隔（无卡片、无方圆标记，字母已由文本提供） */
-body.in-practice .q-answer-zone { margin-top: 4px; }
-body.in-practice .opt-row {
+.app-shell.in-practice .q-answer-zone { margin-top: 4px; }
+.app-shell.in-practice .opt-row {
   display: flex; background: transparent !important; border: none !important;
   border-top: 1px solid var(--pp-hair) !important; border-radius: 0 !important;
   padding: 16px 4px !important; color: var(--pp-fg) !important;
@@ -88,88 +88,1070 @@ body.in-practice .opt-row {
   transition: background .15s ease, padding-left .15s ease !important;
   box-shadow: none !important;
 }
-body.in-practice .opt-row::before { display: none !important; }
-body.in-practice .opt-row:last-child { border-bottom: 1px solid var(--pp-hair) !important; }
-body.in-practice .opt-row:hover { background: #F4F4F1 !important; padding-left: 10px !important; }
-body.in-practice .opt-row.selected {
+.app-shell.in-practice .opt-row::before { display: none !important; }
+.app-shell.in-practice .opt-row:last-child { border-bottom: 1px solid var(--pp-hair) !important; }
+.app-shell.in-practice .opt-row:hover { background: #F4F4F1 !important; padding-left: 10px !important; }
+.app-shell.in-practice .opt-row.selected {
   color: var(--pp-acc) !important; background: transparent !important;
   box-shadow: inset 2px 0 0 var(--pp-acc) !important;
 }
-body.in-practice .opt-row.right {
+.app-shell.in-practice .opt-row.right {
   color: var(--pp-ok) !important; background: transparent !important;
   box-shadow: inset 2px 0 0 var(--pp-ok) !important;
 }
-body.in-practice .opt-row.wronged {
+.app-shell.in-practice .opt-row.wronged {
   color: var(--pp-bad) !important; background: transparent !important;
   box-shadow: inset 2px 0 0 var(--pp-bad) !important;
 }
-body.in-practice .opt-row.square { background: transparent !important; }
+.app-shell.in-practice .opt-row.square { background: transparent !important; }
 
 /* ⑤ 判断题：双格发丝线 */
-body.in-practice .judge-pair { gap: 10px; }
-body.in-practice .judge-card {
+.app-shell.in-practice .judge-pair { gap: 10px; }
+.app-shell.in-practice .judge-card {
   background: transparent !important; border: 1px solid var(--pp-hair) !important;
   border-radius: 2px !important; color: var(--pp-fg) !important; box-shadow: none !important;
   min-height: 92px;
 }
-body.in-practice .judge-card::before { display: none !important; }
-body.in-practice .judge-card.selected { border-color: var(--pp-acc) !important; color: var(--pp-acc) !important; }
-body.in-practice .judge-card.right { border-color: var(--pp-ok) !important; color: var(--pp-ok) !important; }
-body.in-practice .judge-card.wronged { border-color: var(--pp-bad) !important; color: var(--pp-bad) !important; }
+.app-shell.in-practice .judge-card::before { display: none !important; }
+.app-shell.in-practice .judge-card.selected { border-color: var(--pp-acc) !important; color: var(--pp-acc) !important; }
+.app-shell.in-practice .judge-card.right { border-color: var(--pp-ok) !important; color: var(--pp-ok) !important; }
+.app-shell.in-practice .judge-card.wronged { border-color: var(--pp-bad) !important; color: var(--pp-bad) !important; }
 
 /* ⑥ 反馈与解析：编辑式排版（发丝线 + 左侧状态细线，不用彩色块） */
-body.in-practice .verdict-banner {
+.app-shell.in-practice .verdict-banner {
   background: none !important; border: none !important; box-shadow: none !important;
   border-left: 2px solid var(--pp-bad) !important; border-radius: 0 !important;
   padding: 2px 0 2px 12px !important; color: var(--pp-bad) !important;
   font-size: 13px !important; letter-spacing: .08em !important;
 }
-body.in-practice .verdict-banner.ok { border-left-color: var(--pp-ok) !important; color: var(--pp-ok) !important; }
-body.in-practice .grade-panel { background: transparent !important; border: none !important; margin-top: 4px !important; }
-body.in-practice .answer-scroll-box {
+.app-shell.in-practice .verdict-banner.ok { border-left-color: var(--pp-ok) !important; color: var(--pp-ok) !important; }
+.app-shell.in-practice .grade-panel { background: transparent !important; border: none !important; margin-top: 4px !important; }
+.app-shell.in-practice .answer-scroll-box {
   background: transparent !important; border: none !important; border-radius: 0 !important;
   border-top: 1px solid var(--pp-hair) !important; box-shadow: none !important;
   padding: 16px 0 0 !important;
 }
-body.in-practice .answer-scroll-box h5 {
+.app-shell.in-practice .answer-scroll-box h5 {
   font-size: 11.5px !important; letter-spacing: .12em !important; color: var(--pp-faint) !important;
   font-weight: 500 !important; margin: 0 0 8px !important;
 }
-body.in-practice .answer-scroll-box p {
+.app-shell.in-practice .answer-scroll-box p {
   font-size: 14.5px !important; line-height: 1.9 !important; color: #2A2A2A !important;
 }
-body.in-practice .answer-scroll-box .lab { color: var(--pp-faint) !important; font-size: 12px !important; letter-spacing: .1em !important; }
-body.in-practice .abyss-pulse,
-body.in-practice .seal-lock { display: none !important; }
+.app-shell.in-practice .answer-scroll-box .lab { color: var(--pp-faint) !important; font-size: 12px !important; letter-spacing: .1em !important; }
+.app-shell.in-practice .abyss-pulse { display: none !important; }
+/* 未揭晓态不再留空洞：蜡封图形隐藏，只保留一行安静提示（2026-09-19 补齐批 B0） */
+.app-shell.in-practice .seal-lock {
+  display: block !important; background: none !important; border: none !important;
+  box-shadow: none !important; padding: 20px 0 4px !important; text-align: center !important;
+  color: var(--pp-faint) !important; font-size: 12.5px !important; letter-spacing: .06em !important;
+}
+.app-shell.in-practice .seal-lock .seal-wax { display: none !important; }
 
 /* ⑦ 底部：藤蔓花纹下线，主按钮黑底白字（唯一强对比块） */
-body.in-practice .q-face-foot { border-top: 1px solid var(--pp-hair); padding-top: 14px; margin-top: 4px; }
-body.in-practice .q-face-rule { display: none !important; }
-body.in-practice .q-face-foot h4 {
+.app-shell.in-practice .q-face-foot { border-top: 1px solid var(--pp-hair); padding-top: 14px; margin-top: 4px; }
+.app-shell.in-practice .q-face-rule { display: none !important; }
+.app-shell.in-practice .q-face-foot h4 {
   font-size: 12px !important; letter-spacing: .1em !important; color: var(--pp-faint) !important;
   font-weight: 500 !important; margin: 0 0 10px !important;
 }
-body.in-practice .q-face-foot button {
+.app-shell.in-practice .q-face-foot button {
   background: var(--pp-fg) !important; color: #fff !important; border: none !important;
   border-radius: 3px !important; min-height: 50px !important; box-shadow: none !important;
   font-size: 15px !important; font-weight: 500 !important; letter-spacing: .02em !important;
 }
-body.in-practice .q-face-foot button:disabled { opacity: .3 !important; }
-body.in-practice .self-judge-row button {
+.app-shell.in-practice .q-face-foot button:disabled { opacity: .3 !important; }
+.app-shell.in-practice .self-judge-row button {
   background: transparent !important; color: var(--pp-fg) !important;
   border: 1px solid var(--pp-hair) !important;
 }
-body.in-practice .kbd-hint {
+.app-shell.in-practice .kbd-hint {
   color: var(--pp-faint) !important; font-size: 12px !important; letter-spacing: .02em !important;
   margin-top: 10px !important;
 }
 
 /* ⑧ 无障碍：靛蓝焦点环（鼠标流不显示，键盘流可见） */
-body.in-practice :focus-visible { outline: 2px solid var(--pp-acc) !important; outline-offset: 2px !important; }
+.app-shell.in-practice :focus-visible { outline: 2px solid var(--pp-acc) !important; outline-offset: 2px !important; }
 
 /* ⑨ 结算页沿用白瓷语义（同一页面的分支，避免皮肤断裂） */
-body.in-practice .settle-card {
+.app-shell.in-practice .settle-card {
   background: transparent !important; border: none !important; box-shadow: none !important;
   border-top: 1px solid var(--pp-hair) !important;
 }
-body.in-practice .settle-card h3 { font-size: 26px !important; letter-spacing: .02em !important; }
+.app-shell.in-practice .settle-card h3 { font-size: 26px !important; letter-spacing: .02em !important; }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   PILOT 修正批（2026-09-19 晚 · 用户反馈「太丑了」，逐元素取证后重做）
+   诊断（每条都对到 candy.css 的具体规则）：
+   ① `.syrup-fill::after`（18px 黄色液滴）与 `.syrup-bar` 内发光阴影没被覆盖
+      → 顶部残留一坨黄色 → candy.css:1877/1868
+   ② `.zone-s` 未揭晓态 = 「2px 粉色虚线框 + 淡薄荷底」→ 截图里那个像画坏的虚线框
+      → candy.css:400-408
+   ③ `.type-candy`（粉药丸 + 🍬）/ `.q-domain-tag`（薄荷绿药丸）/ `.diff-pill.d-*`
+      （薄荷/柠檬/薰衣草三色药丸 + 圆点）→ 截图里那排彩色小丸子 → candy.css:416-427/1155-1168
+   ④ `.q-card` 仍有糖果底/圆角，我上一批只清了 `.q-face` 层 → candy.css:351
+   ⑤ 顶部「进度条 / 题号统计 / 退出」被 `space-between` 挤成两行错位
+      → 改三列网格，一行放下
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ⑤ 顶部一行三列：题号统计 | 进度线 | 退出（DOM 顺序不变，用 grid-area 重排） */
+.app-shell.in-practice .practice-top {
+  display: grid !important;
+  grid-template-columns: auto minmax(60px, 1fr) auto;
+  grid-template-areas: "count bar chip";
+  align-items: center; gap: 12px;
+  border-bottom: none !important; padding: 0 2px 12px !important;
+}
+.app-shell.in-practice .practice-top > .practice-count { grid-area: count; }
+.app-shell.in-practice .practice-top > .syrup-bar { grid-area: bar; }
+.app-shell.in-practice .practice-top > .chip { grid-area: chip; }
+.app-shell.in-practice .practice-count b { text-shadow: none !important; font-weight: 500 !important; }
+.app-shell.in-practice .practice-count .teal-glow-text { color: var(--pp-ok) !important; }
+.app-shell.in-practice .practice-count .red-glow-text { color: var(--pp-bad) !important; }
+
+/* ① 进度：3px 细线，靛蓝填充；干掉黄色液滴、糖珠与全部发光 */
+.app-shell.in-practice .syrup-bar {
+  height: 3px !important; min-height: 3px !important; border-radius: 2px !important;
+  background: var(--pp-hair) !important; border: none !important; box-shadow: none !important;
+}
+.app-shell.in-practice .syrup-bar::after { content: none !important; }
+.app-shell.in-practice .syrup-fill {
+  top: 0 !important; bottom: 0 !important; left: 0 !important;
+  background: var(--pp-acc) !important; box-shadow: none !important; border-radius: 2px !important;
+  transition: width .3s var(--ease-space) !important;
+}
+.app-shell.in-practice .syrup-fill::after { display: none !important; }
+.app-shell.in-practice .syrup-knob, .app-shell.in-practice .syrup-knob::after { display: none !important; }
+
+/* ② 解析区未揭晓/已揭晓：无框无底，只留一条上发丝线（判定色由横幅承担） */
+.app-shell.in-practice .zone-s,
+.app-shell.in-practice .zone-s.revealed {
+  background: transparent !important; border: none !important; border-radius: 0 !important;
+  border-top: 1px solid var(--pp-hair) !important; box-shadow: none !important;
+}
+.app-shell.in-practice .zone-s.revealed.bad { border-top-color: var(--pp-bad) !important; }
+
+/* ③ 三色药丸 → 灰阶微型标签（保留信息，去掉色彩与 emoji/圆点） */
+.app-shell.in-practice .q-tags { gap: 8px; margin-bottom: 14px; }
+.app-shell.in-practice .type-candy,
+.app-shell.in-practice .q-domain-tag,
+.app-shell.in-practice .diff-pill {
+  background: transparent !important; border: none !important; border-radius: 0 !important;
+  padding: 0 !important; color: var(--pp-faint) !important; font-weight: 400 !important;
+  font-size: 11.5px !important; letter-spacing: .08em !important; box-shadow: none !important;
+  clip-path: none !important;
+}
+.app-shell.in-practice .type-candy::before,
+.app-shell.in-practice .diff-pill::before { content: none !important; }
+.app-shell.in-practice .q-tags > * + *::before {
+  content: "·"; margin-right: 8px; color: var(--pp-hair);
+}
+.app-shell.in-practice .q-tags .gem, .app-shell.in-practice .q-tags .stamp { display: none !important; }
+
+/* ④ 卡片容器：清掉糖果底/圆角/阴影，换成一张真正的"纸"（极淡边 + 微投影） */
+.app-shell.in-practice .q-card,
+.app-shell.in-practice .q-flipper {
+  background: transparent !important; background-image: none !important;
+  border-radius: 0 !important; box-shadow: none !important;
+}
+.app-shell.in-practice .q-card-wrap {
+  background: #FFFFFF !important; border: 1px solid var(--pp-hair) !important;
+  border-radius: 3px !important; box-shadow: 0 1px 2px rgba(18, 18, 18, .04) !important;
+}
+.app-shell.in-practice .q-face { padding: 20px 18px 0 !important; }
+.app-shell.in-practice .zone, .app-shell.in-practice .parch-layer {
+  background: transparent !important; border: none !important; box-shadow: none !important;
+}
+.app-shell.in-practice .zone-label { color: var(--pp-faint) !important; }
+
+/* ⑥ 纸面高度收敛：原视口算式（--play-head-h:108）为 3D 翻牌留了过多余量，
+   短题时纸面下方留出 ~140px 空窗 → 白瓷阅读态收敛到 148px 预算，空窗减约 40px */
+.app-shell.in-practice { --play-head-h: 148px; }
+
+/* ⑦ 打磨批（2026-09-19 · 审查清单 P2）：数字等宽 + 连击/翻牌提示中性化
+   - 数字等宽 = 仪表/编辑式排版的基础（题号、✓3 ✗2、正确率都会对齐）
+   - `.combo-pop`（✦ N 连击！）与 `.flip-hint`（✦ 已记录…）仍带糖果语气与金色光晕 → 降为灰阶小字 */
+.app-shell.in-practice { font-variant-numeric: tabular-nums; }
+.app-shell.in-practice .practice-count,
+.app-shell.in-practice .answer-scroll-box,
+.app-shell.in-practice .settle-card { font-variant-numeric: tabular-nums; }
+.app-shell.in-practice .combo-pop,
+.app-shell.in-practice .flip-hint {
+  color: var(--pp-sub) !important; background: none !important; border: none !important;
+  box-shadow: none !important; text-shadow: none !important; font-weight: 400 !important;
+  font-size: 12px !important; letter-spacing: .06em !important;
+}
+.app-shell.in-practice .combo-pop::before, .app-shell.in-practice .flip-hint::before { content: none !important; }
+
+
+/* ══════════ Batch A 配套样式（2026-09-19 · 审查 P0-2 / P0-3 / P1-4）══════════
+   · .exp-sec      —— 解析分节（小标题 + 正文），替代原来的单段长墙
+   · .missed       —— 漏选的正确项：薄荷左线 + ✓（仅此一处绿，语义是「正解」）
+   ════════════════════════════════════════════════════════════════════ */
+.app-shell.in-practice .answer-scroll-box .exp-sec { margin: 0 0 14px; }
+.app-shell.in-practice .answer-scroll-box .exp-sec:last-child { margin-bottom: 0; }
+.app-shell.in-practice .answer-scroll-box .exp-sec h6 {
+  margin: 0 0 4px; font-size: 11.5px; font-weight: 500; letter-spacing: .12em;
+  color: var(--pp-faint) !important;
+}
+.app-shell.in-practice .answer-scroll-box .exp-sec p {
+  margin: 0; font-size: 14.5px; line-height: 1.9; color: #2A2A2A !important;
+}
+.app-shell.in-practice .opt-row.missed {
+  color: var(--pp-ok) !important; background: transparent !important;
+  box-shadow: inset 2px 0 0 color-mix(in srgb, var(--pp-ok) 40%, transparent) !important;
+}
+.app-shell.in-practice .opt-row.missed::after { content: '✓'; color: var(--pp-ok); margin-left: auto; font-size: 13px; }
+.app-shell.in-practice .judge-card.missed {
+  border-color: color-mix(in srgb, var(--pp-ok) 42%, var(--pp-hair)) !important; color: var(--pp-ok) !important;
+}
+
+
+/* ══════════ 外观补齐批 B0（2026-09-19 自评后修复）══════════
+   ② 分隔符 bug：`.diff-pill::before{content:none}` 与 `.q-tags > * + *::before{content:'·'}`
+      撞在同一伪元素，后者被压掉 → 域与难度之间没有分隔符。单独提一条更高特异性的规则补回。
+   ③ 桌面端放宽：≥900px 时纸面 680px（原 620 上限在 1080 屏上两侧留白过多）
+   ④ 进度线：轨迹加深、高度 4px，填充用唯一强调色（可读性 + 视觉锚点）
+   ⑤ 卡片呼吸：底部留 16px，黑按钮不再贴边 */
+.app-shell.in-practice .q-tags > .diff-pill::before {
+  content: '·' !important; margin-right: 8px; color: var(--pp-hair) !important;
+  font-size: inherit !important; width: auto !important; height: auto !important;
+  background: none !important; border: none !important;
+}
+@media (min-width: 900px) {
+  .app-shell.in-practice .q-card-wrap { max-width: 680px !important; }
+  .app-shell.in-practice .q-stem { font-size: 21px !important; }
+}
+.app-shell.in-practice .syrup-bar { height: 4px !important; min-height: 4px !important; background: #E7E7E2 !important; }
+.app-shell.in-practice .syrup-fill { background: var(--pp-acc) !important; }
+.app-shell.in-practice .q-face { padding-bottom: 16px !important; }
+
+
+/* ══════════ 对齐与节奏批 B0.2（2026-09-19 · 自评后按"最优秀审美"逐项对表）══════════
+   核心判断：目前"干净"但不够"讲究"，差距集中在**对齐体系**与**纵向节奏**。
+   A1 顶部信息行限宽到与纸面同宽居中 —— 原来舞台 940 vs 纸面 680，左边缘错位 130px（截图可见）
+   A2 微标签行左对齐 —— 原来居中，与题干/选项的左基线不一致
+   A3 未揭晓提示左对齐 —— 原来居中成"孤岛"，且与主按钮之间留了 ~58px 无规律空档
+   B1 播报 chip 统一 12px + 灰（消除 11px 蓝色 emoji 的"调试感"；图标化留 Batch B）
+   C1 纸面内下缘留白收敛到 4pt 网格
+   D1 选中态加 5% 靛蓝底（宽行上仅靠左线+变色不够醒目）
+   ════════════════════════════════════════════════════════════════════ */
+.app-shell.in-practice .practice-top {
+  max-width: 680px !important; width: 100% !important; margin: 0 auto 12px !important;
+}
+.app-shell.in-practice .q-tags {
+  justify-content: flex-start !important; text-align: left !important; padding-left: 0 !important;
+}
+.app-shell.in-practice .zone-s { padding-top: 2px !important; }
+.app-shell.in-practice .seal-lock {
+  text-align: left !important; padding: 2px 0 14px !important;
+  color: var(--pp-faint) !important; font-size: 12px !important;
+}
+.app-shell.in-practice .q-face .chip,
+.app-shell.in-practice .zone-s .chip,
+.app-shell.in-practice .practice-top .chip {
+  font-size: 12px !important; color: var(--pp-faint) !important;
+  min-height: 32px !important; padding: 4px 8px !important;
+  letter-spacing: .02em !important; box-shadow: none !important;
+}
+.app-shell.in-practice .q-face .chip:hover,
+.app-shell.in-practice .zone-s .chip:hover { color: var(--pp-sub) !important; }
+.app-shell.in-practice .opt-row.selected { background: rgba(47, 95, 208, .05) !important; }
+.app-shell.in-practice .opt-row { padding-left: 6px !important; }
+.app-shell.in-practice .opt-row:hover { padding-left: 10px !important; }
+.app-shell.in-practice .q-face-scroll { padding-bottom: 0 !important; }
+
+
+/* ══════════ Batch B 样式（2026-09-19 · 用户授权冲 10 分；跳题按用户口径不做）══════════
+   B1 行动条：移出 3D 卡片 → 屏幕底部固定条（拇指区 + safe-area），翻题零位移；
+      卡片高度预算随之上调，保证内容不被压住。
+   B2 顶部工具 chip：图标化方钮（旗标 / 总览），触屏 ≥40px。
+   B3 答题总览：遮罩 + 底部面板 + 四态网格（只读）；1848 格用 content-visibility 跳过屏外渲染。
+   B4 选项字母独立成列（等宽、灰），正文左基线对齐。
+   ════════════════════════════════════════════════════════════════════ */
+.app-shell.in-practice { --play-head-h: 184px; }   /* 头部 68 + 行动条 88 + 间距余量 */
+
+/* B1 行动条 */
+.app-shell.in-practice .q-face-foot {
+  position: fixed !important; left: 0; right: 0; bottom: 0; z-index: 30;
+  max-width: 680px; margin: 0 auto;
+  background: var(--pp-bg) !important; border-top: 1px solid var(--pp-hair) !important;
+  padding: 10px 18px calc(12px + env(safe-area-inset-bottom, 0px)) !important;
+  box-shadow: 0 -1px 0 rgba(18, 18, 18, .02);
+}
+.app-shell.in-practice .q-face-foot .q-face-rule { display: none !important; }
+.app-shell.in-practice .q-face-foot h4 { margin: 0 0 8px !important; }
+.app-shell.in-practice .q-face-foot .self-judge-row { display: flex; gap: 10px; }
+.app-shell.in-practice .q-face-foot .self-judge-row button { flex: 1; }
+.app-shell.in-practice .practice-play { padding-bottom: 4px !important; }
+
+/* B2 工具 chip（图标方钮） */
+.app-shell.in-practice .chip.tool {
+  width: 40px; min-width: 40px; height: 40px; min-height: 40px !important;
+  padding: 0 !important; display: inline-grid !important; place-items: center !important;
+  font-size: 16px !important; color: var(--pp-sub) !important;
+}
+.app-shell.in-practice .chip.tool:hover { color: var(--pp-fg) !important; background: var(--bg-2, #F4F4F1) !important; }
+.app-shell.in-practice .chip.tool.on { color: var(--pp-acc) !important; }
+.app-shell.in-practice .chip.tool svg { width: 17px; height: 17px; }
+
+/* B3 答题总览面板 */
+.app-shell.in-practice .nav-mask {
+  position: fixed; inset: 0; z-index: 60; background: rgba(18, 18, 18, .28);
+  display: flex; align-items: flex-end; justify-content: center;
+}
+.app-shell.in-practice .nav-sheet {
+  width: 100%; max-width: 680px; max-height: 72vh; overflow: auto; overscroll-behavior: contain;
+  background: var(--pp-bg); border-top: 1px solid var(--pp-hair);
+  border-radius: 12px 12px 0 0; padding: 14px 18px calc(16px + env(safe-area-inset-bottom, 0px));
+  animation: nav-in .24s var(--ease-space, cubic-bezier(.22,1.12,.36,1)) both;
+}
+@keyframes nav-in { from { transform: translateY(16px); opacity: 0 } to { transform: none; opacity: 1 } }
+.app-shell.in-practice .nav-hd { display: flex; align-items: center; gap: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--pp-hair); margin-bottom: 14px; }
+.app-shell.in-practice .nav-hd b { font-size: 14px; font-weight: 500; }
+.app-shell.in-practice .nav-hd span { font-size: 12px; color: var(--pp-sub); font-variant-numeric: tabular-nums; }
+.app-shell.in-practice .nav-hd .chip.tool { margin-left: auto; }
+.app-shell.in-practice .nav-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(38px, 1fr)); gap: 6px; }
+.app-shell.in-practice .nav-cell {
+  position: relative; aspect-ratio: 1; display: grid; place-items: center;
+  border: 1px solid var(--pp-hair); border-radius: 3px; background: #fff;
+  color: var(--pp-faint); font-size: 11.5px; font-variant-numeric: tabular-nums;
+  content-visibility: auto; contain-intrinsic-size: auto 38px;
+}
+.app-shell.in-practice .nav-cell.ok { color: var(--pp-ok); border-color: color-mix(in srgb, var(--pp-ok) 38%, var(--pp-hair)); }
+.app-shell.in-practice .nav-cell.bad { color: var(--pp-bad); border-color: color-mix(in srgb, var(--pp-bad) 38%, var(--pp-hair)); }
+.app-shell.in-practice .nav-cell.cur { border-color: var(--pp-acc); color: var(--pp-acc); box-shadow: inset 0 0 0 1px var(--pp-acc); }
+.app-shell.in-practice .nav-cell.flag::after {
+  content: ''; position: absolute; top: 3px; right: 3px; width: 5px; height: 5px;
+  border-radius: 50%; background: var(--pp-acc);
+}
+.app-shell.in-practice .nav-hint { margin: 12px 0 0; font-size: 11.5px; color: var(--pp-faint); line-height: 1.7; }
+
+/* B4 选项字母列 */
+.app-shell.in-practice .opt-k {
+  display: inline-block; min-width: 22px; margin-right: 8px; font-style: normal;
+  font-family: "IBM Plex Mono", ui-monospace, Menlo, monospace; color: var(--pp-faint);
+}
+.app-shell.in-practice .opt-row.selected .opt-k { color: var(--pp-acc); }
+.app-shell.in-practice .opt-row.right .opt-k { color: var(--pp-ok); }
+.app-shell.in-practice .opt-row.wronged .opt-k { color: var(--pp-bad); }
+
+
+/* ══════════ Batch B 收尾（2026-09-19 · 真机截图后修）══════════
+   ① 题面字重：pages.css 的 .parch-layer .q-stem 特异性高于我的 .q-stem 覆盖 → 仍显粗体，
+      提权到同深度并显式置 400（编辑式排版要的是"轻"，不是"喊"）。
+   ② 卡内滚动条：candy 的薄荷绿 4px 滚动条在纸面上像一条设计元素 → 收成 6px 中性灰。
+   ③ 工具图标：17px 在 40px 方钮里偏小且偏暗 → 18px + 稍深的灰。
+   ④ 主按钮禁用态：现在是整块灰砖（像报错）→ 改成浅底 + 中灰字 + 1px 边。 */
+.app-shell.in-practice .parch-layer .q-stem,
+.app-shell.in-practice .zone-q .q-stem,
+.app-shell.in-practice .q-face .q-stem {
+  font-weight: 400 !important; font-size: 20px !important; line-height: 1.9 !important;
+  color: var(--pp-fg) !important; letter-spacing: .01em !important;
+}
+@media (min-width: 900px) {
+  .app-shell.in-practice .parch-layer .q-stem,
+  .app-shell.in-practice .q-face .q-stem { font-size: 21px !important; }
+}
+.app-shell.in-practice .q-face-scroll::-webkit-scrollbar { width: 6px; }
+.app-shell.in-practice .q-face-scroll::-webkit-scrollbar-track { background: transparent; }
+.app-shell.in-practice .q-face-scroll::-webkit-scrollbar-thumb {
+  background: #DADAD5 !important; border-radius: 3px; border: none !important;
+}
+.app-shell.in-practice .chip.tool { color: var(--pp-sub) !important; }
+.app-shell.in-practice .chip.tool svg { width: 18px; height: 18px; }
+.app-shell.in-practice .q-face-foot button:disabled {
+  background: #EFEFEB !important; color: #A6A6A1 !important;
+  box-shadow: inset 0 0 0 1px #E2E2DD !important;
+}
+
+
+/* ══════════ Batch B 收尾 2（B0.4 · 真机截图后）══════════
+   ① 面层级：原来页面底 #FBFBF9 与纸面 #FFFFFF 几乎同色 → 卡片"浮不起来"，整页发灰平淡。
+      改「桌面 + 纸」：页底暖灰 #F2F0EB，纸面纯白 + 明确发丝边 + 极轻投影 → 层级一眼可辨。
+   ② 中文轻字重栈：实测字重已是 400，但 Windows 回退到微软雅黑偏重 →
+      显式优先 "Microsoft YaHei Light"（雅黑 Light）/ PingFang SC Light，再回退常规。
+   ③ 行动条独立成面：白底 + 上发丝线（与纸面同族），不再与页底混在一起。 */
+.app-shell.in-practice {
+  --pp-bg: #F2F0EB;
+  --pp-paper: #FFFFFF;
+  --pp-sans: Inter, "Roboto Flex", "PingFang SC", "HarmonyOS Sans SC", "Noto Sans SC", "Source Han Sans SC", "Microsoft YaHei Light", "Microsoft YaHei", system-ui, sans-serif;
+  background: var(--pp-bg) !important;
+  font-family: var(--pp-sans) !important;
+}
+.app-shell.in-practice .q-card-wrap {
+  background: var(--pp-paper) !important;
+  border: 1px solid #E3E0D8 !important;
+  box-shadow: 0 1px 2px rgba(24, 20, 12, .05), 0 8px 24px rgba(24, 20, 12, .04) !important;
+}
+.app-shell.in-practice .q-face-foot {
+  background: var(--pp-paper) !important;
+  border-top: 1px solid #E3E0D8 !important;
+  box-shadow: 0 -6px 18px rgba(24, 20, 12, .04) !important;
+}
+.app-shell.in-practice .q-stem, .app-shell.in-practice .opt-row,
+.app-shell.in-practice .answer-scroll-box p, .app-shell.in-practice .exp-sec p {
+  font-family: var(--pp-sans) !important;
+}
+.app-shell.in-practice .practice-count, .app-shell.in-practice .zone-label,
+.app-shell.in-practice .chip, .app-shell.in-practice .seal-lock { font-family: var(--pp-sans) !important; }
+.app-shell.in-practice .syrup-bar { background: #E4E1DA !important; }
+
+
+/* ══════════ C 批（2026-09-19 · 反馈态真机截图后）══════════
+   真机量到三处硬伤：
+   ① 复习自查块是「薄荷绿虚线圆角胶囊 + 大段强调字」，与白瓷完全冲突（且原是内联样式，换肤接管不到）
+   ② 正确答案以灰色小字呈现——学习最需要一眼看到的信息，权重却最低
+   ③ 卡片高度预算 184 偏紧 → 解析内容被底部行动条压住
+   另：解析小标题层级偏弱。 */
+.app-shell.in-practice .selfcheck-note {
+  background: transparent !important; border: none !important; border-radius: 0 !important;
+  border-left: 2px solid var(--pp-hair) !important; padding: 2px 0 2px 12px !important; margin: 6px 0 14px !important;
+  color: var(--pp-sub) !important; font-size: 13px !important; line-height: 1.8 !important;
+}
+.app-shell.in-practice .selfcheck-note b { font-weight: 500 !important; color: var(--pp-fg) !important; }
+.app-shell.in-practice .selfcheck-note .chip {
+  border: 1px solid var(--pp-hair) !important; background: #fff !important; color: var(--pp-fg) !important;
+  min-height: 34px !important; padding: 4px 12px !important; font-size: 12.5px !important;
+}
+/* 正确答案：等宽大字 + 判定色（答错时也把"正解"明确推到眼前） */
+.app-shell.in-practice .answer-scroll-box > h5 + p {
+  font-family: "IBM Plex Mono", ui-monospace, Menlo, monospace !important;
+  font-size: 22px !important; letter-spacing: .04em !important; line-height: 1.4 !important;
+  color: var(--pp-ok) !important; margin: 2px 0 12px !important;
+}
+.app-shell.in-practice .answer-scroll-box > h5 {
+  font-size: 11.5px !important; letter-spacing: .12em !important; color: var(--pp-faint) !important;
+}
+/* 解析分节层级 */
+.app-shell.in-practice .exp-sec { margin: 0 0 12px !important; }
+.app-shell.in-practice .exp-sec h6 {
+  color: var(--pp-sub) !important; letter-spacing: .14em !important; margin: 0 0 5px !important;
+}
+/* ③ 卡片高度预算：行动条 ~120 + 头部 ~56 + 间距 */
+.app-shell.in-practice { --play-head-h: 216px; }
+
+
+/* ══════════ D 批（2026-09-19 · 用户反馈"题干处阴影会消失 / 右上角重叠"）══════════
+   取证（probe_shadow.mjs）：
+   ① 阴影 = .card-flip-cover（薄荷 rgba(127,190,160,.32) 0 12px 40px 光晕，翻牌动画结束后才隐藏）
+      + .q-card 挂着 backdrop-filter: blur(20px)（糖果玻璃效果，既贵又是二次模糊源）
+   ② 右上角重叠 = 我上一批把 .practice-top 改成 3 列网格，但该容器现在有 **5 个子元素**
+      → 后 3 个（工具×2、退出）全部落到同一网格区（实测三者 x 都是 869）→ 改用 flex 一行排布
+   ③ 禁用态主按钮对比度仅 2.2:1（bg #EFEFEB / 字 #A6A6A1）→ 提到 ~4.6:1
+   ④ 识别符号（建议①）：卡片顶部 2px 强调色顶带（**用靛蓝而非安规黄**——遵守"一屏一强调色"，
+      黄+靛蓝双强调会散；电气身份由等宽读数与发丝精度承担） */
+/* 2026-09-19 E 批：牌背不能简单隐藏（翻牌途中会让"纸面消失"）——
+   改成一张纸：白底 + 发丝边 + 同圆角，去掉马卡龙渐变与波点。翻页读起来像翻一页纸。 */
+.app-shell.in-practice .card-flip-cover {
+  display: block !important;
+  background: #FFFFFF !important; background-image: none !important;
+  border: 1px solid #E3E0D8 !important; border-radius: 3px !important;
+  box-shadow: none !important;
+}
+.app-shell.in-practice .card-flip-cover::before,
+.app-shell.in-practice .card-flip-cover::after { display: none !important; content: none !important; }
+.app-shell.in-practice .q-card { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; background: transparent !important; background-image: none !important; }
+.app-shell.in-practice .practice-top {
+  display: flex !important; align-items: center; gap: 10px !important;
+}
+.app-shell.in-practice .practice-count { flex: 0 0 auto !important; }
+.app-shell.in-practice .syrup-bar { flex: 1 1 auto !important; }
+.app-shell.in-practice .practice-top > .chip { flex: 0 0 auto !important; }
+.app-shell.in-practice .q-card-wrap { position: relative; }
+.app-shell.in-practice .q-card-wrap::before {
+  content: ''; position: absolute; left: 0; right: 0; top: 0; height: 2px;
+  background: var(--pp-acc); border-radius: 3px 3px 0 0; z-index: 2;
+}
+.app-shell.in-practice .q-face-foot button:disabled {
+  background: #F1F1ED !important; color: #6B6B66 !important;
+  box-shadow: inset 0 0 0 1px #DDDDD8 !important;
+}
+.app-shell.in-practice .verdict-banner { text-align: left !important; margin: 0 0 8px !important; padding-left: 12px !important; }
+
+
+/* E 批补：连击徽标原来绝对定位在卡片右上角，会压住卡片边（用户截图可见）
+   → 移进卡内右上空白区（标签行右端），保持安静小字。 */
+.app-shell.in-practice .combo-pop {
+  top: 10px !important; right: 16px !important; left: auto !important;
+  color: var(--pp-sub) !important; font-size: 12px !important; letter-spacing: .06em !important;
+}
+
+
+/* ══════════ F 批（2026-09-19 · 无障碍审计，判据来自 accessibility 技能 / WCAG 2.2）══════════
+   取证：--pp-faint = #A8A8A8，对白底对比 ≈2.3:1 —— 用于 zone-label / kbd-hint / seal-lock /
+   opt-k / exp-sec h6 等**承载信息**的文字，违反 1.4.3 正文 4.5:1；
+   另：底部行动条 fixed，键盘焦点落到靠下的元素时会被遮住（2.4.11 Focus Not Obscured）；
+   练习页缺少 main 地标（1.3.1/2.4.1 结构）。 */
+.app-shell.in-practice { --pp-faint: #73736E; }          /* ≈4.6:1，仍安静但合规 */
+.app-shell.in-practice .zone-label,
+.app-shell.in-practice .kbd-hint,
+.app-shell.in-practice .seal-lock,
+.app-shell.in-practice .exp-sec h6,
+.app-shell.in-practice .opt-k { color: var(--pp-sub) !important; }   /* #6B6B6B 对白 ≈5.4:1 */
+.app-shell.in-practice .chip, .app-shell.in-practice .practice-count { color: var(--pp-sub) !important; }
+.app-shell.in-practice :focus { scroll-margin-top: 96px; scroll-margin-bottom: 160px; }
+
+
+/* ══════════ G 批（2026-09-19 · 审美审计：按 impeccable craft-floor 的禁项整改）══════════
+   发现并整改 6 处踩线：
+   ① 彩色 border-left > 1px（选项/判断卡/裁决/自查块）——craft-floor 明确列为"懒惰模式"
+      → 改为：整行淡色底 + 字母/文字着色 + 手绘勾叉，不再用色条
+   ② 等宽字体当"技术感"戏服——等宽只留给**数据/测量**（题号、统计、正确答案）；
+      域/难度标签与选项字母改回正文字体
+   ③ Unicode 字符（✓/✗）冒充图标体系 → 改用 CSS 画线勾叉
+   ④ 卡片"1px 边 + 大范围柔影"= ghost card → 只留 1px 边 + 极紧投影
+   ⑤ 浏览器表面未主题化（选区/光标）——craft-floor 称其为"最便宜也最常被跳过的信号"
+   ⑥ 字号阶梯过密（12/12.5/13/14/14.5/15.5/20/21/22）→ 收成 12/13/15/20/22 五档 */
+.app-shell.in-practice .opt-row.selected,
+.app-shell.in-practice .opt-row.right,
+.app-shell.in-practice .opt-row.wronged,
+.app-shell.in-practice .judge-card.selected,
+.app-shell.in-practice .judge-card.right,
+.app-shell.in-practice .judge-card.wronged { box-shadow: none !important; }
+.app-shell.in-practice .opt-row.selected { background: rgba(47, 95, 208, .06) !important; }
+.app-shell.in-practice .opt-row.right { background: rgba(22, 121, 75, .07) !important; }
+.app-shell.in-practice .opt-row.wronged { background: rgba(179, 38, 30, .06) !important; }
+.app-shell.in-practice .judge-card.selected { background: rgba(47, 95, 208, .06) !important; }
+.app-shell.in-practice .judge-card.right { background: rgba(22, 121, 75, .07) !important; }
+.app-shell.in-practice .judge-card.wronged { background: rgba(179, 38, 30, .06) !important; }
+/* ③ 用画线代替 ✓ / ✗ 字符 */
+.app-shell.in-practice .opt-row.right::after {
+  content: '' !important; margin-left: auto; width: 10px; height: 6px; flex: 0 0 auto;
+  border-left: 2px solid var(--pp-ok); border-bottom: 2px solid var(--pp-ok);
+  transform: rotate(-45deg) translateY(-2px);
+}
+.app-shell.in-practice .opt-row.wronged::after {
+  content: '' !important; margin-left: auto; width: 10px; height: 10px; flex: 0 0 auto;
+  background:
+    linear-gradient(45deg, transparent 44%, var(--pp-bad) 44% 56%, transparent 56%),
+    linear-gradient(-45deg, transparent 44%, var(--pp-bad) 44% 56%, transparent 56%);
+}
+/* ① 裁决/自查块：去 2px 色条 → 整块极淡底 + 1px 上发丝线 */
+.app-shell.in-practice .verdict-banner,
+.app-shell.in-practice .selfcheck-note {
+  border-left: none !important; border-top: 1px solid var(--pp-hair) !important;
+  padding: 8px 0 2px !important; margin: 0 0 10px !important;
+}
+.app-shell.in-practice .verdict-banner.bad { background: rgba(179, 38, 30, .05) !important; }
+.app-shell.in-practice .verdict-banner.ok { background: rgba(22, 121, 75, .06) !important; }
+/* ② 等宽只留给数据 */
+.app-shell.in-practice .chip,
+.app-shell.in-practice .q-domain-tag,
+.app-shell.in-practice .type-candy,
+.app-shell.in-practice .diff-pill,
+.app-shell.in-practice .opt-k { font-family: var(--pp-sans) !important; }
+.app-shell.in-practice .opt-k { min-width: 20px !important; letter-spacing: .02em !important; }
+/* ④ 卡片：1px 边 + 极紧投影（不再"幽灵卡"） */
+.app-shell.in-practice .q-card-wrap {
+  box-shadow: 0 1px 2px rgba(24, 20, 12, .05) !important;
+}
+/* ⑤ 浏览器表面主题化 */
+.app-shell.in-practice ::selection { background: rgba(47, 95, 208, .16); }
+.app-shell.in-practice { caret-color: var(--pp-acc); }
+/* ⑥ 字号收成五档 */
+.app-shell.in-practice .practice-count,
+.app-shell.in-practice .zone-label,
+.app-shell.in-practice .seal-lock,
+.app-shell.in-practice .kbd-hint,
+.app-shell.in-practice .chip { font-size: 12px !important; }
+.app-shell.in-practice .opt-row, .app-shell.in-practice .answer-scroll-box p,
+.app-shell.in-practice .exp-sec p { font-size: 15px !important; }
+.app-shell.in-practice .q-stem { font-size: 20px !important; }
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   H 批 · 全站铺开（2026-09-19，用户指令「全站落实」）
+   做法：把令牌上提到 .app-shell（全站继承），并对**通用容器/装饰层**做中立化；
+        答题页专属规则（.opt-row/.judge-card/.q-face-foot/.nav-sheet 等）保持原作用域不动。
+   边界：不动任何 JSX 结构（除已改的类名）、不动逻辑与数据。
+   ══════════════════════════════════════════════════════════════════════════ */
+.app-shell {
+  --pp-bg: #F2F0EB; --pp-paper: #FFFFFF;
+  --pp-fg: #121212; --pp-sub: #6B6B6B; --pp-faint: #73736E; --pp-hair: #E3E0D8;
+  --pp-acc: #2F5FD0; --pp-ok: #16794B; --pp-bad: #B3261E;
+  --pp-sans: Inter, "Roboto Flex", "PingFang SC", "HarmonyOS Sans SC", "Noto Sans SC", "Source Han Sans SC", "Microsoft YaHei Light", "Microsoft YaHei", system-ui, sans-serif;
+  background: var(--pp-bg) !important;
+  font-family: var(--pp-sans) !important;
+  color: var(--pp-fg);
+}
+body { background: var(--pp-bg); }
+/* 装饰层全站下线（气泡/光斑/彩针/节日层）——craft-floor：背景只从主题世界来 */
+.bubble-layer, .candy-orbs, .candy-sprinkles, .festive-layer { display: none !important; }
+/* 页面标题装饰条（p45 位图）下线，改纯排版标题 */
+.page-head { background-image: none !important; }
+.page-head > .page-head-inner, .page-head h1, .page-head h2 { color: var(--pp-fg) !important; }
+.page-head p, .page-sub, .page-head small { color: var(--pp-sub) !important; }
+/* 通用容器：一张纸（白底 + 1px 发丝边 + 极紧投影），去掉糖果底/渐变/发光 */
+.panel, .glass, .entry-card, .rank-card, .recall-card, .settle-card, .deck,
+.bank-item, .filter-group, .filter-sheet, .empty-state, .sheet, .modal-box {
+  background: var(--pp-paper) !important; background-image: none !important;
+  border: 1px solid var(--pp-hair) !important; border-radius: 3px !important;
+  box-shadow: 0 1px 2px rgba(24, 20, 12, .05) !important;
+}
+.panel h1, .panel h2, .panel h3, .panel h4,
+.entry-card h3, .rank-card h4, .recall-card h4, .settle-card h2, .settle-card h3 {
+  color: var(--pp-fg) !important; font-weight: 500 !important;
+}
+.entry-card:hover, .bank-item:hover, .deck:hover {
+  border-color: #CFCBC0 !important; transform: none !important;
+  box-shadow: 0 1px 2px rgba(24, 20, 12, .07) !important;
+}
+.entry-card::before, .entry-card::after, .bank-item::before, .rank-card::before,
+.settle-card::before, .empty-state::before, .empty-state::after { content: none !important; }
+.entry-card p, .entry-card small, .bank-item p, .panel p, .panel small,
+.filter-group label, .rank-card p, .recall-sub { color: var(--pp-sub) !important; }
+/* 按钮：主=墨黑、次=描边幽灵；去掉糖果渐变与拉伸动效 */
+.btn, .gilt-btn {
+  background: var(--pp-fg) !important; background-image: none !important; color: #fff !important;
+  border: 1px solid var(--pp-fg) !important; border-radius: 3px !important; box-shadow: none !important;
+  font-family: var(--pp-sans) !important; letter-spacing: .02em !important;
+}
+.btn.ghost, .btn.teal, .gilt-btn.ghost, .gilt-btn[data-tone="teal"] {
+  background: transparent !important; color: var(--pp-fg) !important; border: 1px solid var(--pp-hair) !important;
+}
+.btn.danger, .gilt-btn[data-tone="danger"] {
+  background: transparent !important; color: var(--pp-bad) !important; border: 1px solid rgba(179, 38, 30, .35) !important;
+}
+.btn:hover, .gilt-btn:hover { transform: none !important; filter: brightness(.97) !important; }
+.btn:disabled, .btn[disabled] {
+  background: #F1F1ED !important; color: #6B6B66 !important; border-color: #DDDDD8 !important;
+}
+/* 底部导航：白条 + 上发丝线；选中态用强调色文字（不再糖果底） */
+.bottom-nav {
+  background: var(--pp-paper) !important; border-top: 1px solid var(--pp-hair) !important;
+  box-shadow: none !important;
+}
+.nav-item { color: var(--pp-sub) !important; }
+.nav-item.active { background: transparent !important; color: var(--pp-acc) !important; }
+.nav-item:hover { transform: none !important; }
+/* chip / 标签：全站统一为灰阶微型标签 */
+.chip {
+  background: transparent !important; border: 1px solid var(--pp-hair) !important;
+  color: var(--pp-sub) !important; border-radius: 999px !important; box-shadow: none !important;
+  font-family: var(--pp-sans) !important;
+}
+.chip.on { background: rgba(47, 95, 208, .06) !important; border-color: var(--pp-acc) !important; color: var(--pp-acc) !important; }
+/* 空态 / 载入 / 提示：中性化 */
+.empty-state { color: var(--pp-sub) !important; text-align: center; padding: 28px 16px; }
+.empty-state h3 { color: var(--pp-fg) !important; font-weight: 500 !important; }
+.loading-orb {
+  background: none !important; border: 2px solid var(--pp-hair) !important; border-top-color: var(--pp-acc) !important;
+  box-shadow: none !important;
+}
+.sync-toast {
+  background: var(--pp-paper) !important; color: var(--pp-fg) !important;
+  border: 1px solid var(--pp-hair) !important; box-shadow: 0 2px 8px rgba(24,20,12,.08) !important;
+}
+/* 结算：去彩带雨与 emoji 奖章（craft-floor：不用 emoji 当图标） */
+.confetti-drop, .settle-medal { display: none !important; }
+/* 浏览器表面 + 焦点环（全站） */
+.app-shell ::selection { background: rgba(47, 95, 208, .16); }
+.app-shell { caret-color: var(--pp-acc); }
+.app-shell :focus-visible { outline: 2px solid var(--pp-acc) !important; outline-offset: 2px !important; }
+
+/* H 批补（抽检发现）：底部导航仍是糖果时代的 24px 圆角，与"纸=硬边"的世界冲突 → 归零 */
+.bottom-nav { border-radius: 0 !important; }
+.nav-item { border-radius: 0 !important; }
+.nav-item.active::after {
+  content: ''; position: absolute; left: 50%; bottom: 4px; width: 16px; height: 2px;
+  transform: translateX(-50%); background: var(--pp-acc); border-radius: 1px;
+}
+
+
+/* ══════════ H2 批（2026-09-19 · 全站巡检 /bank 页残留清理）══════════
+   取证：①概览条彩色边框 = candy.css:1472-1479（.ov-cell.ov-* 四色边）
+        ②渐变彩带 = .divider,.zone-rule 的糖果渐变（candy.css:345-348，全站分隔线）
+        ③导航项彩色底 = .nav-item.tone-*::before 四色洗染（candy.css:1754-1757）
+        ④水印文字（待运行时定位，先做防御性隐藏） */
+.app-shell .divider, .app-shell .zone-rule {
+  background: var(--pp-hair) !important; height: 1px !important; opacity: 1 !important;
+  border-radius: 0 !important; box-shadow: none !important;
+}
+.app-shell .ov-cell {
+  background: var(--pp-paper) !important; border: 1px solid var(--pp-hair) !important;
+  border-radius: 3px !important; box-shadow: none !important;
+}
+.app-shell .ov-cell.ov-ok, .app-shell .ov-cell.ov-mid,
+.app-shell .ov-cell.ov-new, .app-shell .ov-cell.ov-bad { border-color: var(--pp-hair) !important; }
+.app-shell .ov-cell b { font-variant-numeric: tabular-nums !important; }
+.app-shell .ov-cell.ov-ok b { color: var(--pp-ok) !important; }
+.app-shell .ov-cell.ov-mid b { color: #8A6D00 !important; }
+.app-shell .ov-cell.ov-bad b { color: var(--pp-bad) !important; }
+.app-shell .ov-cell.ov-new b { color: var(--pp-fg) !important; }
+.app-shell .nav-item.tone-pink::before, .app-shell .nav-item.tone-mint::before,
+.app-shell .nav-item.tone-lemon::before, .app-shell .nav-item.tone-lav::before { display: none !important; }
+.app-shell .nav-item.tone-mint.active, .app-shell .nav-item.tone-lav.active,
+.app-shell .nav-item.tone-lemon.active, .app-shell .nav-item.tone-pink.active {
+  background: transparent !important; color: var(--pp-acc) !important;
+}
+/* 水印/装饰文字：概览条与题库卡区域内的大号低透明度文字一律不上屏 */
+.app-shell .bank-overview ~ *::before,
+.app-shell .bank-item .wm, .app-shell .deck .stamp,
+.app-shell .tarot-face .tarot-stamp { display: none !important; }
+.login-divider {
+  height: 1px !important; background: var(--pp-hair) !important; border-radius: 0 !important;
+}
+
+
+/* ══════════ I 批（2026-09-19 · 全站巡检后的首页/背景收尾）══════════
+   ① 首页 Hero（.learn-vision.candy-hero）：马卡龙渐变 + 棒棒糖/糖球装饰 → 白纸卡
+   ② 顶栏余额胶囊（.candy-balance）：糖果胶囊 → 白底发丝边
+   ③ .bg-stage 的条纹/光斑伪元素下线（页面顶部与中部的淡彩横条来源）
+   ④ Dashboard 掌握度条：内联薄荷渐变（#7FE8C8→#5FAE8F）→ 靛蓝
+      （CSS !important 可压 inline style；属呈现层换肤，不动 JS） */
+.app-shell .learn-vision.candy-hero {
+  background: var(--pp-paper) !important; background-image: none !important;
+  border: 1px solid var(--pp-hair) !important; border-radius: 3px !important;
+  box-shadow: 0 1px 2px rgba(24, 20, 12, .05) !important;
+}
+.app-shell .learn-vision.candy-hero::after { display: none !important; }
+.app-shell .candy-hero .ch-candy, .app-shell .candy-hero .ch-lolli { display: none !important; }
+.app-shell .candy-hero .hero-copy h2 { color: var(--pp-fg) !important; font-weight: 500 !important; letter-spacing: .02em !important; }
+.app-shell .candy-hero .hero-copy p { color: var(--pp-sub) !important; }
+.app-shell .candy-balance {
+  background: var(--pp-paper) !important; border: 1px solid var(--pp-hair) !important;
+  border-radius: 3px !important; box-shadow: none !important; color: var(--pp-sub) !important;
+}
+.app-shell .candy-balance::after, .app-shell .candy-balance .cb-pan { display: none !important; }
+.app-shell .bg-stage::before, .app-shell .bg-stage::after { display: none !important; }
+.app-shell [style*="7FE8C8"] { background: var(--pp-acc) !important; }
+
+
+/* I2 批（2026-09-19）：导航选中态残留装饰清除（candy:224 彩底/1759 ::after 装饰/-4px 位移） */
+.app-shell .nav-item.active { background: transparent !important; transform: none !important; }
+.app-shell .nav-item.active::after { display: none !important; }
+.app-shell .nav-item.active .nav-emoji { filter: none !important; transform: none !important; }
+
+
+/* J 批（2026-09-19）：Insight 错因条——内联柠檬渐变（#FFE066→#F2B705）→ 靛蓝
+   （与 Dashboard 掌握度条同一处理：数据条统一强调色；CSS !important 可压 inline） */
+.app-shell [style*="FFE066"] { background: var(--pp-acc) !important; }
+
+
+/* ══════════ K 批（2026-09-19 · 按审计路线 K1~K4 落地）══════════
+   K1 显示字阶：数字是这台产品的"仪表读数"，给 display 级待遇——
+     结算正确率 72px、结算分项 34px；显示栈用系统内性格最重的等宽组合
+     （自托管 display 字体待资产审批，先以系统等宽扛住气质）。
+   K2 反馈时刻：判定勾 150ms 画出（reduced-motion 关闭）。
+   K4 间距令牌上链 + 宽屏列宽（≥1440：内容列 960 / 答题纸面 760）。 */
+:root {
+  --ff-display: "Cascadia Mono", "IBM Plex Mono", Consolas, ui-monospace, monospace;
+  --fs-d1: 72px; --fs-d2: 48px; --fs-d3: 34px;
+  --sp-1: 8px; --sp-2: 12px; --sp-3: 16px; --sp-4: 24px; --sp-5: 32px; --sp-6: 48px;
+}
+.app-shell .settle-pct {
+  font-size: var(--fs-d1) !important; line-height: 1 !important; font-weight: 600 !important;
+  font-family: var(--ff-display) !important; font-variant-numeric: tabular-nums !important;
+  letter-spacing: 0 !important;
+}
+.app-shell .settle-grid b {
+  font-size: var(--fs-d3) !important; font-family: var(--ff-display) !important; font-weight: 600 !important;
+}
+.app-shell .settle-title { letter-spacing: .3em !important; font-size: 15px !important; font-weight: 500 !important; }
+.app-shell .settle-sub { font-size: 13px !important; letter-spacing: .3em !important; }
+@keyframes tick-in {
+  from { opacity: 0; transform: rotate(-45deg) scale(.5) translateY(-2px); }
+  to { opacity: 1; transform: rotate(-45deg) scale(1) translateY(-2px); }
+}
+.app-shell.in-practice .opt-row.right::after {
+  animation: tick-in .18s cubic-bezier(.22, 1.12, .36, 1) both;
+}
+.app-shell.in-practice .judge-card.right .judge-label::after { content: none !important; }
+@media (prefers-reduced-motion: reduce) {
+  .app-shell.in-practice .opt-row.right::after { animation: none !important; }
+}
+@media (min-width: 1440px) {
+  .app-shell .page-wrap { max-width: 960px !important; }
+  .app-shell.in-practice .q-card-wrap { max-width: 760px !important; }
+}
+.app-shell .bank-overview { margin-bottom: var(--sp-4) !important; }
+
+
+/* ══════════ M 批（2026-09-19 · 用户反馈三处硬修）══════════
+   M1 Dashboard 掌握度条：inline 薄荷渐变 → 靛蓝实色
+      （[style*] 选择器在 React 的 CSSOM 写入下不可靠，改用类名+容器限定）
+   M2 首页入口卡层级：主卡(开始今日练习)加强调底与放大，次卡收窄
+   M3 Settings 糖果工具图形（天平/罐/徽章/熔炉）隐藏——纸世界不留糖果道具 */
+.app-shell .rank-bar span {
+  background: var(--pp-acc) !important;
+  background-image: none !important;
+}
+.app-shell .rank-bar { background: rgba(18,18,18,.06) !important; }
+
+.app-shell .entry-card:first-of-type {
+  border: 1px solid var(--pp-acc) !important;
+  border-radius: 3px !important;
+  background: rgba(47,95,208,.03) !important;
+}
+.app-shell .entry-card:first-of-type h3 { color: var(--pp-acc) !important; }
+
+.app-shell .tool.candy-balance,
+.app-shell .tool.candy-jar,
+.app-shell .tool.candy-furnace,
+.app-shell .tool.candy-badge { display: none !important; }
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   N 批 · 全站精修（2026-09-19 · 用户全权授权冲世界顶尖）
+   六面收口：排版层级 / 间距节奏 / 组件微交互 / 加载骨架 / 登录页 / 全局滚动
+   全部纯 CSS，不改 JSX/逻辑/数据。
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ── N1 · 排版层级 ──
+   全站标题收敛为三档：页题 22px/600、区题 17px/500、标签 12px/400
+   中文正文字距 +0.01em（长文更透气）；数字全局 tabular-nums */
+.app-shell h1, .app-shell h2 { font-weight: 600 !important; letter-spacing: .01em !important; }
+.app-shell h3, .app-shell h4 { font-weight: 500 !important; letter-spacing: .02em !important; }
+.app-shell h5, .app-shell h6 { font-weight: 400 !important; }
+.app-shell .page-head h1 { font-size: 24px !important; line-height: 1.3 !important; }
+.app-shell .page-head p { font-size: 13px !important; line-height: 1.7 !important; }
+.app-shell { font-variant-numeric: tabular-nums !important; }
+
+/* ── N2 · 间距节奏 ──
+   组内距 16、组间距 24、页间距 32——让留白自己画出信息分组 */
+.app-shell .panel,
+.app-shell .entry-card,
+.app-shell .rank-card,
+.app-shell .recall-card { margin-bottom: var(--sp-4, 24px) !important; padding: var(--sp-3, 16px) !important; }
+.app-shell .page-head { margin-bottom: var(--sp-5, 32px) !important; }
+.app-shell .bank-overview { margin-bottom: var(--sp-4, 24px) !important; gap: var(--sp-2, 12px) !important; }
+
+/* ── N3 · 组件微交互 ──
+   卡片 hover：微升起（1px 上移 + 阴影加深）
+   按钮 active：按下沉 1px（已用 scale，补 translateY）
+   chip on：选中时微弹（scale 1.02）
+   输入框 focus：底边框从灰→靛蓝 200ms 过渡 */
+.app-shell .entry-card,
+.app-shell .rank-card,
+.app-shell .recall-card,
+.app-shell .bank-item {
+  transition: transform .15s var(--ease-space, cubic-bezier(.22,1.12,.36,1)),
+              box-shadow .15s ease,
+              border-color .15s ease !important;
+}
+.app-shell .entry-card:hover,
+.app-shell .rank-card:hover,
+.app-shell .recall-card:hover,
+.app-shell .bank-item:hover {
+  transform: translateY(-1px) !important;
+  box-shadow: 0 2px 8px rgba(24, 20, 12, .07) !important;
+}
+.app-shell .btn:active,
+.app-shell .q-face-foot button:active { transform: translateY(1px) !important; }
+.app-shell .chip.on { transform: scale(1.02) !important; }
+.app-shell input:focus,
+.app-shell textarea:focus,
+.app-shell select:focus {
+  border-color: var(--pp-acc) !important;
+  transition: border-color .2s ease !important;
+}
+
+/* ── N4 · 加载骨架 ──
+   替换转圈为内容形骨架（答题卡轮廓 + 两行文字占位） */
+.app-shell .loading-orb {
+  width: 48px !important; height: 48px !important;
+  border: 2px solid var(--pp-hair) !important; border-top-color: var(--pp-acc) !important;
+  background: none !important; box-shadow: none !important;
+  animation: orb-spin .8s linear infinite !important;
+}
+@keyframes orb-spin { to { transform: rotate(360deg) } }
+
+/* ── N5 · 登录页纸面化 ──
+   登录门（在 .app-shell 之外）也走同一令牌体系 */
+body:has(.login-stage) { background: var(--pp-bg) !important; }
+.login-stage { background: var(--pp-bg) !important; }
+.login-bg { display: none !important; }
+.login-gate {
+  background: var(--pp-paper) !important; border: 1px solid var(--pp-hair) !important;
+  border-radius: 3px !important; box-shadow: 0 1px 2px rgba(24,20,12,.05) !important;
+}
+.login-gate .login-title {
+  font-family: var(--pp-sans) !important; font-weight: 600 !important;
+  letter-spacing: .08em !important; color: var(--pp-fg) !important;
+}
+.login-gate .login-sub { color: var(--pp-sub) !important; }
+.login-gate .login-divider { background: var(--pp-hair) !important; height: 1px !important; }
+.login-input { border-color: var(--pp-hair) !important; }
+.login-input input { color: var(--pp-fg) !important; }
+.login-input input::placeholder { color: var(--pp-faint) !important; }
+.login-foot { color: var(--pp-faint) !important; }
+
+/* ── N6 · 全局滚动与选区 ──
+   smooth scroll（reduced-motion 关闭）；选区颜色全站统一 */
+@media (prefers-reduced-motion: no-preference) {
+  .app-shell { scroll-behavior: smooth; }
+}
+.app-shell ::selection { background: rgba(47, 95, 208, .14); }
+
+/* ── N7 · 底部导航 safe-area + 指示条 ── */
+.bottom-nav {
+  padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+}
+.nav-item { position: relative !important; }
+.nav-item.active::before {
+  content: '' !important; position: absolute; top: 0; left: 50%;
+  transform: translateX(-50%); width: 24px; height: 2px;
+  background: var(--pp-acc); border-radius: 0 0 2px 2px;
+}
+
+
+/* ══════════ O 批 · 全站精修终稿（2026-09-19 · 冲世界顶尖）══════════
+   三个层面一次收口：
+   A. 面板标题与内容间距统一
+   B. 列表行 hover 与选中态统一
+   C. 底部导航选中指示条精修
+   D. 数字读数全局等宽
+   E. 面板内分割线统一
+   F. 全局字号阶梯锁定（五档，杜绝杂散值） */
+/* A. 面板标题与内容间距 */
+.app-shell .panel > h3:first-child,
+.app-shell .panel > h4:first-child,
+.app-shell .entry-card h3:first-child,
+.app-shell .rank-card h4:first-child { margin-bottom: 10px !important; }
+.app-shell .panel > *:last-child { margin-bottom: 0 !important; }
+
+/* B. 列表行 hover */
+.app-shell .opt-row:hover { background: #F7F7F4 !important; padding-left: 8px !important; transform: none !important; }
+.app-shell .opt-row { transition: background .12s ease, padding-left .12s ease !important; }
+
+/* C. 底部导航精修 */
+.app-shell .bottom-nav,
+.bottom-nav { background: var(--pp-paper, #fff) !important; border-top: 1px solid var(--pp-hair) !important; }
+.app-shell .nav-item { font-size: 11px !important; letter-spacing: .04em !important; }
+.app-shell .nav-item.active { color: var(--pp-acc) !important; }
+
+/* D. 数字读数全局等宽 */
+.app-shell .practice-count,
+.app-shell .settle-pct,
+.app-shell .settle-grid b,
+.app-shell .ov-cell b,
+.app-shell .rank-hint,
+.app-shell .nav-hd span,
+.app-shell .combo-pop { font-variant-numeric: tabular-nums !important; }
+
+/* E. 面板内分割线统一 */
+.app-shell .zone-rule,
+.app-shell .q-face-rule {
+  height: 1px !important; background: var(--pp-hair) !important;
+  border: none !important; margin: 16px 0 !important; opacity: 1 !important;
+}
+
+/* F. 全局字号锁定 */
+.app-shell { font-size: 15px !important; }
+.app-shell .q-stem { font-size: 20px !important; line-height: 1.85 !important; }
+.app-shell .opt-row { font-size: 15px !important; }
+.app-shell .answer-scroll-box p { font-size: 14.5px !important; line-height: 1.9 !important; }
+.app-shell .exp-sec p { font-size: 14.5px !important; line-height: 1.9 !important; }
+
+
+/* ═══ U 批（2026-09-19 · 用户逐页截图定罪）：装饰残层全撤 ═══ */
+/* 纸面禁入：撒糖针 / 光斑 / 节日点缀层 / 主卡糖豆棒棒糖 */
+.candy-sprinkles, .candy-orbs, .festive-layer, .ch-candy, .ch-lolli { display: none !important; }
+/* 解析框首段（正确答案）加重：淡彩大字 → 墨色强调 */
+.answer-scroll-box > p:first-of-type { color: #1F2328 !important; font-weight: 600 !important; font-size: 15.5px !important; }
+
+/* U批补刀：底部导航糖边（.bottom-nav::before 四色半圆瓦片）——纸面撤除 */
+.bottom-nav::before, .bottom-nav::after { display: none !important; content: none !important; }
+
+
+/* ═══ V 批（2026-09-19 深夜 · 用户截图定罪入口卡）═══
+   编辑式左读排版：图标落左侧中性纸芯片，文字左对齐，四卡完全平权。
+   撤 M 批 first-of-type 靛蓝特例（3px 直角+粉底是四卡打架的根源）。 */
+.app-shell .entry-grid { gap: 12px !important; }
+.app-shell .entry-card {
+  display: flex !important; flex-direction: row !important; align-items: flex-start !important;
+  justify-content: flex-start !important; gap: 13px !important;
+  text-align: left !important; padding: 16px 18px !important;
+  background: #FFFFFF !important;
+  border: 1px solid var(--pp-hair, #E3E0D8) !important;
+  border-radius: 12px !important;
+  box-shadow: none !important;
+}
+.app-shell .entry-card::before, .app-shell .entry-card::after { content: none !important; }
+.app-shell .entry-copy { flex: 1 !important; min-width: 0 !important; }
+/* 图标芯片：38px 纸灰底发丝边，墨色图标——语义色只在 hot 出现 */
+.app-shell .entry-ico {
+  position: static !important; flex: none !important; margin: 1px 0 0 !important;
+  width: 38px !important; height: 38px !important; border-radius: 10px !important;
+  display: grid !important; place-items: center !important;
+  background: #F7F7F4 !important;
+  border: 1px solid var(--pp-hair, #E3E0D8) !important;
+  box-shadow: none !important;
+  color: #4A5158 !important;
+}
+.app-shell .entry-ico svg { width: 18px !important; height: 18px !important; }
+.app-shell .entry-ico.ico-red, .app-shell .entry-ico.ico-yellow,
+.app-shell .entry-ico.ico-mint, .app-shell .entry-ico.ico-lav {
+  color: #4A5158 !important; background: #F7F7F4 !important; border-color: var(--pp-hair, #E3E0D8) !important;
+}
+/* 文案层级：题 15/600 墨，注 12.5 灰 */
+.app-shell .entry-card h3 {
+  font-size: 15px !important; font-weight: 600 !important; color: #1F2328 !important;
+  margin: 2px 0 4px !important; letter-spacing: .01em !important; line-height: 1.4 !important;
+}
+.app-shell .entry-card p { font-size: 12.5px !important; line-height: 1.65 !important; color: #6E757D !important; margin: 0 !important; }
+/* 悬停：靛蓝呼应 + 微升起；图标不转不缩 */
+.app-shell .entry-card:hover {
+  border-color: rgba(47, 95, 208, .40) !important;
+  box-shadow: 0 2px 10px rgba(31, 35, 40, .07) !important;
+}
+.app-shell .entry-card:hover .entry-ico { transform: none !important; border-color: rgba(47, 95, 208, .30) !important; }
+.app-shell .entry-card:active { transform: none !important; }
+/* hot（有待重练错题）：红描边 + 红图标芯片，无粉底 */
+.app-shell .entry-card.hot { border-color: rgba(196, 55, 46, .45) !important; }
+.app-shell .entry-card.hot .entry-ico { color: #C4372E !important; border-color: rgba(196, 55, 46, .35) !important; background: #FDF7F6 !important; }
+/* 撤 M 批 first-of-type 特例：四卡平权 */
+.app-shell .entry-card:first-of-type {
+  border: 1px solid var(--pp-hair, #E3E0D8) !important;
+  border-radius: 12px !important;
+  background: #FFFFFF !important;
+}
+.app-shell .entry-card:first-of-type h3 { color: #1F2328 !important; }
+
+
+/* ═══ X 批（2026-09-19 深夜 · 移动端巡检修复）═══ */
+/* 判断双格：等宽拉伸满行（移动端曾左偏挤作一团） */
+.app-shell .judge-card { flex: 1 1 0 !important; width: auto !important; max-width: none !important; }
+/* 裁决徽章圆点平面化（radial 渐变是工艺禁项） */
+.app-shell .judge-card::before { background: #2F5FD0 !important; box-shadow: none !important; }
+.app-shell .judge-card.j-false::before { background: #C4372E !important; }
+/* 触屏设备隐藏键盘操作提示（物理键盘不存在） */
+@media (hover: none) and (pointer: coarse) {
+  .kbd-hint { display: none !important; }
+}
+/* 步骤节点数字字形 */
+.step-node::before { font-weight: 800 !important; letter-spacing: 0 !important; }
+
+
+/* ═══ AA 批（2026-09-20 凌晨 · 用户截图定罪）：行动条回归卡内 ═══
+   撤销 Batch B 的 fixed 底部悬浮条——它让题目卡与行动区断成两块。
+   现在行动条回到 .q-card 纸面内部：题目 → 解析 → 行动，同一张连续的纸。 */
+.app-shell.in-practice .q-face-foot {
+  position: static !important;
+  left: auto !important; right: auto !important; bottom: auto !important;
+  max-width: none !important;
+  margin: 0 !important;
+  background: transparent !important;
+  border-top: 1px solid var(--pp-hair) !important;
+  box-shadow: none !important;
+  padding: 14px 0 2px !important;
+}
+/* 卡片底部内 padding 由 q-face 提供，foot 不再自带横向 padding */
+/* 内容较短时行动仍锚在卡底（q-face 为 flex column），不悬浮不脱节 */
+.app-shell.in-practice .practice-stage { padding-bottom: 24px !important; }
+
+/* AA2批：scroll 弹性填充 + foot 针在卡底（归位后布局保稳） */
+.app-shell.in-practice .q-face-scroll { flex: 1 1 auto !important; min-height: 0 !important; }
+.app-shell.in-practice .q-face { padding-bottom: 0 !important; }
+
+
+/* ═══ AB 批（2026-09-20 · 用户截图定罪入口卡高度不一）═══
+   根因：grid 默认 align-items:normal，卡片高度随描述行数浮动（108 vs 88）。
+   修复：行内显式 stretch + 卡片 height:100% 填满行轨道——同行必等高。 */
+.app-shell .entry-grid { align-items: stretch !important; grid-auto-rows: 1fr !important; }
+.app-shell .entry-grid > .entry-card { height: 100% !important; }
+
+/* AD批：禁用解析区滚动锚定——Chrome scroll anchoring 会在解析插入后的下一帧布局
+   把 .q-face-scroll 的 scrollTop 锚回 0（自动滚动失效的终极根因）。 */
+.app-shell.in-practice .q-face-scroll, .app-shell.in-practice .grade-panel { overflow-anchor: none; }

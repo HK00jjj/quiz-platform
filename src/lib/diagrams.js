@@ -1,3 +1,4 @@
+import { DIAGRAM_IDS } from './image-map'
 // 题目配图模板库（已人工目检的 SVG 电气图，唯一正确性源头）
 // 出题时 JSON 的 image 字段只填模板 ID，渲染时由本模块解析为 dataURI，零 base64 入库、零链接失效。
 export const DIAGRAMS = {
@@ -483,22 +484,8 @@ export const DIAGRAMS = {
 </svg>`,
 }
 
-export const DIAGRAM_IDS = Object.keys(DIAGRAMS)
+export { DIAGRAM_IDS }
 
-const IMG_MAP_KEY = 'qp.imgmap.v1'
-
-/* 导入时记录 {questionId: templateId}（与 importedAt 同为本机元数据，零 DDL） */
-export function saveImageMap(questions) {
-  try {
-    const map = JSON.parse(localStorage.getItem(IMG_MAP_KEY) || '{}')
-    for (const q of questions) { if (q && q.id && q.image && DIAGRAMS[q.image]) map[q.id] = q.image }
-    localStorage.setItem(IMG_MAP_KEY, JSON.stringify(map))
-  } catch { /* ignore */ }
-}
-
-export function imageFor(qid) {
-  try { const map = JSON.parse(localStorage.getItem(IMG_MAP_KEY) || '{}'); return map[qid] || null } catch { return null }
-}
 
 export const DIAGRAM_TITLES = {"tpl_din_wiring":"DIN插头接线","tpl_plc_sinking":"PLC漏型输出","tpl_relay_diode":"继电器隔离+续流","tpl_sensor_3wire_plc":"3线传感器接PLC","tpl_sensor_2wire_plc":"2线磁感接PLC","tpl_npn_pnp_relay":"NPN/PNP继电器转换","tpl_wire_color_legend":"导线颜色图例","tpl_plc_io_common":"PLC公共端源漏型","tpl_stepper_driver":"步进驱动接线","tpl_servo_driver":"伺服驱动接线","tpl_vfd_wiring":"变频器接线","tpl_motor_fwd_rev":"正反转互锁","tpl_motor_stardelta":"星三角启动","tpl_socket_wiring":"插座接线","tpl_crystal_head":"RJ45线序"}
 
@@ -528,15 +515,6 @@ export function diagramTitle(spec) {
   return p ? (DIAGRAM_TITLES[p.id] || p.id) : ''
 }
 
-export function readImageMap() {
-  try { return JSON.parse(localStorage.getItem(IMG_MAP_KEY) || '{}') } catch { return {} }
-}
 
-export function mergeImageMap(extra) {
-  if (!extra || typeof extra !== 'object') return
-  try {
-    const map = readImageMap()
-    for (const [k, v] of Object.entries(extra)) { if (DIAGRAMS[String(v).split('|')[0]]) map[k] = v }
-    localStorage.setItem(IMG_MAP_KEY, JSON.stringify(map))
-  } catch { /* ignore */ }
-}
+
+export { saveImageMap, imageFor, readImageMap, mergeImageMap } from './image-map'

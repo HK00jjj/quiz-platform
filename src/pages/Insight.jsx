@@ -78,7 +78,7 @@ export default function Insight() {
   return (
     <div style={{ maxWidth: 720, margin: '0 auto', padding: '6px 12px 90px' }}>
       <div className="panel" style={{ padding: 16, marginBottom: 12 }}>
-        <h3 style={{ marginBottom: 8, letterSpacing: 2 }}>🔍 错因与干扰项画像</h3>
+        <h3 style={{ marginBottom: 8, letterSpacing: 2 }}>错因与干扰项画像</h3>
         <p style={{ fontSize: 12, opacity: .7, lineHeight: 1.7 }}>
           基于你的 <b>{data.wrongTotal}</b> 条错题记录生成。目标不是"错了多少"，而是"错在什么地方、
           因为什么错"——找出可复用的纠错动作。
@@ -96,7 +96,7 @@ export default function Insight() {
               <span style={{ opacity: .75 }}>错 {d.wrong} / 共答 {d.total}（{(d.rate * 100).toFixed(0)}%）</span>
             </div>
             <div style={{ height: 7, borderRadius: 5, background: 'rgba(0,0,0,.07)', overflow: 'hidden' }}>
-              <div style={{ width: (d.wrong / maxDom * 100) + '%', height: '100%', background: 'linear-gradient(90deg,#FFB3C1,#E4708A)' }} />
+              <div style={{ width: (d.wrong / maxDom * 100) + '%', height: '100%', background: '#C4372E' }} />
             </div>
           </div>
         ))}
@@ -109,16 +109,19 @@ export default function Insight() {
           口径：仅统计解析尾部带 <code>[错因:…]</code> 标签的题——当前 <b>{data.withCauseTag}</b> / {data.wrongTotal} 条错题可归类
           （其余为未标注解析的存量题，不参与本图）。
         </p>
-        {data.causes.map((c) => (
+        {data.causes.filter((c) => c.n > 0).map((c) => (
           <div key={c.name} style={{ marginBottom: 8 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, marginBottom: 3 }}>
               <span>{c.name}</span><span style={{ opacity: .75 }}>{c.n} 次</span>
             </div>
             <div style={{ height: 7, borderRadius: 5, background: 'rgba(0,0,0,.07)', overflow: 'hidden' }}>
-              <div style={{ width: (c.n / maxCause * 100) + '%', height: '100%', background: 'linear-gradient(90deg,#FFE066,#F2B705)' }} />
+              <div style={{ width: (c.n / maxCause * 100) + '%', height: '100%', background: 'var(--pp-acc, #2F5FD0)' }} />
             </div>
           </div>
         ))}
+        {!data.causes.some((c) => c.n > 0) && (
+          <p style={{ fontSize: 12.5, opacity: .7, margin: '6px 0 0' }}>本期错题均无可归因标签——新题解析带错因标注后自动填充。</p>
+        )}
         {!data.withCauseTag && (
           <p style={{ fontSize: 12, opacity: .7 }}>暂无可归类的错题——继续练习，新题解析带错因标签后本区自动填充。</p>
         )}

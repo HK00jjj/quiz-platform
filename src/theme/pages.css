@@ -166,7 +166,7 @@
      投影与布局终于对齐。切片 250 配边框 36px → 统一缩放 k=0.144（top 125×k=18、bottom 179×k=25.8），
      四角龙首零变形；素材左右杆本身不等宽（86 vs 104px），统一 k 下残留差异约 2.6px（0.7%）。 */
   border: 18px solid transparent; border-left-width: 36px; border-right-width: 36px; border-bottom-width: 26px;
-  border-image: url('/quiz-platform/img/p19-soft.webp') 125 250 179 250 fill / 18px 36px 26px 36px stretch;
+  
   filter: drop-shadow(0 18px 36px rgba(0,0,0,.55));
 }
 @media (max-width: 560px) {
@@ -180,7 +180,7 @@
   display: flex; flex-direction: column; min-height: 0; padding: 16px 18px 12px;
   /* 羊皮纸纹理压到约两成权重：一层近纸色的洗白叠在 p4 之上，纹理只做氛围不抢字 */
   background-color: #f1e9d6;
-  background-image: linear-gradient(rgba(247,242,229,.8), rgba(241,233,214,.84)), url('/quiz-platform/img/p4.webp');
+  
   background-size: auto, cover; background-position: center, center;
   box-shadow: inset 0 0 40px rgba(90,74,42,.16);
 }
@@ -198,7 +198,7 @@
 .zone-label { font-size: 10.5px; font-size: clamp(9.5px, 2.3cqw, 11.5px); letter-spacing: 3px; color: #7a5f1f; font-weight: 700; margin-bottom: 7px; }
 /* 分区之间的铜质藤蔓分隔条（p44） */
 .zone-rule { height: clamp(8px, 2.4cqw, 14px); margin: 8px 0; opacity: .55;
-  background: url('/quiz-platform/img/p44.png') center / contain no-repeat; }
+  }
 /* 平滑滚动由 CSS 接管（组件里只下一次 scrollTo，不自写 rAF 补间，避免双重缓动）；
    overscroll-behavior:contain → 滚到边界不把滚动链传给页面（嵌套滚动在移动端的典型抖动源）；
    scrollbar-gutter 必须用 **both-edges**：只写 stable 会在右侧单边预留 ~7px 槽位，
@@ -215,7 +215,7 @@
 .q-face-foot { flex: 0 0 auto; padding-top: 8px; }
 .q-face-foot h4 { text-align: center; font-size: clamp(10.5px, 2.6cqw, 13px); letter-spacing: 3px; color: #6b5a1a; margin-bottom: 8px; }
 .q-face-rule { height: clamp(10px, 3cqw, 18px); margin-bottom: 8px; opacity: .75;
-  background: url('/quiz-platform/img/p44.png') center / contain no-repeat; }
+  }
 /* 判分闪光改用 drop-shadow，贴合牌形而不是矩形盒阴影 */
 .q-card.ok-flash { animation: card-flash-ok .9s ease; }
 .q-card.bad-flash { animation: card-flash-bad .9s ease; }
@@ -288,7 +288,7 @@
 .judge-card.j-false.selected .judge-label { color: #e6c3cd; }
 .fill-grid { display: flex; flex-direction: column; gap: 10px; }
 .fill-item { display: flex; align-items: center; gap: 10px; }
-.fill-item .no { font-family: 'Cinzel', serif; color: #5a4413; font-weight: 700; font-size: clamp(11px, 2.7cqw, 13.5px); width: 42px; flex-shrink: 0; letter-spacing: 1px; }
+.fill-item .no { font-family: serif; color: #5a4413; font-weight: 700; font-size: clamp(11px, 2.7cqw, 13.5px); width: 42px; flex-shrink: 0; letter-spacing: 1px; }
 .fill-item.right .rune-input { border-color: var(--teal); box-shadow: var(--glow-teal); }
 .fill-item.wronged .rune-input { border-color: var(--fault-lt); box-shadow: var(--glow-red); }
 .fill-expected { font-size: 12.5px; color: var(--teal-dk); margin-top: 3px; }
@@ -356,9 +356,9 @@
 .settle-card { position: relative; padding: 30px 24px; background: rgba(19,26,33,.94); border: 2px solid transparent; border-image: linear-gradient(135deg, var(--copper-d), var(--gilt), var(--copper), var(--gilt), var(--copper-d)) 1; }
 .settle-card::before { content: ''; position: absolute; inset: 4px; border: 1px solid rgba(201,168,76,.25); pointer-events: none; }
 
-.settle-pct { font-family: 'Cinzel', serif; font-size: 56px; font-weight: 700; }
+.settle-pct { font-family: serif; font-size: 56px; font-weight: 700; }
 .settle-grid { display: flex; justify-content: center; gap: 22px; flex-wrap: wrap; margin: 18px 0; font-size: 13px; color: var(--muted); }
-.settle-grid b { display: block; font-size: 20px; color: var(--gold-text); font-family: 'Cinzel', serif; }
+.settle-grid b { display: block; font-size: 20px; color: var(--gold-text); font-family: serif; }
 .settle-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 8px; }
 
 /* ── 题库（糖果书架） ── */
@@ -391,13 +391,13 @@
 .bank-item.flipped .tarot-inner { transform: rotateY(180deg); }
 .tarot-face {
   position: absolute; inset: 0; backface-visibility: hidden; overflow: hidden;
-  background: url('/quiz-platform/img/p2.webp') center / 100% 100% no-repeat;
+  
   box-shadow: 0 10px 24px rgba(0,0,0,.45); transition: box-shadow .25s ease, visibility 0s linear 390ms;
 }
 .bank-item:hover .tarot-face { box-shadow: 0 16px 34px rgba(0,0,0,.55), 0 0 18px rgba(184,150,58,.22); }
 .tarot-face.back { transform: rotateY(180deg);
   /* 牌背用专门的塔罗背面素材（p6 玫瑰窗+藤蔓），与正面 p2 尖拱框彻底区分 */
-  background-image: url('/quiz-platform/img/p6.webp'); }
+  }
 /* 硬切换保险：翻到一半（390ms，牌侧立不可见）用 visibility 交换正反面，
    即使某个浏览器/合成层让 backface-visibility 失效，也不会两面同绘 */
 .bank-item .tarot-face.back { visibility: hidden; }
@@ -588,6 +588,6 @@
 .stepper button:hover:not(:disabled) { border-color: var(--teal); color: var(--teal-lt); box-shadow: var(--glow-teal); }
 .stepper button:active:not(:disabled) { transform: translateY(2px); border-bottom-width: 2px; }
 .stepper button:disabled { opacity: .35; }
-.stepper .val { font-family: 'Cinzel', serif; font-size: 30px; min-width: 60px; text-align: center; color: var(--teal-lt); text-shadow: 0 0 10px rgba(90,168,156,.5); }
+.stepper .val { font-family: serif; font-size: 30px; min-width: 60px; text-align: center; color: var(--teal-lt); text-shadow: 0 0 10px rgba(90,168,156,.5); }
 .furnace-zone { border-color: rgba(139,42,74,.7) !important; }
 .furnace-zone .panel-title { color: #d98ba0; }

@@ -36,7 +36,7 @@
 //   ⑫ checkAnalysis 新增 [错因:…] 可选标签校验——出现即须在 WRONG_CAUSE_TAGS 六值枚举内
 //      （概念缺失/公式误用/单位口径/审题偏差/干扰项混淆/工况错配）、一题最多一个；
 //      未出现不拦截，存量题不失效。规则主副本已同步 v6.9（md5 1fb8cff1…）。
-import { DIAGRAM_IDS } from './diagrams.js'
+import { DIAGRAM_IDS } from './image-map.js'
 export const TYPE_LIST = ['单选题', '多选题', '判断题', '填空题', '简答题', '计算分析题', '综合设计/故障诊断题']
 const DIFFS = ['基础', '应用', '综合']
 const COG = ['记忆', '理解', '应用', '分析', '评价', '创造']

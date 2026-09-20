@@ -121,7 +121,7 @@ export default function Path() {
   if (!st.ready) {
     return (
       <div className="panel" style={{ margin: '18px auto', maxWidth: 560, padding: 18 }}>
-        <h3 style={{ marginBottom: 8 }}>🧭 学习路径</h3>
+        <h3 style={{ marginBottom: 8 }}>学习路径</h3>
         <p style={{ fontSize: 13, lineHeight: 1.7, opacity: .85 }}>
           属性体系尚未就绪（缺少 attributes / question_attributes 数据），
           路径引擎无法计算。学习页将按入库顺序推进，不受影响。
@@ -139,7 +139,7 @@ export default function Path() {
     <div style={{ maxWidth: 720, margin: '0 auto', padding: '6px 12px 90px' }}>
       {/* 顶部 */}
       <div className="panel" style={{ padding: 16, marginBottom: 12 }}>
-        <h3 style={{ marginBottom: 8, letterSpacing: 2 }}>🧭 学习路径</h3>
+        <h3 style={{ marginBottom: 8, letterSpacing: 2 }}>学习路径</h3>
         <p style={{ fontSize: 12.5, opacity: .75, lineHeight: 1.7, margin: 0 }}>
           依据知识依赖图与你的作答证据计算：<b>外边缘</b> = 前置已掌握、自身未掌握——下一步学它最有效；
           <b>内边缘</b> = 已掌握但出现到期或衰退——巩固它最高效。
@@ -177,7 +177,7 @@ export default function Path() {
 
       {/* 外边缘 */}
       <div className="panel" style={{ padding: 16, marginBottom: 12 }}>
-        <h4 style={{ marginBottom: 4, fontSize: 14 }}>🎯 下一步学什么（外边缘 · {outer.length}）</h4>
+        <h4 style={{ marginBottom: 4, fontSize: 14 }}>下一步学什么（外边缘 · {outer.length}）</h4>
         <p style={{ fontSize: 11.5, opacity: .6, marginBottom: 10 }}>按层级升序、同级薄弱优先 —— 点"定向练这章"直接开一场该主题的练习</p>
         {!outer.length && <p style={{ fontSize: 12.5, opacity: .7 }}>暂无可推进主题（可能全部掌握，或证据不足——继续刷题）。</p>}
         {outer.map((t, i) => (

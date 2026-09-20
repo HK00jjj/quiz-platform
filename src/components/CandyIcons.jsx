@@ -120,3 +120,57 @@ export const IconScroll = () => (
     <path d="M9 11.5h6M9 15h4" opacity=".55" />
   </svg>
 )
+
+/* ── Batch B 增补（2026-09-19）：播报控件与题号导航图标化，去掉 emoji ── */
+export const IconSound = () => (
+  <svg {...S}>
+    <path d="M4.5 9.5h3l4-3v11l-4-3h-3z" />
+    <path d="M15 9.2a4 4 0 0 1 0 5.6" opacity=".55" />
+    <path d="M17.4 7a7 7 0 0 1 0 10" opacity=".55" />
+  </svg>
+)
+export const IconPause = () => (
+  <svg {...S}>
+    <path d="M9.5 6v12M14.5 6v12" />
+  </svg>
+)
+export const IconReplay = () => (
+  <svg {...S}>
+    <path d="M20 12a8 8 0 1 1-2.6-5.9" />
+    <path d="M20 3.5V7h-3.5" />
+  </svg>
+)
+export const IconFlag = () => (
+  <svg {...S}>
+    <path d="M6.5 3.5v17" />
+    <path d="M6.5 4.5h10l-1.6 3.4 1.6 3.4h-10z" />
+  </svg>
+)
+export const IconGrid = () => (
+  <svg {...S}>
+    <path d="M4.5 4.5h6v6h-6zM13.5 4.5h6v6h-6zM4.5 13.5h6v6h-6zM13.5 13.5h6v6h-6z" />
+  </svg>
+)
+
+/* 帮助：问号圆环（快捷键面板入口，Batch L） */
+export const IconHelp = () => (
+  <svg {...S}>
+    <circle cx="12" cy="12" r="8.2" />
+    <path d="M9.6 9.6a2.4 2.4 0 1 1 3.3 2.2c-.75.3-.9.8-.9 1.7" />
+    <circle cx="12" cy="16.6" r=".9" fill="currentColor" stroke="none" />
+  </svg>
+)
+
+/* 对勾（状态确认用：自评、导出完成、书架使用中） */
+export const IconCheck = () => (
+  <svg {...S}>
+    <path d="M5 12.5l4.2 4.2L19 7" />
+  </svg>
+)
+
+/* 叉（状态否定用：自评、错误标记） */
+export const IconClose = () => (
+  <svg {...S}>
+    <path d="M6.5 6.5l11 11M17.5 6.5l-11 11" />
+  </svg>
+)

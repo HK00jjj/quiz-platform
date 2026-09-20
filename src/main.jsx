@@ -6,8 +6,9 @@ import './theme/global.css'
 import './theme/pages.css'
 /* 糖果主题层：必须排在 gothic 两份 CSS 之后，靠层叠顺序覆盖（同特异性时后来者胜） */
 import './theme/candy.css'
-/* 白瓷答题页皮肤（Pilot 2026-09-19）：作用域限定 body.in-practice，仅答题页生效；
-   删本行或去掉 App.jsx 的 in-practice 类即回滚。 */
+/* 白瓷答题页皮肤（Pilot 2026-09-19）：作用域限定 .app-shell.in-practice（类由 App.jsx 按路由挂载），
+   仅答题页生效；删本行或去掉 App.jsx 的 in-practice 类即回滚。
+   ⚠ 2026-09-19 修正：原写成 body.in-practice 而类实际挂在 .app-shell 上 → 规则永不命中（已修）。 */
 import './theme/paper.css'
 
 /* 部署后旧标签页自愈：Vite 的动态 import/预加载失败会派发 vite:preloadError，

@@ -64,7 +64,7 @@ export default function Dashboard() {
   if (!attributes.length) {
     return (
       <div className="panel" style={{ margin: '18px auto', maxWidth: 560, padding: 18 }}>
-        <h3 style={{ marginBottom: 8 }}>📊 诊断</h3>
+        <h3 style={{ marginBottom: 8 }}>诊断</h3>
         <p style={{ fontSize: 13, lineHeight: 1.7, opacity: .85 }}>
           属性体系尚未就绪（数据库缺少 attributes / question_attributes 两表，或尚未写入数据）。
           刷题、复习、晋级均不受影响；属性体系入库后本页自动可用。
@@ -80,7 +80,7 @@ export default function Dashboard() {
     <div style={{ maxWidth: 720, margin: '0 auto', padding: '6px 12px 90px' }}>
       {/* 顶部概况 */}
       <div className="panel" style={{ padding: 16, marginBottom: 12 }}>
-        <h3 style={{ marginBottom: 10, letterSpacing: 2 }}>📊 掌握度仪表盘</h3>
+        <h3 style={{ marginBottom: 10, letterSpacing: 2 }}>掌握度仪表盘</h3>
         <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', fontSize: 13 }}>
           <div><b style={{ fontSize: 20 }}>{summary.attrMastered}</b> <span style={{ opacity: .75 }}>个属性已掌握</span></div>
           <div><b style={{ fontSize: 20 }}>{summary.attrMeasured}</b> <span style={{ opacity: .75 }}>个属性有足够证据</span></div>
@@ -118,7 +118,7 @@ export default function Dashboard() {
               <span>掌握率 {pct(d.rate)} · 平均掌握度 {d.mastery == null ? '—' : d.mastery.toFixed(2)}</span>
             </div>
             <div style={{ height: 8, borderRadius: 6, background: 'rgba(0,0,0,.07)', overflow: 'hidden' }}>
-              <div style={{ width: bar(d.mastery) + '%', height: '100%', background: 'linear-gradient(90deg,#7FE8C8,#5FAE8F)' }} />
+              <div style={{ width: bar(d.mastery) + '%', height: '100%', background: 'var(--pp-acc, #2F5FD0)' }} />
             </div>
           </div>
         ))}
@@ -171,7 +171,7 @@ export default function Dashboard() {
                     )
                   })}
                   <div style={{ marginTop: 6, opacity: .6, fontSize: 11 }}>
-                    想定向练这一章？去「🧭 学习路径」页面按主题发起定向练习。
+                    想定向练这一章？去「学习路径」页面按主题发起定向练习。
                   </div>
                 </div>
               )}
@@ -197,7 +197,7 @@ export default function Dashboard() {
       </div>
 
       <div style={{ textAlign: 'center', marginTop: 14, display: 'flex', gap: 10, justifyContent: 'center' }}>
-        <button className="chip" onClick={() => nav('/path')} style={{ fontSize: 13 }}>🧭 学习路径（下一步学什么）→</button>
+        <button className="chip" onClick={() => nav('/path')} style={{ fontSize: 13 }}>学习路径（下一步学什么）→</button>
         <button className="chip" onClick={() => nav('/insight')} style={{ fontSize: 13 }}>🔍 错因与干扰项画像 →</button>
       </div>
     </div>

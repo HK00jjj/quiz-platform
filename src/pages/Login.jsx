@@ -26,7 +26,7 @@ export default function Login() {
     setError(null)
     const err = await signIn(email.trim(), password)
     if (err) {
-      setError('✗ 密码不对，再试一次？')
+      setError('密码不对，再试一次？')
       setBusy(false)
       const box = document.querySelector('.login-gate-inner')
       if (box) {
@@ -59,7 +59,7 @@ export default function Login() {
               <span className="ch-candy c2" />
               <span className="ch-candy c3" />
             </div>
-            <h1 className="login-title">糖果之门</h1>
+            <h1 className="login-title">电气题库</h1>
             <p className="login-sub">尝 味 师 登 录</p>
             {/* 糖果分隔条：复用 .divider / .zone-rule 的渐变配方，纯CSS零位图。
                 原本这里是哥特铜质花纹条 A.divider(p44.png)。 */}
@@ -88,10 +88,10 @@ export default function Login() {
               {error && <p className="login-error">{error}</p>}
               {!error && syncError && <p className="login-error">{syncError}</p>}
               <button className="btn lg block" style={{ marginTop: 20 }} disabled={busy}>
-                {busy ? '正在登录…' : '进入糖果题库'}
+                {busy ? '正在登录…' : '进入题库'}
               </button>
             </form>
-            <p className="login-foot">✦ 糖果题库 v1.0 · 尝味师专用 · 纯网页端 · 云端成长档案同步 ✦</p>
+            <p className="login-foot">电气题库 v1.0 · 学习者专用 · 纯网页端 · 云端成长档案同步</p>
           </div>
         </div>
       </div>

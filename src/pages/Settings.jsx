@@ -53,7 +53,7 @@ export default function Settings() {
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `糖果题库备份_${new Date().toISOString().slice(0, 10)}.json`
+    a.download = `电气题库备份_${new Date().toISOString().slice(0, 10)}.json`
     a.click()
     URL.revokeObjectURL(url)
     setExported(true)
@@ -74,8 +74,8 @@ export default function Settings() {
       {/* p45 哥特标题装饰条早被 candy.css 的 background-image:none !important 掐掉了（不发请求），
           那行内联样式与 font-gothic 类都是死代码，一并清掉 */}
       <div className="page-head">
-        <h1><span className="rune">🧁</span> 糖 果 抽 屉</h1>
-        <p>题库设置 · 整理你的糖果抽屉</p>
+        <h1>题 库 与 档 案</h1>
+        <p>题库设置 · 整理你的题库与档案</p>
       </div>
 
       {/* 题库书架：方案 5.3 定为设置页最重要、视觉权重最高的模块，所以置顶 */}
@@ -84,11 +84,11 @@ export default function Settings() {
       <div className="panel">
         <div className="setting-row">
           {/* 糖果天平（方案 5.4）：纯 CSS 实体——中央薄荷水晶柱 + 横梁 + 左右两个糖盘 */}
-          <div className="tool candy-balance" role="img" aria-label="糖果天平">
+          <div className="tool candy-balance" role="img" aria-label="每日目标">
             <span className="cb-pan l" /><span className="cb-pan r" />
           </div>
           <div style={{ flex: 1 }}>
-            <div className="panel-title">⚖️ 每日目标</div>
+            <div className="panel-title">每日目标</div>
             <div className="stepper">
               <button onClick={() => updateSettings({ dailyGoal: Math.max(5, goal - 5) })} disabled={goal <= 5} aria-label="减少">−</button>
               <span className="val">{goal}</span>
@@ -102,12 +102,12 @@ export default function Settings() {
       <div className="panel">
         <div className="setting-row">
           {/* 糖果罐（方案 5.5）：半透玻璃罐 + 五颗彩色糖豆 + 粉桃盖子 */}
-          <div className="tool candy-jar" role="img" aria-label="糖果罐">
+          <div className="tool candy-jar" role="img" aria-label="题库列表">
             <span className="cj-lid" />
             <span className="cj-body"><i /><i /><i /><i /><i /></span>
           </div>
           <div style={{ flex: 1 }}>
-            <div className="panel-title">💾 数据备份</div>
+            <div className="panel-title">数据备份</div>
             <p style={{ fontSize: 12.5, lineHeight: 1.9, color: 'var(--muted)' }}>
               数据存于云端，多设备登录同一账号实时同步。导出备份为可选保险，
               备份 JSON 可在任意设备的导入页（备份恢复）导入恢复。
@@ -115,7 +115,7 @@ export default function Settings() {
             {storage && storage.level !== 'ok' && (
               <div style={{
                 marginTop: 10, padding: '10px 12px', borderRadius: 12,
-                background: storage.level === 'danger' ? 'rgba(196,55,46,.08)' : 'rgba(255,224,102,.15)',
+                background: storage.level === 'danger' ? 'rgba(196,55,46,.08)' : 'rgba(201, 138, 31, .12)',
                 fontSize: 12.5, lineHeight: 1.8, color: storage.level === 'danger' ? 'var(--bad-ink)' : 'var(--ink-2)'
               }}>
                 {storage.level === 'danger'
@@ -142,7 +142,7 @@ export default function Settings() {
               </div>
             )}
             <div style={{ marginTop: 12 }}>
-              <GiltBtn onClick={exportBackup}>{exported ? '✓ 已导出' : '封装记忆 · 导出全量备份 JSON'}</GiltBtn>
+              <GiltBtn onClick={exportBackup}>{exported ? '已导出' : '导出全量备份 JSON'}</GiltBtn>
             </div>
           </div>
         </div>
@@ -151,9 +151,9 @@ export default function Settings() {
       <div className="panel">
         <div className="setting-row">
           {/* 尝味人徽章（方案 5.6）：圆形糖果徽章 */}
-          <div className="tool candy-badge" role="img" aria-label="尝味人徽章" />
+          <div className="tool candy-badge" role="img" aria-label="学习者徽章" />
           <div style={{ flex: 1 }}>
-            <div className="panel-title">🏅 尝味师凭证</div>
+            <div className="panel-title">账号凭证</div>
             {/* 原来是硬编码的哥特暗金 #d6c79b，在白色果冻面板上只有约 1.9:1，邮箱几乎读不出来 */}
             <p style={{ fontSize: 14, color: 'var(--ink)', letterSpacing: 1 }}>{userEmail ?? '未登录'}</p>
             <div style={{ marginTop: 12 }}>
@@ -166,18 +166,18 @@ export default function Settings() {
       <div className="panel furnace-zone">
         <div className="setting-row">
           {/* 糖果熔炉（方案 5.7）：橙红炉体 + 炉口 + 跳动的火焰（只动 transform/opacity） */}
-          <div className="tool candy-furnace" role="img" aria-label="糖果熔炉">
+          <div className="tool candy-furnace" role="img" aria-label="数据清除区">
             <span className="cf-flame" />
           </div>
           <div style={{ flex: 1 }}>
-            <div className="panel-title">🔥 危险区 · 糖果熔炉</div>
+            <div className="panel-title">危险区 · 数据清除</div>
             {/* 危险区说明改用草莓红（--bad-ink，5.3:1）：既是警告语义、又与全站「错」通道同一色系。
                 原来的 #d98ba0 在浅底上只有约 2.6:1 */}
             <p style={{ fontSize: 12.5, lineHeight: 1.9, color: 'var(--bad-ink)' }}>
               清空当前题库的题目、复习卡片与全部做题记录。此操作不可撤销，请先封装记忆（导出备份）。
             </p>
             {melted ? (
-              <p className="red-glow-text" style={{ marginTop: 12, letterSpacing: 2 }}>✗ 全部数据已熔毁</p>
+              <p className="red-glow-text" style={{ marginTop: 12, letterSpacing: 2 }}>全部数据已熔毁</p>
             ) : (
               <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
                 <input className="rune-input" style={{ maxWidth: 260 }} value={confirmText}
@@ -193,7 +193,7 @@ export default function Settings() {
 
       {/* 页脚原来是 rgba(156,132,82,.55) 哥特青铜色再叠 55% 透明，约 1.6:1，基本看不见 */}
       <p style={{ textAlign: 'center', fontSize: 11, letterSpacing: 2, color: 'var(--ink-3)', marginTop: 26 }}>
-        ✦ 糖果题库 v1.0 · 尝味师专用 · 纯网页端 · 云端成长档案同步 ✦
+        电气题库 v1.0 · 纯网页端 · 云端成长档案同步
       </p>
     </div>
   )

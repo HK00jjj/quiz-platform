@@ -5,7 +5,7 @@ import { useStore } from '../store'
 import { GiltBtn } from '../components'
 // burstParticles 改从 CandyBoot 引：components.jsx 正被编辑器陈旧缓冲区回写成 Apple 版（只发振动、不发糖豆）
 import { burstParticles } from '../components/CandyBoot'
-import { IconReveal, IconScroll, IconRetry } from '../components/CandyIcons'
+import { IconReveal, IconScroll, IconRetry, IconSound, IconPause, IconReplay, IconFlag, IconGrid, IconHelp, IconCheck, IconClose } from '../components/CandyIcons'
 import { isObjective, domainLabel, DIFF_CLS } from '../lib/stats'
 import { gradeObjective, blanksOf, splitExpected, stemSpokenOf } from '../lib/validate'
 import { imageFor, diagramDataUri, diagramTitle } from '../lib/diagrams'
@@ -30,6 +30,31 @@ function Stem({ q }) {
         ? <span key={i} style={{ display: 'inline-block', minWidth: 70, borderBottom: '1.5px solid #5a4a2a', margin: '0 3px' }}>&nbsp;</span>
         : <React.Fragment key={i}>{p}</React.Fragment>)}
     </p>
+  )
+}
+
+/* 解析分节渲染（2026-09-19 · 审查 P0-2）：把 v7.1 解析的「【概念】…【推导】…【正解】…
+   【误诊】…【记忆点】…」切成「小标题 + 正文」，长解析不再是一堵墙。
+   纯前端字符串处理——不改数据、不改 store；无标记（旧格式）时回退为单段，保证不炸。 */
+function Expl({ text }) {
+  const raw = String(text ?? '')
+  const parts = raw.split(/【(概念|推导|正解|误诊|记忆点)】/)
+  if (parts.length < 3) return <p>{raw}</p>
+  const secs = []
+  for (let i = 1; i < parts.length; i += 2) {
+    const body = (parts[i + 1] ?? '').trim()
+    if (body) secs.push([parts[i], body])
+  }
+  if (!secs.length) return <p>{raw}</p>
+  return (
+    <>
+      {secs.map(([name, body], k) => (
+        <div className="exp-sec" key={k}>
+          <h6>{name}</h6>
+          <p>{body}</p>
+        </div>
+      ))}
+    </>
   )
 }
 
@@ -99,6 +124,11 @@ export default function Practice() {
   const sealTimer = useRef(null)
   const flying = useRef(false)
   const startAt = useRef(Date.now())
+  /* Batch B（2026-09-19）：题号导航 + 旗标——纯组件内状态，不写 store、不写云端 */
+  const [flagged, setFlagged] = useState(() => new Set())
+  const [navOpen, setNavOpen] = useState(false)
+  const [helpOpen, setHelpOpen] = useState(false)   // Batch L：快捷键帮助面板
+  const flagOn = flagged.has(index)
   /* 选项洗牌排列按「题目 id#序号」缓存：同题重渲染复用，切题才重排（#6） */
   const shuffleRef = useRef({ key: null, order: [] })
   const [elapsed, setElapsed] = useState(0)
@@ -134,12 +164,28 @@ export default function Practice() {
   useEffect(() => {
     const el = qWrapRef.current
     if (!el) return
-    let svhOK = false
-    try { svhOK = !!(window.CSS && CSS.supports && CSS.supports('height', 'calc(100svh - 96px)')) } catch { /* 老内核无 CSS.supports → 视为需要接管 */ }
-    if (svhOK) return
+    /* 2026-09-19 D 批（用户诉求：未答态大片空白、答完又可能被压住）：
+       原来是「不支持 svh 的老内核才接管」，现在**所有浏览器都按内容驱动**——
+       预算上限 = 视口高 - 头部 - 行动条；内容高 = .q-face-scroll 的自然高；
+       取较小者并给一个下限，短题不再拖一条空纸，长题仍走卡内滚动。 */
+    const scroll = el.querySelector('.q-face-scroll')
     const apply = () => {
       const w = el.clientWidth || 320
-      const h = Math.max(420, Math.min(window.innerHeight - 96, w / 0.5))
+      const topH = ((document.querySelector('.practice-top') || {}).offsetHeight || 0) + 26
+      const barH = ((document.querySelector('.q-face-foot') || {}).offsetHeight || 0) + 14
+      const budget = Math.max(360, window.innerHeight - topH) /* AA批：行动条已入卡，卡高含 foot，预算不再另扣条高 */
+      /* 测量（2026-09-19 D 批两轮自纠后的终版）：
+         ① scrollHeight 在受限高容器上==可视高 → 不算内容；
+         ② 累加子元素高度也不行——.zone-s 在 flex 下被拉伸，量到的还是"被撑满"的高度；
+         ③ 终版：先把卡片高度置 auto（两个绝对定位的牌面此时塌成 0），
+            此时 .q-face-scroll 的 scrollHeight 才是**内容自然高**；读完后同一任务内写回 clamp 值。
+            同一 task 内先写后读再写 = 浏览器只绘制一次，不会闪。 */
+      el.style.height = 'auto'
+      const natural = scroll ? scroll.scrollHeight : budget
+      el.style.height = 'auto'
+      let content = (natural && natural > 160) ? natural + 58 + barH : budget /* AA批：行动条已入卡内流式，卡高须含 foot */
+      const minH = Math.max(320, Math.min(budget, w / 0.5 * 0.7))
+      const h = Math.round(Math.min(budget, Math.max(minH, content)))
       el.style.height = h + 'px'
       /* 2026-09-17 居中修复配套：stage 的 min-height 只有 100vh/100dvh 两级——老内核
          dvh 无效时回落 100vh（地址栏收起的最大视口），地址栏展开时 stage 比 innerHeight
@@ -154,7 +200,7 @@ export default function Practice() {
     return () => { window.removeEventListener('resize', apply); window.removeEventListener('orientationchange', apply) }
     /* deps 带 index/q.id：.q-card-wrap 挂了 key（翻牌入场动画按题重放），key 变 = div
        重建 = inline height 丢失，必须对新节点重新 apply（svhOK 提前 return 的分支无感）。 */
-  }, [index, q?.id])
+  }, [index, q?.id, seal, showAnswer, phase])   // phase 为早声明状态（answered 在第 480 行才 const，放依赖里会 TDZ 崩页）
 
   /* 答案揭晓后把答案区滚进可见范围。三个关键点：
      ① 时机：蜡封卸载（seal==='broken'，时长随批2 B3 门控 300/520ms）前，提前滚会让上方内容在滚动途中突然少 ~40px
@@ -165,22 +211,43 @@ export default function Practice() {
         不自写 rAF 补间——否则与 CSS 平滑叠加会双重缓动，反而更顿。
      注意：依赖里用 store 的 phase 而不是下面才声明的 answered（const 有 TDZ，会整页崩溃） */
   useEffect(() => {
-    if (phase !== 'feedback' && !showAnswer) return
-    if (seal !== 'broken') return           // 蜡封未卸载，布局还没定型
-    let raf1 = 0, raf2 = 0
-    raf1 = requestAnimationFrame(() => {
-      raf2 = requestAnimationFrame(() => {
-        const sc = document.querySelector('.q-face-scroll')
-        const gp = document.querySelector('.grade-panel')
-        if (!sc || !gp) return
-        const top = gp.getBoundingClientRect().top - sc.getBoundingClientRect().top + sc.scrollTop - 6
-        const to = Math.max(0, Math.min(top, sc.scrollHeight - sc.clientHeight))
-        if (Math.abs(to - sc.scrollTop) < 2) return   // 已完整可见就不滚，省掉一次无谓动画
-        sc.scrollTo({ top: to })
-      })
-    })
-    return () => { cancelAnimationFrame(raf1); cancelAnimationFrame(raf2) }
-  }, [phase, showAnswer, seal])
+    /* AD4批：滚动改「同步一次 + setTimeout 双兜底」——原双 rAF 链在 headless/后台标签
+       会被节流不触发（spy 实证 scrollTo 调用为空）；宏任务 setTimeout 全环境可靠。
+       双滚动上下文兜底：内部容器可滚（长题）滚内部，否则滚窗口；
+       完全可见（上下留 8px）则不打扰。揭晓信号 = 蜡封已破 或 自查态。 */
+    const scrollFx = () => {
+      document.documentElement.setAttribute('data-scrollfx', String(Date.now()))
+      const sc = document.querySelector('.q-face-scroll')
+      const gp = document.querySelector('.grade-panel, .selfcheck-note') /* 解析正文优先——引导卡可见≠解析可见（AB批截图定罪的最终根因） */
+      if (!sc || !gp) { (window.__fx = window.__fx || []).push('no-el'); return }
+      const gr0 = gp.getBoundingClientRect()
+      ;(window.__fx = window.__fx || []).push('geom gT=' + Math.round(gr0.top) + ' sH=' + sc.scrollHeight + ' cH=' + sc.clientHeight + ' seal=' + seal + ' selfCheck=' + selfCheck)
+      const gr = gp.getBoundingClientRect()
+      if (gr.top >= 8 && gr.bottom <= window.innerHeight - 8) return
+      if (sc.scrollHeight > sc.clientHeight + 2) {
+        const rel = gr.top - sc.getBoundingClientRect().top + sc.scrollTop - 6
+        const to = Math.max(0, Math.min(rel, sc.scrollHeight - sc.clientHeight))
+        sc.scrollTo({ top: to, behavior: 'smooth' })   // smooth 动画帧持续覆盖 scroll-anchoring 的重置
+        ;(window.__fx = window.__fx || []).push('inner to=' + Math.round(to) + ' after=' + Math.round(sc.scrollTop))
+        return
+      }
+      const foot = document.querySelector('.q-face-foot')
+      const reserve = foot ? Math.min(foot.getBoundingClientRect().height + 16, 140) : 24
+      const avail = window.innerHeight - reserve - 16
+      const abs = gr.height <= avail
+        ? window.scrollY + gr.bottom - (window.innerHeight - reserve)
+        : window.scrollY + gr.top - 24
+      window.scrollTo({ top: Math.max(0, abs), behavior: 'smooth' })
+    }
+    const sealOK = seal === 'broken' || selfCheck
+    if (!sealOK) return
+    /* AD批v5：滚动延迟到 1.2s/2.2s 两拍——与手动验证 100% 生效的时序对齐。
+       提交瞬间是布局风暴（蜡封动画/解析挂载/卡高预算重排/grade-panel 图片加载），
+       任何早期滚动都会被后续重排钳回 0；等布局完全平息后一次滚到位。 */
+    const t1 = setTimeout(scrollFx, 1200)
+    const t2 = setTimeout(scrollFx, 2200)
+    return () => { clearTimeout(t1); clearTimeout(t2) }
+  }, [phase, showAnswer, seal, selfCheck])
 
   /* 用时计时（#7）：结算后必须停表，否则结算页那个「用时」会一直往上跳
      （原来 deps 是 []，组件活着就永远 tick）。挂 phase：进结算就清 interval，
@@ -207,6 +274,7 @@ export default function Practice() {
     if (phase !== 'answering' && phase !== 'feedback') return
     const onKey = (e) => {
       if (e.altKey || e.metaKey) return
+      if (e.key === '?') { setHelpOpen(true); return }
       const tag = e.target && e.target.tagName
       const typing = tag === 'INPUT' || tag === 'TEXTAREA'
       const footBtns = () => [...document.querySelectorAll('.q-face-foot button')]
@@ -601,7 +669,24 @@ export default function Practice() {
 
   function doCheck() {
     if (!canSubmit) return
-    unlockSpeech()                    // 手势内解锁音频（移动端首次 speak 必须落在手势栈里）
+    unlockSpeech()
+    /* AD批：点「查看解析」后自动滚到解析区——点击处理器内三重延时兜底
+       （300/700/1200ms），每次先判断「解析是否已在视口」避免过度滚动；
+       review 自查态与普通揭晓态两路都生效。 */
+    const autoScrollToPanel = () => {
+      const sc = document.querySelector('.q-face-scroll')
+      const gp = document.querySelector('.grade-panel')
+      if (!sc || !gp) return
+      const g = gp.getBoundingClientRect()
+      if (g.top >= 0 && g.bottom <= window.innerHeight + 2) return
+      if (sc.scrollHeight > sc.clientHeight + 2) {
+        const rel = g.top - sc.getBoundingClientRect().top + sc.scrollTop - 6
+        sc.scrollTo({ top: Math.max(0, Math.min(rel, sc.scrollHeight - sc.clientHeight)) })
+      } else {
+        window.scrollTo({ top: Math.max(0, window.scrollY + g.top - 24) })
+      }
+    }
+    ;[300, 700, 1200].forEach((ms) => setTimeout(autoScrollToPanel, ms))                    // 手势内解锁音频（移动端首次 speak 必须落在手势栈里）
     unlockCloudAudio()                // 云端通路同样是"首次播放须在手势内"（<audio> 解锁）
     /* F1 反馈分级：review 先自查（提交判分但延迟启封、特效静默）——
        提交本身照常（三遍判制/记录不受影响），只是"看结果"的时机交给学习者。 */
@@ -685,6 +770,7 @@ export default function Practice() {
             <p className="settle-sub">正 确 率</p>
             {pct === 100 && <p className="settle-praise">全对！满分收工</p>}
             {pct >= 80 && pct < 100 && <p className="settle-praise">正确率不错，继续保持</p>}
+            {wrongN > 0 && <p style={{ margin: '4px 0 0', fontSize: 12.5, color: 'var(--muted, #6E757D)' }}>错题已进入复习计划，明天见</p>}
             <div className="settle-grid">
               <span><b className="teal-glow-text">{correct}</b>答对</span>
               <span><b className="red-glow-text">{wrongN}</b>答错</span>
@@ -719,26 +805,38 @@ export default function Practice() {
   /* §50 糖浆进度条（方案 B 拍板）：糖浆一点点灌满，糖珠=当前位置。
      旧 .gem-row 点阵撤下——三遍判定制后会话动辄 200+ 题，点阵密度爆表 */
   const pct = questions.length ? (results.length / questions.length) * 100 : 0
+  /* Batch B：进度条改「位置制」（你在第几题），与「第 N 题 / 共 M 题」口径一致 */
+  const posPct = questions.length ? ((index + 1) / questions.length) * 100 : 0
   return (
-    <div className="practice-stage practice-play">
+    <div className="practice-stage practice-play" role="main" aria-label="答题">
       <div className="practice-top">
         <div className="syrup-bar" role="progressbar" aria-label="答题进度"
           aria-valuenow={Math.round(pct)} aria-valuemin={0} aria-valuemax={100}>
-          <div className="syrup-fill" style={{ width: `calc(${pct}% - 6px)` }} />
+          <div className="syrup-fill" style={{ transform: `scaleX(${Math.max(0, Math.min(1, posPct / 100))})`, transformOrigin: 'left' }} />
           <div className="syrup-knob" style={{ left: `clamp(15px, ${pct}%, calc(100% - 15px))` }} />
         </div>
-        <span className="practice-count">第 {index + 1} 题 / 共 {questions.length} 题 · <b className="teal-glow-text">✓{results.filter(Boolean).length}</b> <b className="red-glow-text">✗{results.filter((v) => !v).length}</b></span>
-        <button className="chip" style={{ fontSize: 11 }} onClick={() => { abortSession(); navigate('/') }}>✕ 退出</button>
+        <span className="practice-count">第 {index + 1} 题 / 共 {questions.length} 题 · <b className="teal-glow-text"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: '-1px' }} aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 7" /></svg>{results.filter(Boolean).length}</b> <b className="red-glow-text"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" style={{ verticalAlign: '-1px' }} aria-hidden="true"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11" /></svg>{results.filter((v) => !v).length}</b>{results.length > 0 && <> · 正确率 {Math.round((results.filter(Boolean).length / results.length) * 100)}%</>}</span>
+        <button className={`chip tool${flagOn ? ' on' : ''}`} aria-pressed={flagOn} title="旗标：标记待回看（F）"
+            onClick={() => setFlagged((s) => { const n = new Set(s); n.has(index) ? n.delete(index) : n.add(index); return n })}>
+            <IconFlag />
+          </button>
+          <button className="chip tool" aria-expanded={navOpen} title="答题总览（N）" onClick={() => setNavOpen(true)}>
+            <IconGrid />
+          </button>
+          <button className="chip tool" aria-expanded={helpOpen} title="快捷键与帮助（?）" onClick={() => setHelpOpen(true)}>
+            <IconHelp />
+          </button>
+          <button className="chip" style={{ fontSize: 11 }} onClick={() => { abortSession(); navigate('/') }}>✕ 退出</button>
       </div>
 
       <div className="q-card-wrap" ref={qWrapRef} key={q.id + '-' + index}>
         {/* 真 3D 双面翻牌容器：正面(p2) 与 牌背(p6) 是同一个 preserve-3d 体的两面 */}
         <div className={'q-flipper' + (flipped ? ' is-front' : '')}>
         <div className={'q-card ' + flash}>
-          {combo >= 3 && !answered && <span className="combo-pop" style={{ zIndex: 8 }}>✦ {combo} 连击！</span>}
+          {combo >= 3 && !answered && <span className="combo-pop" style={{ zIndex: 8 }}>{combo} 连击</span>}
           {/* 答错反馈：card-flash-bad 一次性阴影脉冲（pages.css）。旧哥特裂纹位图层已下线——
               candy §36 早已 background:none 全 neutralize，这里连 DOM 一起清掉（沉浸批1 A4） */}
-          {/* 牌面：内缩进尖拱/藤蔓/龙首纹样之内，正文可滚、主操作钉在牌底 */}
+          {/* 牌面：AA2批 foot 已归位牌内——题目/解析/行动同一张连续纸面 */}
           <div className="q-face">
           <div className="q-face-scroll">
             {/* ── 分区一 · 题目区：视觉层级最高，底色最干净 ── */}
@@ -762,12 +860,12 @@ export default function Practice() {
                 <button className="chip" style={{ fontSize: 11 }} aria-pressed={ttsOn}
                   title="题干到手自动读一遍，不自动重复。关闭＝暂停在原处；再点＝接着读（不会从头重读）"
                   onClick={toggleTts}>
-                  {ttsOn ? '🔊 题干播报' : '⏸ 已暂停'}
+                  {ttsOn ? <><IconSound /> 题干播报</> : <><IconPause /> 已暂停</>}
                 </button>
                 <button className="chip" style={{ fontSize: 11 }}
                   title="从开头重读题干（读一遍即止，不自动重复）"
                   onClick={replayTts}>
-                  🔁 重读题干
+                  <IconReplay /> 重读题干
                 </button>
               </div>
             )}
@@ -777,7 +875,7 @@ export default function Practice() {
 
             {/* ── 分区二 · 作答区 ── */}
             <section className="zone zone-a">
-            <h5 className="zone-label">{objective ? '◇ 作答' : '◇ 誊 写 作 答'}</h5>
+            <h5 className="zone-label">{objective ? '作答' : '誊 写 作 答'}</h5>
             <div className="q-answer-zone" {...(isChoice
               /* P0-3（2026-09-19）：选择题补 ARIA——容器 radiogroup/group，选项 radio/checkbox + aria-checked。
                  判断题原本已有 aria-pressed，此前选择题是视觉选中而无语义，读屏无法获知作答状态。 */
@@ -792,6 +890,9 @@ export default function Practice() {
                   const inAns = exp.includes(o.orig)
                   if (selected && inAns) cls = 'right'
                   else if (selected && !inAns) cls = 'wronged'
+                  /* 2026-09-19 审查 P0-3（用户批准落地）：漏选的正确项在原位标出（mint 描边 + ✓）。
+                     回退：删掉下面这一行 else-if 即恢复 §37 旧口径。 */
+                  else if (inAns) cls = 'missed'
                   /* §37：多选漏选项不再挂 missed 绿提示（用户口径：答错时正确答案不变绿，
                      维持未答色）。正确答案在解析框里看，选项行不再复述。 */
                 } else if (selected) cls = 'selected'
@@ -804,7 +905,7 @@ export default function Practice() {
                       ? setChoice(o.orig)
                       : setMulti((m) => m.includes(o.orig) ? m.filter((x) => x !== o.orig) : [...m, o.orig].sort())}>
                     {/* 选框是 .opt-row::before 纯 CSS 糖果圆角方（哥特符文位图已下线，沉浸批1 A4） */}
-                    <span>{o.disp}. {o.text}</span>
+                    <span><i className="opt-k">{o.disp}.</i>{o.text}</span>
                   </button>
                 )
               })}
@@ -820,6 +921,7 @@ export default function Practice() {
                          对=right / 错=wronged；没选的卡（含正确答案卡）一律维持未答色，
                          不再给 missed 绿提示（用户截图指名）。正确答案去解析框看。 */
                       if (judge === label) extra = grade.expected === label ? 'right' : 'wronged'
+                      else if (label === grade.expected) extra = 'missed'
                     } else {
                       extra = judge === label ? 'selected' : (judge ? 'dimmed' : '')
                     }
@@ -872,13 +974,13 @@ export default function Practice() {
                 而不是里面那个白色答案框（答案框要维持白底，只有左侧那条边框变红）。
                 只挂 bad、不挂 ok：答对态必须一行不碰，继续吃 candy.css L399 的薄荷绿。
                 用 lastGrade 而不是下面才声明的 grade（const 有 TDZ，会整页崩溃）。 */}
-            <section className={'zone zone-s' + (answered || showAnswer ? ' revealed' : '') + (answered && !(objective ? lastGrade?.correct : lastRating === '记得') ? ' bad' : '')}>
+            <section role="region" aria-label="解析与反馈" className={'zone zone-s' + (answered || showAnswer ? ' revealed' : '') + (answered && !(objective ? lastGrade?.correct : lastRating === '记得') ? ' bad' : '')}>
             {/* 这里原来是 `answered || showAnswer ? '◇ 解析' : '◇ 解析'`——两个分支完全相同的遗留三元，已收成一行。
                 🔊 播报开关（2026-09-13）：启封即自动朗读，一键静音，偏好记忆在 localStorage（lib/tts）。
                 2026-09-15：同一开关也管「题卡到手自动读题干（不读选项）」——答题中读题干，揭晓后读答案+解析。
                 浏览器不支持 speechSynthesis 时不渲染，解析区外观零变化。 */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingRight: 2 }}>
-              <h5 className="zone-label">◇ 解析</h5>
+              <h5 className="zone-label">解析</h5>
               {/* 「声音」合并控件（2026-09-13 晚第四轮：开关与调速合一个，语速自定义无档位）：
                   收起时只显示当前状态（🔊 1.35× / 🔇 静音），点开是"开关 + 无级滑块"。 */}
               {ttsOK && (
@@ -886,7 +988,7 @@ export default function Practice() {
                   aria-pressed={ttsOn}
                   title={ttsOn ? `解析语音播报进行中｜${voiceNote()}` : `已暂停在原处，再点继续接着读｜${voiceNote()}`}
                   onClick={toggleTtsPanel}>
-                  {ttsOn ? `🔊 ${fmtRate(rateNow)}×` : '⏸ 已暂停'}
+                  {ttsOn ? <><IconSound /> {fmtRate(rateNow)}×</> : <><IconPause /> 已暂停</>}
                 </button>
               )}
               {/* 浏览器不支持时**不再静默消失**（用户问"手机版为什么没有"的根因之一）：
@@ -962,9 +1064,10 @@ export default function Practice() {
             {/* §38：题图只在点击解析（蜡封启封）后随答案一起显示，答题前不渲染 */}
             {seal === 'broken' && fbImgUri && <img src={fbImgUri} alt={diagramTitle(imageFor(q.id))} style={{ display: 'block', maxWidth: '100%', margin: '0 auto 10px', background: '#fff', border: '1px solid #e5d9c3', borderRadius: 8 }} />}
             {selfCheck && seal !== 'broken' && (
-              <div style={{ margin: '2px 0 10px', padding: '10px 12px', borderRadius: 10, background: 'rgba(63,191,168,.10)', border: '1px dashed rgba(63,191,168,.45)' }}>
+              /* 2026-09-19 C 批：加类名供白瓷皮肤接管（原为内联样式，inline 压过样式表，无法换肤） */
+              <div className="selfcheck-note" style={{ margin: '2px 0 10px', padding: '10px 12px', borderRadius: 10, background: 'rgba(63,191,168,.10)', border: '1px dashed rgba(63,191,168,.45)' }}>
                 <div style={{ fontSize: 12.5, lineHeight: 1.6, letterSpacing: '.3px' }}>
-                  🔍 <b>复习自查</b>：答案已提交。先在脑中完整回想「为什么是这个答案」，再启封对照——
+                  <IconReveal /> <b>复习自查</b>：答案已提交。先在脑中完整回想「为什么是这个答案」，再启封对照——
                   回想比直接看解析记得更牢（生成效应）。
                 </div>
                 <button className="chip" style={{ fontSize: 12.5, padding: '5px 14px', marginTop: 8 }}
@@ -985,8 +1088,8 @@ export default function Practice() {
             {answered && (
               <div className="grade-panel">
                 {(objective || committed) && (
-                  <div className={'verdict-banner ' + ((objective ? grade?.correct : lastRating === '记得') ? 'ok' : 'bad')}>
-                    {combo >= 3 && (objective ? grade?.correct : lastRating === '记得') && <span className="combo-pop">✦ {combo} 连击！</span>}
+                  <div role="status" aria-live="polite" className={'verdict-banner ' + ((objective ? grade?.correct : lastRating === '记得') ? 'ok' : 'bad')}>
+                    {combo >= 3 && (objective ? grade?.correct : lastRating === '记得') && <span className="combo-pop">{combo} 连击</span>}
                     {(objective ? grade?.correct : lastRating === '记得') ? '答对了' : '答错了'}
                   </div>
                 )}
@@ -1003,7 +1106,7 @@ export default function Practice() {
                   if (!conf) return null
                   const disp = origToDisp[sel] ?? sel
                   return (
-                    <p style={{ margin: '2px 0 8px', padding: '7px 10px', borderRadius: 8, background: 'rgba(255,224,102,.18)', fontSize: 12.5, lineHeight: 1.7, letterSpacing: '.3px' }}>
+                    <p style={{ margin: '2px 0 8px', padding: '7px 10px', borderRadius: 8, background: 'rgba(201,138,31,.10)', fontSize: 12.5, lineHeight: 1.7, letterSpacing: '.3px' }}>
                       💡 你选的 <b>{disp}</b> 正是一个常见误区：{conf}
                     </p>
                   )
@@ -1034,8 +1137,8 @@ export default function Practice() {
                   <h5>{(objective ? grade?.correct : lastRating === '记得') ? '参考答案' : '正确答案'}</h5>
                   <p>{shownAnswer}</p>
                   {q.explanation && <>
-                    <p className="lab">【题库解析】</p>
-                    <p>{remapExplLetters(q.explanation)}</p>
+                    <p className="lab">题库解析</p>
+                    <Expl text={remapExplLetters(q.explanation)} />
                   </>}
                 </div>
               </div>
@@ -1045,66 +1148,111 @@ export default function Practice() {
             {!objective && !answered && showAnswer && (
               <div className="grade-panel">
                 <div className="answer-scroll-box">
-                  <h5>◆ 参考答案</h5>
+                  <h5>参考答案</h5>
                   <p>{q.answer}</p>
                   {q.explanation && <>
-                    <p className="lab">【题库解析】</p>
-                    <p>{remapExplLetters(q.explanation)}</p>
+                    <p className="lab">题库解析</p>
+                    <Expl text={remapExplLetters(q.explanation)} />
                   </>}
                 </div>
               </div>
             )}
             </section>
           </div>
-
-          {/* 牌底：铜质藤蔓花纹分隔 + 当前唯一主操作（不随正文滚动，永远在手边） */}
           <div className="q-face-foot">
-            <div className="q-face-rule" aria-hidden="true" />
-            {!answered && (objective ? (
-              <>
-                <GiltBtn size="lg" block className="reveal-btn" disabled={!canSubmit} onClick={doCheck}>
-                  <IconReveal /> 查看解析
-                </GiltBtn>
-                <p className="kbd-hint">键盘 1-5 直选 · ↑↓ 切换选项 · Enter 确认</p>
-              </>
-            ) : showAnswer ? (
-              <>
-                <div className="self-judge-row">
-                  <GiltBtn tone="teal" onClick={() => commitSelf(true)}>✓ 我答对了</GiltBtn>
-                  <GiltBtn tone="danger" onClick={() => commitSelf(false)}>✗ 我答错了</GiltBtn>
-                </div>
-                <p className="kbd-hint">Enter = 答对 · Shift+Enter = 答错</p>
-              </>
-            ) : (
-              <>
-                <GiltBtn size="lg" block className="reveal-btn" disabled={text.trim() === ''}
-                  onClick={() => { unlockSpeech(); unlockCloudAudio(); prefetchCloudFirst(spokenOf(q, lastGrade, shuffleRef.current.order)); breakSeal(); setShowAnswer(true) }}>
-                  <IconScroll /> 展开参考答案
-                </GiltBtn>
-                <p className="kbd-hint">Ctrl+Enter 展开答案</p>
-              </>
-            ))}
+                      <div className="q-face-rule" aria-hidden="true" />
+                      {!answered && (objective ? (
+                        <>
+                          <GiltBtn size="lg" block className="reveal-btn" disabled={!canSubmit} onClick={doCheck}>
+                            <IconReveal /> 查看解析
+                          </GiltBtn>
+                          <p className="kbd-hint">键盘 1-5 直选 · ↑↓ 切换选项 · Enter 确认</p>
+                        </>
+                      ) : showAnswer ? (
+                        <>
+                          <div className="self-judge-row">
+                            <GiltBtn tone="teal" onClick={() => commitSelf(true)}><IconCheck /> 我答对了</GiltBtn>
+                            <GiltBtn tone="danger" onClick={() => commitSelf(false)}><IconClose /> 我答错了</GiltBtn>
+                          </div>
+                          <p className="kbd-hint">Enter = 答对 · Shift+Enter = 答错</p>
+                        </>
+                      ) : (
+                        <>
+                          <GiltBtn size="lg" block className="reveal-btn" disabled={text.trim() === ''}
+                            onClick={() => { unlockSpeech(); unlockCloudAudio(); prefetchCloudFirst(spokenOf(q, lastGrade, shuffleRef.current.order)); breakSeal(); setShowAnswer(true) }}>
+                            <IconScroll /> 展开参考答案
+                          </GiltBtn>
+                          <p className="kbd-hint">Ctrl+Enter 展开答案</p>
+                        </>
+                      ))}
+          
+                      {answered && objective && !committed && (
+                        <>
+                          {/* 三遍判定制（§48）：不再问「你的记忆状态」，评级由本批 3 次作答自动折算 */}
+                          <h4>第 {attemptNo} / 3 次作答</h4>
+                          <GiltBtn size="lg" block className="reveal-btn" onClick={confirmAndFlip}>
+                            <IconReveal /> 确认，下一题
+                          </GiltBtn>
+                          <p className="kbd-hint">Enter = 下一题</p>
+                        </>
+                      )}
+          
+                      {/* 评分即翻牌：已删除「下一卷」按钮，翻牌期间只给一行轻提示，避免牌底突然空掉 */}
+                      {committed && <p className="flip-hint">已记录，正在进入下一题</p>}
+                    </div>
 
-            {answered && objective && !committed && (
-              <>
-                {/* 三遍判定制（§48）：不再问「你的记忆状态」，评级由本批 3 次作答自动折算 */}
-                <h4>第 {attemptNo} / 3 次作答</h4>
-                <GiltBtn size="lg" block className="reveal-btn" onClick={confirmAndFlip}>
-                  <IconReveal /> 确认，下一题
-                </GiltBtn>
-                <p className="kbd-hint">Enter = 下一题</p>
-              </>
-            )}
 
-            {/* 评分即翻牌：已删除「下一卷」按钮，翻牌期间只给一行轻提示，避免牌底突然空掉 */}
-            {committed && <p className="flip-hint">✦ 已记录，正在进入下一题 ✦</p>}
-          </div>
-          </div>
-        </div>
+          </div>        </div>
         {/* 牌背（candy.css §37 马卡龙渐变+波点）：玫瑰窗位图与内联 p6 背景已下线（沉浸批1 A4） */}
         <div className="card-flip-cover" aria-hidden="true" />
         </div>
       </div>
+
+      {/* 题号导航器（Batch B）：四态网格（未答/答对/答错）+ 旗标；已作答位不可跳（保三遍判定统计） */}
+      {navOpen && createPortal(
+        <div className="nav-mask" onClick={() => setNavOpen(false)}>
+          <div className="nav-sheet" role="dialog" aria-label="答题总览" onClick={(e) => e.stopPropagation()}>
+            <div className="nav-hd">
+              <b>答题总览</b>
+              <span>已答 {results.length} / {questions.length} · 旗标 {flagged.size}</span>
+              <button className="chip tool" onClick={() => setNavOpen(false)} aria-label="关闭">✕</button>
+            </div>
+            <div className="nav-grid">
+              {questions.map((_, i) => {
+                const done2 = typeof results[i] === 'boolean'
+                const cls2 = 'nav-cell' + (done2 ? (results[i] ? ' ok' : ' bad') : '') + (flagged.has(i) ? ' flag' : '') + (i === index ? ' cur' : '')
+                return (
+                  <span key={i} className={cls2}
+                    aria-current={i === index ? 'true' : undefined}
+                    title={`第 ${i + 1} 题${done2 ? '（已作答）' : ''}${flagged.has(i) ? ' 已旗标' : ''}`}>
+                    {i + 1}
+                  </span>
+                )
+              })}
+            </div>
+            <p className="nav-hint">灰=未答 · 绿=答对 · 红=答错 · 角标=旗标 · 蓝框=当前题（仅供纵览，不支持跳题）</p>
+          </div>
+        </div>, document.body)}
+
+      {/* 快捷键与帮助面板（Batch L）：? 键或工具钮打开 */}
+      {helpOpen && createPortal(
+        <div className="nav-mask" onClick={() => setHelpOpen(false)}>
+          <div className="nav-sheet" role="dialog" aria-label="快捷键与帮助" onClick={(e) => e.stopPropagation()}>
+            <div className="nav-hd"><b>快捷键与帮助</b><button className="chip tool" onClick={() => setHelpOpen(false)} aria-label="关闭">✕</button></div>
+            <div className="help-grid">
+              <span className="kbd-key">1-5 / A-E</span><span>直选选项或判断</span>
+              <span className="kbd-key">↑ ↓</span><span>在选项间移动</span>
+              <span className="kbd-key">Enter</span><span>提交作答 / 确认下一题</span>
+              <span className="kbd-key">Ctrl+Enter</span><span>展开主观题参考答案</span>
+              <span className="kbd-key">Shift+Enter</span><span>主观题自判答错</span>
+              <span className="kbd-key">F</span><span>旗标当前题</span>
+              <span className="kbd-key">N</span><span>答题总览</span>
+              <span className="kbd-key">?</span><span>本面板</span>
+            </div>
+            <p className="nav-hint">🔊 题干播报在答题中自动朗读一遍；解析区可调语速与音色。Esc 关闭面板。</p>
+          </div>
+        </div>, document.body)}
+
       {/* 自绘音色弹层（2026-09-15）：portal 到 body —— 卡片是 3D 变换容器，fixed 元素
           放它内部会被变换坐标系"吞掉"（定位错乱/被裁剪），必须挂到 document.body。
           高度 ≤46vh、可滚动：不再像安卓原生 select 那样占满整屏。 */}
@@ -1128,7 +1276,7 @@ export default function Practice() {
                     background: sel ? 'linear-gradient(180deg,#EAF2ED,#DFECE5)' : 'transparent',
                     color: '#2E6E58', cursor: 'pointer' }}>
                   <span style={{ minWidth: 0 }}>{o.label}</span>
-                  {sel && <span style={{ color: 'var(--candy-pink-dk, #E08CA0)', fontWeight: 700 }}>✓</span>}
+                  {sel && <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--pp-ok, #2F7D5C)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 7" /></svg>}
                 </button>
               )
             })}
@@ -1139,3 +1287,7 @@ export default function Practice() {
     </div>
   )
 }
+
+{/* AA2批：foot 已归位 .q-face 内部，撤销 Batch B 的 wrap 层外置 */}
+
+{/* AA3批：foot 移入 q-face 闭合之内（scroll 之后）——上一版误落 q-face 外 */}

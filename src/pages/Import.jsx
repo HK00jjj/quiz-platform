@@ -6,7 +6,7 @@ import { reworkTalk } from '../lib/validate'
 import { abilityOf, tierOf } from '../lib/ability'
 import { GiltBtn, burstParticles } from '../components'
 
-/* 导入页 · 题库导入（2026-09-09：题集通道唯一化——旧「🧩 题集模式」开关拆除，
+/* 导入页 · 题库导入（2026-09-09：题集通道唯一化——旧「题集模式」开关拆除，
    题目数组一律走逐题校验（N 任意含 21）；备份 JSON 仍由 classifyImport 自动识别
    走恢复通道。生成模式（默认整批通道）随其规则退役，不再作为导入选项。 */
 export default function Import() {
@@ -164,20 +164,20 @@ export default function Import() {
   return (
     <div className="page-wrap wide">
       <div className="page-head">
-        <h1><span className="rune">🍬</span> 检 测 &amp; 入 库</h1>
+        <h1>检 测 &amp; 入 库</h1>
         <p>题库导入 · 当前 {total} 题</p>
       </div>
 
       {/* 题集导入说明（2026-09-09：唯一导入通道，开关已拆除） */}
       <div className="panel" style={{ marginBottom: 16, borderColor: 'var(--candy-pink-dk, #5FAE8F)' }}>
-        <div className="panel-title">🧩 题集导入（唯一导入通道 · 逐题检测）</div>
+        <div className="panel-title">题集导入（唯一导入通道 · 逐题检测）</div>
         <p style={{ fontSize: 13, lineHeight: 1.9, color: 'var(--muted)' }}>
           只做逐题校验（题型、元数据映射、选项结构、解析标记、填空与配图白名单、批内避重等通用检查），<b>任意题数（含 21）均可通过</b>；通过校验后还会与<b>库内已有题</b>做跨批撞库提示（知识点同名 / 题干高度相似，仅告警不拦截，已在库内的题自动跳过）。对应《出题规则》现行版（AI 触发词：<b>题目：</b>）；备份 JSON 粘贴后自动识别并走「备份恢复」，无需任何开关。
         </p>
         {/* v4.13 自适应退役：状态指数仅作展示，"复制水平声明"按钮与 fetch_level 联动文案已移除 */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginTop: 4, padding: '10px 12px', borderRadius: 12, background: 'rgba(168,216,196,.18)' }}>
           <span style={{ fontSize: 13, color: 'var(--muted)' }}>
-            📊 当前状态指数 <b style={{ color: '#2E6B52' }}>{Math.round(ability * 100)}</b> · 建议能力档 <b style={{ color: '#2E6B52' }}>{tier}</b>
+            当前状态指数 <b style={{ color: '#2E6B52' }}>{Math.round(ability * 100)}</b> · 建议能力档 <b style={{ color: '#2E6B52' }}>{tier}</b>
             <span style={{ fontSize: 12 }}>（&lt;55 新手 / 55~78 进阶 / &gt;78 熟练 · 含主观自评，仅展示参考）</span>
           </span>
           <span style={{ fontSize: 12, color: 'var(--muted)' }}>题目难度完全由你提供的源题决定，AI 不做升降档适配</span>
@@ -189,17 +189,17 @@ export default function Import() {
           <div className={'step-node st1' + (stepState >= 1 ? (stepState === 1 ? ' active' : ' done') : '')}>
             {/* 节点图标由 CSS .step-node::before 提供（📜/🔒/✓），不再用位图：
                                 光靠 display:none 隐藏仍会发请求，必须从 JSX 里拿掉 */}
-            <span>粘贴题库{stepState > 1 ? ' ✓' : ''}</span>
+            <span>粘贴题库</span>
           </div>
           <div className={'step-line' + (stepState > 1 ? ' on' : '')} />
           <div className={'step-node st2' + (stepState === 2 ? ' active' : stepState > 2 ? ' done' : '')}>
             
-            <span>导入检测{busy ? '中…' : stepState > 2 ? ' ✓' : ''}</span>
+            <span>导入检测{busy ? '中…' : ''}</span>
           </div>
           <div className={'step-line' + (stepState > 2 ? ' on' : '')} />
           <div className={'step-node st3' + (stepState === 3 ? ' active' : '')}>
             
-            <span>收进书架{stepState === 3 ? ' ✓' : ''}</span>
+            <span>收进书架</span>
           </div>
         </div>
 
@@ -207,7 +207,7 @@ export default function Import() {
             background: rgba(255,255,255,.84) !important，内联非 important 早就输了。
             说明文字里被早期「卷」正则改坏的句子一并修正（§7.4）。 */}
         <div className="panel" style={{ marginBottom: 16 }}>
-          <div className="panel-title">📖 导入说明</div>
+          <div className="panel-title">导入说明</div>
           <p style={{ fontSize: 13, lineHeight: 1.9, color: 'var(--muted)' }}>
             把外部 AI 生成的题目 JSON 粘贴到下方输入框，或直接拖入 JSON 文件，会自动校验结构与规范。
             题目一律走<b>题集逐题校验</b>（任意题数，含 21；题型 / 元数据映射 / 选项结构 / 解析标记 / 批内避重等通用检查）。出题请统一使用《出题规则》（AI 触发词：<b>题目：</b>）。备份 JSON 粘贴后自动识别并走「备份恢复」。
@@ -252,7 +252,7 @@ export default function Import() {
             <p className="gold-glow-text" style={{ fontSize: 17, letterSpacing: 3 }}>{result.title}</p>
             {result.backup && <p style={{ marginTop: 8, fontSize: 12, color: 'var(--muted)' }}>做题记录一并恢复</p>}
             <div style={{ display: 'flex', gap: 10, justifyContent: 'center', marginTop: 14, flexWrap: 'wrap' }}>
-              <GiltBtn onClick={(e) => { burstParticles(e.clientX, e.clientY, 'gold', 14); navigate('/bank') }}>前往糖果书架</GiltBtn>
+              <GiltBtn onClick={(e) => { burstParticles(e.clientX, e.clientY, 'gold', 14); navigate('/bank') }}>前往题库书架</GiltBtn>
               <GiltBtn tone="ghost" onClick={() => { setText(''); setResult(null) }}>继续导入</GiltBtn>
             </div>
           </div>
@@ -261,7 +261,7 @@ export default function Import() {
         {/* 告警框原来是哥特暗金：#d9c26a 浅金字压在浅色果冻底上只有约 1.8:1，告警内容等于看不见。
             改成糖果柠檬通道，文字用深金 #8A6D00（约 4.9:1，与答题页「模糊」档同源） */}
         {result?.tone === 'warn' && (
-          <div className="success-box" style={{ borderColor: 'var(--lemon-dk)', background: 'rgba(255, 224, 102, .2)' }}>
+          <div className="success-box" style={{ borderColor: 'var(--lemon-dk)', background: 'rgba(201, 138, 31, .12)' }}>
             <p style={{ color: '#8A6D00', letterSpacing: 2, fontWeight: 800 }}>{result.title}</p>
             <ul style={{ listStyle: 'none', marginTop: 8, fontSize: 13, color: '#8A6D00' }}>
               {result.warnings?.map((w, i) => <li key={i}>告警 [{w.where}] {w.message}</li>)}
@@ -281,7 +281,7 @@ export default function Import() {
             </ul>
             {result.rework && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 12, flexWrap: 'wrap' }}>
-                <GiltBtn tone="danger" onClick={copyRework}>{copied ? '✓ 已复制，发回给 AI 修正' : '📋 一键复制返工话术'}</GiltBtn>
+                <GiltBtn tone="danger" onClick={copyRework}>{copied ? '已复制，发回给 AI 修正' : '一键复制返工话术'}</GiltBtn>
                 {/* §59：复制只是「离开修内容」的第一步，回来要有一键清场重导的出口（用户反馈） */}
                 <GiltBtn tone="ghost" onClick={() => { setText(''); setResult(null); setCopied(false); taRef.current?.focus() }}>
                   🧹 清空，重新导入
