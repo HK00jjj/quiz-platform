@@ -1169,17 +1169,35 @@ body:has(.login-stage) { background: var(--pp-bg) !important; }
     display: grid;
     /* 比例 4:6 而非 5:5 —— 真机截图实测（1280×900）：5:5 时右栏仅 369px，
        2×2 后每列 ~178px 与移动端同样窄，卡片文字照样挤压（h3 折行、描述竖排）。
-       改 4:6 后入口区 ~576px、每列 ~280px，文字区从 ~88px 提到 ~190px（+116%），
-       且两栏高度趋于一致（Hero ~210px / 入口两行 ~220px），下方不再大片留白。 */
+       改 4:6 后入口区 ~576px、每列 ~280px，文字区从 ~88px 提到 ~190px（+116%）。 */
     grid-template-columns: minmax(0, 4fr) minmax(0, 6fr);
     gap: 16px;
-    align-items: start;
+    /* AT批（2026-09-20 用户截图）：原 align-items:start 使左栏 Hero 只到内容高、
+       右栏入口 2×2 更高 → 左栏底部悬空、页面上下不齐。
+       改 stretch（两栏等高）：Hero 自动拉长到与入口区同高，
+       内部由下方 .hero-copy 的垂直居中 + 均匀 gap 分配留白。 */
+    align-items: stretch;
   }
   /* 双栏时入口区只占右栏：去掉它自己的下边距（纵向间距交给 gap），并锁 2×2 */
   .app-shell .learn-cols > .entry-grid {
     margin-bottom: 0 !important;
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
+  /* 卡片随行轨道拉伸后（entry-grid 本就 grid-auto-rows:1fr），内边距略增避免局促 */
+  .app-shell .learn-cols > .entry-grid > .entry-card { padding: 18px 20px !important; }
+
+  /* ── Hero 内容在拉长后的板块里垂直舒展（AT批）──
+     hero-copy 变 flex column 垂直居中，元素间距统一交给 gap（原先各写各的 margin）；
+     标题 / 按钮 div / hero-sub / hero-meta 的原 margin 在桌面下归零，避免与 gap 叠加。 */
+  .app-shell .learn-cols .candy-hero .hero-copy {
+    display: flex; flex-direction: column; justify-content: center;
+    gap: 18px; min-height: 100%;
+    padding: 34px 32px;
+  }
+  .app-shell .learn-cols .candy-hero .hero-copy h2 { margin: 0 !important; }
+  .app-shell .learn-cols .candy-hero .hero-copy > div { margin: 0 !important; }
+  .app-shell .learn-cols .hero-sub,
+  .app-shell .learn-cols .hero-meta { margin: 0 !important; }
 }
 
 /* L2 · Hero 副标：原「今日复习」面板的 hero.sub 迁到此，贴着主 CTA 说明「这一按会发生什么」
