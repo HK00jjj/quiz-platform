@@ -2078,7 +2078,7 @@ body, button, input, select, textarea {
 }
 .book-name {
   font-size: 13px; font-weight: 700; color: var(--ink); line-height: 1.45; text-align: center;
-  word-break: break-all; margin: 0 0 3px;
+  word-break: normal; overflow-wrap: break-word; padding: 0 2px; margin: 0 0 3px;
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
   min-height: 38px;
 }
