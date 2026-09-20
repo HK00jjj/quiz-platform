@@ -203,16 +203,9 @@ export default function Import() {
           </div>
         </div>
 
-        {/* 那行 rgba(30,24,16,.6) 深棕哥特底是死代码：candy.css 给 .panel 定了
-            background: rgba(255,255,255,.84) !important，内联非 important 早就输了。
-            说明文字里被早期「卷」正则改坏的句子一并修正（§7.4）。 */}
-        <div className="panel" style={{ marginBottom: 16 }}>
-          <div className="panel-title">导入说明</div>
-          <p style={{ fontSize: 13, lineHeight: 1.9, color: 'var(--muted)' }}>
-            把外部 AI 生成的题目 JSON 粘贴到下方输入框，或直接拖入 JSON 文件，会自动校验结构与规范。
-            题目一律走<b>题集逐题校验</b>（任意题数，含 21；题型 / 元数据映射 / 选项结构 / 解析标记 / 批内避重等通用检查）。出题请统一使用《出题规则》（AI 触发词：<b>题目：</b>）。备份 JSON 粘贴后自动识别并走「备份恢复」。
-          </p>
-        </div>
+        {/* AX批（2026-09-23 用户"配色和效果不满意"）：原「导入说明」卡与顶部说明卡
+            文案几乎逐句重复（两张卡讲同一件事），手机端长文×2 阅读压迫感强 ——
+            整卡删除，保留顶部权威说明卡；操作方式已由输入框 placeholder 自带。 */}
 
         <div className={'scroll-zone' + (dragOn ? ' drag-on' : '') + (result?.tone === 'red' ? ' err' : '')}
           onDragOver={(e) => { e.preventDefault(); setDragOn(true) }}

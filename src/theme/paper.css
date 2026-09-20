@@ -1329,3 +1329,26 @@ body:has(.login-stage) { background: var(--pp-bg) !important; }
   background: #FFFFFF !important;
   border-color: var(--pp-hair, #E3E0D8) !important;
 }
+
+/* AX批 · 导入页步骤条白瓷化（用户"配色和效果不满意"）：candy 的径向渐变球
+   （active 靛蓝渐变 / done 薄荷渐变）+ 旋转糖环，立体糖果感与纸面扁平体系不符。
+   改纸片风格：未到 = 白底发丝边灰字；当前 = 靛蓝实心白字 + 静态淡靛蓝虚线外圈；
+   完成 = 白底靛蓝细边靛蓝勾。虚线连接线保持。 */
+.app-shell .step-node::before {
+  background: #FFFFFF !important; border: 1px solid var(--pp-hair, #E3E0D8) !important;
+  box-shadow: none !important; color: #9AA0A6 !important; filter: none !important;
+}
+.app-shell .step-node.active::before {
+  background: var(--pp-acc, #2F5FD0) !important; border-color: var(--pp-acc, #2F5FD0) !important;
+  color: #FFFFFF !important; box-shadow: 0 2px 8px rgba(47, 95, 208, .22) !important;
+}
+.app-shell .step-node.active::after {
+  border-color: rgba(47, 95, 208, .35) !important; animation: none !important;
+}
+.app-shell .step-node.done::before {
+  background: #FFFFFF !important; border: 1.5px solid var(--pp-acc, #2F5FD0) !important;
+  color: var(--pp-acc, #2F5FD0) !important; box-shadow: none !important;
+}
+.app-shell .step-node > span { color: var(--pp-sub, #6E757D) !important; }
+.app-shell .step-node.active > span,
+.app-shell .step-node.done > span { color: var(--pp-acc, #2F5FD0) !important; }
