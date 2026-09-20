@@ -1185,6 +1185,18 @@ body:has(.login-stage) { background: var(--pp-bg) !important; }
 /* L2 · Hero 副标：原「今日复习」面板的 hero.sub 迁到此，贴着主 CTA 说明「这一按会发生什么」
    （如「20 道题到期，该复习了」），不再隔三张卡放在页底。
    .hero-meta 承接原 Hero 首个 <p> 的题数 / 连学天数，降为次要信息。 */
+/* ⚠ 配套修正（真机截图定罪）：candy.css:846 给 .learn-vision.candy-hero 设了**固定
+   height:168px + overflow:hidden**，且 .hero-copy 是**绝对定位**（max-width:56%）——
+   那是为「一行标题 + 一行副标」设计的。AJ 批新增 hero-sub / hero-meta 后内容变高，
+   在双栏窄栏（Hero 325px → max-width 仅 182px）里折行加剧，直接超出 168px 被裁
+   （截图实测：「今天想练点什么？」只剩「…么？」）。
+   修法：双栏内让 Hero 高度自适应 + hero-copy 回到静态流式布局（内容撑开容器）。 */
+.app-shell .learn-cols .candy-hero { height: auto !important; min-height: 168px; }
+.app-shell .learn-cols .candy-hero .hero-copy {
+  position: static !important; transform: none !important;
+  max-width: none !important; width: 100%;
+  padding: 22px 24px; text-align: left;
+}
 .app-shell .hero-sub {
   margin: 10px 0 0 !important;
   font-size: 13px !important; line-height: 1.6 !important;
