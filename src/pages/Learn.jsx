@@ -536,28 +536,32 @@ export default function Learn() {
             <span className="entry-ico ico-red" aria-hidden="true"><IconRetry /></span>
             <div className="entry-copy">
               <h3>错题重练</h3>
-              <p>{wrongCount > 0 ? `答错过的 ${wrongCount} 道 · 再练一遍就记牢了` : '暂时没有错题，保持住'}</p>
+          <p className="entry-desc-long">{wrongCount > 0 ? `答错过的 ${wrongCount} 道 · 再练一遍就记牢了` : '暂时没有错题，保持住'}</p>
+          <p className="entry-desc-short">{wrongCount > 0 ? `${wrongCount} 道待重练` : '暂无错题'}</p>
             </div>
           </div>
           <div className="entry-card rise" style={{ animationDelay: '.16s' }} onClick={() => run('random', { size: 20 })}>
             <span className="entry-ico ico-yellow" aria-hidden="true"><IconShuffle /></span>
             <div className="entry-copy">
               <h3>智能匹配练习</h3>
-              <p>按你的水平挑 {randomCount} 道（目标答对率 65~85%，随段位下移）· 状态指数 {rank.p} · 段位 {rank.official.name}</p>
+          <p className="entry-desc-long">按你的水平挑 {randomCount} 道（目标答对率 65~85%，随段位下移）· 状态指数 {rank.p} · 段位 {rank.official.name}</p>
+          <p className="entry-desc-short">{randomCount} 道 · 按水平匹配</p>
             </div>
           </div>
           <div className="entry-card rise" style={{ animationDelay: '.24s' }} onClick={() => newCount > 0 && run('learn')}>
             <span className="entry-ico ico-mint" aria-hidden="true"><IconNew /></span>
             <div className="entry-copy">
               <h3>新题上手</h3>
-              <p>{newCount > 0 ? `${newCount} 道还没做过 · 做完自动排进复习计划` : '全部题目都做过了'}</p>
+          <p className="entry-desc-long">{newCount > 0 ? `${newCount} 道还没做过 · 做完自动排进复习计划` : '全部题目都做过了'}</p>
+          <p className="entry-desc-short">{newCount > 0 ? `${newCount} 道新题` : '全部已做过'}</p>
             </div>
           </div>
           <div className="entry-card rise" style={{ animationDelay: '.32s' }} onClick={() => setOpenFilter('relearn')}>
             <span className="entry-ico ico-lav" aria-hidden="true"><IconFilter /></span>
             <div className="entry-copy">
               <h3>挑题练习</h3>
-              <p>按题型、知识域、难度筛出想练的题 · 共 {relearnCount} 道</p>
+          <p className="entry-desc-long">按题型、知识域、难度筛出想练的题 · 共 {relearnCount} 道</p>
+          <p className="entry-desc-short">{relearnCount} 道可按条件筛</p>
             </div>
           </div>
         </div>

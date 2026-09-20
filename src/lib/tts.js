@@ -1126,10 +1126,24 @@ export function prefetchGACache(raw, rate = ttsRate()) {
   if (!cloudSupported() || !webAudioOK()) return false
   const pref = ttsVoicePref()
   const useVoice = isCloudVoice(pref) ? pref : CLOUD_DEFAULT_VOICE
-  if (!isEdgeVoice(useVoice)) return false      // GA 管线仅 Edge 神经音；百度线仍由手势 prefetchCloudFirst 兜底
   const cm = cloudChunkMaxFor(useVoice)
   const chunks = chunkSpeechText(raw, cm, CLOUD_CHUNK_MAX)
   if (!chunks.length) return false
+  if (!isEdgeVoice(useVoice)) {
+    /* AV批 · 百度线补预热（修"点播报要等 2~3s 才出声"）：百度线没有 GA 管线，
+       此前本函数对它直接 return false —— 答题期**零预热**，点「题干播报」时才现发
+       请求（DNS+TLS+合成 RTT 实测 ≈2~3s，即用户报的"没有第一时间读出声音"）。
+       现改为：**当前没有正在朗读**时，把首块预热进双缓冲的空闲元素（与手势内
+       prefetchCloudFirst 同参同元素同 URL，开口即命中元素缓存）；
+       正在朗读时跳过 —— 不抢正在播的元素、不受 stopSpeak 清场误伤（沿用 A9 注释约束）。
+       系统音色线（pref=sys）无 HTTP 可预热，维持现状。 */
+    if (cloudPlaying) return false
+    const els = ensureCloudEls()
+    if (!els) return false
+    const idle = els[0] === cloudPlaying ? els[1] : els[0]
+    const url = cloudTtsUrl(chunks[0], rate, useVoice)
+    try { if (idle.src !== url) idle.src = url; return true } catch { return false }
+  }
   try { gaWarm(cloudTtsUrl(chunks[0], rate, useVoice)); return true } catch { return false }
 }
 /* 「自动」档的引擎决策（纯函数，可回归）：

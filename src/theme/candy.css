@@ -1794,16 +1794,15 @@ body { background: linear-gradient(160deg, #FFF8FA 0%, #E2EEE7 58%, #E6F5EC 82%,
    修法全部是布局/字号级，零装饰零动画。
    ══════════════════════════════════════════════════════════════ */
 @media (max-width: 560px) {
-  /* ① 入口卡单列（AV批 2026-09-20 用户要求重设计移动端，正式推翻本节原「2 列紧凑」口径）：
-     真机截图取证（_probe/m_shots/01_learn.png）：2 列在 390px 下文字区仅 ~88px，
-     描述竖排成 5~7 字窄列（「按你的水平挑 / 20 道（目标答 / 对率…」）、标题折行（「智能匹配练 / 习」），
-     入口区被撑到 525px 高；单列后文字区 ~270px、描述 1~2 行、总高约 340px —— 更好看也更矮，
-     并恢复 V 批「编辑式左读」横排版式的应有观感。 */
-  .entry-grid { grid-template-columns: 1fr !important; gap: 10px !important; }
-  .entry-card { padding: 14px 16px !important; }
+  /* ① 入口卡 2×2（AV批 2026-09-20 三期演变：§47 原 2 列（文字竖排实锤）→ AV 改单列
+     → 用户拍板要回 2×2 网格密度。这次不再挤长文案：Learn.jsx 配了**双描述**
+     （entry-desc-long 桌面 / entry-desc-short 移动端 ≤12 字动态短语），
+     半卡文字区 ~110px 下短句 1~2 行即完，不再竖排。 */
+  .entry-grid { grid-template-columns: 1fr 1fr !important; gap: 10px !important; }
+  .entry-card { padding: 12px 14px !important; }
   .entry-card::before { font-size: clamp(28px, 8.5cqw, 38px) !important; margin: 2px 0 0 !important; }
   .entry-card h3 { font-size: 15px !important; letter-spacing: 1px !important; }
-  .entry-card p { font-size: 12.5px !important; line-height: 1.6 !important; }
+  .entry-card p { font-size: 12px !important; line-height: 1.55 !important; }
   /* ② hero 副标：放宽占幅 + 均衡折行，不再出「4 / 天」孤字尾行 */
   .candy-hero .hero-copy { max-width: 64% !important; }
   .candy-hero .hero-copy p { font-size: 12px !important; text-wrap: balance; }

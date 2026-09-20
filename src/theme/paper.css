@@ -1283,3 +1283,29 @@ body:has(.login-stage) { background: var(--pp-bg) !important; }
 }
 .app-shell .filter-active > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .app-shell .filter-active .chip { flex: 0 0 auto; }
+
+/* AW批 · 入口卡双描述：手机 2×2 用短描述（≤12 字动态短语，半卡文字区 ~110px 不竖排），
+   桌面/宽屏用完整长描述（信息全量）。显隐由断面切换，JSX 两段并存。 */
+.app-shell .entry-desc-short { display: none !important; }
+@media (max-width: 560px) {
+  .app-shell .entry-desc-long { display: none !important; }
+  .app-shell .entry-desc-short {
+    display: block !important; margin: 0 !important;
+    font-size: 12px !important; line-height: 1.5 !important; color: #6E757D !important;
+  }
+}
+
+/* AW批 · 手机端答题顶栏两行化：390px 一行塞 6 元素（进度条+计数+工具×3+✕退出）时
+   进度条被压没、✕退出被挤出视口 —— 用户反馈"看不到退出入口"实锤
+   （截图 _probe/m_shots/07_practice_question.png）。
+   改两行：进度条独占首行（恢复可见）；第二行 = 计数(左) + 工具×3 + ✕退出(右)。
+   ✕退出移动端红字红描边提权（随时可见），位置在顶部信息行，不占答题操作区。 */
+@media (max-width: 560px) {
+  .app-shell.in-practice .practice-top { flex-wrap: wrap !important; row-gap: 8px !important; }
+  .app-shell.in-practice .syrup-bar { flex: 1 1 100% !important; }
+  .app-shell.in-practice .practice-count { flex: 1 1 auto !important; font-size: 12px !important; }
+  .app-shell.in-practice .practice-top > .chip:last-child {
+    color: var(--pp-bad) !important;
+    border-color: rgba(179, 38, 30, .4) !important;
+  }
+}
