@@ -2035,11 +2035,14 @@ body, button, input, select, textarea {
 .book-card.on::after { bottom: -14px; opacity: .55; }
 .book-card.empty { opacity: .7; }
 
-/* 顶部书脊布带：--spine 实色 + 一线布面高光（静态），顶角与卡体圆角对齐 */
+/* 顶部书脊布带：--spine 实色，顶角与卡体圆角对齐。
+   AWY（2026-09-24 用户"书本样式微调"）：去掉白光渐变（糖果立体感），
+   改纯实色 + 底部一线布面压痕（发丝），更贴纸面扁平。 */
 .book-band {
-  flex: none; width: calc(100% + 20px); height: 11px; margin: 0 -10px 12px;
+  flex: none; width: calc(100% + 20px); height: 10px; margin: 0 -10px 12px;
   border-radius: 4px 10px 0 0;
-  background: linear-gradient(180deg, rgba(255, 255, 255, .30), rgba(255, 255, 255, 0) 62%), var(--spine, #2F5FD0);
+  background: var(--spine, #2F5FD0);
+  box-shadow: inset 0 -1px 0 rgba(31, 35, 40, .16);
 }
 /* 右缘纸页叠层：宽度 = --thick（题数映射），纸页条纹 + 发丝边 */
 .book-pages {
@@ -2049,10 +2052,11 @@ body, button, input, select, textarea {
   border: 1px solid rgba(31, 35, 40, .12); border-left: none;
   pointer-events: none; z-index: 2;
 }
-/* 书签丝带：靛蓝燕尾，垂在封面右上（仅使用中的书） */
+/* 书签丝带：靛蓝燕尾，垂在封面右上（仅使用中的书）。
+   AWY：渐变里的 --candy-pink-dk 引用是 candy 漏网，改纯靛蓝。 */
 .book-ribbon {
   position: absolute; top: -3px; right: 14px; width: 17px; height: 36px; z-index: 3;
-  background: linear-gradient(180deg, #3565D6, var(--candy-pink-dk));
+  background: #2F5FD0;
   clip-path: polygon(0 0, 100% 0, 100% 100%, 50% calc(100% - 8px), 0 100%);
   filter: drop-shadow(0 2px 3px rgba(47, 95, 208, .35));
   pointer-events: none;
@@ -2071,10 +2075,11 @@ body, button, input, select, textarea {
 }
 @supports (background: color-mix(in srgb, red 10%, transparent)) {
   .book-face {
-    background: color-mix(in srgb, var(--spine, #2F5FD0) 7%, transparent);
-    border-color: color-mix(in srgb, var(--spine, #2F5FD0) 15%, transparent);
+    /* AWY：淡染 7%→5%，封面更素、章纹更立 */
+    background: color-mix(in srgb, var(--spine, #2F5FD0) 5%, transparent);
+    border-color: color-mix(in srgb, var(--spine, #2F5FD0) 14%, transparent);
   }
-  .book-glyph { border-color: color-mix(in srgb, var(--spine, #2F5FD0) 30%, transparent); }
+  .book-glyph { border-color: color-mix(in srgb, var(--spine, #2F5FD0) 28%, transparent); }
 }
 .book-name {
   font-size: 13px; font-weight: 700; color: var(--ink); line-height: 1.45; text-align: center;
@@ -2093,7 +2098,7 @@ body, button, input, select, textarea {
   border: 1px solid var(--line); background: rgba(255, 255, 255, .9); color: var(--ink-3);
   transition: color .16s ease, border-color .16s ease, transform .18s var(--smooth-ease);
 }
-.book-op:hover { border-color: rgba(47, 95, 208, .5); color: var(--candy-pink-dk); transform: translateY(-2px); }
+.book-op:hover { border-color: rgba(47, 95, 208, .5); color: var(--pp-acc, #2F5FD0); transform: translateY(-2px); }
 .book-op.danger:hover { border-color: rgba(196, 55, 46, .45); color: var(--bad-ink); }
 .book-op:disabled { opacity: .35; cursor: default; transform: none; }
 .book-rename { width: 100%; padding: 4px 8px; font-size: 13px; text-align: center; }

@@ -16,6 +16,14 @@ const COLORS = [
   { key: 'lime', css: '#256A4C' }, { key: 'rose', css: '#A02D26' }
 ]
 
+/* AWY（2026-09-24 用户"颜色和书本样式微调"）：书脊配色从「按存量 color 字段查表」
+   改为**按书序轮换白瓷四色相**（靛蓝/绿/琥珀/红棕）。原因：存量书 color 多为
+   'pink'（深红）→ 整架书脊/章纹/封面淡染全部偏暖红，与全站靛蓝强调不同频。
+   轮换后相邻书暖冷交替、每本可辨，且存量数据一个不改（纯展示层重映射）；
+   书重排时同书取色随序变化 —— 可接受（色相无语义绑定，仅装饰）。 */
+const SPINE_PALETTE = ['#2F5FD0', '#2F7D5C', '#C98A1F', '#A85B3C']
+const spineOf = (b, i) => SPINE_PALETTE[((i ?? 0) % SPINE_PALETTE.length + SPINE_PALETTE.length) % SPINE_PALETTE.length]
+
 /* 学科章纹库：24×24 发丝线稿（stroke=currentColor 由外层 svg 统一控制）。
    语义优先：图标先回答「这本书是哪个学科的」，再谈好看。 */
 const GLYPHS = {
@@ -165,14 +173,14 @@ export default function Bookshelf() {
       {note && <p className="book-note" role="status">{note}</p>}
 
       <div className="book-grid">
-        {order.map((id) => {
+        {order.map((id, idx) => {
           const b = books[id]
           if (!b) return null
           const on = id === activeBookId
           const n = countOf(id)
           return (
             <div key={id} className={'book-card' + (on ? ' on' : '') + (n === 0 ? ' empty' : '')}
-              style={{ '--spine': colorOf(b.color), '--thick': thickOf(n) }}
+              style={{ '--spine': spineOf(b, idx), '--thick': thickOf(n) }}
               onClick={() => onSwitch(id)} role="button" tabIndex={0}
               onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSwitch(id) } }}
               aria-pressed={on}>
