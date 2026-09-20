@@ -545,7 +545,7 @@ export default function Learn() {
             <div className="entry-copy">
               <h3>智能匹配练习</h3>
           <p className="entry-desc-long">按你的水平挑 {randomCount} 道（目标答对率 65~85%，随段位下移）· 状态指数 {rank.p} · 段位 {rank.official.name}</p>
-          <p className="entry-desc-short">{randomCount} 道 · 按水平匹配</p>
+          <p className="entry-desc-short">{randomCount} 道匹配题</p>
             </div>
           </div>
           <div className="entry-card rise" style={{ animationDelay: '.24s' }} onClick={() => newCount > 0 && run('learn')}>
@@ -561,7 +561,7 @@ export default function Learn() {
             <div className="entry-copy">
               <h3>挑题练习</h3>
           <p className="entry-desc-long">按题型、知识域、难度筛出想练的题 · 共 {relearnCount} 道</p>
-          <p className="entry-desc-short">{relearnCount} 道可按条件筛</p>
+          <p className="entry-desc-short">{relearnCount} 道可筛</p>
             </div>
           </div>
         </div>

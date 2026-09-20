@@ -1799,9 +1799,14 @@ body { background: linear-gradient(160deg, #FFF8FA 0%, #E2EEE7 58%, #E6F5EC 82%,
      （entry-desc-long 桌面 / entry-desc-short 移动端 ≤12 字动态短语），
      半卡文字区 ~110px 下短句 1~2 行即完，不再竖排。 */
   .entry-grid { grid-template-columns: 1fr 1fr !important; gap: 10px !important; }
-  .entry-card { padding: 12px 14px !important; }
+  /* AVW（2026-09-23 用户反馈"手机端难受"诊断）：等高行 + V 批 align-items:flex-start
+     → 内容顶对齐、卡下方空 ~30px（内容上浮感）。手机端改垂直居中，上下留白对称。 */
+  .entry-card { padding: 12px 14px !important; gap: 10px !important; align-items: center !important; }
+  /* AW二轮修正（真机截图）：文字区实测 ~91px，「智能匹配练习」6 字 15px+字距临界折行 →
+     标题 14px 去字距 + nowrap 保证一行；图标 38→34px 腾 4px。 */
+  .entry-card .entry-ico { width: 34px !important; height: 34px !important; border-radius: 9px !important; }
   .entry-card::before { font-size: clamp(28px, 8.5cqw, 38px) !important; margin: 2px 0 0 !important; }
-  .entry-card h3 { font-size: 15px !important; letter-spacing: 1px !important; }
+  .entry-card h3 { font-size: 14px !important; letter-spacing: 0 !important; white-space: nowrap !important; }
   .entry-card p { font-size: 12px !important; line-height: 1.55 !important; }
   /* ② hero 副标：放宽占幅 + 均衡折行，不再出「4 / 天」孤字尾行 */
   .candy-hero .hero-copy { max-width: 64% !important; }
