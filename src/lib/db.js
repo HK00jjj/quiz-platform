@@ -65,9 +65,15 @@ export class CloudRepo {
      题库/做题记录超过后早期数据不可见。按 range 翻页直到不足一页。
      翻页必须按唯一键排序（seq/answered_at 会重复，边界漂移会漏行/重行）。
      §68 加固：分页后请求数变多，单页瞬时失败会让整个加载失败——每页自动重试 2 次。 */
-  async fetchAllPaged(table, orderCol, pageSize = 1000) {
-    const rows = []
-    for (let from = 0; ; from += pageSize) {
+  async fetchAllPaged(table, orderCol, pageSize = 1000, concurrency = 4) {
+    /* 【2026-09-20 AH批 并发化】实测线上冷启动 ready 需 5.3s，其中 4.6s 花在
+       「4 页 questions 串行等」上（单页 0.8~1.4s，逐页累加；瀑布实测
+       19ms→1444ms→2665ms→3784ms 逐页起跳）。改为每批并发拉 concurrency 页：
+       - range 划分与串行版逐字节一致（同 offset 同 limit）→ 不漏行不重行；
+       - Promise.all 保序 → rows 拼接仍是 offset 升序，与旧行为等价；
+       - 终止条件不变：任一批次出现不满页即到底（按唯一键升序，不满页必为末页）；
+       - 多余的并发页在数据量小时返回空数组，无害。 */
+    const fetchPage = async (from) => {
       let data, error
       for (let attempt = 0; attempt < 3; attempt++) {
         const res = await this.client.from(table).select('*')
@@ -77,12 +83,28 @@ export class CloudRepo {
         if (attempt < 2) await new Promise((r) => setTimeout(r, 600 * (attempt + 1)))
       }
       if (error) throw error
-      rows.push(...data)
-      if (data.length < pageSize) return rows
+      return data ?? []
+    }
+    const rows = []
+    for (let base = 0; ; base += pageSize * concurrency) {
+      const batch = await Promise.all(
+        Array.from({ length: concurrency }, (_, i) => fetchPage(base + i * pageSize))
+      )
+      let end = false
+      for (const d of batch) {
+        rows.push(...d)
+        if (d.length < pageSize) end = true
+      }
+      if (end) return rows
     }
   }
   async loadAll() {
-    const [q, c, r, s, b] = await Promise.all([
+    /* 【2026-09-20 AH批】属性三表原为「第一批 await 完成后再串行拉」——瀑布实测第二批
+       到 4602ms 才起步（第一批 4600ms 才结束），白多一整轮 RTT（约 +696ms）。
+       三表各自独立、失败均降级为空数组（DDL 未执行或网络异常时仅诊断页显示"未就绪"，
+       刷题/复习/晋级照常），与第一批无数据依赖，故合并进同一个 Promise.all 一次并发。
+       （属性体系 2026-09-18 新增；question_stats 为 S4 回流表，Bank 质量展示用。） */
+    const [q, c, r, s, b, attrs, qas, stats] = await Promise.all([
       this.fetchAllPaged('questions', 'id'),
       this.fetchAllPaged('review_cards', 'question_id'),
       this.fetchAllPaged('answer_records', 'id'),
@@ -90,21 +112,11 @@ export class CloudRepo {
       // 多题库（书本）映射存在 settings 的 key='books' 行里：
       // 这样不需要改任何表结构（没有 DDL 权限），而且因为 cards/records 以 questionId 为键，
       // 只要各书题目 ID 不重叠，间隔重复与做题记录就是天然隔离的。
-      this.client.from('settings').select('value').eq('key', 'books').maybeSingle()
+      this.client.from('settings').select('value').eq('key', 'books').maybeSingle(),
+      this.fetchAllPaged('attributes', 'id').catch((e) => { console.warn('[loadAll] attributes 降级', e); return [] }),
+      this.fetchAllPaged('question_attributes', 'question_id').catch((e) => { console.warn('[loadAll] question_attributes 降级', e); return [] }),
+      this.fetchAllPaged('question_stats', 'question_id').catch((e) => { console.warn('[loadAll] question_stats 降级', e); return [] })
     ])
-    /* 属性体系两表（2026-09-18 新增）：失败不阻塞主流程——DDL 未执行或网络异常时
-       降级为空数组，仅诊断页显示"未就绪"，刷题/复习/晋级全部照常。
-       question_stats 同批（S4 回流表，Bank 题目质量展示用），同样降级安全。 */
-    let attrs = [], qas = [], stats = []
-    try {
-      [attrs, qas, stats] = await Promise.all([
-        this.fetchAllPaged('attributes', 'id'),
-        this.fetchAllPaged('question_attributes', 'question_id'),
-        this.fetchAllPaged('question_stats', 'question_id'),
-      ])
-    } catch (e) {
-      console.warn('[loadAll] 属性/统计表加载失败（诊断与质量展示降级）', e)
-    }
     /* §66 修复：fetchAllPaged 直接返回行数组（无 .data 包装）——
        此前 return 仍用旧写法 q.data.map → undefined.map 必炸，登录后加载 100% 失败 */
     return {
