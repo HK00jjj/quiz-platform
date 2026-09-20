@@ -1187,6 +1187,10 @@ body:has(.login-stage) { background: var(--pp-bg) !important; }
      stretch 等高时比入口区矮 20px（实测 347 vs 367，正好差 20）。双栏内归零；
      移动端单列不受此规则影响，仍保留 20px 分隔。 */
   .app-shell .learn-cols .candy-hero { margin-bottom: 0 !important; }
+  /* AU批（2026-09-20 用户截图）：等高改造把容器内两子块的下边距都归零后，
+     双栏与下方段位行之间失去了间距（段位行紧贴容器底，视觉上"太靠上"）。
+     间距改由**容器自身**承担：20px 与页面其他面板间距一致。 */
+  .app-shell .learn-cols { margin-bottom: 20px; }
   /* 卡片随行轨道拉伸后（entry-grid 本就 grid-auto-rows:1fr），内边距略增避免局促 */
   .app-shell .learn-cols > .entry-grid > .entry-card { padding: 18px 20px !important; }
 
