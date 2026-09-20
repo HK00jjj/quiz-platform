@@ -1320,3 +1320,12 @@ body:has(.login-stage) { background: var(--pp-bg) !important; }
    下边距都归零后，入口区与下方段位行的间距必须由**容器自身**承担，
    这个分隔在手机单列与桌面双栏是同一件事，规则提到全局两端生效。 */
 .app-shell .learn-cols { margin-bottom: 20px; }
+
+/* AX批 · 书库卡翻开后背面外层白瓷化（2026-09-23 用户截图定罪）：
+   candy:587 给 .tarot-face.back 铺的马卡龙渐变（粉→薄荷→薰衣草）会从内面板
+   （白色 .82）四周透出来 —— 翻开一张书卡 = 一圈糖果渐变，白瓷根除战漏网。
+   改白纸卡：白底 + 发丝边。正面 .front 早已透明（candy:1505）无需处理。 */
+.app-shell .bank-item .tarot-face.back {
+  background: #FFFFFF !important;
+  border-color: var(--pp-hair, #E3E0D8) !important;
+}

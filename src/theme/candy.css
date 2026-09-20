@@ -601,81 +601,7 @@ body, button, input, textarea, select {
   .btn:hover, .nav-item.active, .opt-row:hover, .judge-card:hover { transform: none !important; }
 }
 
-/* ══ 题库书架（方案 5.3 / 8.1）══
-   书本卡 = 果冻质感的竖版书：左侧彩色书脊 + 封面图标 + 书名 + 题数；
-   当前书用薄荷绿 3px 边 + 外发光 + 「✓ 使用中」。颜色由 JSX 用 --spine 内联传入。 */
-.bookshelf { border: 2px solid var(--candy-pink) !important; }
-.bookshelf-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
-.book-current {
-  font-size: 12px; padding: 4px 12px; border-radius: 12px; letter-spacing: 1px;
-  background: rgba(47,125,92,.10); border: 1px solid var(--mint); color: #2FA98A;
-}
-.book-note {
-  margin: 0 0 12px; padding: 8px 12px; border-radius: 12px; font-size: 13px;
-  background: rgba(31,35,40,.08); border: 1px solid var(--candy-pink-lt); color: #24499F;
-}
-.book-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(128px, 1fr)); gap: 12px; }
-.book-card {
-  position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px;
-  min-height: 160px; padding: 16px 10px 12px; cursor: pointer; overflow: hidden;
-  background: rgba(255, 255, 255, .9); border: 1px solid rgba(90, 74, 42, .18); border-radius: 10px;
-  box-shadow: 0 4px 14px rgba(31,35,40,.08);
-  transition: transform .22s var(--jelly-ease), border-color .2s ease, box-shadow .2s ease;
-}
-.book-card:hover { transform: translateY(-4px); border-color: var(--candy-pink); box-shadow: 0 8px 22px rgba(47,95,208,.10); }
-.book-card:focus-visible { outline: 2px solid var(--candy-pink-dk); outline-offset: 2px; }
-.book-card.on { border: 3px solid var(--mint); box-shadow: 0 0 0 4px rgba(47,125,92,.10); }
-.book-card.empty { opacity: .72; }
-.book-spine {
-  position: absolute; left: 0; top: 0; bottom: 0; width: 6px;
-  background: var(--spine, #4A6FD4); border-radius: 10px 0 0 10px;
-}
-.book-icon { font-size: 32px; line-height: 1; margin-top: 2px; }
-.book-name { font-size: 14px; font-weight: 700; color: #3d2c1c; text-align: center; word-break: break-all; }
-.book-meta { font-size: 12px; color: rgba(44, 24, 16, .6); text-align: center; }
-.book-check { font-size: 11px; font-weight: 700; color: #2FA98A; }
-.book-ops { display: flex; gap: 6px; margin-top: auto; padding-top: 8px; }
-.book-op {
-  width: 26px; height: 26px; border-radius: 50%; font-size: 12px; cursor: pointer;
-  border: 1px solid rgba(90, 74, 42, .28); background: rgba(255, 255, 255, .85); color: #6b5a1a;
-  transition: transform .18s var(--jelly-ease), border-color .18s ease, color .18s ease;
-}
-.book-op:hover { border-color: var(--candy-pink); color: #24499F; transform: translateY(-2px); }
-.book-op.danger:hover { border-color: var(--fault-lt); color: #8b2a4a; }
-.book-op:disabled { opacity: .35; cursor: default; transform: none; }
-.book-rename { width: 100%; padding: 4px 8px; font-size: 13px; text-align: center; }
-.book-new {
-  justify-content: center; border: 2px dashed var(--candy-pink) !important;
-  background: rgba(255, 250, 251, .75);
-}
-.book-new:hover { border-style: solid !important; }
-.book-plus { font-size: 30px; line-height: 1; }
-.book-form, .book-confirm {
-  margin-top: 14px; padding: 14px; border-radius: 10px;
-  background: rgba(255, 250, 251, .85); border: 1px solid var(--candy-pink-lt);
-}
-.book-form-label { display: block; margin: 10px 0 6px; font-size: 12.5px; font-weight: 700; letter-spacing: 1px; color: #6b5a1a; }
-.book-count { display: block; margin-top: 4px; text-align: right; font-size: 11px; color: rgba(44, 24, 16, .5); }
-.book-colors { display: flex; flex-wrap: wrap; gap: 8px; }
-.color-dot {
-  width: 32px; height: 32px; border-radius: 50%; cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  border: 2px solid rgba(255, 255, 255, .9); box-shadow: 0 2px 8px rgba(0, 0, 0, .14);
-  color: #fff; font-size: 14px; font-weight: 900;
-  transition: transform .18s var(--jelly-ease), box-shadow .18s ease;
-}
-.color-dot.on { transform: scale(1.14); box-shadow: 0 0 0 3px rgba(47,95,208,.10); }
-.book-icons { display: flex; flex-wrap: wrap; gap: 6px; }
-.icon-pick {
-  width: 38px; height: 38px; border-radius: 12px; font-size: 18px; cursor: pointer;
-  border: 1px solid rgba(90, 74, 42, .22); background: rgba(255, 255, 255, .85);
-  transition: transform .18s var(--jelly-ease), border-color .18s ease, background .18s ease;
-}
-.icon-pick.on { border: 2px solid var(--candy-pink); background: rgba(31,35,40,.08); transform: translateY(-2px); }
-.book-form-ops { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; margin-top: 14px; }
-.book-confirm-title { margin: 0 0 6px; font-size: 15px; font-weight: 700; color: #8b2a4a; }
-.book-confirm-desc { margin: 0 0 10px; font-size: 12.5px; line-height: 1.8; color: rgba(44, 24, 16, .72); }
-.book-foot { margin: 12px 0 0; text-align: center; font-size: 12px; color: rgba(44, 24, 16, .55); }
+/* 题库书架样式已整体迁移至文件末尾「纸上书斋」段（2026-09-20 重设计，旧 emoji 卡片段移除）。 */
 
 /* ══ 底部导航弹入（方案 1.2 最后一步）══
    280ms 而不是 500ms：离开答题页时导航会重新挂载，属于“一天几十次”的频率，
@@ -2059,3 +1985,178 @@ body, button, input, select, textarea {
 }
 /* 彩色辉光兜底归零（防遗漏的 box-shadow 组合） */
 * { text-shadow: none !important; }
+
+/* ══════════════════════════════════════════════════════════
+   题库书架 · 白瓷「纸上书斋」重设计（2026-09-20）
+   造型：每本书 = 竖版实体书。顶部书脊布带（--spine 实色）+ 右缘纸页叠层
+   （宽 = --thick，随题数增长，厚度即数据）+ 封面学科章纹 + 底部落地影；
+   使用中 = 从架上抽出的那本：上浮 + 靛蓝书签丝带。动效纪律：只做 hover/
+   激活的 transform·box-shadow 过渡，无持续动画。颜色变量由 JSX 内联注入。
+   本段追加在文件末尾以同特异性后来居上：白瓷兜底分组（上前方）给 .book-card
+   的白底 rgba(255,255,255,.84) 继续沿用，本段不另设 .book-card 背景。
+   ══════════════════════════════════════════════════════════ */
+.bookshelf { border: 1.5px solid rgba(47, 95, 208, .45) !important; }
+.bookshelf-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+.book-current {
+  font-size: 12px; padding: 4px 12px; border-radius: 999px; letter-spacing: .5px; margin-top: 2px;
+  background: rgba(47, 95, 208, .08); border: 1px solid rgba(47, 95, 208, .4); color: var(--candy-pink-dk);
+  font-variant-numeric: tabular-nums; white-space: nowrap; max-width: 100%;
+}
+.book-shelf-stat { margin-top: 4px; font-size: 11.5px; letter-spacing: 1.5px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.book-note {
+  margin: 0 0 14px; padding: 8px 12px; border-radius: var(--r-xs); font-size: 13px;
+  background: rgba(47, 95, 208, .06); border: 1px solid rgba(47, 95, 208, .25); color: var(--candy-pink-dk);
+}
+.book-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(124px, 1fr)); gap: 18px 12px; }
+
+/* —— 书册本体：左缘近直角（书脊）、右缘圆角（书口），纸页层绝对定位在右缘 —— */
+.book-card {
+  position: relative; display: flex; flex-direction: column; align-items: center;
+  min-height: 204px; padding: 0 10px 10px; cursor: pointer;
+  border: 1px solid var(--line) !important; border-radius: 4px 10px 10px 4px !important;
+  box-shadow: 0 1px 2px rgba(31, 35, 40, .05), 0 10px 20px -12px rgba(31, 35, 40, .16) !important;
+  transition: transform .22s var(--smooth-ease), border-color .2s ease, box-shadow .22s ease;
+}
+/* 落地影：书与架面接触的一线椭圆影（激活书抽出后影更淡更远） */
+.book-card::after {
+  content: ''; position: absolute; left: 15%; right: 4%; bottom: -7px; height: 10px;
+  border-radius: 50%; pointer-events: none;
+  background: radial-gradient(ellipse at center, rgba(31, 35, 40, .16), transparent 66%);
+  transition: opacity .22s ease;
+}
+.book-card:hover { transform: translateY(-4px); border-color: rgba(47, 95, 208, .35) !important; }
+.book-card:focus-visible { outline: 2px solid var(--candy-pink-dk); outline-offset: 2px; }
+.book-card.on {
+  transform: translateY(-8px);
+  border-color: rgba(47, 95, 208, .6) !important;
+  box-shadow: 0 3px 8px rgba(31, 35, 40, .06), 0 20px 32px -14px rgba(47, 95, 208, .32) !important;
+}
+.book-card.on:hover { transform: translateY(-8px); }
+.book-card.on::after { bottom: -14px; opacity: .55; }
+.book-card.empty { opacity: .7; }
+
+/* 顶部书脊布带：--spine 实色 + 一线布面高光（静态），顶角与卡体圆角对齐 */
+.book-band {
+  flex: none; width: calc(100% + 20px); height: 11px; margin: 0 -10px 12px;
+  border-radius: 4px 10px 0 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, .30), rgba(255, 255, 255, 0) 62%), var(--spine, #2F5FD0);
+}
+/* 右缘纸页叠层：宽度 = --thick（题数映射），纸页条纹 + 发丝边 */
+.book-pages {
+  position: absolute; top: 14px; bottom: 3px; right: 0; width: var(--thick, 8px);
+  border-radius: 0 8px 3px 3px;
+  background: repeating-linear-gradient(90deg, rgba(255, 255, 255, .95) 0 2.4px, rgba(31, 35, 40, .10) 2.4px 3.4px);
+  border: 1px solid rgba(31, 35, 40, .12); border-left: none;
+  pointer-events: none; z-index: 2;
+}
+/* 书签丝带：靛蓝燕尾，垂在封面右上（仅使用中的书） */
+.book-ribbon {
+  position: absolute; top: -3px; right: 14px; width: 17px; height: 36px; z-index: 3;
+  background: linear-gradient(180deg, #3565D6, var(--candy-pink-dk));
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% calc(100% - 8px), 0 100%);
+  filter: drop-shadow(0 2px 3px rgba(47, 95, 208, .35));
+  pointer-events: none;
+}
+/* 封面区：书脊色淡染 + 发丝框（先给无 color-mix 支持的中性回退，再 @supports 升级） */
+.book-face {
+  position: relative; width: 100%; min-height: 74px; margin-bottom: 8px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 5px; background: rgba(47, 95, 208, .05); border: 1px solid var(--line);
+}
+.book-glyph {
+  width: 44px; height: 44px; border-radius: 50%; flex: none;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--spine, #2F5FD0); background: rgba(255, 255, 255, .92);
+  border: 1px solid var(--line); box-shadow: 0 1px 3px rgba(31, 35, 40, .07);
+}
+@supports (background: color-mix(in srgb, red 10%, transparent)) {
+  .book-face {
+    background: color-mix(in srgb, var(--spine, #2F5FD0) 7%, transparent);
+    border-color: color-mix(in srgb, var(--spine, #2F5FD0) 15%, transparent);
+  }
+  .book-glyph { border-color: color-mix(in srgb, var(--spine, #2F5FD0) 30%, transparent); }
+}
+.book-name {
+  font-size: 13px; font-weight: 700; color: var(--ink); line-height: 1.45; text-align: center;
+  word-break: break-all; margin: 0 0 3px;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  min-height: 38px;
+}
+.book-meta { font-size: 11.5px; letter-spacing: .5px; color: var(--ink-3); text-align: center; font-variant-numeric: tabular-nums; }
+.book-num { color: var(--ink); font-weight: 700; font-size: 13.5px; margin-right: 3px; }
+
+/* 卡上操作钮：发丝圆钮 + 13px 线稿（替代旧 ✎↺🗑 字符） */
+.book-ops { display: flex; gap: 6px; margin-top: auto; padding-top: 8px; }
+.book-op {
+  width: 26px; height: 26px; border-radius: 50%; cursor: pointer; padding: 0;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--line); background: rgba(255, 255, 255, .9); color: var(--ink-3);
+  transition: color .16s ease, border-color .16s ease, transform .18s var(--smooth-ease);
+}
+.book-op:hover { border-color: rgba(47, 95, 208, .5); color: var(--candy-pink-dk); transform: translateY(-2px); }
+.book-op.danger:hover { border-color: rgba(196, 55, 46, .45); color: var(--bad-ink); }
+.book-op:disabled { opacity: .35; cursor: default; transform: none; }
+.book-rename { width: 100%; padding: 4px 8px; font-size: 13px; text-align: center; }
+
+/* 新建位：虚线空书位；hover 时加号微转（transform-only，无持续动画） */
+.book-new {
+  justify-content: center; background: rgba(255, 255, 255, .55) !important;
+  border: 1.5px dashed rgba(47, 95, 208, .5) !important; box-shadow: none !important;
+}
+.book-new::after { content: none; }
+.book-new:hover { border-style: solid !important; transform: translateY(-4px); box-shadow: 0 10px 20px -12px rgba(31, 35, 40, .16) !important; }
+.book-new .book-name { color: var(--ink-2); }
+.book-new-plus {
+  width: 46px; height: 46px; border-radius: 50%; flex: none; margin-bottom: 8px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--candy-pink-dk); background: rgba(47, 95, 208, .06);
+  border: 1.5px dashed rgba(47, 95, 208, .45);
+  transition: transform .2s var(--smooth-ease), background .2s ease;
+}
+.book-new:hover .book-new-plus { transform: rotate(90deg); background: rgba(47, 95, 208, .12); }
+
+/* 创建/删除确认表单：白纸卡 + 发丝边（替换旧粉白底残留） */
+.book-form, .book-confirm {
+  margin-top: 16px; padding: 12px 16px 16px; border-radius: var(--r-md);
+  background: rgba(255, 255, 255, .66); border: 1px solid var(--line);
+}
+.book-form-label { display: block; margin: 12px 0 7px; font-size: 12px; font-weight: 700; letter-spacing: 1px; color: var(--ink-2); }
+.book-count { display: block; margin-top: 4px; text-align: right; font-size: 11px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.book-colors { display: flex; flex-wrap: wrap; gap: 8px; }
+.color-dot {
+  width: 30px; height: 30px; border-radius: 50%; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  border: 2px solid rgba(255, 255, 255, .95); box-shadow: 0 0 0 1px rgba(31, 35, 40, .14);
+  color: #fff; transition: transform .18s var(--smooth-ease), box-shadow .18s ease;
+}
+.color-dot.on { transform: scale(1.12); box-shadow: 0 0 0 2px var(--candy-pink-dk); }
+
+/* 学科章纹选择器：SVG 线稿格（替代旧 emoji 格） */
+.book-icons { display: flex; flex-wrap: wrap; gap: 7px; }
+.icon-pick {
+  width: 40px; height: 40px; border-radius: var(--r-xs); cursor: pointer; padding: 0;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--line); background: rgba(255, 255, 255, .85); color: var(--ink-2);
+  transition: transform .18s var(--smooth-ease), border-color .16s ease, color .16s ease, background .16s ease;
+}
+.icon-pick:hover { transform: translateY(-2px); color: var(--candy-pink-dk); border-color: rgba(47, 95, 208, .4); }
+.icon-pick.on { border: 1.5px solid var(--candy-pink-dk); background: rgba(47, 95, 208, .07); color: var(--candy-pink-dk); transform: translateY(-2px); }
+
+.book-form-ops { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; margin-top: 14px; }
+.book-confirm-title { margin: 0 0 6px; font-size: 15px; font-weight: 700; color: var(--bad-ink); }
+.book-confirm-desc { margin: 0 0 10px; font-size: 12.5px; line-height: 1.8; color: var(--ink-2); }
+.book-foot { margin: 14px 0 0; text-align: center; font-size: 12px; letter-spacing: .5px; color: var(--ink-3); }
+
+/* 窄屏：书位收窄、章纹缩一档 */
+@media (max-width: 520px) {
+  .book-grid { grid-template-columns: repeat(auto-fill, minmax(106px, 1fr)); gap: 16px 9px; }
+  .book-card { min-height: 182px; }
+  .book-face { min-height: 62px; }
+  .book-glyph { width: 38px; height: 38px; }
+  .book-name { font-size: 12px; min-height: 35px; }
+}
+/* 减少动效：位移与过渡全收（无障碍底线） */
+@media (prefers-reduced-motion: reduce) {
+  .book-card, .book-op, .icon-pick, .book-new-plus, .color-dot { transition: none !important; }
+  .book-card:hover, .book-card.on, .book-card.on:hover, .book-new:hover { transform: none; }
+}

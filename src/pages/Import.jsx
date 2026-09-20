@@ -169,7 +169,7 @@ export default function Import() {
       </div>
 
       {/* 题集导入说明（2026-09-09：唯一导入通道，开关已拆除） */}
-      <div className="panel" style={{ marginBottom: 16, borderColor: 'var(--candy-pink-dk, #5FAE8F)' }}>
+      <div className="panel" style={{ marginBottom: 16 }}>
         <div className="panel-title">题集导入（唯一导入通道 · 逐题检测）</div>
         <p style={{ fontSize: 13, lineHeight: 1.9, color: 'var(--muted)' }}>
           只做逐题校验（题型、元数据映射、选项结构、解析标记、填空与配图白名单、批内避重等通用检查），<b>任意题数（含 21）均可通过</b>；通过校验后还会与<b>库内已有题</b>做跨批撞库提示（知识点同名 / 题干高度相似，仅告警不拦截，已在库内的题自动跳过）。对应《出题规则》现行版（AI 触发词：<b>题目：</b>）；备份 JSON 粘贴后自动识别并走「备份恢复」，无需任何开关。
