@@ -1167,7 +1167,11 @@ body:has(.login-stage) { background: var(--pp-bg) !important; }
 @media (min-width: 900px) {
   .app-shell .learn-cols {
     display: grid;
-    grid-template-columns: minmax(0, 6fr) minmax(0, 5fr);
+    /* 比例 4:6 而非 5:5 —— 真机截图实测（1280×900）：5:5 时右栏仅 369px，
+       2×2 后每列 ~178px 与移动端同样窄，卡片文字照样挤压（h3 折行、描述竖排）。
+       改 4:6 后入口区 ~576px、每列 ~280px，文字区从 ~88px 提到 ~190px（+116%），
+       且两栏高度趋于一致（Hero ~210px / 入口两行 ~220px），下方不再大片留白。 */
+    grid-template-columns: minmax(0, 4fr) minmax(0, 6fr);
     gap: 16px;
     align-items: start;
   }
