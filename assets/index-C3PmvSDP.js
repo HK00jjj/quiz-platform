@@ -1,4 +1,4 @@
-import{a7 as r,a8 as s}from"./index-DSioFz97.js";const i={tpl_din_wiring:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 380" font-family="'Microsoft YaHei',sans-serif">
+import{a7 as r,a8 as s}from"./index-BKuLoDsl.js";const i={tpl_din_wiring:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 380" font-family="'Microsoft YaHei',sans-serif">
   <rect width="660" height="380" fill="#ffffff"/>
   <text x="20" y="32" font-size="19" font-weight="bold" fill="#222">DIN 43650-A 插头接线（DC24V 电磁阀）</text>
   <rect x="60" y="90" width="200" height="150" rx="12" fill="#f4f4f4" stroke="#333" stroke-width="2.5"/>
