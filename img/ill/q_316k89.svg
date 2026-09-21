@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 410" font-family="'Microsoft YaHei',sans-serif">
+  <rect width="660" height="410" fill="#ffffff"/>
+  <text x="20" y="30" font-size="18.5" font-weight="bold" fill="#222">配电柜二次回路配线要求：A、B、D、E 符合，C 违反</text>
+  <rect x="34" y="52" width="592" height="42" rx="8" fill="#e9f5ec" stroke="#2a7a2a" stroke-width="1.5"/>
+  <text x="52" y="70" font-size="12.5" fill="#2a7a2a" font-weight="bold">✓ A</text>
+  <text x="90" y="70" font-size="12.5" fill="#333">柜内导线不应有接头，导线芯线应无损伤</text>
+  <text x="52" y="88" font-size="11.5" fill="#666">接头是二次回路最薄弱点，易发热、松动、误动</text>
+
+  <rect x="34" y="100" width="592" height="42" rx="8" fill="#e9f5ec" stroke="#2a7a2a" stroke-width="1.5"/>
+  <text x="52" y="118" font-size="12.5" fill="#2a7a2a" font-weight="bold">✓ B</text>
+  <text x="90" y="118" font-size="12.5" fill="#333">电缆芯线与所配导线端部均应标明回路编号，字迹清晰、不易褪色</text>
+  <text x="52" y="136" font-size="11.5" fill="#666">编号是检修查线的唯一凭据，褪色即失效</text>
+
+  <rect x="34" y="148" width="592" height="46" rx="8" fill="#fdecec" stroke="#c33" stroke-width="1.6"/>
+  <text x="52" y="166" font-size="12.5" fill="#c33" font-weight="bold">✗ C（不选）</text>
+  <text x="150" y="166" font-size="12.5" fill="#333">不同截面积的两根导线不得接在同一个插接端子上</text>
+  <text x="52" y="186" font-size="11.5" fill="#c33">截面不同 → 压接压力不匹配 → 细线压不紧、发热松脱</text>
+
+  <rect x="34" y="200" width="592" height="46" rx="8" fill="#e9f5ec" stroke="#2a7a2a" stroke-width="1.5"/>
+  <text x="52" y="218" font-size="12.5" fill="#2a7a2a" font-weight="bold">✓ D</text>
+  <text x="90" y="218" font-size="12.5" fill="#333">连接门上电器等可动部位的导线，应采用多股软导线</text>
+  <text x="52" y="238" font-size="11.5" fill="#666">并在可动部位两端用卡子固定（防反复弯折断线）</text>
+
+  <rect x="34" y="252" width="592" height="42" rx="8" fill="#e9f5ec" stroke="#2a7a2a" stroke-width="1.5"/>
+  <text x="52" y="270" font-size="12.5" fill="#2a7a2a" font-weight="bold">✓ E</text>
+  <text x="90" y="270" font-size="12.5" fill="#333">二次回路的接地应设专用螺栓</text>
+  <text x="52" y="288" font-size="11.5" fill="#666">不得借用固定螺栓或柜体螺钉兼作接地</text>
+
+  <rect x="34" y="300" width="592" height="30" rx="8" fill="#fafafa" stroke="#aaa" stroke-width="1.3"/>
+  <text x="52" y="320" font-size="12" fill="#555">补充要点：配线应整齐美观，可绑扎或走线槽敷设</text>
+  <rect x="30" y="340" width="600" height="56" rx="8" fill="#fff8ec" stroke="#b8860b" stroke-width="1.5"/>
+  <text x="46" y="362" font-size="12.3" fill="#7a5c00">正解 ABDE。唯一排除项是 C：不同截面导线同端子会因压接不匹配而松脱发热，属明文禁止。</text>
+  <text x="46" y="383" font-size="12.3" fill="#7a5c00">记忆：无接头、有编号、软线卡固、专用接地螺栓——「四有一禁」。</text>
+</svg>

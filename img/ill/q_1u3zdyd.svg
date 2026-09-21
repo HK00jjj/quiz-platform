@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 380" font-family="'Microsoft YaHei',sans-serif">
+  <rect width="660" height="380" fill="#ffffff"/>
+  <text x="20" y="30" font-size="18.5" font-weight="bold" fill="#222">以铝代铜：等截面直接代换不够，须放大截面等级并重新校核</text>
+  <rect x="34" y="52" width="286" height="196" rx="10" fill="#fafafa" stroke="#888" stroke-width="1.8"/>
+  <text x="177" y="76" font-size="13" text-anchor="middle" fill="#555" font-weight="bold">材质差异（同截面对比）</text>
+  <rect x="54" y="90" width="120" height="30" rx="5" fill="#eef2ff" stroke="#2F5FD0" stroke-width="1.6"/>
+  <text x="114" y="110" font-size="12.5" text-anchor="middle" fill="#2F5FD0" font-weight="bold">铜芯</text>
+  <rect x="190" y="90" width="120" height="30" rx="5" fill="#fff8ec" stroke="#b8860b" stroke-width="1.6"/>
+  <text x="250" y="110" font-size="12.5" text-anchor="middle" fill="#7a5c00" font-weight="bold">铝芯</text>
+  <text x="54" y="142" font-size="12" fill="#333">电阻率：基准</text>
+  <text x="190" y="142" font-size="12" fill="#7a5c00">电阻率：约为铜的 1.6 倍</text>
+  <text x="54" y="166" font-size="12" fill="#333">载流量：高</text>
+  <text x="190" y="166" font-size="12" fill="#7a5c00">载流量：低 · 电压损失更大</text>
+  <text x="54" y="196" font-size="12" fill="#333">发热：按原取值假定</text>
+  <text x="190" y="196" font-size="12" fill="#c33">同电流下发热更高 → 温度超标</text>
+  <text x="54" y="226" font-size="11.5" fill="#666">结论：等截面代换 = 载流量不足 + 压降超标</text>
+
+  <rect x="344" y="52" width="286" height="196" rx="10" fill="#e9f5ec" stroke="#2a7a2a" stroke-width="1.6"/>
+  <text x="487" y="76" font-size="13" text-anchor="middle" fill="#2a7a2a" font-weight="bold">✓ 正确处置</text>
+  <text x="364" y="104" font-size="12.5" fill="#333">① 截面放大一级（如 铜 16 → 铝 25）</text>
+  <text x="364" y="128" font-size="12.5" fill="#333">② 重新校核载流量</text>
+  <text x="364" y="152" font-size="12.5" fill="#333">③ 重新校核电压损失</text>
+  <text x="364" y="176" font-size="12.5" fill="#333">④ 复核敷设条件：管径 / 弯曲半径 / 端子适配</text>
+  <line x1="364" y1="190" x2="614" y2="190" stroke="#cfe3cf" stroke-width="1"/>
+  <text x="364" y="214" font-size="12" fill="#c33">✗ 常见错法：把铜芯载流量口诀/手册值</text>
+  <text x="364" y="234" font-size="12" fill="#c33">不加区分地直接套到铝芯电缆上</text>
+  <rect x="30" y="268" width="600" height="96" rx="8" fill="#fff8ec" stroke="#b8860b" stroke-width="1.5"/>
+  <text x="46" y="290" font-size="12.3" fill="#7a5c00">记忆口诀：以铝代铜「等截面不行，放大一级再校核」——放大后还要回头核管径、弯曲半径与端子是否适配。</text>
+  <text x="46" y="311" font-size="12.3" fill="#7a5c00">原理：铝的电阻率约为铜的 1.6 倍，载流量与电压损失都因材质属性系统性变差，这是材质决定的、不是敷设条件能补回来的。</text>
+  <text x="46" y="332" font-size="12.3" fill="#7a5c00">判断题判据：题干说「应校核载流量并适当放大截面等级」——与源文一致，判正确。</text>
+</svg>

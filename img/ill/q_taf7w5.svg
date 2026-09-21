@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 400" font-family="'Microsoft YaHei',sans-serif">
+  <rect width="660" height="400" fill="#ffffff"/>
+  <text x="20" y="30" font-size="18.5" font-weight="bold" fill="#222">短接法：三条必须遵守（ABC），两条禁止（DE）</text>
+  <rect x="34" y="52" width="286" height="70" rx="8" fill="#e9f5ec" stroke="#2a7a2a" stroke-width="1.5"/>
+  <text x="52" y="72" font-size="12.8" fill="#2a7a2a" font-weight="bold">✓ A 先确认电压正常再查</text>
+  <text x="52" y="94" font-size="11.8" fill="#333">所查电路电压正常才可用短接法判断</text>
+  <text x="52" y="112" font-size="11.8" fill="#333">电压异常时短接结论不可靠</text>
+  <rect x="344" y="52" width="286" height="70" rx="8" fill="#e9f5ec" stroke="#2a7a2a" stroke-width="1.5"/>
+  <text x="362" y="72" font-size="12.8" fill="#2a7a2a" font-weight="bold">✓ B 只适用于压降极小的对象</text>
+  <text x="362" y="94" font-size="11.8" fill="#333">导线、小电流触头的断路故障</text>
+  <text x="362" y="112" font-size="11.8" fill="#333">压降极小 → 短接后才可能「恢复」</text>
+  <rect x="34" y="130" width="286" height="70" rx="8" fill="#e9f5ec" stroke="#2a7a2a" stroke-width="1.5"/>
+  <text x="52" y="150" font-size="12.8" fill="#2a7a2a" font-weight="bold">✓ C 带电操作须防触电</text>
+  <text x="52" y="172" font-size="11.8" fill="#333">手持绝缘导线，身体不得接触带电体</text>
+  <text x="52" y="190" font-size="11.8" fill="#333">属带电作业，须有人监护</text>
+
+  <rect x="344" y="130" width="286" height="70" rx="8" fill="#fdecec" stroke="#c33" stroke-width="1.6"/>
+  <text x="362" y="150" font-size="12.8" fill="#c33" font-weight="bold">✗ D 线圈/电阻不得短接</text>
+  <text x="362" y="172" font-size="11.8" fill="#333">这类元件压降大，短接等于制造短路</text>
+  <text x="362" y="190" font-size="11.8" fill="#c33">→ 烧元件、跳上级开关</text>
+  <rect x="34" y="208" width="596" height="70" rx="8" fill="#fdecec" stroke="#c33" stroke-width="1.6"/>
+  <text x="52" y="228" font-size="12.8" fill="#c33" font-weight="bold">✗ E 主触头/熔断器断路：先估电流，一般 5A 以下才可用</text>
+  <text x="52" y="250" font-size="11.8" fill="#333">要害部位（主触头、熔断器）须先估电流大小，并非「不论电流大小均可短接」</text>
+  <text x="52" y="270" font-size="11.8" fill="#c33">电流过大时短接会产生强烈电弧与冲击</text>
+  <rect x="30" y="290" width="600" height="92" rx="8" fill="#fff8ec" stroke="#b8860b" stroke-width="1.5"/>
+  <text x="46" y="312" font-size="12.3" fill="#7a5c00">正解 ABC。两条排除项：D 违反「压降大的元件不得短接」；E 违反「5A 以下才用」的电流限制。</text>
+  <text x="46" y="333" font-size="12.3" fill="#7a5c00">记忆三句：电压先确认、对象挑压降小的、带电手持绝缘线；线圈电阻不能碰、要害部位看电流。</text>
+  <text x="46" y="354" font-size="12.3" fill="#7a5c00">安全底线：短接法是带电作业，判断顺序错了会把「查故障」变成「造故障」。</text>
+</svg>
