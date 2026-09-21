@@ -115,7 +115,11 @@ export class CloudRepo {
       // 这样不需要改任何表结构（没有 DDL 权限），而且因为 cards/records 以 questionId 为键，
       // 只要各书题目 ID 不重叠，间隔重复与做题记录就是天然隔离的。
       this.client.from('settings').select('value').eq('key', 'books').maybeSingle(),
-      this.client.from('settings').select('value').eq('key', 'imgmap').maybeSingle()
+      /* 【2026-09-21 修复 INC-20260921-03】PostgrestBuilder 是 thenable 不是真 Promise，
+         链上没有 .catch——直接 .catch((…)=>…) 会 TypeError 且炸掉整个 Promise.all，
+         登录后全量数据加载失败（线上事故：题库空 + 同步失败横幅）。
+         Promise.resolve(thenable) 得到真 Promise 才能挂 .catch；降级语义不变。 */
+      Promise.resolve(this.client.from('settings').select('value').eq('key', 'imgmap').maybeSingle())
         .catch((e) => { console.warn('[loadAll] imgmap 降级', e); return { data: null } }),
       this.fetchAllPaged('attributes', 'id').catch((e) => { console.warn('[loadAll] attributes 降级', e); return [] }),
       this.fetchAllPaged('question_attributes', 'question_id').catch((e) => { console.warn('[loadAll] question_attributes 降级', e); return [] }),
