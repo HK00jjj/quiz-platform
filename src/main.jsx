@@ -22,4 +22,21 @@ if (typeof window !== 'undefined') {
   })
 }
 
+/* §性能 Service Worker 预缓存（2026-09-21）：gh-pages 对所有资源只给 max-age=600，
+   隔十分钟再进站就得重新下载主包 467KB+CSS 154KB（国内网络常需数秒到十几秒）——
+   "每次进网站加载很久"的第一根因。SW 把静态资源缓存到本地：二次进站 0 下载；
+   导航走 network-first，新版本照常被发现。生成逻辑见 vite.config.js 的 swPrecache。
+   逃生门：URL 带 ?nosw=1 → 不注册、注销已有 SW、清掉本站缓存（排障/兜底用）。 */
+if (import.meta.env.PROD && typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    if (new URLSearchParams(location.search).has('nosw')) {
+      navigator.serviceWorker.getRegistrations?.().then((rs) => rs.forEach((r) => r.unregister())).catch(() => {})
+      caches?.keys().then((ks) => ks.filter((k) => k.startsWith('qp-static-')).forEach((k) => caches.delete(k))).catch(() => {})
+      return
+    }
+    navigator.serviceWorker.register(import.meta.env.BASE_URL + 'sw.js')
+      .catch((e) => console.warn('[sw] 注册失败，站点照常可用', e))
+  })
+}
+
 createRoot(document.getElementById('root')).render(<App />)

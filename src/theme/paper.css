@@ -76,6 +76,7 @@
 .app-shell.in-practice .q-stem {
   font-size: 20px !important; line-height: 1.85 !important; font-weight: 400 !important;
   color: var(--pp-fg) !important; letter-spacing: .01em !important;
+  text-indent: 2em !important;   /* Y批（2026-09-21）：题干首行缩进两个中文字符宽——仅 q-stem 生效，选项/解析不受影响 */
 }
 
 /* ④ 选项：整行 + 发丝分隔（无卡片、无方圆标记，字母已由文本提供） */
@@ -91,6 +92,10 @@
 .app-shell.in-practice .opt-row::before { display: none !important; }
 .app-shell.in-practice .opt-row:last-child { border-bottom: 1px solid var(--pp-hair) !important; }
 .app-shell.in-practice .opt-row:hover { background: #F4F4F1 !important; padding-left: 10px !important; }
+/* Y批（2026-09-21）：选项悬挂对齐——字母列固定宽，长选项换行后第二行与首行文字左缘对齐
+   （原为内联字母，第二行顶格，多行选项读起来错位）；baseline 对齐保证字母与首行文字同一基线。 */
+.app-shell.in-practice .opt-row > span { display: flex !important; align-items: baseline !important; min-width: 0 !important; }
+.app-shell.in-practice .opt-row .opt-k { flex: none !important; }
 .app-shell.in-practice .opt-row.selected {
   color: var(--pp-acc) !important; background: transparent !important;
   box-shadow: inset 2px 0 0 var(--pp-acc) !important;
@@ -132,19 +137,22 @@
   padding: 16px 0 0 !important;
 }
 .app-shell.in-practice .answer-scroll-box h5 {
-  font-size: 11.5px !important; letter-spacing: .12em !important; color: var(--pp-faint) !important;
+  font-size: 12px !important; letter-spacing: .12em !important; color: var(--pp-faint) !important;
   font-weight: 500 !important; margin: 0 0 8px !important;
 }
 .app-shell.in-practice .answer-scroll-box p {
   font-size: 14.5px !important; line-height: 1.9 !important; color: #2A2A2A !important;
 }
-.app-shell.in-practice .answer-scroll-box .lab { color: var(--pp-faint) !important; font-size: 12px !important; letter-spacing: .1em !important; }
+.app-shell.in-practice .answer-scroll-box .lab {
+  color: var(--pp-faint) !important; font-size: 12px !important; letter-spacing: .1em !important;
+  margin: 14px 0 10px !important;   /* Y批：「题库解析」小标签与上方答案/下方分节拉开呼吸（原 0 间距使两个小标题贴死） */
+}
 .app-shell.in-practice .abyss-pulse { display: none !important; }
 /* 未揭晓态不再留空洞：蜡封图形隐藏，只保留一行安静提示（2026-09-19 补齐批 B0） */
 .app-shell.in-practice .seal-lock {
   display: block !important; background: none !important; border: none !important;
   box-shadow: none !important; padding: 20px 0 4px !important; text-align: center !important;
-  color: var(--pp-faint) !important; font-size: 12.5px !important; letter-spacing: .06em !important;
+  color: var(--pp-faint) !important; font-size: 12px !important; letter-spacing: .06em !important;
 }
 .app-shell.in-practice .seal-lock .seal-wax { display: none !important; }
 
@@ -291,7 +299,7 @@
 .app-shell.in-practice .answer-scroll-box .exp-sec { margin: 0 0 14px; }
 .app-shell.in-practice .answer-scroll-box .exp-sec:last-child { margin-bottom: 0; }
 .app-shell.in-practice .answer-scroll-box .exp-sec h6 {
-  margin: 0 0 4px; font-size: 11.5px; font-weight: 500; letter-spacing: .12em;
+  margin: 0 0 4px; font-size: 12px; font-weight: 500; letter-spacing: .12em;
   color: var(--pp-faint) !important;
 }
 .app-shell.in-practice .answer-scroll-box .exp-sec p {
@@ -425,7 +433,7 @@
   content: ''; position: absolute; top: 3px; right: 3px; width: 5px; height: 5px;
   border-radius: 50%; background: var(--pp-acc);
 }
-.app-shell.in-practice .nav-hint { margin: 12px 0 0; font-size: 11.5px; color: var(--pp-faint); line-height: 1.7; }
+.app-shell.in-practice .nav-hint { margin: 12px 0 0; font-size: 12px; color: var(--pp-faint); line-height: 1.7; }
 
 /* B4 选项字母列 */
 .app-shell.in-practice .opt-k {
@@ -448,6 +456,7 @@
 .app-shell.in-practice .q-face .q-stem {
   font-weight: 400 !important; font-size: 20px !important; line-height: 1.9 !important;
   color: var(--pp-fg) !important; letter-spacing: .01em !important;
+  text-indent: 2em !important;   /* Y批（2026-09-21）：题干最终权威块同步缩进，与上方 .q-stem 基础块同值 */
 }
 @media (min-width: 900px) {
   .app-shell.in-practice .parch-layer .q-stem,
@@ -514,14 +523,18 @@
   border: 1px solid var(--pp-hair) !important; background: #fff !important; color: var(--pp-fg) !important;
   min-height: 34px !important; padding: 4px 12px !important; font-size: 12.5px !important;
 }
-/* 正确答案：等宽大字 + 判定色（答错时也把"正解"明确推到眼前） */
+/* 正确答案首段：Y批（2026-09-21）落地 U 批口径「淡彩大字 → 墨色强调」——
+   原 C 批 mono 22px 绿色在白瓷纸面上是全屏唯一彩色大字，过于喧哗；
+   改为 15.5px/600 墨色加重，与解析正文（15px/400）拉开一级但不抢戏。
+   （注：U 批当时的 .answer-scroll-box > p:first-of-type 特异性不足未落地，本条以同深度选择器收编。） */
 .app-shell.in-practice .answer-scroll-box > h5 + p {
-  font-family: "IBM Plex Mono", ui-monospace, Menlo, monospace !important;
-  font-size: 22px !important; letter-spacing: .04em !important; line-height: 1.4 !important;
-  color: var(--pp-ok) !important; margin: 2px 0 12px !important;
+  font-family: var(--pp-sans) !important;
+  font-size: 15.5px !important; font-weight: 600 !important; letter-spacing: .01em !important;
+  line-height: 1.8 !important;
+  color: #1F2328 !important; margin: 2px 0 12px !important;
 }
 .app-shell.in-practice .answer-scroll-box > h5 {
-  font-size: 11.5px !important; letter-spacing: .12em !important; color: var(--pp-faint) !important;
+  font-size: 12px !important; letter-spacing: .12em !important; color: var(--pp-faint) !important;
 }
 /* 解析分节层级 */
 .app-shell.in-practice .exp-sec { margin: 0 0 12px !important; }
@@ -1295,12 +1308,32 @@ body:has(.login-stage) { background: var(--pp-bg) !important; }
    进度条被压没、✕退出被挤出视口 —— 用户反馈"看不到退出入口"实锤
    （截图 _probe/m_shots/07_practice_question.png）。
    改两行：进度条独占首行（恢复可见）；第二行 = 计数(左) + 工具×3 + ✕退出(右)。
-   ✕退出移动端红字红描边提权（随时可见），位置在顶部信息行，不占答题操作区。 */
+
+   AY批（2026-09-21 用户反馈"退出键不要另起一行，和电脑端一样一行即可"）——
+   撤两行化，回归电脑端单行形态。当年单行的死穴 = count flex:0 0 auto + nowrap
+   溢出把 ✕退出挤出视口；本次配套四条收缩纪律，同一坑不踩第二遍：
+   ① chips 固定不缩（flex:0 0 auto）——✕退出永在行尾，任何屏宽不再换行/挤出；
+   ② count 允许收缩 + min-width:0 + ellipsis——空间不足从尾部截断，
+      牺牲顺序天然正确：正确率 → 对错数 → 共M题（尾部优先），"第 N 题"永保留；
+   ③ 进度条 basis 0 grow 1 吃剩余空间、min-width 40px 保底可见（白瓷 2~3px 细线形态）；
+   ④ 断面压缩：gap 10→6px、工具钮 40→36px、count 12→11px、退出 chip padding 收 6px。
+   390px 宽度预算：366 可用 − (工具 108 + 退出 ~45 + gap 30) ≈ 183 → count ~143px，
+   截断发生在正确率段；414/430px 屏对错数也完整。退出 chip 沿用 AW 批红字提权。 */
 @media (max-width: 560px) {
-  .app-shell.in-practice .practice-top { flex-wrap: wrap !important; row-gap: 8px !important; }
-  .app-shell.in-practice .syrup-bar { flex: 1 1 100% !important; }
-  .app-shell.in-practice .practice-count { flex: 1 1 auto !important; font-size: 12px !important; }
+  .app-shell.in-practice .practice-top { flex-wrap: nowrap !important; gap: 6px !important; }
+  .app-shell.in-practice .syrup-bar { flex: 1 1 0 !important; min-width: 40px !important; }
+  .app-shell.in-practice .practice-count {
+    flex: 0 1 auto !important; min-width: 0 !important;
+    font-size: 11px !important; letter-spacing: 0 !important;
+    overflow: hidden; text-overflow: ellipsis;
+  }
+  .app-shell.in-practice .practice-top > .chip.tool {
+    width: 36px !important; min-width: 36px !important;
+    height: 36px !important; min-height: 36px !important;
+  }
   .app-shell.in-practice .practice-top > .chip:last-child {
+    flex: 0 0 auto !important;
+    padding: 4px 6px !important; font-size: 11px !important;
     color: var(--pp-bad) !important;
     border-color: rgba(179, 38, 30, .4) !important;
   }

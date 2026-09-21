@@ -7,6 +7,7 @@ import { fmtDate } from './lib/dates'
 import { buildSession, expandTriple, filtersKey, isObjective } from './lib/stats'
 import { classifyImport, parseBackup, parseBank, gradeObjective, assignGlobalSeq, dropNormalizedDupes, validBookMap, normalizeBookMap } from './lib/validate'
 import { saveImageMap, mergeImageMap } from './lib/image-map'
+import { idbGet, idbSet } from './lib/idbcache'
 
 const RESUME_KEY = 'quiz-platform.resume.v1'
 const IMPORTED_AT_KEY = 'qp.importedAt.v1'
@@ -194,7 +195,8 @@ function maybeSaveResume(state) {
   })
 }
 
-async function reloadAll() {
+async function reloadAll(opts = {}) {
+  const { writeSnapshot = false, snapshotEmail = null } = opts
   const seq = ++reloadSeq
   try {
     let data
@@ -244,7 +246,7 @@ async function reloadAll() {
     // mutated 时先把哨兵置空，强制 persistBooks 写一次；写完它会记下新值，
     // 下一次由 realtime 触发的 reload 就会因为内容相同而不再写 → 断开循环
     lastBooksJson = mutated ? '' : JSON.stringify(bk)
-    useStore.setState({
+    const nextState = {
       allQuestions: data.questions,
       questions: scopeQuestions(data.questions, bk),
       cards: data.cards, records: pendingRecordsMerged(data.records),
@@ -254,8 +256,14 @@ async function reloadAll() {
       books: bk.books, bookOrder: bk.order, activeBookId: bk.activeBookId, assign: bk.assign,
       attributes: data.attributes ?? [], questionAttributes: data.questionAttributes ?? [],
       questionStats: data.questionStats ?? []
-    })
+    }
+    useStore.setState(nextState)
     if (mutated && bootWriteAllowed) persistBooks(useStore.getState())
+    /* §性能 快照落盘（2026-09-21）：仅 boot/登录路径写（realtime 触发的高频刷新不写，
+       避免每 400ms 节流后仍反复写 5~10MB）。syncError 不入快照——告警不该被陈旧快照重放。 */
+    if (writeSnapshot) {
+      idbSet({ v: 1, savedAt: Date.now(), email: snapshotEmail, state: { ...nextState, syncError: null } })
+    }
   } catch (e) {
     console.error('[reload] 云端拉取失败', e)
     useStore.setState({ syncError: '云端同步失败：' + (e && e.message ? e.message : '网络异常') + '（点击关闭）' })
@@ -268,7 +276,7 @@ function scheduleReload() {
 async function attach(email) {
   unsubscribe?.()
   unsubscribe = repo.subscribe(() => scheduleReload())
-  await reloadAll()
+  await reloadAll({ writeSnapshot: true, snapshotEmail: email })
   useStore.setState({ authStatus: 'signed-in', userEmail: email, ready: true, pendingCount: readPending().length })
   /* 登录即补传历史欠账；并监听网络恢复——断网→联网是补传最常见的触发点 */
   if (!onlineBound && typeof window !== 'undefined') {
@@ -452,7 +460,27 @@ export const useStore = create((set, get) => ({
     })
     const { data } = await client.auth.getSession()
     if (!data.session) { set({ authStatus: 'anonymous', ready: true }); return }
-    await attach(data.session.user.email ?? null)
+    const email = data.session.user.email ?? null
+    /* §性能 快照上屏（SWR 语义，2026-09-21）：有本人 7 天内的快照就先用它渲染
+       （首屏不再等全库 3357 题拉取），attach 转后台——云端刷新就绪后 setState
+       自动覆盖 UI，realtime 订阅/离线补传/书架收敛等行为全部照旧。
+       形状校验不过（坏快照/旧版本结构/他人数据）一律丢弃走原路径。 */
+    let snap = null
+    try { snap = await idbGet() } catch { snap = null }
+    const snapOk = snap && snap.v === 1 && snap.email === email && snap.state
+      && Array.isArray(snap.state.allQuestions) && Array.isArray(snap.state.records)
+      && snap.state.books && typeof snap.state.books === 'object'
+      && (Date.now() - snap.savedAt) < 7 * 86400000
+    if (snapOk) {
+      useStore.setState({
+        ...snap.state,
+        authStatus: 'signed-in', userEmail: email, ready: true,
+        pendingCount: readPending().length
+      })
+      attach(email).catch(() => {})
+      return
+    }
+    await attach(email)
   },
   signIn: async (email, password) => {
     const { data, error } = await client.auth.signInWithPassword({ email, password })

@@ -1,6 +1,6 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import { copyFileSync } from 'node:fs'
+import { copyFileSync, writeFileSync, readdirSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
 /* GitHub Pages 的 SPA fallback（2026-09-11 审查整改）：
@@ -22,9 +22,114 @@ const spa404Fallback = () => {
   }
 }
 
+/* §性能 Service Worker 预缓存（2026-09-21）：
+   GitHub Pages 对所有资源固定 Cache-Control: max-age=600（实测本站响应头），且不可配置。
+   用户隔十分钟以上再进站，浏览器就要重新下载主包 467KB + CSS 154KB——国内网络下
+   这就是"每次进网站加载很久"的第一根因。
+   本插件在构建末尾生成 dist/sw.js：把当前 index.html 引用集（主包/懒 chunk/CSS）
+   + 404.html + favicon + dist/img/* 写进 precache 清单（清单从【构建产物】取，
+   不扫旧代孤儿）。运行时策略：
+   - 带 hash 的静态资源 → cache-first：命中本地 0 下载；未命中（新版本新 hash）走网络并入库；
+   - 导航 / index.html → network-first：新版本 HTML 照常被发现，离线时回退缓存；
+   - 跨域（Supabase / 百度语音）一律不拦。
+   版本更新：CACHE 名内嵌构建时刻，新 SW activate 时整库轮换，旧 hash 残留自然清空。
+   逃生门：URL 带 ?nosw=1 → 页面侧不注册并注销已有 SW + 清缓存（main.jsx）。 */
+const swTemplate = (cacheName, precache) => `
+/* 由 vite 构建 sw-precache 插件生成——勿手改，每次构建整体重写。
+   清单=${precache.length} 项（当前 index.html 引用集 + shell + dist/img）。 */
+const CACHE = ${JSON.stringify(cacheName)}
+const SCOPE = self.registration.scope
+const PRECACHE = ${JSON.stringify(precache)}
+const ASSET_RE = /\\.(?:js|css|webp|svg|png|jpe?g|ico|woff2?)$/
+
+self.addEventListener('install', (e) => {
+  e.waitUntil((async () => {
+    const c = await caches.open(CACHE)
+    await Promise.all(PRECACHE.map(async (u) => {
+      try { await c.add(new URL(u, SCOPE).href) } catch { /* 单项失败不阻塞安装：运行时按需补拉 */ }
+    }))
+    await self.skipWaiting()
+  })())
+})
+
+self.addEventListener('activate', (e) => {
+  e.waitUntil((async () => {
+    const keys = await caches.keys()
+    await Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))
+    await self.clients.claim()
+  })())
+})
+
+self.addEventListener('fetch', (e) => {
+  const req = e.request
+  if (req.method !== 'GET') return
+  const url = new URL(req.url)
+  if (url.origin !== self.location.origin) return          // Supabase / 云端语音不拦
+  if (!url.pathname.startsWith(SCOPE)) return
+  const rel = url.pathname.slice(SCOPE.length)
+  const isNav = req.mode === 'navigate'
+  if (isNav || rel === '' || rel === 'index.html') {
+    /* network-first：新版本发布后导航请求必须先看网络；离线才回退缓存。
+       缓存 key 固定用 scope+index.html，避免 ?query 造出脏 key。 */
+    e.respondWith((async () => {
+      try {
+        const fresh = await fetch(req, { cache: 'no-cache' })
+        if (fresh && fresh.ok) {
+          const c = await caches.open(CACHE)
+          c.put(new URL('index.html', SCOPE).href, fresh.clone())
+        }
+        return fresh
+      } catch {
+        const hit = await caches.match(new URL('index.html', SCOPE).href)
+        return hit || Response.error()
+      }
+    })())
+    return
+  }
+  if (PRECACHE.includes(rel) || ASSET_RE.test(rel)) {
+    /* cache-first：文件名带内容哈希，命中即零成本返回；未命中拉网络并入库 */
+    e.respondWith((async () => {
+      const hit = await caches.match(req)
+      if (hit) return hit
+      const fresh = await fetch(req)
+      if (fresh && fresh.ok) {
+        const c = await caches.open(CACHE)
+        c.put(req, fresh.clone())
+      }
+      return fresh
+    })())
+  }
+})
+`
+
+const swPrecache = () => {
+  let root = process.cwd()
+  let outDir = 'dist'
+  return {
+    name: 'sw-precache',
+    apply: 'build',
+    configResolved(c) { root = c.root; outDir = c.build.outDir },
+    closeBundle() {
+      const out = resolve(root, outDir)
+      let html
+      try { html = readFileSync(resolve(out, 'index.html'), 'utf8') } catch { return }
+      const precache = new Set(['index.html', 'favicon.svg'])
+      for (const m of html.matchAll(/(?:src|href)="([^"]+assets\/[^"]+)"/g)) {
+        precache.add(m[1].replace(/^\/quiz-platform\//, '').replace(/^\.?\//, ''))
+      }
+      /* dist/img 由 purge-dist.mjs 保证只含被引用素材，整目录入清单 */
+      try {
+        for (const n of readdirSync(resolve(out, 'img'))) precache.add('img/' + n)
+      } catch { /* 无 img 目录则跳过 */ }
+      const cacheName = 'qp-static-' + new Date().toISOString().replace(/[-:.TZ]/g, '').slice(0, 14)
+      writeFileSync(resolve(out, 'sw.js'), swTemplate(cacheName, [...precache].sort()))
+    }
+  }
+}
+
 export default defineConfig({
   base: '/quiz-platform/',
-  plugins: [react(), spa404Fallback()],
+  plugins: [react(), spa404Fallback(), swPrecache()],
   /* __BUILD_ID__（2026-09-16）：把构建时刻注入产物。部署链走 GitHub Data API、本地无 git
      仓库，此前线上排障无法分辨用户跑的是哪一代构建；现在 PageBoundary 的错误取证记录
      与「复制错误详情」都携带它，报障时一眼对上部署哈希对应的构建。 */
