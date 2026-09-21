@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 400" font-family="'Microsoft YaHei',sans-serif">
+  <rect width="660" height="400" fill="#ffffff"/>
+  <text x="20" y="30" font-size="19" font-weight="bold" fill="#222">电钻选购第一步：查 3C 强制认证 + 核对铭牌参数</text>
+  <!-- 左：铭牌 -->
+  <rect x="50" y="66" width="330" height="220" rx="10" fill="#f7f7f7" stroke="#999" stroke-width="2.2"/>
+  <circle cx="66" cy="82" r="4" fill="#bbb"/><circle cx="364" cy="82" r="4" fill="#bbb"/>
+  <circle cx="66" cy="270" r="4" fill="#bbb"/><circle cx="364" cy="270" r="4" fill="#bbb"/>
+  <text x="215" y="96" font-size="15" text-anchor="middle" fill="#222" font-weight="bold">手电钻 J1Z-13</text>
+  <line x1="70" y1="106" x2="360" y2="106" stroke="#999" stroke-width="1"/>
+  <text x="88" y="130" font-size="12.5" fill="#333">型号</text><text x="200" y="130" font-size="12.5" fill="#555">J1Z-13（手电钻）</text>
+  <text x="88" y="154" font-size="12.5" fill="#333">电压/频率</text><text x="200" y="154" font-size="12.5" fill="#555">220 V~ · 50 Hz</text>
+  <text x="88" y="178" font-size="12.5" fill="#333">额定功率</text><text x="200" y="178" font-size="12.5" fill="#555">550 W</text>
+  <text x="88" y="202" font-size="12.5" fill="#333">空载转速</text><text x="200" y="202" font-size="12.5" fill="#555">0–2900 r/min</text>
+  <text x="88" y="226" font-size="12.5" fill="#333">防触电保护</text><text x="200" y="226" font-size="12.5" fill="#555">Ⅱ 类（双重绝缘）</text>
+  <text x="88" y="250" font-size="12.5" fill="#333">制造商 / 编号</text><text x="200" y="250" font-size="12" fill="#555">××电动工具有限公司 · 2026-08-0117</text>
+  <!-- 3C 标志 -->
+  <circle cx="356" cy="130" r="26" fill="#ffffff" stroke="#2F5FD0" stroke-width="2.4"/>
+  <text x="356" y="128" font-size="13" text-anchor="middle" fill="#2F5FD0" font-weight="bold">CCC</text>
+  <text x="356" y="144" font-size="8.5" text-anchor="middle" fill="#2F5FD0">强制认证</text>
+  <text x="356" y="172" font-size="11.5" text-anchor="middle" fill="#2F5FD0" font-weight="bold">3C 标志</text>
+  <!-- 右：选购三步 -->
+  <text x="440" y="86" font-size="14" font-weight="bold" fill="#2a7a2a">选购核查顺序</text>
+  <rect x="410" y="98" width="230" height="42" rx="8" fill="#e9f5ec" stroke="#2a7a2a" stroke-width="1.5"/>
+  <text x="426" y="116" font-size="12.5" fill="#2a7a2a" font-weight="bold">① 认准机身 / 铭牌上的 3C 标志</text>
+  <text x="426" y="133" font-size="11.5" fill="#555">国家认监委强制认证，无 3C 不购</text>
+  <rect x="410" y="152" width="230" height="42" rx="8" fill="#e9f5ec" stroke="#2a7a2a" stroke-width="1.5"/>
+  <text x="426" y="170" font-size="12.5" fill="#2a7a2a" font-weight="bold">② 核对铭牌参数</text>
+  <text x="426" y="187" font-size="11.5" fill="#555">型号/电压/功率与 3C 证书一致</text>
+  <rect x="410" y="206" width="230" height="42" rx="8" fill="#e9f5ec" stroke="#2a7a2a" stroke-width="1.5"/>
+  <text x="426" y="224" font-size="12.5" fill="#2a7a2a" font-weight="bold">③ 外观与附件完好</text>
+  <text x="426" y="241" font-size="11.5" fill="#555">外壳无裂纹、电源线无破损</text>
+  <rect x="410" y="260" width="230" height="42" rx="8" fill="#fdecec" stroke="#c33" stroke-width="1.5"/>
+  <text x="426" y="278" font-size="12" fill="#c33">✗ 无 3C 标志、铭牌与证书不符</text>
+  <text x="426" y="295" font-size="12" fill="#c33">→ 一律不购（安全工具底线）</text>
+  <!-- 要点 -->
+  <rect x="40" y="312" width="580" height="52" rx="8" fill="#fff8ec" stroke="#b8860b" stroke-width="1.5"/>
+  <text x="56" y="333" font-size="12.5" fill="#7a5c00">手持电动工具直接握在手中操作，一旦漏电后果严重——3C 强制认证是准入门槛。</text>
+  <text x="56" y="353" font-size="12.5" fill="#7a5c00">记忆点：一看 3C、二对铭牌、三查外观；三步都过才掏钱。</text>
+  <text x="20" y="388" font-size="12" fill="#888">Ⅱ 类工具（双重绝缘）出厂即带「回」字标志，与本图铭牌防护等级对应。</text>
+</svg>

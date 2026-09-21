@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 400" font-family="'Microsoft YaHei',sans-serif">
+  <rect width="660" height="400" fill="#ffffff"/>
+  <text x="20" y="30" font-size="19" font-weight="bold" fill="#222">刀开关安装方向：垂直安装、静插座在上</text>
+  <!-- 左：正确 -->
+  <text x="165" y="62" font-size="14" text-anchor="middle" fill="#2a7a2a" font-weight="bold">✓ 规范安装</text>
+  <rect x="120" y="80" width="90" height="240" rx="6" fill="#f0ece4" stroke="#bbb" stroke-width="1.5"/>
+  <text x="165" y="336" font-size="11" text-anchor="middle" fill="#888">配电板（垂直面）</text>
+  <!-- 静插座（上） -->
+  <rect x="150" y="98" width="30" height="34" rx="4" fill="#c9b28a" stroke="#8a6d3b" stroke-width="2"/>
+  <text x="210" y="112" font-size="12" fill="#2a7a2a" font-weight="bold">静插座（上）</text>
+  <text x="210" y="128" font-size="11" fill="#555">接电源进线</text>
+  <!-- 动刀片（打开向下拉） -->
+  <line x1="165" y1="132" x2="165" y2="196" stroke="#666" stroke-width="5"/>
+  <circle cx="165" cy="200" r="4.5" fill="#666"/>
+  <!-- 手柄 -->
+  <rect x="156" y="204" width="18" height="30" rx="4" fill="#2a7a2a"/>
+  <text x="210" y="212" font-size="12" fill="#2a7a2a" font-weight="bold">手柄向下＝分闸</text>
+  <text x="210" y="228" font-size="11" fill="#555">自重只会压向「分」，</text>
+  <text x="210" y="244" font-size="11" fill="#555">不会自行搭上静插座 ✓</text>
+  <!-- 出线 -->
+  <line x1="150" y1="262" x2="150" y2="292" stroke="#2F5FD0" stroke-width="2.4"/>
+  <text x="210" y="282" font-size="11" fill="#555">下端出线接负载</text>
+  <!-- 右：错误 -->
+  <text x="480" y="62" font-size="14" text-anchor="middle" fill="#c33" font-weight="bold">✗ 电工做法：横装＋静插座在下</text>
+  <rect x="420" y="80" width="120" height="90" rx="6" fill="#f0ece4" stroke="#bbb" stroke-width="1.5" transform="rotate(90 480 125)"/>
+  <!-- 静插座在下 -->
+  <rect x="465" y="252" width="30" height="34" rx="4" fill="#c9b28a" stroke="#8a6d3b" stroke-width="2"/>
+  <line x1="480" y1="252" x2="480" y2="176" stroke="#666" stroke-width="5"/>
+  <rect x="471" y="146" width="18" height="30" rx="4" fill="#a03030"/>
+  <text x="640" y="266" font-size="12" text-anchor="end" fill="#c33" font-weight="bold">静插座在下（朝上开口）</text>
+  <path d="M 500 190 Q 520 180 536 190" stroke="#c33" stroke-width="2" fill="none"/>
+  <polygon points="536,186 546,192 536,198" fill="#c33"/>
+  <text x="556" y="196" font-size="12" fill="#c33">重力 / 振动方向</text>
+  <rect x="410" y="300" width="240" height="52" rx="8" fill="#fdecec" stroke="#c33" stroke-width="1.6"/>
+  <text x="530" y="320" font-size="12" text-anchor="middle" fill="#c33" font-weight="bold">动刀片靠自重倒向静插座 → 误合闸！</text>
+  <text x="530" y="340" font-size="12" text-anchor="middle" fill="#c33">检修中的设备被意外送电 = 恶性事故</text>
+  <!-- 要点 -->
+  <rect x="40" y="344" width="340" height="50" rx="8" fill="#fff8ec" stroke="#b8860b" stroke-width="1.5"/>
+  <text x="56" y="364" font-size="12" fill="#7a5c00">刀开关必须垂直安装于配电板上，静插座在</text>
+  <text x="56" y="381" font-size="12" fill="#7a5c00">上、手柄向下为分断——「顺手」不能凌驾安全。</text>
+</svg>

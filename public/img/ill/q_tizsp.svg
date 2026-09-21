@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 400" font-family="'Microsoft YaHei',sans-serif">
+  <rect width="660" height="400" fill="#ffffff"/>
+  <text x="20" y="30" font-size="19" font-weight="bold" fill="#222">螺旋式熔断器接线：电源接上方接线板，螺纹壳朝下接负载</text>
+  <!-- 左：结构+正确接线 -->
+  <text x="165" y="56" font-size="14" text-anchor="middle" fill="#2a7a2a" font-weight="bold">✓ 正确（标准接法）</text>
+  <!-- 熔断器本体 -->
+  <rect x="120" y="80" width="90" height="180" rx="10" fill="#fafafa" stroke="#888" stroke-width="2"/>
+  <!-- 上接线板（中心触点） -->
+  <rect x="105" y="74" width="120" height="22" rx="4" fill="#c9b28a" stroke="#8a6d3b" stroke-width="2"/>
+  <text x="235" y="88" font-size="11.5" fill="#8a6d3b" font-weight="bold">上接线板（中心触点）← 接电源 L</text>
+  <line x1="165" y1="58" x2="165" y2="74" stroke="#c33" stroke-width="2.6"/>
+  <text x="186" y="70" font-size="12" fill="#c33" font-weight="bold">电源</text>
+  <!-- 螺纹壳（下） -->
+  <path d="M 138 188 L 192 188 L 188 240 L 142 240 Z" fill="#d9d9d9" stroke="#777" stroke-width="1.8"/>
+  <line x1="140" y1="200" x2="190" y2="200" stroke="#999" stroke-width="1.4"/>
+  <line x1="141" y1="212" x2="189" y2="212" stroke="#999" stroke-width="1.4"/>
+  <line x1="142" y1="224" x2="188" y2="224" stroke="#999" stroke-width="1.4"/>
+  <text x="238" y="210" font-size="11.5" fill="#555">金属螺纹壳体（外露）</text>
+  <text x="238" y="226" font-size="11.5" fill="#555">← 朝下接负载侧</text>
+  <!-- 熔芯 -->
+  <text x="165" y="140" font-size="11" text-anchor="middle" fill="#7a5c00">瓷帽</text>
+  <text x="165" y="164" font-size="11" text-anchor="middle" fill="#555">熔芯（熔断指示器）</text>
+  <line x1="165" y1="240" x2="165" y2="268" stroke="#2F5FD0" stroke-width="2.6"/>
+  <text x="176" y="262" font-size="12" fill="#2F5FD0" font-weight="bold">→ 设备（负载）</text>
+  <!-- 优势标注 -->
+  <rect x="60" y="286" width="330" height="42" rx="8" fill="#e9f5ec" stroke="#2a7a2a" stroke-width="1.5"/>
+  <text x="76" y="304" font-size="12" fill="#2a7a2a" font-weight="bold">✓ 更换熔芯旋下瓷帽时，外露螺纹壳不带电</text>
+  <text x="76" y="321" font-size="12" fill="#2a7a2a">（金属壳始终在无电源的一侧，检修安全）</text>
+  <!-- 右：错误 -->
+  <text x="530" y="62" font-size="14" text-anchor="middle" fill="#c33" font-weight="bold">✗ 电工做法（上下颠倒）</text>
+  <rect x="480" y="80" width="90" height="180" rx="10" fill="#fafafa" stroke="#888" stroke-width="2"/>
+  <rect x="465" y="74" width="120" height="22" rx="4" fill="#d9d9d9" stroke="#777" stroke-width="2"/>
+  <line x1="510" y1="210" x2="510" y2="268" stroke="#2F5FD0" stroke-width="2.4"/>
+  <rect x="466" y="96" width="184" height="106" rx="8" fill="#fdecec" fill-opacity="0.94" stroke="#c33" stroke-width="1.5"/>
+  <text x="558" y="114" font-size="11.5" text-anchor="middle" fill="#c33" font-weight="bold">装反：电源在下、</text>
+  <text x="558" y="131" font-size="11.5" text-anchor="middle" fill="#c33" font-weight="bold">螺纹壳朝上接设备</text>
+  <text x="558" y="148" font-size="11" text-anchor="middle" fill="#c33">更换熔芯自上而下，先触</text>
+  <text x="558" y="165" font-size="11" text-anchor="middle" fill="#c33">金属外露壳体；设备侧</text>
+  <text x="558" y="182" font-size="11" text-anchor="middle" fill="#c33">反送电即触电（违背规范）</text>
+  <text x="521" y="86" font-size="11" text-anchor="middle" fill="#c33" font-weight="bold">金属螺纹壳 ↑</text>
+  <text x="521" y="286" font-size="11" text-anchor="middle" fill="#c33" font-weight="bold">电源（下接线板）↓</text>
+  <!-- 要点 -->
+  <rect x="40" y="336" width="580" height="48" rx="8" fill="#fff8ec" stroke="#b8860b" stroke-width="1.5"/>
+  <text x="56" y="356" font-size="12.5" fill="#7a5c00">口诀：电源接上、螺纹朝下、壳不接电源。凡金属外露件必须置于无电源一侧，</text>
+  <text x="56" y="374" font-size="12.5" fill="#7a5c00">「下接线板装在下方」看似顺手，实为把带电风险举到了头顶。</text>
+</svg>

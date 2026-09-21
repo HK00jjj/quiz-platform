@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 360" font-family="'Microsoft YaHei',sans-serif">
+  <rect width="660" height="360" fill="#ffffff"/>
+  <text x="20" y="30" font-size="19" font-weight="bold" fill="#222">接线图的图形 / 文字符号必须与原理图一致</text>
+  <!-- 上：正确 -->
+  <text x="20" y="66" font-size="14" fill="#2a7a2a" font-weight="bold">✓ 同一符号贯穿两图（以热继电器 FR 常闭触头为例）</text>
+  <!-- 原理图中的 FR 符号 -->
+  <rect x="50" y="84" width="220" height="96" rx="8" fill="#f4f7ff" stroke="#2F5FD0" stroke-width="1.4"/>
+  <text x="160" y="106" font-size="12" text-anchor="middle" fill="#2F5FD0">原理图（展开在控制回路里）</text>
+  <line x1="110" y1="140" x2="140" y2="140" stroke="#333" stroke-width="2"/>
+  <line x1="140" y1="132" x2="140" y2="148" stroke="#333" stroke-width="2.3"/>
+  <line x1="154" y1="132" x2="154" y2="148" stroke="#333" stroke-width="2.3"/>
+  <line x1="154" y1="140" x2="184" y2="140" stroke="#333" stroke-width="2"/>
+  <rect x="147" y="152" width="12" height="9" fill="none" stroke="#333" stroke-width="1.4"/>
+  <text x="160" y="126" font-size="12" text-anchor="middle" fill="#333" font-weight="bold">FR</text>
+  <!-- 接线图中的 FR 符号 -->
+  <rect x="390" y="84" width="220" height="96" rx="8" fill="#f4f7ff" stroke="#2F5FD0" stroke-width="1.4"/>
+  <text x="500" y="106" font-size="12" text-anchor="middle" fill="#2F5FD0">接线图（画在 FR 本体旁边）</text>
+  <line x1="450" y1="140" x2="480" y2="140" stroke="#333" stroke-width="2"/>
+  <line x1="480" y1="132" x2="480" y2="148" stroke="#333" stroke-width="2.3"/>
+  <line x1="494" y1="132" x2="494" y2="148" stroke="#333" stroke-width="2.3"/>
+  <line x1="494" y1="140" x2="524" y2="140" stroke="#333" stroke-width="2"/>
+  <rect x="487" y="152" width="12" height="9" fill="none" stroke="#333" stroke-width="1.4"/>
+  <text x="500" y="126" font-size="12" text-anchor="middle" fill="#333" font-weight="bold">FR</text>
+  <!-- 中间等号 -->
+  <text x="330" y="146" font-size="22" text-anchor="middle" fill="#2a7a2a" font-weight="bold">＝</text>
+  <!-- 下：错误 -->
+  <text x="20" y="216" font-size="14" fill="#c33" font-weight="bold">✗ 「为方便读图自由另画符号」——不成立</text>
+  <rect x="50" y="230" width="220" height="70" rx="8" fill="#fdecec" stroke="#c33" stroke-width="1.5"/>
+  <line x1="110" y1="272" x2="136" y2="272" stroke="#333" stroke-width="2"/>
+  <path d="M 136 264 L 150 280" stroke="#333" stroke-width="2.2" fill="none"/>
+  <line x1="150" y1="272" x2="176" y2="272" stroke="#333" stroke-width="2"/>
+  <text x="143" y="288" font-size="11" text-anchor="middle" fill="#c33">自造符号 1</text>
+  <rect x="390" y="230" width="220" height="70" rx="8" fill="#fdecec" stroke="#c33" stroke-width="1.5"/>
+  <line x1="450" y1="272" x2="476" y2="272" stroke="#333" stroke-width="2"/>
+  <circle cx="486" cy="272" r="6" fill="none" stroke="#333" stroke-width="2"/>
+  <line x1="492" y1="272" x2="518" y2="272" stroke="#333" stroke-width="2"/>
+  <text x="484" y="288" font-size="11" text-anchor="middle" fill="#c33">自造符号 2</text>
+  <text x="330" y="272" font-size="20" text-anchor="middle" fill="#c33" font-weight="bold">≠</text>
+  <rect x="40" y="312" width="580" height="40" rx="8" fill="#fff8ec" stroke="#b8860b" stroke-width="1.5"/>
+  <text x="56" y="330" font-size="12.5" fill="#7a5c00">符号是图的语言：接线图必须沿用原理图的图形、文字符号（GB/T 4728 与文字符号国标），</text>
+  <text x="56" y="346" font-size="12.5" fill="#7a5c00">两图互查靠同一符号对应——另造符号＝读图错位、检修误接线。</text>
+</svg>
