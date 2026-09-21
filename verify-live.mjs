@@ -21,6 +21,31 @@ const bad = []
 let ok = 0
 const t0 = Date.now()
 
+/* ── 部署收敛等待（D6 强化 2026-09-21 夜）──
+   实测：gh-pages ref 已更新、远端树 127/127 一致（④ verify-deploy IDENTICAL），
+   但 Pages 构建/传播期间线上仍是旧 index.html 且新 chunk 全 404，最长滞后数分钟。
+   旧脚本对此直接报失败（或旧版干脆假装 ALL OK）——两种都不对。
+   现在先轮询 index.html 的内容哈希与本 dist 对齐（每 15s 一次，最多 10 分钟），
+   对齐后再做全量检查；未对齐则明确失败（而不是把传播延迟当成功）。 */
+const _idx = readFileSync(dist + '/index.html')
+const _h = (b) => createHash('sha256').update(b).digest('hex').slice(0, 16)
+const INDEX_WAIT_MS = Number(process.env.LIVE_WAIT_MS || 600000)
+let converged = false
+for (let waited = 0; waited <= INDEX_WAIT_MS; waited += 15000) {
+  try {
+    const r = await fetch(BASE + 'index.html?cb=' + Date.now(), { signal: AbortSignal.timeout(60000) })
+    const buf = Buffer.from(await r.arrayBuffer())
+    if (r.status === 200 && _h(buf) === _h(_idx)) { converged = true; console.log(`index.html 已收敛（等待 ${Math.round(waited / 1000)}s，${_h(_idx)}）`); break }
+    console.log(`  等待 Pages 收敛… ${Math.round(waited / 1000)}s（线上 ${_h(buf)} ≠ 本地 ${_h(_idx)}）`)
+  } catch (e) { console.log(`  等待 Pages 收敛… ${Math.round(waited / 1000)}s（${e.message}）`) }
+  if (waited + 15000 > INDEX_WAIT_MS) break
+  await new Promise((s) => setTimeout(s, 15000))
+}
+if (!converged) {
+  console.error('\nLIVE RESULT: HAS FAILURES（线上 index.html 在等待窗口内未收敛——部署未生效或 Pages 严重延迟）')
+  process.exit(1)
+}
+
 /* ⚠ 到 GitHub Pages CDN 的连接是间歇性的：undici 的 connect timeout 默认 10s，
    而下面各处的 AbortSignal.timeout() 管的是整体超时、管不到 connect 阶段，
    一次抖动就会让整轮验证报 UND_ERR_CONNECT_TIMEOUT 失败（实测发生过）。

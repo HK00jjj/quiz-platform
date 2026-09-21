@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 410" font-family="'Microsoft YaHei',sans-serif">
+  <rect width="660" height="410" fill="#ffffff"/>
+  <text x="20" y="30" font-size="18.5" font-weight="bold" fill="#222">系统图与平面图：柜、屏排列顺序必须一致</text>
+  <rect x="30" y="48" width="286" height="150" rx="10" fill="#eef2ff" stroke="#2F5FD0" stroke-width="1.6"/>
+  <text x="173" y="70" font-size="12.5" text-anchor="middle" fill="#2F5FD0" font-weight="bold">配电系统图（表达逻辑接线顺序）</text>
+  <rect x="50" y="82" width="246" height="22" rx="4" fill="#fff" stroke="#2F5FD0" stroke-width="1.3"/>
+  <text x="173" y="97" font-size="11.5" text-anchor="middle" fill="#222">1# 进线柜 → 2# 计量柜 → 3# PT 柜</text>
+  <rect x="50" y="110" width="246" height="22" rx="4" fill="#fff" stroke="#2F5FD0" stroke-width="1.3"/>
+  <text x="173" y="125" font-size="11.5" text-anchor="middle" fill="#222">→ 4# 出线柜 → 5# 出线柜</text>
+  <text x="173" y="152" font-size="11.5" text-anchor="middle" fill="#555">系统图按回路的逻辑顺序表达柜屏序列</text>
+  <text x="173" y="174" font-size="11.5" text-anchor="middle" fill="#555">（一次接线的先后与归属）</text>
+
+  <rect x="344" y="48" width="286" height="150" rx="10" fill="#e9f5ec" stroke="#2a7a2a" stroke-width="1.6"/>
+  <text x="487" y="70" font-size="12.5" text-anchor="middle" fill="#2a7a2a" font-weight="bold">平面图（表达柜屏实际布置）</text>
+  <rect x="364" y="82" width="44" height="30" rx="4" fill="#fff" stroke="#2a7a2a" stroke-width="1.3"/>
+  <text x="386" y="101" font-size="11" text-anchor="middle" fill="#222">1#</text>
+  <rect x="412" y="82" width="44" height="30" rx="4" fill="#fff" stroke="#2a7a2a" stroke-width="1.3"/>
+  <text x="434" y="101" font-size="11" text-anchor="middle" fill="#222">2#</text>
+  <rect x="460" y="82" width="44" height="30" rx="4" fill="#fff" stroke="#2a7a2a" stroke-width="1.3"/>
+  <text x="482" y="101" font-size="11" text-anchor="middle" fill="#222">3#</text>
+  <rect x="508" y="82" width="44" height="30" rx="4" fill="#fff" stroke="#2a7a2a" stroke-width="1.3"/>
+  <text x="530" y="101" font-size="11" text-anchor="middle" fill="#222">4#</text>
+  <rect x="556" y="82" width="44" height="30" rx="4" fill="#fff" stroke="#2a7a2a" stroke-width="1.3"/>
+  <text x="578" y="101" font-size="11" text-anchor="middle" fill="#222">5#</text>
+  <text x="487" y="132" font-size="11.5" text-anchor="middle" fill="#555">平面图按柜位从左到右布置（同一排列基准）</text>
+  <text x="487" y="154" font-size="11.5" text-anchor="middle" fill="#2a7a2a">✓ 两图排列顺序一致 → 母线桥对接、电缆走向不乱</text>
+  <text x="487" y="176" font-size="11.5" text-anchor="middle" fill="#c33">✗ 顺序不一致 → 就位或母线安装阶段才暴露，返工代价大</text>
+
+  <rect x="30" y="212" width="600" height="52" rx="8" fill="#fdecec" stroke="#c33" stroke-width="1.5"/>
+  <text x="46" y="234" font-size="12.3" fill="#c33">错位后果：按平面图就位、按系统图接线，柜位与回路对应关系错乱，</text>
+  <text x="46" y="254" font-size="12.3" fill="#c33">母线桥对接与电缆走向全部错位，且多在设备就位后才暴露。</text>
+  <rect x="30" y="276" width="600" height="100" rx="8" fill="#fff8ec" stroke="#b8860b" stroke-width="1.5"/>
+  <text x="46" y="298" font-size="12.3" fill="#7a5c00">为什么必须一致：两图是同一布置对象的两面表达——系统图给逻辑顺序，平面图给实际位置。</text>
+  <text x="46" y="319" font-size="12.3" fill="#7a5c00">执行动作：出图与图纸会审时逐台核对两图排列顺序，把「一致性」列为会审必检项。</text>
+  <text x="46" y="340" font-size="12.3" fill="#7a5c00">误诊提醒：把两图当各自独立的图、只核回路编号不核柜序——均错；等现场暴露再改代价最大。</text>
+</svg>
