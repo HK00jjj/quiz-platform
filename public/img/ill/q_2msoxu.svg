@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 380" font-family="'Microsoft YaHei',sans-serif">
+  <rect width="660" height="380" fill="#ffffff"/>
+  <text x="20" y="30" font-size="18" font-weight="bold" fill="#222">LED 调光灯关灯后微亮：先找电流来源，再按三条处理（正解 B）</text>
+  <rect x="30" y="46" width="286" height="130" rx="10" fill="#fdecec" stroke="#c33" stroke-width="1.4"/>
+  <text x="44" y="68" font-size="12.5" font-weight="bold" fill="#c33">微亮的本质：仍有微小电流流过灯珠</text>
+  <text x="44" y="94" font-size="12.3" fill="#333">来源一：驱动器漏电流</text>
+  <text x="44" y="118" font-size="12.3" fill="#333">来源二：线路感应耦合电流</text>
+  <text x="44" y="142" font-size="12.3" fill="#333">来源三：调光下限设置过高</text>
+  <text x="44" y="166" font-size="11" fill="#777">找到电流来源，处理方法随之确定</text>
+  <rect x="340" y="46" width="290" height="130" rx="10" fill="#e9f5ec" stroke="#2a7a2a" stroke-width="1.4"/>
+  <text x="354" y="68" font-size="12.5" font-weight="bold" fill="#2a7a2a">正确处理（三条，可单独或组合）</text>
+  <text x="354" y="94" font-size="12.3" fill="#333">① 外壳接地 → 给感应电流泄放路径</text>
+  <text x="354" y="118" font-size="12.3" fill="#333">② 并联假负载 → 给漏电流分流支路</text>
+  <text x="354" y="142" font-size="12.3" fill="#333">③ 调关断电平 → 把调光下限压到起亮点之下</text>
+  <text x="354" y="166" font-size="11" fill="#777">三条分别对应不同的电流来源</text>
+  <rect x="46" y="190" width="568" height="30" rx="5" fill="#fafafa" stroke="#999" stroke-width="1.3"/>
+  <text x="58" y="210" font-size="12.3" fill="#777">✗A 换更大规格断路器：保护电器不解决毫安级漏流</text>
+  <rect x="46" y="226" width="568" height="30" rx="5" fill="#fafafa" stroke="#999" stroke-width="1.3"/>
+  <text x="58" y="246" font-size="12.3" fill="#777">✗C 提高驱动输出电流：方向相反，电流越大灯越亮</text>
+  <rect x="46" y="262" width="568" height="30" rx="5" fill="#fafafa" stroke="#999" stroke-width="1.3"/>
+  <text x="58" y="282" font-size="12.3" fill="#777">✗D 剪断零线：不是断开回路的正确做法，且带来安全隐患</text>
+  <rect x="30" y="300" width="600" height="62" rx="8" fill="#fff8ec" stroke="#b8860b" stroke-width="1.5"/>
+  <text x="46" y="322" font-size="12.3" fill="#7a5c00">记忆点：接地泄放、假负载分流、压低关断电平。</text>
+  <text x="46" y="343" font-size="12.3" fill="#7a5c00">误诊根源：把「微亮」当成「亮度不足」或「过流故障」，方向完全相反。</text>
+</svg>
