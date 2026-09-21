@@ -21,7 +21,7 @@
   <!-- 闪弧示意 -->
   <path d="M 480 208 L 472 220 L 480 222 L 470 236" fill="none" stroke="#e8a020" stroke-width="3" stroke-linecap="round"/>
   <path d="M 492 206 L 486 218 L 494 221 L 486 234" fill="none" stroke="#e8a020" stroke-width="2" stroke-linecap="round"/>
-  <text x="500" y="228" font-size="12" fill="#b8860b">合闸涌流冲击 → 气隙击穿闪弧爆响</text>
+  <text x="640" y="228" font-size="12" text-anchor="end" fill="#b8860b">合闸涌流冲击 → 气隙击穿闪弧爆响</text>
   <text x="20" y="262" font-size="12.5" fill="#333">机理链：松动 → 有效接触面减小 → 接触电阻↑ → I²R 发热加剧 → 接触面氧化碳化 →</text>
   <text x="20" y="282" font-size="12.5" fill="#333">合闸瞬间大电流冲击点燃电弧。预防靠运行巡检（红外测温）+ 停电紧固与压接工艺。</text>
   <text x="20" y="318" font-size="12" fill="#888">要点：闪弧爆响多与「虚接」有关而非设备本身损坏；先查端子压接与紧固痕迹，再查回路元件。</text>

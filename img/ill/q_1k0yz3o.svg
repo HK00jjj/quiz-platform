@@ -24,7 +24,6 @@
   <text x="444" y="246" font-size="12" font-weight="bold" fill="#7a5c00">为什么不用 L+N：</text>
   <text x="444" y="268" font-size="11.5" fill="#7a5c00">相线—N 之间只有 220V，</text>
   <text x="444" y="288" font-size="11.5" fill="#7a5c00">达不到铭牌 380V；</text>
-  <text x="444" y="308" font-size="11.5" fill="#7a5c00">380V 取自两根相线的</text>
-  <text x="444" y="328" font-size="11.5" fill="#7a5c00">线电压（任取两相）。</text>
+  <text x="426" y="308" font-size="11.5" fill="#7a5c00">380V 取自两根相线的线电压（任取两相）。</text>
   <text x="20" y="332" font-size="12" fill="#888">要点：先看铭牌额定电压，再选对应电压的取电方式；外壳 PE 必接；容量大时核算该两相的负载均衡。</text>
 </svg>
