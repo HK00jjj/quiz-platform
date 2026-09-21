@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 400" font-family="'Microsoft YaHei',sans-serif">
+  <rect width="660" height="400" fill="#ffffff"/>
+  <text x="20" y="30" font-size="18.5" font-weight="bold" fill="#222">同系列 vs 混用：上下级保护特性曲线的配合关系（示意）</text>
+  <rect x="34" y="52" width="286" height="240" rx="10" fill="#e9f5ec" stroke="#2a7a2a" stroke-width="1.6"/>
+  <text x="177" y="76" font-size="13" text-anchor="middle" fill="#2a7a2a" font-weight="bold">同品牌同系列（可校验）</text>
+  <line x1="60" y1="270" x2="300" y2="270" stroke="#888" stroke-width="1.5"/>
+  <line x1="60" y1="96" x2="60" y2="270" stroke="#888" stroke-width="1.5"/>
+  <text x="300" y="286" font-size="11" text-anchor="end" fill="#777">电流 I →</text>
+  <text x="52" y="92" font-size="11" text-anchor="end" fill="#777">t ↑</text>
+  <path d="M70 118 C 150 118 180 200 296 250" fill="none" stroke="#2F5FD0" stroke-width="2.4"/>
+  <path d="M70 168 C 150 168 190 232 296 262" fill="none" stroke="#c33" stroke-width="2.4"/>
+  <text x="120" y="112" font-size="11" fill="#2F5FD0">上级（带短延时）</text>
+  <text x="120" y="196" font-size="11" fill="#c33">下级（瞬动更快）</text>
+  <text x="177" y="228" font-size="11.5" text-anchor="middle" fill="#2a7a2a">两曲线全区间保持级差 · 不交叉</text>
+  <text x="177" y="248" font-size="11.5" text-anchor="middle" fill="#2a7a2a">厂家提供配合校验表可查</text>
+
+  <rect x="344" y="52" width="286" height="240" rx="10" fill="#fdecec" stroke="#c33" stroke-width="1.6"/>
+  <text x="487" y="76" font-size="13" text-anchor="middle" fill="#c33" font-weight="bold">不同品牌/保护方式混用</text>
+  <line x1="370" y1="270" x2="610" y2="270" stroke="#888" stroke-width="1.5"/>
+  <line x1="370" y1="96" x2="370" y2="270" stroke="#888" stroke-width="1.5"/>
+  <text x="610" y="286" font-size="11" text-anchor="end" fill="#777">电流 I →</text>
+  <text x="362" y="92" font-size="11" text-anchor="end" fill="#777">t ↑</text>
+  <path d="M380 120 C 460 120 470 210 606 232" fill="none" stroke="#2F5FD0" stroke-width="2.4"/>
+  <path d="M380 176 C 450 176 500 176 606 214" fill="none" stroke="#c33" stroke-width="2.4"/>
+  <circle cx="520" cy="176" r="6" fill="#c33"/>
+  <text x="470" y="166" font-size="11" fill="#c33">交叉点</text>
+  <text x="487" y="222" font-size="11.5" text-anchor="middle" fill="#c33">交叉后上级可能先于下级动作</text>
+  <text x="487" y="244" font-size="11.5" text-anchor="middle" fill="#c33">→ 越级跳闸，选择性失效</text>
+  <text x="487" y="264" font-size="11" text-anchor="middle" fill="#777">标称参数相同 ≠ 曲线逐点吻合</text>
+  <rect x="30" y="300" width="600" height="84" rx="8" fill="#fff8ec" stroke="#b8860b" stroke-width="1.5"/>
+  <text x="46" y="322" font-size="12.3" fill="#7a5c00">根因：不同厂家曲线的测试基准与制造离散度不同，标称参数相同≠动作特性逐点吻合，级差裕度不可控。</text>
+  <text x="46" y="343" font-size="12.3" fill="#7a5c00">工程后果：每一级配合都需重新逐点校核实测特性，实际往往做不到 → 留下越级跳闸隐患。</text>
+  <text x="46" y="364" font-size="12.3" fill="#7a5c00">处置：同一供电系统按同一品牌系列统一选配；确需混用时须逐点校核曲线并留书面记录。</text>
+</svg>
