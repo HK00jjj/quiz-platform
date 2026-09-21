@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 400" font-family="'Microsoft YaHei',sans-serif">
+  <rect width="660" height="400" fill="#ffffff"/>
+  <text x="20" y="30" font-size="19" font-weight="bold" fill="#222">寄生电路（假回路）：不请自来的「意外通路」必须消除</text>
+  <!-- 左：正常电路 -->
+  <text x="165" y="60" font-size="14" text-anchor="middle" fill="#2a7a2a" font-weight="bold">✓ 正常：支路各自独立</text>
+  <line x1="60" y1="80" x2="60" y2="230" stroke="#c33" stroke-width="2.4"/>
+  <text x="50" y="74" font-size="11" fill="#c33" font-weight="bold">L</text>
+  <line x1="280" y1="80" x2="280" y2="230" stroke="#2F5FD0" stroke-width="2.4"/>
+  <text x="286" y="74" font-size="11" fill="#2F5FD0" font-weight="bold">N</text>
+  <!-- 支路1：起动+线圈 -->
+  <line x1="60" y1="130" x2="110" y2="130" stroke="#333" stroke-width="2"/>
+  <line x1="110" y1="122" x2="110" y2="138" stroke="#333" stroke-width="2.2"/>
+  <line x1="124" y1="122" x2="124" y2="138" stroke="#333" stroke-width="2.2"/>
+  <line x1="124" y1="130" x2="180" y2="130" stroke="#333" stroke-width="2"/>
+  <text x="117" y="116" font-size="10.5" text-anchor="middle" fill="#555">SB 停止</text>
+  <rect x="184" y="114" width="52" height="32" rx="5" fill="#fff8ec" stroke="#b8860b" stroke-width="1.8"/>
+  <text x="210" y="135" font-size="12" text-anchor="middle" fill="#7a5c00" font-weight="bold">KM</text>
+  <line x1="236" y1="130" x2="280" y2="130" stroke="#333" stroke-width="2"/>
+  <!-- 支路2：指示灯 -->
+  <line x1="60" y1="186" x2="140" y2="186" stroke="#333" stroke-width="2"/>
+  <circle cx="162" cy="186" r="14" fill="#fff" stroke="#333" stroke-width="1.8"/>
+  <line x1="150" y1="176" x2="174" y2="196" stroke="#333" stroke-width="1.6"/>
+  <line x1="150" y1="196" x2="174" y2="176" stroke="#333" stroke-width="1.6"/>
+  <text x="162" y="216" font-size="10.5" text-anchor="middle" fill="#555">指示灯 HL</text>
+  <line x1="176" y1="186" x2="280" y2="186" stroke="#333" stroke-width="2"/>
+  <text x="165" y="250" font-size="11.5" text-anchor="middle" fill="#2a7a2a">按下 SB → KM 失电 → 可靠停机 ✓</text>
+  <!-- 右：寄生电路 -->
+  <text x="495" y="60" font-size="14" text-anchor="middle" fill="#c33" font-weight="bold">✗ 寄生：指示灯支路成为旁路</text>
+  <line x1="390" y1="80" x2="390" y2="230" stroke="#c33" stroke-width="2.4"/>
+  <text x="380" y="74" font-size="11" fill="#c33" font-weight="bold">L</text>
+  <line x1="610" y1="80" x2="610" y2="230" stroke="#2F5FD0" stroke-width="2.4"/>
+  <text x="616" y="74" font-size="11" fill="#2F5FD0" font-weight="bold">N</text>
+  <!-- 寄生支路（红灯圈出） -->
+  <rect x="398" y="96" width="204" height="100" rx="8" fill="none" stroke="#c33" stroke-width="2" stroke-dasharray="7 5"/>
+  <line x1="390" y1="130" x2="430" y2="130" stroke="#333" stroke-width="2"/>
+  <line x1="430" y1="122" x2="430" y2="138" stroke="#333" stroke-width="2.2"/>
+  <line x1="444" y1="122" x2="444" y2="138" stroke="#333" stroke-width="2.2"/>
+  <line x1="444" y1="130" x2="480" y2="130" stroke="#333" stroke-width="2"/>
+  <text x="437" y="116" font-size="10.5" text-anchor="middle" fill="#555">SB 停止</text>
+  <rect x="484" y="114" width="52" height="32" rx="5" fill="#fff8ec" stroke="#b8860b" stroke-width="1.8"/>
+  <text x="510" y="135" font-size="12" text-anchor="middle" fill="#7a5c00" font-weight="bold">KM</text>
+  <line x1="536" y1="130" x2="610" y2="130" stroke="#333" stroke-width="2"/>
+  <!-- 指示灯的意外通路：与 SB 并联（跨过停止按钮） -->
+  <line x1="430" y1="130" x2="430" y2="186" stroke="#c33" stroke-width="2"/>
+  <line x1="430" y1="186" x2="462" y2="186" stroke="#c33" stroke-width="2"/>
+  <circle cx="484" cy="186" r="14" fill="#fff" stroke="#c33" stroke-width="2"/>
+  <line x1="472" y1="176" x2="496" y2="196" stroke="#c33" stroke-width="1.6"/>
+  <line x1="472" y1="196" x2="496" y2="176" stroke="#c33" stroke-width="1.6"/>
+  <line x1="506" y1="186" x2="536" y2="186" stroke="#c33" stroke-width="2"/>
+  <line x1="536" y1="186" x2="536" y2="146" stroke="#c33" stroke-width="2"/>
+  <text x="484" y="232" font-size="10.5" text-anchor="middle" fill="#c33" font-weight="bold">指示灯跨接在 SB 两端</text>
+  <text x="500" y="252" font-size="11.5" text-anchor="middle" fill="#c33">按 SB 断开后：电流经 HL 仍到 KM 线圈</text>
+  <!-- 后果 -->
+  <rect x="356" y="264" width="276" height="52" rx="8" fill="#fdecec" stroke="#c33" stroke-width="1.6"/>
+  <text x="494" y="284" font-size="12" text-anchor="middle" fill="#c33" font-weight="bold">→ 停止按钮失效，KM 不能释放</text>
+  <text x="494" y="304" font-size="12" text-anchor="middle" fill="#c33">设备停不下来 / 误动作，直接威胁安全</text>
+  <!-- 要点 -->
+  <rect x="40" y="328" width="580" height="56" rx="8" fill="#fff8ec" stroke="#b8860b" stroke-width="1.5"/>
+  <text x="56" y="349" font-size="12.5" fill="#7a5c00">寄生电路＝设计时未预料的意外接通回路。它会让「断开的支路」仍带电或让线圈无法释放。</text>
+  <text x="56" y="369" font-size="12.5" fill="#7a5c00">结论：必须避免寄生回路（题干「不影响起停即可保留」的说法错误）——布线前逐节点排查。</text>
+</svg>
