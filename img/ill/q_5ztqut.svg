@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 380" font-family="'Microsoft YaHei',sans-serif">
+  <rect width="660" height="380" fill="#ffffff"/>
+  <text x="20" y="30" font-size="19" font-weight="bold" fill="#222">变频器：工频电源只能进 R/S/T，严禁直加输出端 U/V/W</text>
+  <!-- 变频器本体 -->
+  <rect x="200" y="86" width="260" height="180" rx="12" fill="#fafafa" stroke="#333" stroke-width="2.4"/>
+  <text x="330" y="112" font-size="13.5" text-anchor="middle" fill="#222" font-weight="bold">变频器 VFD</text>
+  <rect x="222" y="128" width="96" height="52" rx="6" fill="#eef2ff" stroke="#2F5FD0" stroke-width="1.6"/>
+  <text x="270" y="150" font-size="11.5" text-anchor="middle" fill="#2F5FD0" font-weight="bold">整流 + 中间直流</text>
+  <text x="270" y="168" font-size="10.5" text-anchor="middle" fill="#2F5FD0">（R·S·T 输入）</text>
+  <rect x="342" y="128" width="96" height="52" rx="6" fill="#fff8ec" stroke="#b8860b" stroke-width="1.6"/>
+  <text x="390" y="150" font-size="11.5" text-anchor="middle" fill="#7a5c00" font-weight="bold">逆变模块 IGBT</text>
+  <text x="390" y="168" font-size="10.5" text-anchor="middle" fill="#7a5c00">（U·V·W 输出）</text>
+  <text x="330" y="212" font-size="11" text-anchor="middle" fill="#888">逆变模块按「输出」设计：被调制、带检测保护</text>
+  <text x="330" y="230" font-size="11" text-anchor="middle" fill="#888">工频电压直灌 = 瞬间过流击穿</text>
+  <!-- 输入输出接线 -->
+  <line x1="120" y1="120" x2="200" y2="120" stroke="#c33" stroke-width="2.6"/>
+  <text x="112" y="112" font-size="12" text-anchor="end" fill="#c33" font-weight="bold">工频电源</text>
+  <text x="112" y="130" font-size="12" text-anchor="end" fill="#c33">L1·L2·L3</text>
+  <text x="176" y="108" font-size="12" text-anchor="middle" fill="#2a7a2a" font-weight="bold">R S T</text>
+  <line x1="460" y1="120" x2="540" y2="120" stroke="#333" stroke-width="2.6"/>
+  <text x="564" y="112" font-size="12" text-anchor="middle" fill="#333" font-weight="bold">U V W</text>
+  <text x="564" y="130" font-size="12" text-anchor="middle" fill="#333">→ 电动机 M</text>
+  <!-- 错误操作 -->
+  <path d="M 120 262 C 200 236 300 236 366 262" stroke="#c33" stroke-width="2.6" fill="none" stroke-dasharray="8 5"/>
+  <polygon points="362,252 380,266 356,272" fill="#c33"/>
+  <text x="60" y="276" font-size="12.5" fill="#c33" font-weight="bold">✗ 电工做法：把工频电源</text>
+  <text x="60" y="294" font-size="12.5" fill="#c33" font-weight="bold">直接施加到 U/V/W「验转向」</text>
+  <rect x="396" y="248" width="240" height="56" rx="8" fill="#fdecec" stroke="#c33" stroke-width="1.8"/>
+  <text x="516" y="270" font-size="12.5" text-anchor="middle" fill="#c33" font-weight="bold">⚡ 逆变模块反向承受工频电压</text>
+  <text x="516" y="290" font-size="12.5" text-anchor="middle" fill="#c33">过流击穿烧毁（且无保护在位）</text>
+  <!-- 正确做法 -->
+  <rect x="60" y="318" width="576" height="46" rx="8" fill="#fff8ec" stroke="#b8860b" stroke-width="1.5"/>
+  <text x="76" y="337" font-size="12.5" fill="#7a5c00">核对转向：只能经变频器面板/端子控制点动试转；方向不对时调换 U/V/W 任意两相接线。</text>
+  <text x="76" y="355" font-size="12" fill="#7a5c00">U/V/W 端子永远只接电动机——这是接线规范的死线。</text>
+</svg>

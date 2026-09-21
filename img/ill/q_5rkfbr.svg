@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 436" font-family="'Microsoft YaHei',sans-serif">
+  <rect width="660" height="436" fill="#ffffff"/>
+  <text x="20" y="30" font-size="19" font-weight="bold" fill="#222">断路器接线方向：电源必接上母线，负载接下母线</text>
+  <!-- 上：正确 -->
+  <text x="330" y="60" font-size="14" text-anchor="middle" fill="#2a7a2a" font-weight="bold">✓ 正确（标准接法）</text>
+  <line x1="140" y1="86" x2="520" y2="86" stroke="#c33" stroke-width="2.4"/>
+  <text x="128" y="90" font-size="12" text-anchor="end" fill="#c33" font-weight="bold">电源 L1·L2·L3</text>
+  <line x1="330" y1="86" x2="330" y2="118" stroke="#333" stroke-width="2.4"/>
+  <rect x="290" y="118" width="80" height="76" rx="8" fill="#fafafa" stroke="#333" stroke-width="2.2"/>
+  <line x1="318" y1="132" x2="318" y2="152" stroke="#333" stroke-width="2.6"/>
+  <line x1="330" y1="134" x2="342" y2="134" stroke="#333" stroke-width="2.2"/>
+  <line x1="330" y1="152" x2="342" y2="152" stroke="#333" stroke-width="2.2"/>
+  <line x1="342" y1="134" x2="342" y2="152" stroke="#333" stroke-width="2.2"/>
+  <text x="330" y="180" font-size="13" text-anchor="middle" fill="#333" font-weight="bold">QF</text>
+  <text x="382" y="140" font-size="11" fill="#555">上母线 = 进线端</text>
+  <text x="382" y="157" font-size="11" fill="#555">（灭弧按此设计）</text>
+  <line x1="330" y1="194" x2="330" y2="222" stroke="#333" stroke-width="2.4"/>
+  <line x1="140" y1="222" x2="520" y2="222" stroke="#2F5FD0" stroke-width="2.4"/>
+  <text x="128" y="226" font-size="12" text-anchor="end" fill="#2F5FD0" font-weight="bold">负载（下母线）</text>
+  <circle cx="470" cy="222" r="13" fill="none" stroke="#333" stroke-width="1.8"/>
+  <text x="470" y="226" font-size="10.5" text-anchor="middle" fill="#333">M</text>
+  <!-- 下：错误 -->
+  <text x="330" y="280" font-size="14" text-anchor="middle" fill="#c33" font-weight="bold">✗ 电工做法：电源进下母线、负载接上母线（倒进线）</text>
+  <!-- 错误小图 -->
+  <line x1="60" y1="296" x2="180" y2="296" stroke="#2F5FD0" stroke-width="2.2"/>
+  <text x="188" y="300" font-size="11" fill="#2F5FD0">负载接上母线 ✗</text>
+  <line x1="120" y1="296" x2="120" y2="312" stroke="#333" stroke-width="2"/>
+  <rect x="94" y="312" width="52" height="46" rx="6" fill="#fafafa" stroke="#c33" stroke-width="2"/>
+  <text x="120" y="340" font-size="11.5" text-anchor="middle" fill="#c33" font-weight="bold">QF</text>
+  <line x1="120" y1="358" x2="120" y2="374" stroke="#333" stroke-width="2"/>
+  <line x1="60" y1="374" x2="180" y2="374" stroke="#c33" stroke-width="2.2"/>
+  <text x="188" y="378" font-size="11" fill="#c33">电源接下母线 ✗</text>
+  <!-- 错误说明 -->
+  <rect x="300" y="300" width="320" height="76" rx="8" fill="#fdecec" stroke="#c33" stroke-width="1.6"/>
+  <text x="316" y="322" font-size="12.5" fill="#c33" font-weight="bold">倒进线的实际后果：</text>
+  <text x="316" y="342" font-size="12" fill="#c33">· 分断时电弧路径改变，灭弧室不按此工况设计</text>
+  <text x="316" y="360" font-size="12" fill="#c33">· 分断能力下降、有拒动风险——「不影响保护」是错觉</text>
+  <!-- 要点 -->
+  <rect x="40" y="388" width="580" height="42" rx="8" fill="#fff8ec" stroke="#b8860b" stroke-width="1.5"/>
+  <text x="56" y="406" font-size="12.5" fill="#7a5c00">断路器触头开距、灭弧栅均按「上进下出」设计；上下接反即使「能合能分」，</text>
+  <text x="56" y="423" font-size="12.5" fill="#7a5c00">故障分断的可靠性已无保证——安装必须电源接上母线、负载接下母线。</text>
+</svg>

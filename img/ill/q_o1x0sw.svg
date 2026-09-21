@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 380" font-family="'Microsoft YaHei',sans-serif">
+  <rect width="660" height="380" fill="#ffffff"/>
+  <text x="20" y="30" font-size="19" font-weight="bold" fill="#222">停电检修分闸顺序：先卸负荷，再拉刀开关</text>
+  <!-- 左：错误 -->
+  <text x="170" y="62" font-size="14" text-anchor="middle" fill="#c33" font-weight="bold">✗ 电工做法（错误）</text>
+  <rect x="50" y="80" width="240" height="38" rx="8" fill="#f4f4f4" stroke="#888" stroke-width="1.6"/>
+  <text x="170" y="104" font-size="12.5" text-anchor="middle" fill="#333">回路带负荷运行中</text>
+  <line x1="170" y1="118" x2="170" y2="136" stroke="#888" stroke-width="2"/>
+  <polygon points="164,134 176,134 170,144" fill="#888"/>
+  <rect x="50" y="146" width="240" height="38" rx="8" fill="#fdecec" stroke="#c33" stroke-width="1.6"/>
+  <text x="170" y="170" font-size="12.5" text-anchor="middle" fill="#c33" font-weight="bold">① 先拉刀开关（带负荷分闸）</text>
+  <line x1="170" y1="184" x2="170" y2="202" stroke="#888" stroke-width="2"/>
+  <polygon points="164,200 176,200 170,210" fill="#888"/>
+  <rect x="50" y="212" width="240" height="38" rx="8" fill="#fdecec" stroke="#c33" stroke-width="1.6"/>
+  <text x="170" y="236" font-size="12.5" text-anchor="middle" fill="#c33" font-weight="bold">② 再断下游接触器</text>
+  <rect x="50" y="262" width="240" height="46" rx="8" fill="#fdecec" stroke="#c33" stroke-width="2"/>
+  <text x="170" y="282" font-size="12.5" text-anchor="middle" fill="#c33" font-weight="bold">⚡ 刀开关切负荷电流 → 强烈电弧</text>
+  <text x="170" y="300" font-size="12" text-anchor="middle" fill="#c33">弧光短路 / 烧伤触头，甚至烧伤人身</text>
+  <!-- 右：正确 -->
+  <text x="480" y="62" font-size="14" text-anchor="middle" fill="#2a7a2a" font-weight="bold">✓ 规范顺序</text>
+  <rect x="360" y="80" width="240" height="38" rx="8" fill="#f4f4f4" stroke="#888" stroke-width="1.6"/>
+  <text x="480" y="104" font-size="12.5" text-anchor="middle" fill="#333">计划停电检修</text>
+  <line x1="480" y1="118" x2="480" y2="136" stroke="#888" stroke-width="2"/>
+  <polygon points="474,134 486,134 480,144" fill="#888"/>
+  <rect x="360" y="146" width="240" height="38" rx="8" fill="#e9f5ec" stroke="#2a7a2a" stroke-width="1.6"/>
+  <text x="480" y="170" font-size="12.5" text-anchor="middle" fill="#2a7a2a" font-weight="bold">① 先断下游接触器（卸负荷）</text>
+  <line x1="480" y1="184" x2="480" y2="202" stroke="#888" stroke-width="2"/>
+  <polygon points="474,200 486,200 480,210" fill="#888"/>
+  <rect x="360" y="212" width="240" height="38" rx="8" fill="#e9f5ec" stroke="#2a7a2a" stroke-width="1.6"/>
+  <text x="480" y="236" font-size="12.5" text-anchor="middle" fill="#2a7a2a" font-weight="bold">② 再拉刀开关（空载分闸）</text>
+  <rect x="360" y="262" width="240" height="46" rx="8" fill="#e9f5ec" stroke="#2a7a2a" stroke-width="2"/>
+  <text x="480" y="282" font-size="12.5" text-anchor="middle" fill="#2a7a2a" font-weight="bold">✓ 无弧分断，安全隔离</text>
+  <text x="480" y="300" font-size="12" text-anchor="middle" fill="#2a7a2a">刀开关只承担空载隔离功能</text>
+  <!-- 要点 -->
+  <rect x="40" y="322" width="580" height="44" rx="8" fill="#fff8ec" stroke="#b8860b" stroke-width="1.5"/>
+  <text x="56" y="341" font-size="12.5" fill="#7a5c00">口诀：分闸先卸负荷、闸刀只分空载；合闸顺序相反——先合刀开关（隔离），后合接触器（带负荷）。</text>
+  <text x="56" y="359" font-size="12" fill="#7a5c00">刀开关无灭弧装置，切断负荷电流必然起弧，顺序错了就是事故。</text>
+</svg>
