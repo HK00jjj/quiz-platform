@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 340" font-family="'Microsoft YaHei',sans-serif">
+  <rect width="660" height="340" fill="#ffffff"/>
+  <text x="20" y="30" font-size="19" font-weight="bold" fill="#222">点动与连续两用——SB₃ 复合按钮：常开起车、常闭切自锁</text>
+  <!-- 母线 -->
+  <line x1="70" y1="60" x2="70" y2="220" stroke="#c33" stroke-width="2.5"/>
+  <text x="52" y="56" font-size="12" fill="#c33" font-weight="bold">L1</text>
+  <line x1="590" y1="60" x2="590" y2="220" stroke="#2F5FD0" stroke-width="2.5"/>
+  <text x="596" y="56" font-size="12" fill="#2F5FD0" font-weight="bold">N</text>
+  <!-- 主支路 -->
+  <line x1="70" y1="140" x2="112" y2="140" stroke="#333" stroke-width="2"/>
+  <line x1="112" y1="126" x2="112" y2="154" stroke="#333" stroke-width="2.5"/>
+  <line x1="126" y1="126" x2="126" y2="154" stroke="#333" stroke-width="2.5"/>
+  <line x1="104" y1="160" x2="134" y2="118" stroke="#333" stroke-width="1.5"/>
+  <line x1="126" y1="140" x2="216" y2="140" stroke="#333" stroke-width="2"/>
+  <text x="119" y="114" font-size="11" text-anchor="middle" fill="#555">SB₁ 常闭（停止）</text>
+  <circle cx="216" cy="140" r="3.5" fill="#333"/>
+  <line x1="216" y1="140" x2="240" y2="140" stroke="#333" stroke-width="2"/>
+  <line x1="240" y1="126" x2="240" y2="154" stroke="#333" stroke-width="2.5"/>
+  <line x1="254" y1="126" x2="254" y2="154" stroke="#333" stroke-width="2.5"/>
+  <line x1="254" y1="140" x2="330" y2="140" stroke="#333" stroke-width="2"/>
+  <circle cx="380" cy="140" r="3.5" fill="#333"/>
+  <text x="247" y="114" font-size="11" text-anchor="middle" fill="#555">SB₂ 常开（连续起动）</text>
+  <line x1="380" y1="140" x2="456" y2="140" stroke="#333" stroke-width="2"/>
+  <rect x="456" y="122" width="52" height="36" rx="6" fill="#fff8ec" stroke="#b8860b" stroke-width="2"/>
+  <text x="482" y="145" font-size="12.5" text-anchor="middle" fill="#7a5c00" font-weight="bold">KM</text>
+  <line x1="508" y1="140" x2="590" y2="140" stroke="#333" stroke-width="2"/>
+  <!-- 自锁支路（含 SB3 常闭） -->
+  <line x1="216" y1="140" x2="216" y2="80" stroke="#333" stroke-width="2"/>
+  <line x1="216" y1="80" x2="252" y2="80" stroke="#333" stroke-width="2"/>
+  <line x1="252" y1="66" x2="252" y2="94" stroke="#333" stroke-width="2.5"/>
+  <line x1="268" y1="66" x2="268" y2="94" stroke="#333" stroke-width="2.5"/>
+  <line x1="268" y1="80" x2="300" y2="80" stroke="#333" stroke-width="2"/>
+  <text x="260" y="56" font-size="11" text-anchor="middle" fill="#555">KM 自锁常开</text>
+  <line x1="300" y1="66" x2="300" y2="94" stroke="#c33" stroke-width="2.5"/>
+  <line x1="314" y1="66" x2="314" y2="94" stroke="#c33" stroke-width="2.5"/>
+  <line x1="292" y1="100" x2="322" y2="58" stroke="#c33" stroke-width="1.8"/>
+  <line x1="314" y1="80" x2="380" y2="80" stroke="#c33" stroke-width="2"/>
+  <line x1="380" y1="80" x2="380" y2="140" stroke="#c33" stroke-width="2"/>
+  <text x="347" y="56" font-size="11" text-anchor="middle" fill="#c33" font-weight="bold">SB₃ 常闭（串入自锁）</text>
+  <!-- 点动支路（SB3 常开） -->
+  <line x1="216" y1="140" x2="216" y2="200" stroke="#333" stroke-width="2"/>
+  <line x1="216" y1="200" x2="240" y2="200" stroke="#333" stroke-width="2"/>
+  <line x1="240" y1="186" x2="240" y2="214" stroke="#333" stroke-width="2.5"/>
+  <line x1="254" y1="186" x2="254" y2="214" stroke="#333" stroke-width="2.5"/>
+  <line x1="254" y1="200" x2="380" y2="200" stroke="#333" stroke-width="2"/>
+  <line x1="380" y1="200" x2="380" y2="140" stroke="#333" stroke-width="2"/>
+  <text x="310" y="224" font-size="11" text-anchor="middle" fill="#555">SB₃ 常开（点动）</text>
+  <!-- 要点 -->
+  <rect x="40" y="222" width="580" height="48" rx="8" fill="#fff8ec" stroke="#b8860b" stroke-width="1.5"/>
+  <text x="56" y="242" font-size="12.5" fill="#7a5c00">点动＝按 SB₃：常开闭合使 KM 得电，同时常闭断开自锁支路；松手 KM 立即失电——点动靠「切断自锁」。</text>
+  <text x="20" y="288" font-size="12" fill="#888">连续＝按 SB₂：KM 经自锁触头维持；SB₃ 复合按钮的常开/常闭动作顺序保证两功能互不干扰。</text>
+  <text x="20" y="316" font-size="12" fill="#888">记忆点：点动靠切断自锁，按钮常闭串自锁路。</text>
+</svg>

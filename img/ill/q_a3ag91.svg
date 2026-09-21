@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 340" font-family="'Microsoft YaHei',sans-serif">
+  <rect width="660" height="340" fill="#ffffff"/>
+  <text x="20" y="30" font-size="19" font-weight="bold" fill="#222">逆导晶闸管：晶闸管＋整流二极管反向并联集成于同一管芯</text>
+  <!-- 等效结构 -->
+  <text x="70" y="70" font-size="14" font-weight="bold" fill="#555">等效结构</text>
+  <circle cx="250" cy="90" r="4" fill="#333"/>
+  <text x="262" y="86" font-size="12" fill="#222" font-weight="bold">A（阳极）</text>
+  <line x1="250" y1="90" x2="250" y2="112" stroke="#333" stroke-width="2"/>
+  <line x1="250" y1="112" x2="210" y2="112" stroke="#333" stroke-width="2"/>
+  <line x1="250" y1="112" x2="290" y2="112" stroke="#333" stroke-width="2"/>
+  <rect x="172" y="106" width="156" height="122" rx="10" fill="none" stroke="#b8860b" stroke-width="1.5" stroke-dasharray="7 4"/>
+  <text x="250" y="252" font-size="11" text-anchor="middle" fill="#b8860b">同一管芯集成（虚线框内）</text>
+  <!-- 晶闸管支路（正向 A→K 向下） -->
+  <line x1="210" y1="112" x2="210" y2="140" stroke="#333" stroke-width="2"/>
+  <path d="M196,140 L224,140 L210,168 Z" fill="#fdeeee" stroke="#c33" stroke-width="2"/>
+  <line x1="196" y1="168" x2="224" y2="168" stroke="#c33" stroke-width="2.5"/>
+  <line x1="220" y1="152" x2="240" y2="140" stroke="#c33" stroke-width="1.5"/>
+  <text x="130" y="150" font-size="11.5" fill="#c33" font-weight="bold">晶闸管</text>
+  <text x="130" y="168" font-size="10.5" fill="#c33">正向：门极触发导通</text>
+  <line x1="210" y1="168" x2="210" y2="228" stroke="#333" stroke-width="2"/>
+  <line x1="210" y1="228" x2="250" y2="250" stroke="#333" stroke-width="2"/>
+  <!-- 二极管支路（反向 K→A 向上） -->
+  <line x1="290" y1="112" x2="290" y2="140" stroke="#333" stroke-width="2"/>
+  <line x1="276" y1="140" x2="304" y2="140" stroke="#2F5FD0" stroke-width="2.5"/>
+  <path d="M276,168 L304,168 L290,142 Z" fill="#eef3ff" stroke="#2F5FD0" stroke-width="2"/>
+  <text x="312" y="150" font-size="11.5" fill="#2F5FD0" font-weight="bold">反并联二极管</text>
+  <text x="312" y="168" font-size="10.5" fill="#2F5FD0">逆向：自然导通</text>
+  <line x1="290" y1="168" x2="290" y2="228" stroke="#333" stroke-width="2"/>
+  <line x1="290" y1="228" x2="250" y2="250" stroke="#333" stroke-width="2"/>
+  <circle cx="250" cy="250" r="4" fill="#333"/>
+  <text x="262" y="266" font-size="12" fill="#222" font-weight="bold">K（阴极）</text>
+  <!-- 伏安特性 -->
+  <text x="470" y="70" font-size="14" font-weight="bold" fill="#555">伏安特性</text>
+  <line x1="490" y1="200" x2="636" y2="200" stroke="#888" stroke-width="1.5"/>
+  <line x1="530" y1="230" x2="530" y2="84" stroke="#888" stroke-width="1.5"/>
+  <path d="M530,200 C560,197 580,192 588,112" stroke="#c33" stroke-width="2.2" fill="none"/>
+  <text x="592" y="106" font-size="10.5" fill="#c33">正向：同普通晶闸管（有转折）</text>
+  <path d="M530,200 C524,208 520,222 518,238" stroke="#2F5FD0" stroke-width="2.2" fill="none"/>
+  <text x="452" y="252" font-size="10.5" fill="#2F5FD0">反向：同二极管正向（低压导通）</text>
+  <!-- 要点 -->
+  <rect x="40" y="268" width="580" height="48" rx="8" fill="#fff8ec" stroke="#b8860b" stroke-width="1.5"/>
+  <text x="56" y="288" font-size="12.5" fill="#7a5c00">逆导晶闸管（反向导通型）：把晶闸管与整流二极管反向并联制作于同一管芯的功率集成器件。</text>
+  <text x="20" y="334" font-size="12" fill="#888">记忆点：正向可控（门极触发）、逆向自然通；正向伏安特性与普通晶闸管相同。</text>
+</svg>

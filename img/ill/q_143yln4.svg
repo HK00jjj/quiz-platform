@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 340" font-family="'Microsoft YaHei',sans-serif">
+  <rect width="660" height="340" fill="#ffffff"/>
+  <text x="20" y="32" font-size="19" font-weight="bold" fill="#222">顺序控制：油泵 M1 先起，主轴 M2 后起</text>
+  <!-- 主回路 M1 -->
+  <line x1="60" y1="70" x2="300" y2="70" stroke="#8b4513" stroke-width="2"/>
+  <text x="44" y="66" font-size="11" fill="#555">L1 L2 L3</text>
+  <rect x="110" y="90" width="90" height="40" rx="6" fill="#eef2fb" stroke="#36c" stroke-width="2"/>
+  <text x="155" y="115" font-size="12" text-anchor="middle" font-weight="bold" fill="#234">KM1</text>
+  <rect x="100" y="170" width="110" height="52" rx="8" fill="#f0f7f0" stroke="#2a7a2a" stroke-width="2"/>
+  <text x="155" y="192" font-size="12" text-anchor="middle" font-weight="bold" fill="#1c5c1c">M1 油泵电机</text>
+  <text x="155" y="210" font-size="10.5" text-anchor="middle" fill="#1c5c1c">先起动 · 供油</text>
+  <line x1="155" y1="130" x2="155" y2="170" stroke="#333" stroke-width="2"/>
+  <!-- 主回路 M2 -->
+  <line x1="360" y1="70" x2="600" y2="70" stroke="#8b4513" stroke-width="2"/>
+  <rect x="410" y="90" width="90" height="40" rx="6" fill="#eef2fb" stroke="#36c" stroke-width="2"/>
+  <text x="455" y="115" font-size="12" text-anchor="middle" font-weight="bold" fill="#234">KM2</text>
+  <rect x="400" y="170" width="110" height="52" rx="8" fill="#fdf0f0" stroke="#c33" stroke-width="2"/>
+  <text x="455" y="192" font-size="12" text-anchor="middle" font-weight="bold" fill="#922">M2 主轴电机</text>
+  <text x="455" y="210" font-size="10.5" text-anchor="middle" fill="#922">后起动 · 切削</text>
+  <line x1="455" y1="130" x2="455" y2="170" stroke="#333" stroke-width="2"/>
+  <!-- 联锁要点 -->
+  <rect x="60" y="240" width="540" height="66" rx="8" fill="#fff8ec" stroke="#b8860b" stroke-width="1.5"/>
+  <text x="76" y="264" font-size="12.5" font-weight="bold" fill="#7a5c00">顺序实现：KM2 线圈回路串入 KM1 常开辅助触点——</text>
+  <text x="76" y="286" font-size="12.5" fill="#7a5c00">M1 不起动（KM1 未吸合）→ KM2 无法得电；M1 停 → KM1 释放 → M2 随之停。</text>
+  <text x="20" y="330" font-size="12" fill="#888">要点：顺序控制在触点上做「先行者的常开触点串入后动回路」，主电路本身只是两台电机各自回路。</text>
+</svg>

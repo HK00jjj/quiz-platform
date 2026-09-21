@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 340" font-family="'Microsoft YaHei',sans-serif">
+  <rect width="660" height="340" fill="#ffffff"/>
+  <text x="20" y="32" font-size="19" font-weight="bold" fill="#222">笼型电动机主回路：点动 + 反接制动工况</text>
+  <!-- 三相母线 -->
+  <line x1="60" y1="70" x2="600" y2="70" stroke="#8b4513" stroke-width="2"/>
+  <line x1="60" y1="78" x2="600" y2="78" stroke="#00a000" stroke-width="2"/>
+  <line x1="60" y1="86" x2="600" y2="86" stroke="#d40000" stroke-width="2"/>
+  <text x="40" y="66" font-size="12" fill="#555">L1</text>
+  <text x="40" y="80" font-size="12" fill="#555">L2</text>
+  <text x="40" y="94" font-size="12" fill="#555">L3</text>
+  <!-- KM1 正转接触器 -->
+  <rect x="130" y="110" width="120" height="56" rx="8" fill="#eef2fb" stroke="#36c" stroke-width="2"/>
+  <text x="190" y="133" font-size="13" text-anchor="middle" font-weight="bold" fill="#234">KM 运行接触器</text>
+  <text x="190" y="153" font-size="11" text-anchor="middle" fill="#234">主触点三极</text>
+  <!-- KM2 反接接触器（换相） -->
+  <rect x="360" y="110" width="120" height="56" rx="8" fill="#fdf0f0" stroke="#c33" stroke-width="2"/>
+  <text x="420" y="133" font-size="13" text-anchor="middle" font-weight="bold" fill="#922">KM 反接接触器</text>
+  <text x="420" y="153" font-size="11" text-anchor="middle" fill="#922">对调两相相序</text>
+  <line x1="145" y1="86" x2="145" y2="110" stroke="#333" stroke-width="2"/>
+  <line x1="375" y1="86" x2="375" y2="110" stroke="#333" stroke-width="2"/>
+  <!-- 电机 -->
+  <rect x="250" y="220" width="130" height="64" rx="10" fill="#f0f7f0" stroke="#2a7a2a" stroke-width="2.5"/>
+  <text x="315" y="246" font-size="14" text-anchor="middle" font-weight="bold" fill="#1c5c1c">笼型电动机 M</text>
+  <text x="315" y="268" font-size="11" text-anchor="middle" fill="#1c5c1c">3~ 380V</text>
+  <line x1="165" y1="166" x2="165" y2="240" stroke="#333" stroke-width="2"/>
+  <line x1="165" y1="240" x2="250" y2="252" stroke="#333" stroke-width="2"/>
+  <line x1="395" y1="166" x2="395" y2="230" stroke="#c33" stroke-width="2"/>
+  <line x1="395" y1="230" x2="380" y2="252" stroke="#c33" stroke-width="2"/>
+  <!-- 工况标注 -->
+  <rect x="40" y="190" width="150" height="92" rx="8" fill="#fff8ec" stroke="#b8860b" stroke-width="1.5"/>
+  <text x="115" y="212" font-size="12" text-anchor="middle" font-weight="bold" fill="#7a5c00">工况特征</text>
+  <text x="52" y="234" font-size="11" fill="#7a5c00">· 频繁点动：触点反复</text>
+  <text x="52" y="252" font-size="11" fill="#7a5c00">  承受全压起动电流</text>
+  <text x="52" y="270" font-size="11" fill="#7a5c00">· 反接制动：电流比直接</text>
+  <text x="52" y="288" font-size="11" fill="#7a5c00">  起动更大约 2 倍</text>
+  <text x="20" y="322" font-size="12" fill="#888">要点：选型看触点承受的接通/分断电流严酷程度——点动与反接制动属重载工况，使用类别要求最高。</text>
+</svg>

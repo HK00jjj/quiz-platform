@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 340" font-family="'Microsoft YaHei',sans-serif">
+  <rect width="660" height="340" fill="#ffffff"/>
+  <text x="20" y="32" font-size="19" font-weight="bold" fill="#222">交流接触器主触点端子标识（L/T 系列）</text>
+  <!-- 接触器本体 -->
+  <rect x="180" y="60" width="300" height="220" rx="14" fill="#f4f4f4" stroke="#333" stroke-width="2.5"/>
+  <text x="330" y="88" font-size="14" text-anchor="middle" font-weight="bold" fill="#222">CJX2 型交流接触器（正视）</text>
+  <!-- 上排进线端子 -->
+  <g>
+    <rect x="215" y="110" width="44" height="34" rx="4" fill="#dfe8f8" stroke="#36c" stroke-width="2"/>
+    <rect x="308" y="110" width="44" height="34" rx="4" fill="#dfe8f8" stroke="#36c" stroke-width="2"/>
+    <rect x="401" y="110" width="44" height="34" rx="4" fill="#dfe8f8" stroke="#36c" stroke-width="2"/>
+    <text x="237" y="132" font-size="12" text-anchor="middle" font-weight="bold" fill="#234">L1</text>
+    <text x="330" y="132" font-size="12" text-anchor="middle" font-weight="bold" fill="#234">L2</text>
+    <text x="423" y="132" font-size="12" text-anchor="middle" font-weight="bold" fill="#234">L3</text>
+  </g>
+  <text x="330" y="102" font-size="12" text-anchor="middle" fill="#2F5FD0">进线侧（接电源）</text>
+  <!-- 中间：触点系统示意 -->
+  <g stroke="#555" stroke-width="1.5">
+    <line x1="237" y1="144" x2="237" y2="170" stroke-dasharray="4 3"/>
+    <line x1="330" y1="144" x2="330" y2="170" stroke-dasharray="4 3"/>
+    <line x1="423" y1="144" x2="423" y2="170" stroke-dasharray="4 3"/>
+  </g>
+  <text x="330" y="164" font-size="11" text-anchor="middle" fill="#555">三极主触点（灭弧栅罩内）</text>
+  <!-- 下排出线端子 -->
+  <g>
+    <rect x="215" y="196" width="44" height="34" rx="4" fill="#fdf0f0" stroke="#c33" stroke-width="2"/>
+    <rect x="308" y="196" width="44" height="34" rx="4" fill="#fdf0f0" stroke="#c33" stroke-width="2"/>
+    <rect x="401" y="196" width="44" height="34" rx="4" fill="#fdf0f0" stroke="#c33" stroke-width="2"/>
+    <text x="237" y="218" font-size="12" text-anchor="middle" font-weight="bold" fill="#922">T1</text>
+    <text x="330" y="218" font-size="12" text-anchor="middle" font-weight="bold" fill="#922">T2</text>
+    <text x="423" y="218" font-size="12" text-anchor="middle" font-weight="bold" fill="#922">T3</text>
+  </g>
+  <text x="330" y="188" font-size="12" text-anchor="middle" fill="#c33">出线侧（接负载/电机）</text>
+  <text x="330" y="256" font-size="11" text-anchor="middle" fill="#555">线圈端子 A1/A2，辅助触点 NO/NC 另有编号</text>
+  <!-- 右侧说明 -->
+  <rect x="500" y="80" width="140" height="170" rx="8" fill="#fff8ec" stroke="#b8860b" stroke-width="1.5"/>
+  <text x="514" y="106" font-size="12" font-weight="bold" fill="#7a5c00">L/T 含义：</text>
+  <text x="514" y="128" font-size="11.5" fill="#7a5c00">L = Line 电源进</text>
+  <text x="514" y="148" font-size="11.5" fill="#7a5c00">T = Terminal/Load</text>
+  <text x="514" y="168" font-size="11.5" fill="#7a5c00">（去往负载）</text>
+  <text x="514" y="192" font-size="11.5" fill="#7a5c00">同编号一一对应：</text>
+  <text x="514" y="212" font-size="11.5" fill="#7a5c00">L1→T1 为同一相</text>
+  <text x="514" y="232" font-size="11.5" fill="#7a5c00">断开点</text>
+  <text x="20" y="316" font-size="12" fill="#888">要点：电源进 L 端、负载接 T 端；同号对应同相，接反不损坏但相序表认 L1/L2/L3 的物理顺序。</text>
+</svg>
