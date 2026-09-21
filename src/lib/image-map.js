@@ -11,13 +11,38 @@ export const DIAGRAM_IDS = [
   'tpl_motor_stardelta', 'tpl_socket_wiring', 'tpl_crystal_head',
 ]
 
+/* 配图 spec 两种形态（2026-09-21 逐题配图改造）：
+   ① 模板型 'tpl_xxx' 或 'tpl_xxx|参数1|参数2' —— 渲染时查 DIAGRAMS 转 dataURI；
+   ② 文件型 'file:ill/<题id>.svg|<配图说明>' 或 'file:ill/<题id>.webp|<配图说明>' ——
+      指向线上 img/ill/ 静态文件（逐题专属配图，SVG 示意图 / AI 生成压缩图），
+      '|' 后面是配图说明（图题），渲染在 figcaption。两种形态都以 '|' 切首段判定。 */
+export function isImgSpec(v) {
+  if (typeof v !== 'string' || !v) return false
+  const head = v.split('|')[0]
+  return DIAGRAM_IDS.includes(head) || head.startsWith('file:ill/')
+}
+function safeFile(spec) {
+  const head = spec.split('|')[0]
+  if (!head.startsWith('file:ill/')) return null
+  const name = head.slice('file:ill/'.length)
+  return /^[\w-]+\.(?:svg|webp|png)$/.test(name) ? name : null   // 文件名白名单：防注入/防穿越
+}
+export function imgSpecAlt(v) {
+  if (typeof v !== 'string') return ''
+  return v.split('|').slice(1).join('|').trim()
+}
+export function imgSpecFile(v) {
+  if (typeof v !== 'string') return null
+  return safeFile(v)
+}
+
 const IMG_MAP_KEY = 'qp.imgmap.v1'
 
 /* 导入时记录 {questionId: templateId|spec}（与 importedAt 同为本机元数据，零 DDL） */
 export function saveImageMap(questions) {
   try {
     const map = JSON.parse(localStorage.getItem(IMG_MAP_KEY) || '{}')
-    for (const q of questions) { if (q && q.id && q.image && DIAGRAM_IDS.includes(String(q.image).split('|')[0])) map[q.id] = q.image }
+    for (const q of questions) { if (q && q.id && isImgSpec(q.image)) map[q.id] = q.image }
     localStorage.setItem(IMG_MAP_KEY, JSON.stringify(map))
   } catch { /* ignore */ }
 }
@@ -34,7 +59,7 @@ export function mergeImageMap(extra) {
   if (!extra || typeof extra !== 'object') return
   try {
     const map = readImageMap()
-    for (const [k, v] of Object.entries(extra)) { if (DIAGRAM_IDS.includes(String(v).split('|')[0])) map[k] = v }
+    for (const [k, v] of Object.entries(extra)) { if (isImgSpec(v)) map[k] = v }
     localStorage.setItem(IMG_MAP_KEY, JSON.stringify(map))
   } catch { /* ignore */ }
 }

@@ -7,6 +7,22 @@ import { TYPES, DIFFICULTIES, DIFF_CLS, domainLabel, lastResultMap } from '../li
    只在解析标题旁给 🔊 按钮，点谁读谁；收起卡片即停。
    不支持语音合成的浏览器不渲染按钮（避免"点了没反应"）。 */
 import { speak, stopSpeak, unlockSpeech, ttsSupported } from '../lib/tts.js'
+/* 题目配图（2026-09-21 图文结合）：imageFor 走主包轻模块；diagramSrc/diagramTitle
+   在懒加载图谱库里（本页本来就是懒 chunk，随包可接受）。 */
+import { imageFor, diagramSrc, diagramTitle } from '../lib/diagrams'
+
+/* 配图卡（与 Practice 页 QFigure 同款口径，白瓷风） */
+function BankFigure({ spec }) {
+  const src = spec ? diagramSrc(spec) : null
+  if (!src) return null
+  const title = diagramTitle(spec)
+  return (
+    <figure className="q-figure">
+      <img src={src} alt={title || '题目配图'} loading="lazy" />
+      {title && <figcaption>{title}</figcaption>}
+    </figure>
+  )
+}
 
 const PAGE_SIZE = 50
 
@@ -170,6 +186,7 @@ export default function Bank() {
           const mastered = (rc?.intervalDays ?? 0) >= 3
           const touched = cardMap.has(q.id)
           const open = openId === q.id
+          const imgSpec = imageFor(q.id)
           const qRecords = open ? records.filter((r) => r.questionId === q.id).slice(-6).reverse() : []
           /* row-in 的挂载动画换成 .reveal 滚动插值入场：原来 50 张卡一次性全播、
              stagger 上限还只有 360ms，长列表滚下去时下面的卡早就播完了。
@@ -198,6 +215,7 @@ export default function Bank() {
                         <span className={'diff-pill tiny d-' + (DIFF_CLS[q.difficulty] ?? 'base')}>{q.difficulty}</span>)}
                       {q.knowledgeDomain && <span className="tag">{domainLabel(q.knowledgeDomain)}</span>}
                       {last === false && <span className="tag red">答错过</span>}
+                      {imgSpec && <span className="tag img-tag" title="本题配有示意图">◈ 配图</span>}
                     </div>
                     <span className="tarot-hint">轻点看详情</span>
                   </div>
@@ -229,6 +247,7 @@ export default function Bank() {
                       })()}
                       <h6>题干</h6>
                       <p>{q.stem}</p>
+                      <BankFigure spec={imgSpec} />
                       {(q.options ?? []).map((o, k) => <p key={k} className="tarot-opt">{o}</p>)}
                       <h6>答案</h6>
                       <p className="tarot-ans">{q.answer}</p>

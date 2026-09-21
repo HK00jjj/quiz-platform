@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 360" font-family="'Microsoft YaHei',sans-serif">
+  <rect width="660" height="360" fill="#ffffff"/>
+  <text x="20" y="30" font-size="19" font-weight="bold" fill="#222">三相半波可控整流——三管触发互差 120°（导通 120°／移相最大 150°）</text>
+  <!-- 变压器三相绕组（星形） -->
+  <rect x="100" y="80" width="70" height="40" rx="6" fill="#f0f7f0" stroke="#2a7a2a" stroke-width="2"/>
+  <text x="135" y="105" font-size="12" text-anchor="middle" fill="#1c5c1c" font-weight="bold">U 相</text>
+  <rect x="100" y="145" width="70" height="40" rx="6" fill="#f0f7f0" stroke="#2a7a2a" stroke-width="2"/>
+  <text x="135" y="170" font-size="12" text-anchor="middle" fill="#1c5c1c" font-weight="bold">V 相</text>
+  <rect x="100" y="210" width="70" height="40" rx="6" fill="#f0f7f0" stroke="#2a7a2a" stroke-width="2"/>
+  <text x="135" y="235" font-size="12" text-anchor="middle" fill="#1c5c1c" font-weight="bold">W 相</text>
+  <line x1="100" y1="100" x2="70" y2="100" stroke="#2a7a2a" stroke-width="2"/>
+  <line x1="100" y1="165" x2="70" y2="165" stroke="#2a7a2a" stroke-width="2"/>
+  <line x1="100" y1="230" x2="70" y2="230" stroke="#2a7a2a" stroke-width="2"/>
+  <line x1="70" y1="100" x2="70" y2="285" stroke="#2a7a2a" stroke-width="2"/>
+  <text x="46" y="278" font-size="12" fill="#1c5c1c" font-weight="bold">N</text>
+  <!-- 三支路 → 共阴极 K -->
+  <line x1="170" y1="100" x2="300" y2="100" stroke="#333" stroke-width="2"/>
+  <path d="M300,86 L300,114 L322,100 Z" fill="#fff" stroke="#222" stroke-width="2"/>
+  <line x1="322" y1="86" x2="322" y2="114" stroke="#222" stroke-width="2.5"/>
+  <line x1="312" y1="108" x2="312" y2="126" stroke="#c33" stroke-width="1.5"/>
+  <text x="266" y="80" font-size="11.5" fill="#c33" font-weight="bold">VT1</text>
+  <line x1="322" y1="100" x2="420" y2="100" stroke="#333" stroke-width="2"/>
+  <line x1="420" y1="100" x2="420" y2="157" stroke="#333" stroke-width="2"/>
+  <line x1="170" y1="165" x2="300" y2="165" stroke="#333" stroke-width="2"/>
+  <path d="M300,151 L300,179 L322,165 Z" fill="#fff" stroke="#222" stroke-width="2"/>
+  <line x1="322" y1="151" x2="322" y2="179" stroke="#222" stroke-width="2.5"/>
+  <line x1="312" y1="173" x2="312" y2="191" stroke="#c33" stroke-width="1.5"/>
+  <text x="266" y="145" font-size="11.5" fill="#c33" font-weight="bold">VT2</text>
+  <line x1="322" y1="165" x2="420" y2="165" stroke="#333" stroke-width="2"/>
+  <line x1="170" y1="230" x2="300" y2="230" stroke="#333" stroke-width="2"/>
+  <path d="M300,216 L300,244 L322,230 Z" fill="#fff" stroke="#222" stroke-width="2"/>
+  <line x1="322" y1="216" x2="322" y2="244" stroke="#222" stroke-width="2.5"/>
+  <line x1="312" y1="238" x2="312" y2="256" stroke="#c33" stroke-width="1.5"/>
+  <text x="266" y="210" font-size="11.5" fill="#c33" font-weight="bold">VT3</text>
+  <line x1="322" y1="230" x2="420" y2="230" stroke="#333" stroke-width="2"/>
+  <line x1="420" y1="230" x2="420" y2="173" stroke="#333" stroke-width="2"/>
+  <circle cx="420" cy="165" r="4.5" fill="#333"/>
+  <text x="430" y="192" font-size="11" fill="#555">共阴极 K</text>
+  <!-- 负载与回流 -->
+  <line x1="420" y1="165" x2="470" y2="165" stroke="#333" stroke-width="2"/>
+  <rect x="470" y="149" width="70" height="32" rx="5" fill="#fff" stroke="#333" stroke-width="2"/>
+  <text x="505" y="170" font-size="13" text-anchor="middle" fill="#222" font-weight="bold">R_L</text>
+  <line x1="540" y1="165" x2="580" y2="165" stroke="#333" stroke-width="2"/>
+  <line x1="580" y1="165" x2="580" y2="285" stroke="#333" stroke-width="2"/>
+  <line x1="580" y1="285" x2="70" y2="285" stroke="#333" stroke-width="2"/>
+  <text x="300" y="280" font-size="11" fill="#1c5c1c">回流接变压器中性点 N</text>
+  <!-- 触发说明 -->
+  <text x="360" y="258" font-size="11.5" fill="#c33">u_G1、u_G2、u_G3 互差 120°</text>
+  <!-- 要点 -->
+  <rect x="40" y="302" width="580" height="40" rx="8" fill="#fff8ec" stroke="#b8860b" stroke-width="1.5"/>
+  <text x="56" y="327" font-size="12.5" fill="#7a5c00">三只晶闸管各接一相、触发脉冲互差 120°：最大导通角 120°、移相范围最大 150°。</text>
+  <text x="20" y="356" font-size="12" fill="#888">每管正向通态平均电流为负载电流的 1/3；输出随 α 增大而减小。</text>
+</svg>

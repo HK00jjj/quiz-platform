@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 340" font-family="'Microsoft YaHei',sans-serif">
+  <rect width="660" height="340" fill="#ffffff"/>
+  <text x="20" y="32" font-size="19" font-weight="bold" fill="#222">PLC 输出模板的公共端分组结构（8 点一组）</text>
+  <!-- 输出模板 -->
+  <rect x="60" y="70" width="540" height="180" rx="10" fill="#f0f7f0" stroke="#2a7a2a" stroke-width="2.5"/>
+  <text x="330" y="96" font-size="13" text-anchor="middle" font-weight="bold" fill="#1c5c1c">输出模板端子排</text>
+  <!-- 第1组 -->
+  <rect x="80" y="110" width="230" height="120" rx="6" fill="#eef2fb" stroke="#36c" stroke-width="1.5"/>
+  <text x="195" y="132" font-size="12" text-anchor="middle" font-weight="bold" fill="#234">第 1 组：Y0~Y7（8 点）</text>
+  <text x="195" y="154" font-size="11" text-anchor="middle" fill="#555">公共端 COM1（仅此组共用）</text>
+  <g fill="#fff" stroke="#333" stroke-width="1.5">
+    <circle cx="105" cy="180" r="6"/><circle cx="135" cy="180" r="6"/><circle cx="165" cy="180" r="6"/><circle cx="195" cy="180" r="6"/>
+    <circle cx="105" cy="208" r="6"/><circle cx="135" cy="208" r="6"/><circle cx="165" cy="208" r="6"/><circle cx="195" cy="208" r="6"/>
+  </g>
+  <text x="105" y="202" font-size="9" text-anchor="middle" fill="#555">Y0</text><text x="135" y="202" font-size="9" text-anchor="middle" fill="#555">Y1</text>
+  <text x="165" y="202" font-size="9" text-anchor="middle" fill="#555">Y2</text><text x="195" y="202" font-size="9" text-anchor="middle" fill="#555">Y3</text>
+  <text x="105" y="230" font-size="9" text-anchor="middle" fill="#555">Y4</text><text x="135" y="230" font-size="9" text-anchor="middle" fill="#555">Y5</text>
+  <text x="165" y="230" font-size="9" text-anchor="middle" fill="#555">Y6</text><text x="195" y="230" font-size="9" text-anchor="middle" fill="#555">Y7</text>
+  <line x1="90" y1="196" x2="210" y2="196" stroke="#c33" stroke-width="2" stroke-dasharray="5 3"/>
+  <text x="270" y="196" font-size="10" fill="#c33">COM1</text>
+  <!-- 第2组 -->
+  <rect x="350" y="110" width="230" height="120" rx="6" fill="#fdf0f0" stroke="#c33" stroke-width="1.5"/>
+  <text x="465" y="132" font-size="12" text-anchor="middle" font-weight="bold" fill="#922">第 2 组：Y10~Y17（8 点）</text>
+  <text x="465" y="154" font-size="11" text-anchor="middle" fill="#555">公共端 COM2（独立）</text>
+  <g fill="#fff" stroke="#333" stroke-width="1.5">
+    <circle cx="375" cy="180" r="6"/><circle cx="405" cy="180" r="6"/><circle cx="435" cy="180" r="6"/><circle cx="465" cy="180" r="6"/>
+    <circle cx="375" cy="208" r="6"/><circle cx="405" cy="208" r="6"/><circle cx="435" cy="208" r="6"/><circle cx="465" cy="208" r="6"/>
+  </g>
+  <text x="375" y="202" font-size="9" text-anchor="middle" fill="#555">Y10</text><text x="405" y="202" font-size="9" text-anchor="middle" fill="#555">Y11</text>
+  <text x="435" y="202" font-size="9" text-anchor="middle" fill="#555">Y12</text><text x="465" y="202" font-size="9" text-anchor="middle" fill="#555">Y13</text>
+  <text x="375" y="230" font-size="9" text-anchor="middle" fill="#555">Y14</text><text x="405" y="230" font-size="9" text-anchor="middle" fill="#555">Y15</text>
+  <text x="435" y="230" font-size="9" text-anchor="middle" fill="#555">Y16</text><text x="465" y="230" font-size="9" text-anchor="middle" fill="#555">Y17</text>
+  <line x1="360" y1="196" x2="480" y2="196" stroke="#c33" stroke-width="2" stroke-dasharray="5 3"/>
+  <text x="540" y="196" font-size="10" fill="#c33">COM2</text>
+  <text x="20" y="290" font-size="12.5" fill="#333">故障定位含义：以 8 点为一组同时失效 → 故障在「公共端 COM」一侧（熔断器断、COM 线松、公共电源失电），</text>
+  <text x="20" y="310" font-size="12.5" fill="#333">而不是 8 个输出点各自损坏——分组公共端结构是排查第一线索。</text>
+  <text x="20" y="336" font-size="12" fill="#888">要点：查 COM 公共回路（保险/端子/电源）优先于逐点检测；分组还便于不同电压等级/极性分区使用。</text>
+</svg>

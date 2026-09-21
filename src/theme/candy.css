@@ -2171,3 +2171,28 @@ body, button, input, select, textarea {
   .book-card, .book-op, .icon-pick, .book-new-plus, .color-dot { transition: none !important; }
   .book-card:hover, .book-card.on, .book-card.on:hover, .book-new:hover { transform: none; }
 }
+
+/* ══════════════════════════════════════════════════════════
+   题目配图卡（2026-09-21 图文结合改造）
+   白瓷口径：白纸底 + 发丝边 + 小圆角；图题 12px 灰字居中；
+   Practice 题干区（.zone-q）与 Bank 卡背面（.tarot-scroll）共用。
+   ══════════════════════════════════════════════════════════ */
+.q-figure {
+  margin: 10px 0 6px; padding: 8px 8px 6px;
+  background: #FFFFFF;
+  border: 1px solid #E3DED2; border-radius: 10px;
+}
+.q-figure img {
+  display: block; width: 100%; max-width: 560px; height: auto;
+  margin: 0 auto; border-radius: 6px;
+}
+.q-figure figcaption {
+  margin-top: 6px; text-align: center;
+  font-size: 12px; letter-spacing: .05em; color: #8A8374;
+}
+/* Bank 卡正面「◈ 配图」徽标：与签条行其他 tag 同族，靛蓝描边示意（不引新色相） */
+.tag.img-tag { color: #2F5FD0; border-color: rgba(47, 95, 208, .45); background: rgba(47, 95, 208, .07); }
+@media (max-width: 520px) {
+  .q-figure { margin: 8px 0 4px; padding: 6px 6px 5px; }
+  .q-figure figcaption { font-size: 11px; }
+}

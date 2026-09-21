@@ -66,6 +66,8 @@ let relearnKey = null
 let flushedIds = new Set()
 let reloadTimer = null
 let reloadSeq = 0
+/* 云端 imgmap 内容指纹（2026-09-21）：没变化就不重复 merge 写 localStorage */
+let lastImgMapJson = null
 /* §44 防抖动覆写：本机刚写过 settings 后的窗口期内，reloadAll 不允许用云端值覆盖
    （否则筛选弹窗里刚取消的 chip 会被云端旧值「复原」——用户实测的取消后恢复选中）。
    5s 后恢复云端优先，多端正常同步不受影响。 */
@@ -258,6 +260,15 @@ async function reloadAll(opts = {}) {
       questionStats: data.questionStats ?? []
     }
     useStore.setState(nextState)
+    /* 逐题配图映射（2026-09-21）：云端 imgmap → 本地图谱（imageFor 渲染通路读这里）。
+       变化检测：realtime 高频 reload 下内容没变就不动 localStorage（幂等减写）。 */
+    if (data.imgMap) {
+      const imgJson = JSON.stringify(data.imgMap)
+      if (imgJson !== lastImgMapJson) {
+        mergeImageMap(data.imgMap)
+        lastImgMapJson = imgJson
+      }
+    }
     if (mutated && bootWriteAllowed) persistBooks(useStore.getState())
     /* §性能 快照落盘（2026-09-21）：仅 boot/登录路径写（realtime 触发的高频刷新不写，
        避免每 400ms 节流后仍反复写 5~10MB）。syncError 不入快照——告警不该被陈旧快照重放。 */

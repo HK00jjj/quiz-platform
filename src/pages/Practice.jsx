@@ -8,7 +8,7 @@ import { burstParticles } from '../components/CandyBoot'
 import { IconReveal, IconScroll, IconRetry, IconSound, IconPause, IconReplay, IconFlag, IconGrid, IconHelp, IconCheck, IconClose } from '../components/CandyIcons'
 import { isObjective, domainLabel, DIFF_CLS } from '../lib/stats'
 import { gradeObjective, blanksOf, splitExpected, stemSpokenOf } from '../lib/validate'
-import { imageFor, diagramDataUri, diagramTitle } from '../lib/diagrams'
+import { imageFor, diagramSrc, diagramTitle } from '../lib/diagrams'
 /* 选项随机化用的位置排列（#6）。实现收敛到 lib/util.js（2026-09-11 审查整改：
    此前与 stats/ability/Learn 各写一遍 Fisher-Yates）。 */
 import { shuffledOrder } from '../lib/util.js'
@@ -17,11 +17,27 @@ import { shuffledOrder } from '../lib/util.js'
    管两段（答题中读题干、揭晓后读答案+解析），各自有「已读」闸互不挤占。 */
 import { speak, stopSpeak, pauseSpeak, resumeSpeak, unlockSpeech, ttsSupported, cloudSupported, ttsEnabled as ttsPrefEnabled, setTtsEnabled, voiceNote, voiceAdvice, voiceGuideText, currentVoices, listVoices, ttsVoicePref, setTtsVoice, ttsRate, setTtsRate, fmtRate, voiceDiag, warmUpVoices, EDGE_VOICES, CLOUD_VOICE_ID, isCloudVoice, unlockCloudAudio, prefetchCloudFirst, currentPauseTag, prefetchGACache, RATE_MIN, RATE_MAX, RATE_STEP } from '../lib/tts.js'
 
+/* 题目配图卡（2026-09-21 图文结合改造）：随题干常驻展示——用户口径：读者要在读题时就
+   借助示意图建立实物/结构/电路概念（覆盖 §38 旧口径「图片只在启封后显示」）。
+   spec 两种形态：'file:ill/<id>.svg|说明'（逐题专属配图静态文件）/ 'tpl_xxx'（内置模板）。
+   配图内容在设计闸门里强制「不包含答案文本」，答题中展示不构成剧透。 */
+function QFigure({ spec }) {
+  const src = spec ? diagramSrc(spec) : null
+  if (!src) return null
+  const title = diagramTitle(spec)
+  return (
+    <figure className="q-figure">
+      <img src={src} alt={title || '题目配图'} loading="lazy" />
+      {title && <figcaption>{title}</figcaption>}
+    </figure>
+  )
+}
+
 /* 题干渲染：填空题把 {空} 显示为下划线占位 */
 function Stem({ q }) {
   // 首字下沉已去掉（#4）：drop-cap 把第一个字放到 2.1em 还浮动，读起来累，与正文同号更舒服
-  // §38：题图不再出现在题干（用户指名：图片只能点击解析后随答案一起显示）。
-  // 题图统一由解析区的 fbImgUri 渲染（挂 seal==='broken'，蜡封启封后才出现）。
+  // §38（已被 2026-09-21 图文结合改造覆盖）：原口径题图只在启封后显示；
+  // 现行口径：配图由 zone-q 的 QFigure 随题干常驻渲染（见 QFigure 注释）。
   if (q.type !== '填空题' || !q.stem.includes('{')) return <p className="q-stem">{q.stem}</p>
   const parts = q.stem.split(/(\{[^{}]*\})/g)
   return (
@@ -801,7 +817,7 @@ export default function Practice() {
 
   /* ── 答题 ── */
   const grade = lastGrade
-  const fbImgUri = q ? diagramDataUri(imageFor(q.id)) : null
+  const imgSpec = q ? imageFor(q.id) : null
   /* §50 糖浆进度条（方案 B 拍板）：糖浆一点点灌满，糖珠=当前位置。
      旧 .gem-row 点阵撤下——三遍判定制后会话动辄 200+ 题，点阵密度爆表 */
   const pct = questions.length ? (results.length / questions.length) * 100 : 0
@@ -851,6 +867,8 @@ export default function Practice() {
             </div>
             {/* 题面：直接写在卷轴上 */}
             <div className="parch-layer"><Stem q={q} /></div>
+            {/* 题目配图（2026-09-21 图文结合）：题干下方常驻图卡，读题时即可对照理解 */}
+            <QFigure spec={imgSpec} />
             {/* 题干声音条（2026-09-15 傍晚）：声音控件原本只在解析区——答题中（未揭晓）
                 没有任何重读入口，用户真机反馈"重读对题干没有效果"。给一条精简控件：
                 🔊 开关（toggleTts：关=暂停在原处，开=接着读）+ 🔁 重读题干（replayTts 分语境）。
@@ -1061,8 +1079,7 @@ export default function Practice() {
                 </div>
               </>
             )}
-            {/* §38：题图只在点击解析（蜡封启封）后随答案一起显示，答题前不渲染 */}
-            {seal === 'broken' && fbImgUri && <img src={fbImgUri} alt={diagramTitle(imageFor(q.id))} style={{ display: 'block', maxWidth: '100%', margin: '0 auto 10px', background: '#fff', border: '1px solid #e5d9c3', borderRadius: 8 }} />}
+            {/* §38 旧口径已下线（2026-09-21）：配图改由题干区 QFigure 常驻渲染，解析区不再重复出图 */}
             {selfCheck && seal !== 'broken' && (
               /* 2026-09-19 C 批：加类名供白瓷皮肤接管（原为内联样式，inline 压过样式表，无法换肤） */
               <div className="selfcheck-note" style={{ margin: '2px 0 10px', padding: '10px 12px', borderRadius: 10, background: 'rgba(63,191,168,.10)', border: '1px dashed rgba(63,191,168,.45)' }}>

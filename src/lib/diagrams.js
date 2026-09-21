@@ -1,4 +1,4 @@
-import { DIAGRAM_IDS } from './image-map'
+import { DIAGRAM_IDS, imgSpecFile, imgSpecAlt } from './image-map'
 // 题目配图模板库（已人工目检的 SVG 电气图，唯一正确性源头）
 // 出题时 JSON 的 image 字段只填模板 ID，渲染时由本模块解析为 dataURI，零 base64 入库、零链接失效。
 export const DIAGRAMS = {
@@ -510,7 +510,25 @@ export function diagramDataUri(spec) {
   return 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)))
 }
 
+/* 统一渲染入口（2026-09-21 逐题配图改造）：
+   - 模板型 spec → dataURI（SVG 模板随包内置，零外链）
+   - 文件型 spec 'file:ill/xxx.svg|说明' → ${BASE_URL}img/ill/xxx.svg（逐题专属配图静态文件，
+     随部署上线，SW 运行时按需缓存；BASE_URL 由 vite 注入，子路由下也不会相对解析出错）
+   两类都返回可直接放进 <img src> 的字符串；非法 spec 返回 null。 */
+export function diagramSrc(spec) {
+  if (typeof spec !== 'string' || !spec) return null
+  if (spec.split('|')[0].startsWith('file:ill/')) {
+    const name = imgSpecFile(spec)
+    if (!name) return null
+    return (import.meta.env?.BASE_URL ?? '/') + 'img/ill/' + name
+  }
+  return diagramDataUri(spec)
+}
+
 export function diagramTitle(spec) {
+  if (typeof spec === 'string' && spec.split('|')[0].startsWith('file:ill/')) {
+    return imgSpecAlt(spec) || '题目配图'
+  }
   const p = parseImageSpec(spec)
   return p ? (DIAGRAM_TITLES[p.id] || p.id) : ''
 }

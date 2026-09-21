@@ -104,7 +104,9 @@ export class CloudRepo {
        三表各自独立、失败均降级为空数组（DDL 未执行或网络异常时仅诊断页显示"未就绪"，
        刷题/复习/晋级照常），与第一批无数据依赖，故合并进同一个 Promise.all 一次并发。
        （属性体系 2026-09-18 新增；question_stats 为 S4 回流表，Bank 质量展示用。） */
-    const [q, c, r, s, b, attrs, qas, stats] = await Promise.all([
+    /* 逐题配图映射（2026-09-21）：settings key='imgmap' 行（{qid: spec}，零 DDL，与 books 同款通路）。
+       拉取失败降级 null（配图缺失不影响刷题主流程），attach 侧负责 merge 进 localStorage。 */
+    const [q, c, r, s, b, img, attrs, qas, stats] = await Promise.all([
       this.fetchAllPaged('questions', 'id'),
       this.fetchAllPaged('review_cards', 'question_id'),
       this.fetchAllPaged('answer_records', 'id'),
@@ -113,6 +115,8 @@ export class CloudRepo {
       // 这样不需要改任何表结构（没有 DDL 权限），而且因为 cards/records 以 questionId 为键，
       // 只要各书题目 ID 不重叠，间隔重复与做题记录就是天然隔离的。
       this.client.from('settings').select('value').eq('key', 'books').maybeSingle(),
+      this.client.from('settings').select('value').eq('key', 'imgmap').maybeSingle()
+        .catch((e) => { console.warn('[loadAll] imgmap 降级', e); return { data: null } }),
       this.fetchAllPaged('attributes', 'id').catch((e) => { console.warn('[loadAll] attributes 降级', e); return [] }),
       this.fetchAllPaged('question_attributes', 'question_id').catch((e) => { console.warn('[loadAll] question_attributes 降级', e); return [] }),
       this.fetchAllPaged('question_stats', 'question_id').catch((e) => { console.warn('[loadAll] question_stats 降级', e); return [] })
@@ -125,6 +129,7 @@ export class CloudRepo {
       records: r.map(toRecord),
       settings: { dailyGoal: 20, ...(s.data?.value ?? {}) },
       books: b.data?.value ?? null,
+      imgMap: (img.data?.value && typeof img.data.value === 'object' && !Array.isArray(img.data.value)) ? img.data.value : null,
       attributes: attrs.map(toAttr),
       questionAttributes: qas.map(toQA),
       questionStats: stats.map(toStat),

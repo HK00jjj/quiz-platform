@@ -40,7 +40,10 @@ if (refs.size === 0) {
   console.log('RESULT: ABORT —— 一个引用都没解析到，walk 或正则失效，拒绝清理'); process.exit(1)
 }
 
-const files = readdirSync(distImg)
+/* 2026-09-21 逐题配图：dist/img/ill/ 是逐题配图目录（子目录，随 public/img/ill 整体进构建）。
+   旧写法 readdirSync 不递归——子目录 'ill' 会落入 orphans 被 unlinkSync 崩闸（Windows 删非空目录抛错）。
+   这里显式跳过子目录：顶层孤儿清理语义不变，img/ill 子树不受影响（其内容以 public 源为准，随构建刷新）。 */
+const files = readdirSync(distImg).filter((f) => statSync(path.join(distImg, f)).isFile())
 const missing = [...refs].filter(f => !files.includes(f))
 if (missing.length) { console.log(`RESULT: ABORT —— 引用了但 dist 里没有（会 404）: ${missing.join(', ')}`); process.exit(1) }
 
