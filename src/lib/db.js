@@ -68,35 +68,49 @@ export class CloudRepo {
   async fetchAllPaged(table, orderCol, pageSize = 1000, concurrency = 4) {
     /* 【2026-09-20 AH批 并发化】实测线上冷启动 ready 需 5.3s，其中 4.6s 花在
        「4 页 questions 串行等」上（单页 0.8~1.4s，逐页累加；瀑布实测
-       19ms→1444ms→2665ms→3784ms 逐页起跳）。改为每批并发拉 concurrency 页：
-       - range 划分与串行版逐字节一致（同 offset 同 limit）→ 不漏行不重行；
-       - Promise.all 保序 → rows 拼接仍是 offset 升序，与旧行为等价；
-       - 终止条件不变：任一批次出现不满页即到底（按唯一键升序，不满页必为末页）；
-       - 多余的并发页在数据量小时返回空数组，无害。 */
-    const fetchPage = async (from) => {
-      let data, error
+       19ms→1444ms→2665ms→3784ms 逐页起跳）。改为每批并发拉 concurrency 页。
+       【2026-09-21 INC-20260921-07 加固】旧终止条件「任一不满页即末页」在服务端
+       瞬时部分返回时会把中间页误判为末页 → 静默缺数据（实测：登录后题库只剩
+       325/3357 且零报错、零 4xx）。改为：
+       ① head + count=exact 先取总行数（带 3 次重试）；
+       ② 按总页数精确拉取，页内「短返回」（拿不满且非末页）视为瞬时失败重试；
+       ③ 最终 rows.length < total 直接抛错——宁可整体报错走 syncError，不可静默缺数据。 */
+    let total = null
+    for (let a = 0; a < 3 && total == null; a++) {
+      const head = await this.client.from(table).select(orderCol, { count: 'exact', head: true })
+      if (head.count != null) total = head.count
+      else await new Promise((r) => setTimeout(r, 500 * (a + 1)))
+    }
+    if (total == null) throw new Error('fetchAllPaged: 无法取得总行数(' + table + ')')
+    const pages = Math.max(1, Math.ceil(total / pageSize))
+    const fetchPage = async (from, want) => {
+      let data = null, error = null
       for (let attempt = 0; attempt < 3; attempt++) {
         const res = await this.client.from(table).select('*')
-          .order(orderCol).range(from, from + pageSize - 1)
+          .order(orderCol).range(from, from + Math.max(want, 1) - 1)
         data = res.data; error = res.error
-        if (!error) break
+        const got = data?.length ?? 0
+        if (!error && got >= want) break                    // 本页拿满
+        if (!error && from + got >= total) break            // 末页允许不足一页
+        error = error || new Error(`短返回 ${got}/${want} @${from}(${table})`)
         if (attempt < 2) await new Promise((r) => setTimeout(r, 600 * (attempt + 1)))
       }
       if (error) throw error
       return data ?? []
     }
-    const rows = []
-    for (let base = 0; ; base += pageSize * concurrency) {
-      const batch = await Promise.all(
-        Array.from({ length: concurrency }, (_, i) => fetchPage(base + i * pageSize))
-      )
-      let end = false
-      for (const d of batch) {
-        rows.push(...d)
-        if (d.length < pageSize) end = true
-      }
-      if (end) return rows
+    const slots = new Array(pages)
+    for (let base = 0; base < pages; base += concurrency) {
+      const idxs = []
+      for (let i = base; i < Math.min(base + concurrency, pages); i++) idxs.push(i)
+      await Promise.all(idxs.map((i) => {
+        const from = i * pageSize
+        const want = Math.min(pageSize, total - from)
+        return fetchPage(from, want).then((d) => { slots[i] = d })
+      }))
     }
+    const rows = slots.flat()
+    if (rows.length < total) throw new Error('fetchAllPaged: 拉取不完整 ' + rows.length + '/' + total + '(' + table + ')')
+    return rows
   }
   async loadAll() {
     /* 【2026-09-20 AH批】属性三表原为「第一批 await 完成后再串行拉」——瀑布实测第二批
