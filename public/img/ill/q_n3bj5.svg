@@ -28,9 +28,9 @@
   <line x1="522" y1="152" x2="610" y2="152" stroke="#b8860b" stroke-width="1.4"/>
   <text x="534" y="166" font-size="10.5" fill="#7a5c00">常开</text>
   <text x="588" y="166" font-size="10.5" fill="#7a5c00">常闭</text>
-  <text x="522" y="188" font-size="11.5" fill="#7a5c00">继电器：一条竖线 → 左右两栏</text>
-  <text x="404" y="222" font-size="11.5" fill="#555">未用栏目打「×」</text>
-  <text x="404" y="240" font-size="11.5" fill="#555">触头下数字 = 驱动它的线圈所在图区</text>
+  <text x="404" y="206" font-size="11.5" fill="#7a5c00">继电器：一条竖线 → 左右两栏</text>
+  <text x="404" y="226" font-size="11.5" fill="#555">未用栏目打「×」</text>
+  <text x="404" y="244" font-size="11.5" fill="#555">触头下数字 = 驱动它的线圈所在图区</text>
 
   <rect x="30" y="256" width="600" height="60" rx="8" fill="#fdecec" stroke="#c33" stroke-width="1.5"/>
   <text x="46" y="278" font-size="12" fill="#c33">✗ A 接触器线圈下画一条竖线（应为两条）</text>

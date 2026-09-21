@@ -54,6 +54,6 @@
   <text x="250" y="209" font-size="11" fill="#c33">触发脉冲 u_G 送门极</text>
   <!-- 要点 -->
   <rect x="40" y="268" width="580" height="48" rx="8" fill="#fff8ec" stroke="#b8860b" stroke-width="1.5"/>
-  <text x="56" y="288" font-size="12.5" fill="#7a5c00">四项基本要求：触发功率足够、脉冲宽度足够、与主电路同步、具备一定移相范围；另要求可靠、简单、经济。</text>
+  <text x="56" y="288" font-size="12.5" fill="#7a5c00">四项基本要求：触发功率足够、脉冲宽度足够、与主电路同步、具备一定移相范围；另要求可靠、经济。</text>
   <text x="20" y="334" font-size="12" fill="#888">触发电路既可由分立元器件组成，也可由集成电路组成——并非必须集成。</text>
 </svg>

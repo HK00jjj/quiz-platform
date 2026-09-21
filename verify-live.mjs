@@ -76,13 +76,35 @@ console.log(`线上文件检查: ${ok}/${files.length} 个 200 OK, 耗时 ${((Da
 if (bad.length) { console.log('异常:'); bad.forEach(x => console.log('  ✗ ' + x)) }
 
 // 关键文件内容比对（从 dist/index.html 自动提取带哈希的产物名，不写死）
+// 【D6 修复 2026-09-21】比对结果此前只打印、不参与判定——DIFF 也会输出 ALL OK。现在：
+//   DIFF 先等 3s 重取一次（容忍 Pages 传播），仍 DIFF 计入 bad；取回失败也计入 bad。
 const html = readFileSync(dist + '/index.html', 'utf8')
 const hashed = [...new Set([...html.matchAll(/assets\/(index-[\w-]+\.(?:js|css))/g)].map(m => 'assets/' + m[1]))]
+const h = b => createHash('sha256').update(b).digest('hex').slice(0, 16)
 for (const rel of ['index.html', ...hashed]) {
   const local = readFileSync(dist + '/' + rel)
-  const r = await fetch(BASE + rel + '?cb=' + Date.now(), { signal: AbortSignal.timeout(120000) })
-  const buf = Buffer.from(await r.arrayBuffer())
-  const h = b => createHash('sha256').update(b).digest('hex').slice(0, 16)
-  console.log(`${rel}: HTTP ${r.status}, 本地 ${local.length}B/${h(local)} vs 线上 ${buf.length}B/${h(buf)} -> ${h(local) === h(buf) ? 'MATCH' : 'DIFF'}`)
+  let line = ''
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      const r = await fetch(BASE + rel + '?cb=' + Date.now() + '-' + attempt, { signal: AbortSignal.timeout(120000) })
+      const buf = Buffer.from(await r.arrayBuffer())
+      const same = r.status === 200 && h(local) === h(buf)
+      line = `${rel}: HTTP ${r.status}, 本地 ${local.length}B/${h(local)} vs 线上 ${buf.length}B/${h(buf)} -> ${same ? 'MATCH' : 'DIFF'}`
+      if (same) break
+      if (attempt === 1) { console.log(line + '（等 3s 复取，容忍传播延迟）'); await new Promise(s => setTimeout(s, 3000)); continue }
+      bad.push(`${rel} 内容不一致（本地 vs 线上 SHA 不同）`)
+    } catch (e) {
+      line = `${rel}: 取回失败 ${e.message}`
+      if (attempt === 1) { await new Promise(s => setTimeout(s, 3000)); continue }
+      bad.push(`${rel} 取回失败 ${e.message}`)
+    }
+  }
+  console.log(line)
 }
-console.log(bad.length === 0 ? '\nLIVE RESULT: ALL OK' : '\nLIVE RESULT: HAS FAILURES')
+/* 结论与退出码必须一致（此前只打印不设码，部署链据此误判成功并跳过重试） */
+if (bad.length) {
+  console.error(`\nLIVE RESULT: HAS FAILURES（${bad.length} 项）`)
+  process.exit(1)
+}
+console.log('\nLIVE RESULT: ALL OK')
+process.exit(0)
