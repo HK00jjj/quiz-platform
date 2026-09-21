@@ -1,0 +1,58 @@
+﻿AssertionError [ERR_ASSERTION]: 鈶?23 棰樺共澹伴煶鏉★細绛旈涓彲瑙侊紙寮€鍏?閲嶈棰樺共锛夛紝缁戝畾 toggleTts/replayTts
+    at ok (file:///C:/Users/%E9%9D%92%E4%B8%98%E7%99%BD%E6%B5%85/Documents/QoderCN/2026-09-02/chat-1/app/tests/tts.regr
+ession.mjs:12:41)
+    at file:///C:/Users/%E9%9D%92%E4%B8%98%E7%99%BD%E6%B5%85/Documents/QoderCN/2026-09-02/chat-1/app/tests/tts.regressi
+on.mjs:339:1
+    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5) {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: false,
+  expected: true,
+  operator: '==',
+  diff: 'simple'
+}
+
+Node.js v22.22.2
+鉁?瑙ｆ瀽鎾姤TTS鍥炲綊 澶辫触 (exit 1)
+鈻?缁€冭繘搴︽仮澶嶆簮鍥炲綊 (tests/exam-progress.regression.mjs)
+  鉁?涓ょ閮芥棤 鈫?null锛堣蛋 examStart 鏂板紑锛?  鉁?浠呮湰鍦版湁 鈫?鏈湴
+  鉁?浠呬簯绔湁 鈫?浜戠
+  鉁?浜戠 ts 鏇存柊 鈫?浜戠锛堣法璁惧闃叉棫瑕嗙洊鏂帮級
+  鉁?鏈湴 ts 鏇存柊 鈫?鏈湴
+  鉁?ts 鐩稿悓 鈫?鍙栨湰鍦帮紙浜戦』涓ユ牸鏇存柊鎵嶅垏鎹級
+  鉁?鏃?ts 鐨勬棫鏍煎紡瑙嗕负 0锛氫簯绔柊鏍煎紡鑳滄湰鍦版棫鏍煎紡
+  鉁?鏈湴鏂版牸寮忚儨浜戠鏃ф牸寮忥紙鏃?ts 瑙嗕负 0锛?  鉁?缁撴瀯鏃犳晥鐨勪簯绔紙缂?attemptId/ids锛夆啋 鍥炶惤鏈湴
+  鉁?缁撴瀯鏃犳晥鐨勬湰鍦?鈫?鍥炶惤浜戠
+  鉁?闈炲璞¤緭鍏ワ紙鎹熷潖 JSON 瑙ｆ瀽缁撴灉锛変竴寰嬭繃婊?exam-progress.regression: 11/11 ALL OK
+
+1 涓浠跺け璐?鈥斺€?绂佹閮ㄧ讲
+--- gh-pages check ---
+
+--- regression tail ---
+    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5) {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: false,
+  expected: true,
+  operator: '==',
+  diff: 'simple'
+}
+
+Node.js v22.22.2
+鉁?瑙ｆ瀽鎾姤TTS鍥炲綊 澶辫触 (exit 1)
+鈻?缁€冭繘搴︽仮澶嶆簮鍥炲綊 (tests/exam-progress.regression.mjs)
+  鉁?涓ょ閮芥棤 鈫?null锛堣蛋 examStart 鏂板紑锛?  鉁?浠呮湰鍦版湁 鈫?鏈湴
+  鉁?浠呬簯绔湁 鈫?浜戠
+  鉁?浜戠 ts 鏇存柊 鈫?浜戠锛堣法璁惧闃叉棫瑕嗙洊鏂帮級
+  鉁?鏈湴 ts 鏇存柊 鈫?鏈湴
+  鉁?ts 鐩稿悓 鈫?鍙栨湰鍦帮紙浜戦』涓ユ牸鏇存柊鎵嶅垏鎹級
+  鉁?鏃?ts 鐨勬棫鏍煎紡瑙嗕负 0锛氫簯绔柊鏍煎紡鑳滄湰鍦版棫鏍煎紡
+  鉁?鏈湴鏂版牸寮忚儨浜戠鏃ф牸寮忥紙鏃?ts 瑙嗕负 0锛?  鉁?缁撴瀯鏃犳晥鐨勪簯绔紙缂?attemptId/ids锛夆啋 鍥炶惤鏈湴
+  鉁?缁撴瀯鏃犳晥鐨勬湰鍦?鈫?鍥炶惤浜戠
+  鉁?闈炲璞¤緭鍏ワ紙鎹熷潖 JSON 瑙ｆ瀽缁撴灉锛変竴寰嬭繃婊?exam-progress.regression: 11/11 ALL OK
+
+1 涓浠跺け璐?鈥斺€?绂佹閮ㄧ讲

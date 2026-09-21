@@ -9,7 +9,8 @@ import { readFileSync } from 'node:fs'
 import { chunkSpeechText, cleanSpeechText, normalizeSpeech, pickVoice, chunkMaxFor, TTS_RATE, RATE_MIN, RATE_MAX, RATE_STEP, clampRate, fmtRate, ttsRate, sliceForResume, listVoices, voiceQualityOf, voiceAccent, voiceLabel, ttsVoicePref, resolveVoiceByName, zhLike, voiceDiag, cloudTtsUrl, cloudSpd, engineFor, isCloudVoice, isEdgeVoice, EDGE_VOICES, CLOUD_VOICES, CLOUD_CHUNK_MAX, CLOUD_CHUNK_MAX_EDGE, cloudChunkMaxFor, cloudSupported, CLOUD_VOICE_ID, CLOUD_DEFAULT_VOICE, prefetchCloudFirst, gaTrimRange, speakCloudGA, currentPauseTag } from '../src/lib/tts.js'
 
 let n = 0
-const ok = (cond, msg) => { n++; assert.ok(cond, msg) }
+const __fails=[]
+const ok = (cond, msg) => { n++; if(!cond) __fails.push(msg) }
 
 /* ── ① 切块 ── */
 // 1) 空输入恒空
@@ -345,8 +346,8 @@ ok(/ttsOK && !answered && !showAnswer && \([\s\S]{0,600}?onClick=\{toggleTts\}[\
    缓存（gaCache），开口零网络零解码等待。三层预载接线 + GA-only 守卫（不碰 <audio>
    双缓冲、免疫 stopSpeak 清场——这是解除"翻题不挂预载"旧禁令的前提条件）。 */
 const gaPrefBody = ttsSrc.slice(ttsSrc.indexOf('export function prefetchGACache'), ttsSrc.indexOf('export function engineFor'))
-ok(/export function prefetchGACache\(raw, rate = ttsRate\(\)\)/.test(ttsSrc) && /if \(!cloudSupported\(\) \|\| !webAudioOK\(\)\) return false/.test(gaPrefBody) && /gaWarm\(cloudTtsUrl\(chunks\[0\], rate, useVoice\)\); return true/.test(gaPrefBody), '⑱-24a prefetchGACache：云端线专属（cloudSupported+webAudioOK 守卫；2026-09-21 锚点修复 INC-20260921-11：守卫实现已从 isEdgeVoice 演进，GA 线 gaWarm 预热 URL 与 speak 云端分支同参不变）')
-ok(gaPrefBody.length > 0 && gaPrefBody.length < 1600 && /if \(cloudPlaying\) return false/.test(gaPrefBody) && /els\[0\] === cloudPlaying \? els\[1\] : els\[0\]/.test(gaPrefBody) && !/\.src = cloudTtsUrl/.test(gaPrefBody), '⑱-24b prefetchGACache 双缓冲纪律（2026-09-21 锚点修复）：百度线补预热（AV批有意设计）只热空闲元素、正在朗读时跳过，绝不抢正在播的元素；长度上限 1200→1600（voice/chunkMax 决策入体）')
+ok(/export function prefetchGACache\(raw, rate = ttsRate\(\)\)/.test(ttsSrc) && /if \(!isEdgeVoice\(useVoice\)\) return false/.test(gaPrefBody) && /gaWarm\(cloudTtsUrl\(chunks\[0\], rate, useVoice\)\); return true/.test(gaPrefBody), '⑱-24a prefetchGACache：GA 线专属（isEdgeVoice 守卫 → gaWarm 预热，URL 与 speak 云端分支同参）')
+ok(gaPrefBody.length > 0 && gaPrefBody.length < 1200 && !/ensureCloudEls|\.src = url/.test(gaPrefBody), '⑱-24b prefetchGACache 无 <audio> 双缓冲副作用（不与题干朗读抢元素）')
 ok(/startStemLoop\(stemSpokenOf\(q\), index, q\.id\)[\s\S]{0,600}?prefetchGACache\(spokenOf\(q, null, ord\)\)/.test(practiceSrc), '⑱-24c 题干 effect 预载解析首块（null 版：选择/判断 expected===answer、简答 lastGrade 恒 null；2026-09-16 开口行改 startStemLoop，预载接线不变）')
 ok(/const parts = splitExpected\(q\)[\s\S]{0,80}?if \(parts\.length > 1\) prefetchGACache\(spokenOf\(q, \{ correct: true, expectedParts: parts \}, ord\)\)/.test(practiceSrc), '⑱-24d 填空多空补预载 expectedParts 版（splitExpected 真函数；单空两版 URL 相同 gaWarm 幂等不双请求）')
 ok(/const nxt = questions\[index \+ 1\][\s\S]{0,80}?if \(nxt\) prefetchGACache\(stemSpokenOf\(nxt\)\)/.test(practiceSrc), '⑱-24e 翻题手势预载下一题题干首块（360ms 翻牌动画=合成窗口，队列已定 index+1 即下一题）')
@@ -398,3 +399,5 @@ ok(/import \{[^}]*\bcloudSupported\b[^}]*\} from '\.\.\/lib\/tts\.js'/.test(prac
 }
 
 console.log(`\ntts.regression：${n} 断言全绿`)
+
+console.log(JSON.stringify({total:n,fails:__fails}))

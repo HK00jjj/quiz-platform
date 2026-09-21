@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+﻿import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store'
@@ -148,51 +148,6 @@ export default function Practice() {
   /* 选项洗牌排列按「题目 id#序号」缓存：同题重渲染复用，切题才重排（#6） */
   const shuffleRef = useRef({ key: null, order: [] })
   const [elapsed, setElapsed] = useState(0)
-  /* 揭晓滚动调度 v2（2026-09-21 · 用户报障「点解析下滑会卡一下」定罪修复）：
-     旧实现一次揭晓最多发起 5 次 scrollTo（doCheck 300/700/1200 三重兜底 + 揭晓 effect
-     1200/2200 两拍），而 .q-face-scroll 挂着 CSS scroll-behavior:smooth，无参 scrollTo
-     也走平滑——多次平滑滚动互相打断重启 = 每拍把上一段滚动拽停，即「卡一下」。
-     现收敛为：一次揭晓 = 至多 1 次 smooth 主拍 + 1 次校正拍，doCheck 兜底与揭晓 effect
-     两路驱动源共用「揭晓指纹 + 目标去重锁」：
-     - 指纹（题 id+揭晓态）变了 → 锁重置（切题不误拦新揭晓）；
-     - 同目标（差 < 8px）的 smooth 不重复发起——不打断进行中的平滑滚动；
-     - 校正拍兜解析图片/字体迟到的高度回填，同目标自动跳过；
-     - behavior 一律显式指定，不再吃 CSS 隐式 smooth。 */
-  const revealScrollRef = useRef({ fp: null, lastTo: null })
-
-  function scrollToPanel(smooth) {
-    const sc = document.querySelector('.q-face-scroll')
-    const gp = document.querySelector('.grade-panel, .selfcheck-note') /* 解析正文优先——引导卡可见≠解析可见 */
-    if (!gp) return
-    const fp = index + '|' + (q ? q.id : '') + '|' + ((seal === 'broken' || selfCheck) ? 'rv' : 'st')
-    if (revealScrollRef.current.fp !== fp) revealScrollRef.current = { fp, lastTo: null }
-    const g = gp.getBoundingClientRect()
-    if (g.top >= 8 && g.bottom <= window.innerHeight - 8) return   /* 完全可见不打扰 */
-    const lockHit = (target) => {
-      const st = revealScrollRef.current
-      if (st.lastTo != null && Math.abs(target - st.lastTo) < 8) return true
-      st.lastTo = target
-      return false
-    }
-    if (sc && sc.scrollHeight > sc.clientHeight + 2) {
-      const rel = g.top - sc.getBoundingClientRect().top + sc.scrollTop - 6
-      const to = Math.max(0, Math.min(rel, sc.scrollHeight - sc.clientHeight))
-      if (lockHit(to)) return
-      sc.scrollTo({ top: to, behavior: smooth ? 'smooth' : 'auto' })
-      ;(window.__fx = window.__fx || []).push((smooth ? 's:' : 'c:') + Math.round(to))
-      return
-    }
-    const foot = document.querySelector('.q-face-foot')
-    const reserve = foot ? Math.min(foot.getBoundingClientRect().height + 16, 140) : 24
-    const avail = window.innerHeight - reserve - 16
-    const abs = g.height <= avail
-      ? window.scrollY + g.bottom - (window.innerHeight - reserve)
-      : window.scrollY + g.top - 24
-    const wto = Math.max(0, abs)
-    if (lockHit(wto)) return
-    window.scrollTo({ top: wto, behavior: smooth ? 'smooth' : 'auto' })
-    ;(window.__fx = window.__fx || []).push((smooth ? 'sW:' : 'cW:') + Math.round(wto))
-  }
 
   useEffect(() => {
     setChoice(null); setMulti([]); setJudge(null); setFills(blanksOf(q?.stem ?? '').map(() => ''))
@@ -263,20 +218,51 @@ export default function Practice() {
        重建 = inline height 丢失，必须对新节点重新 apply（svhOK 提前 return 的分支无感）。 */
   }, [index, q?.id, seal, showAnswer, phase])   // phase 为早声明状态（answered 在第 480 行才 const，放依赖里会 TDZ 崩页）
 
-  /* 答案揭晓后把答案区滚进可见范围。v2（2026-09-21 卡顿定罪修复）：
-     ① 时机：effect 触发时（蜡封已 broken / 自查态）本次 DOM 变更已 commit、布局已稳定，
-        同步发 1 次 smooth 主拍即可；旧版等 1200/2200ms 两拍再滚，反而与 doCheck 兜底
-        的滚动互相打断（卡顿根因，见 scrollToPanel 注释）。
-     ② 校正拍：1500ms 后补一次同函数调用——解析区图片/字体迟到把内容推高时平滑滚到新目标；
-        目标没变则被去重锁拦住，零动作。
-     ③ 依赖里用 store 的 phase 而不是下面才声明的 answered（const 有 TDZ，会整页崩溃） */
+  /* 答案揭晓后把答案区滚进可见范围。三个关键点：
+     ① 时机：蜡封卸载（seal==='broken'，时长随批2 B3 门控 300/520ms）前，提前滚会让上方内容在滚动途中突然少 ~40px
+        → 目标位置移动 = 浏览器重定向/中断平滑滚动 = 顿挫感。所以等蜡封真消失后，
+        再用双 rAF 等这次 DOM 变更提交并完成布局，才去测量+滚动。
+     ② 测量：全程只读一次几何（双 rAF 内），不在滚动回调里反复读，避免强制同步布局。
+     ③ 缓动：交给 CSS scroll-behavior:smooth（见 pages.css），这里只下一次 scrollTo；
+        不自写 rAF 补间——否则与 CSS 平滑叠加会双重缓动，反而更顿。
+     注意：依赖里用 store 的 phase 而不是下面才声明的 answered（const 有 TDZ，会整页崩溃） */
   useEffect(() => {
+    /* AD4批：滚动改「同步一次 + setTimeout 双兜底」——原双 rAF 链在 headless/后台标签
+       会被节流不触发（spy 实证 scrollTo 调用为空）；宏任务 setTimeout 全环境可靠。
+       双滚动上下文兜底：内部容器可滚（长题）滚内部，否则滚窗口；
+       完全可见（上下留 8px）则不打扰。揭晓信号 = 蜡封已破 或 自查态。 */
+    const scrollFx = () => {
+      document.documentElement.setAttribute('data-scrollfx', String(Date.now()))
+      const sc = document.querySelector('.q-face-scroll')
+      const gp = document.querySelector('.grade-panel, .selfcheck-note') /* 解析正文优先——引导卡可见≠解析可见（AB批截图定罪的最终根因） */
+      if (!sc || !gp) { (window.__fx = window.__fx || []).push('no-el'); return }
+      const gr0 = gp.getBoundingClientRect()
+      ;(window.__fx = window.__fx || []).push('geom gT=' + Math.round(gr0.top) + ' sH=' + sc.scrollHeight + ' cH=' + sc.clientHeight + ' seal=' + seal + ' selfCheck=' + selfCheck)
+      const gr = gp.getBoundingClientRect()
+      if (gr.top >= 8 && gr.bottom <= window.innerHeight - 8) return
+      if (sc.scrollHeight > sc.clientHeight + 2) {
+        const rel = gr.top - sc.getBoundingClientRect().top + sc.scrollTop - 6
+        const to = Math.max(0, Math.min(rel, sc.scrollHeight - sc.clientHeight))
+        sc.scrollTo({ top: to, behavior: 'smooth' })   // smooth 动画帧持续覆盖 scroll-anchoring 的重置
+        ;(window.__fx = window.__fx || []).push('inner to=' + Math.round(to) + ' after=' + Math.round(sc.scrollTop))
+        return
+      }
+      const foot = document.querySelector('.q-face-foot')
+      const reserve = foot ? Math.min(foot.getBoundingClientRect().height + 16, 140) : 24
+      const avail = window.innerHeight - reserve - 16
+      const abs = gr.height <= avail
+        ? window.scrollY + gr.bottom - (window.innerHeight - reserve)
+        : window.scrollY + gr.top - 24
+      window.scrollTo({ top: Math.max(0, abs), behavior: 'smooth' })
+    }
     const sealOK = seal === 'broken' || selfCheck
     if (!sealOK) return
-    document.documentElement.setAttribute('data-scrollfx', String(Date.now()))
-    scrollToPanel(true)
-    const t2 = setTimeout(() => scrollToPanel(true), 1500)
-    return () => clearTimeout(t2)
+    /* AD批v5：滚动延迟到 1.2s/2.2s 两拍——与手动验证 100% 生效的时序对齐。
+       提交瞬间是布局风暴（蜡封动画/解析挂载/卡高预算重排/grade-panel 图片加载），
+       任何早期滚动都会被后续重排钳回 0；等布局完全平息后一次滚到位。 */
+    const t1 = setTimeout(scrollFx, 1200)
+    const t2 = setTimeout(scrollFx, 2200)
+    return () => { clearTimeout(t1); clearTimeout(t2) }
   }, [phase, showAnswer, seal, selfCheck])
 
   /* 用时计时（#7）：结算后必须停表，否则结算页那个「用时」会一直往上跳
@@ -700,12 +686,23 @@ export default function Practice() {
   function doCheck() {
     if (!canSubmit) return
     unlockSpeech()
-    /* AD批 → v2（2026-09-21）：滚动兜底收敛为两拍（560/1600ms），全部走共享 scrollToPanel。
-       旧版 300/700/1200 三重兜底各自盲发 scrollTo，叠加上 .q-face-scroll 的 CSS smooth
-       变成三段互相打断的平滑滚动——「点解析下滑卡一下」的根因之一。现在 560ms 拍只是
-       揭晓 effect 主拍（seal broken 后同步执行）的保险绳（同目标被去重锁拦住，零动作）；
-       1600ms 拍兜解析图片迟到的高度回填。揭晓滚动所有权见 scrollToPanel 注释。 */
-    ;[560, 1600].forEach((ms) => setTimeout(() => scrollToPanel(true), ms))
+    /* AD批：点「查看解析」后自动滚到解析区——点击处理器内三重延时兜底
+       （300/700/1200ms），每次先判断「解析是否已在视口」避免过度滚动；
+       review 自查态与普通揭晓态两路都生效。 */
+    const autoScrollToPanel = () => {
+      const sc = document.querySelector('.q-face-scroll')
+      const gp = document.querySelector('.grade-panel')
+      if (!sc || !gp) return
+      const g = gp.getBoundingClientRect()
+      if (g.top >= 0 && g.bottom <= window.innerHeight + 2) return
+      if (sc.scrollHeight > sc.clientHeight + 2) {
+        const rel = g.top - sc.getBoundingClientRect().top + sc.scrollTop - 6
+        sc.scrollTo({ top: Math.max(0, Math.min(rel, sc.scrollHeight - sc.clientHeight)) })
+      } else {
+        window.scrollTo({ top: Math.max(0, window.scrollY + g.top - 24) })
+      }
+    }
+    ;[300, 700, 1200].forEach((ms) => setTimeout(autoScrollToPanel, ms))                    // 手势内解锁音频（移动端首次 speak 必须落在手势栈里）
     unlockCloudAudio()                // 云端通路同样是"首次播放须在手势内"（<audio> 解锁）
     /* F1 反馈分级：review 先自查（提交判分但延迟启封、特效静默）——
        提交本身照常（三遍判制/记录不受影响），只是"看结果"的时机交给学习者。 */
