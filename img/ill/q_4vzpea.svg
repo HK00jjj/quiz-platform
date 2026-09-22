@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 380" font-family="'Microsoft YaHei',sans-serif">
+  <rect width="660" height="380" fill="#ffffff"/>
+  <text x="20" y="30" font-size="18" font-weight="bold" fill="#222">500V 兆欧表测含变频器、PLC 的配电柜（正解 A）</text>
+  <rect x="46" y="48" width="568" height="30" rx="5" fill="#e9f5ec" stroke="#2a7a2a" stroke-width="1.3"/>
+  <text x="58" y="68" font-size="12.3" fill="#2a7a2a">① 测前断开变频器与 PLC 等电子负载的接线（只留电缆与母线）</text>
+  <rect x="46" y="84" width="568" height="30" rx="5" fill="#e9f5ec" stroke="#2a7a2a" stroke-width="1.3"/>
+  <text x="58" y="104" font-size="12.3" fill="#2a7a2a">② 测后经放电电阻放电并验电，确认无残余电荷才可触碰</text>
+  <rect x="46" y="120" width="568" height="30" rx="5" fill="#e9f5ec" stroke="#2a7a2a" stroke-width="1.3"/>
+  <text x="58" y="140" font-size="12.3" fill="#2a7a2a">③ 相间绝缘分相测量：各相老化、受潮与污染状态不同</text>
+  <rect x="46" y="162" width="568" height="52" rx="8" fill="#eef2ff" stroke="#2F5FD0" stroke-width="1.4"/>
+  <text x="58" y="182" font-size="12.3" fill="#2F5FD0">物理根源：测试电压会加在回路里所有并接元件上，而半导体器件耐压远低于测试电压——</text>
+  <text x="58" y="202" font-size="12.3" fill="#2F5FD0">500V 直流足够击穿整流桥、IGBT 与 PLC 模块，故必须先隔离。</text>
+  <rect x="46" y="228" width="568" height="30" rx="5" fill="#fdecec" stroke="#c33" stroke-width="1.3"/>
+  <text x="58" y="248" font-size="12.3" fill="#c33">✗B 允许带电摇测：既危险又无意义（须断电测量）</text>
+  <rect x="46" y="264" width="568" height="30" rx="5" fill="#fdecec" stroke="#c33" stroke-width="1.3"/>
+  <text x="58" y="284" font-size="12.3" fill="#c33">✗C 摇测后立即用手触碰：残余电荷可伤人，须放电验电</text>
+  <rect x="46" y="300" width="568" height="30" rx="5" fill="#fdecec" stroke="#c33" stroke-width="1.3"/>
+  <text x="58" y="320" font-size="12.3" fill="#c33">✗D 相间只测一组代表三相：分相测量才能发现单相缺陷</text>
+</svg>

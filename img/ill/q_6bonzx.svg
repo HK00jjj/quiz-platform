@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 380" font-family="'Microsoft YaHei',sans-serif">
+  <rect width="660" height="380" fill="#ffffff"/>
+  <text x="20" y="30" font-size="18" font-weight="bold" fill="#222">铭牌 Δ 380V 电机误接成 Y 带满载：每相电压降为 1/√3，转矩不足（正解 C）</text>
+  <rect x="30" y="46" width="290" height="120" rx="10" fill="#e9f5ec" stroke="#2a7a2a" stroke-width="1.4"/>
+  <text x="44" y="68" font-size="12.5" font-weight="bold" fill="#2a7a2a">Δ 接（铭牌设计）</text>
+  <text x="44" y="94" font-size="12.3" fill="#333">每相绕组承受全部线电压 380V</text>
+  <text x="44" y="118" font-size="12.3" fill="#333">转矩正常，可带满载</text>
+  <text x="44" y="148" font-size="11" fill="#777">绕组按 380V 设计</text>
+  <rect x="336" y="46" width="294" height="120" rx="10" fill="#fdecec" stroke="#c33" stroke-width="1.4"/>
+  <text x="350" y="68" font-size="12.5" font-weight="bold" fill="#c33">Y 接（误接）</text>
+  <text x="350" y="94" font-size="12.3" fill="#333">每相电压 380/√3 ≈ 220V（降为 1/√3）</text>
+  <text x="350" y="118" font-size="12.3" fill="#333">转矩 ∝ U² → 只剩约 1/3 额定转矩</text>
+  <text x="350" y="148" font-size="11" fill="#777">带满载 → 转差增大 → 电流剧增过热</text>
+  <rect x="46" y="178" width="568" height="30" rx="5" fill="#fafafa" stroke="#999" stroke-width="1.3"/>
+  <text x="58" y="198" font-size="12.3" fill="#777">后果链：转矩不足 → 转差增大 → 定转子电流剧增 → 绝缘老化最终烧毁</text>
+  <rect x="46" y="214" width="568" height="30" rx="5" fill="#fdecec" stroke="#c33" stroke-width="1.3"/>
+  <text x="58" y="234" font-size="12.3" fill="#c33">✗ 当成「降压启动」连续运行：降压启动是短时过程，连续满载即烧毁</text>
+  <rect x="30" y="252" width="600" height="86" rx="8" fill="#fff8ec" stroke="#b8860b" stroke-width="1.5"/>
+  <text x="46" y="274" font-size="12.3" fill="#7a5c00">正解 C：每相电压降为 1/√3，转矩严重不足；不是「更省电」也不是「可长期降压运行」。</text>
+  <text x="46" y="295" font-size="12.3" fill="#7a5c00">记忆点：线电压一定时，Δ 每相全额、Y 每相 1/√3；转矩随电压平方变化。</text>
+  <text x="46" y="316" font-size="12.3" fill="#7a5c00">误诊提醒：选 B（电压低电流小、绕组更安全）方向相反——转矩不足导致电流反而剧增。</text>
+</svg>
