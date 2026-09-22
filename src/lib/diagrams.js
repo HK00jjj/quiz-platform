@@ -1,4 +1,4 @@
-import { DIAGRAM_IDS, imgSpecFile, imgSpecAlt } from './image-map'
+import { DIAGRAM_IDS, imgSpecFile, imgSpecAlt, imgSpecList } from './image-map'
 // 题目配图模板库（已人工目检的 SVG 电气图，唯一正确性源头）
 // 出题时 JSON 的 image 字段只填模板 ID，渲染时由本模块解析为 dataURI，零 base64 入库、零链接失效。
 export const DIAGRAMS = {
@@ -534,5 +534,15 @@ export function diagramTitle(spec) {
 }
 
 
+
+/* 多图渲染入口（2026-09-22，配合「一题配 设备实物图 + 电路图」口径）：
+   一条 spec 可能含多张图（换行分隔，见 image-map.imgSpecList）。
+   返回 [{src, title}, ...]；单图条目返回长度 1 的数组，**向后兼容**既有单图数据。
+   既有 diagramSrc/diagramTitle 保持不变（仍取首条），供未改造的调用方继续使用。 */
+export function diagramList(spec) {
+  return imgSpecList(spec)
+    .map((s) => ({ src: diagramSrc(s), title: diagramTitle(s) }))
+    .filter((x) => x.src)
+}
 
 export { saveImageMap, imageFor, readImageMap, mergeImageMap } from './image-map'

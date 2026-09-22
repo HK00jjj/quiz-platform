@@ -8,7 +8,7 @@ import { burstParticles } from '../components/CandyBoot'
 import { IconReveal, IconScroll, IconRetry, IconSound, IconPause, IconReplay, IconFlag, IconGrid, IconHelp, IconCheck, IconClose } from '../components/CandyIcons'
 import { isObjective, domainLabel, DIFF_CLS } from '../lib/stats'
 import { gradeObjective, blanksOf, splitExpected, stemSpokenOf } from '../lib/validate'
-import { imageFor, diagramSrc, diagramTitle } from '../lib/diagrams'
+import { imageFor, diagramList } from '../lib/diagrams'
 /* 选项随机化用的位置排列（#6）。实现收敛到 lib/util.js（2026-09-11 审查整改：
    此前与 stats/ability/Learn 各写一遍 Fisher-Yates）。 */
 import { shuffledOrder } from '../lib/util.js'
@@ -21,15 +21,20 @@ import { speak, stopSpeak, pauseSpeak, resumeSpeak, unlockSpeech, ttsSupported, 
    借助示意图建立实物/结构/电路概念（覆盖 §38 旧口径「图片只在启封后显示」）。
    spec 两种形态：'file:ill/<id>.svg|说明'（逐题专属配图静态文件）/ 'tpl_xxx'（内置模板）。
    配图内容在设计闸门里强制「不包含答案文本」，答题中展示不构成剧透。 */
+/* 配图卡（2026-09-22 起支持一题多图：设备实物图 + 电路图，见 image-map.imgSpecList）
+   用 Fragment 而非包裹 div：单图题的 DOM 与改造前完全一致，不影响既有 CSS 选择器。 */
 function QFigure({ spec }) {
-  const src = spec ? diagramSrc(spec) : null
-  if (!src) return null
-  const title = diagramTitle(spec)
+  const items = diagramList(spec)
+  if (!items.length) return null
   return (
-    <figure className="q-figure">
-      <img src={src} alt={title || '题目配图'} loading="lazy" />
-      {title && <figcaption>{title}</figcaption>}
-    </figure>
+    <>
+      {items.map((it, i) => (
+        <figure className="q-figure" key={i}>
+          <img src={it.src} alt={it.title || '题目配图'} loading="lazy" />
+          {it.title && <figcaption>{it.title}</figcaption>}
+        </figure>
+      ))}
+    </>
   )
 }
 

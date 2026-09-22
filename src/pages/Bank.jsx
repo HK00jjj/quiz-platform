@@ -9,18 +9,22 @@ import { TYPES, DIFFICULTIES, DIFF_CLS, domainLabel, lastResultMap } from '../li
 import { speak, stopSpeak, unlockSpeech, ttsSupported } from '../lib/tts.js'
 /* 题目配图（2026-09-21 图文结合）：imageFor 走主包轻模块；diagramSrc/diagramTitle
    在懒加载图谱库里（本页本来就是懒 chunk，随包可接受）。 */
-import { imageFor, diagramSrc, diagramTitle } from '../lib/diagrams'
+import { imageFor, diagramList } from '../lib/diagrams'
 
-/* 配图卡（与 Practice 页 QFigure 同款口径，白瓷风） */
+/* 配图卡（与 Practice 页 QFigure 同款口径，白瓷风；2026-09-22 起支持一题多图）
+   用 Fragment 而非包裹 div：单图题的 DOM 与改造前完全一致，不影响既有 CSS 选择器。 */
 function BankFigure({ spec }) {
-  const src = spec ? diagramSrc(spec) : null
-  if (!src) return null
-  const title = diagramTitle(spec)
+  const items = diagramList(spec)
+  if (!items.length) return null
   return (
-    <figure className="q-figure">
-      <img src={src} alt={title || '题目配图'} loading="lazy" />
-      {title && <figcaption>{title}</figcaption>}
-    </figure>
+    <>
+      {items.map((it, i) => (
+        <figure className="q-figure" key={i}>
+          <img src={it.src} alt={it.title || '题目配图'} loading="lazy" />
+          {it.title && <figcaption>{it.title}</figcaption>}
+        </figure>
+      ))}
+    </>
   )
 }
 

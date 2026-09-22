@@ -15,11 +15,23 @@ export const DIAGRAM_IDS = [
    ① 模板型 'tpl_xxx' 或 'tpl_xxx|参数1|参数2' —— 渲染时查 DIAGRAMS 转 dataURI；
    ② 文件型 'file:ill/<题id>.svg|<配图说明>' 或 'file:ill/<题id>.webp|<配图说明>' ——
       指向线上 img/ill/ 静态文件（逐题专属配图，SVG 示意图 / AI 生成压缩图），
-      '|' 后面是配图说明（图题），渲染在 figcaption。两种形态都以 '|' 切首段判定。 */
+      '|' 后面是配图说明（图题），渲染在 figcaption。两种形态都以 '|' 切首段判定。
+   【多图支持 2026-09-22（用户口径：一题配「设备实物图 + 电路图」两张）】：
+     一条映射可用**换行符**承载多条 spec —— 'file:ill/a.jpg|图题A\nfile:ill/b.jpg|图题B'。
+     选换行为分隔符的理由：零 DDL（仍是同一 TEXT 字段）、旧单图条目无需迁移、
+     图题不可能含换行故不会歧义。解析统一走 imgSpecList()。 */
+export function imgSpecList(v) {
+  if (typeof v !== 'string' || !v) return []
+  return v.split(/\r?\n/).map((s) => s.trim()).filter((s) => s && isImgSpec(s))
+}
 export function isImgSpec(v) {
   if (typeof v !== 'string' || !v) return false
-  const head = v.split('|')[0]
-  return DIAGRAM_IDS.includes(head) || head.startsWith('file:ill/')
+  const lines = v.split(/\r?\n/).map((s) => s.trim()).filter(Boolean)
+  if (!lines.length) return false
+  return lines.every((line) => {
+    const head = line.split('|')[0]
+    return DIAGRAM_IDS.includes(head) || head.startsWith('file:ill/')
+  })
 }
 function safeFile(spec) {
   const head = spec.split('|')[0]
