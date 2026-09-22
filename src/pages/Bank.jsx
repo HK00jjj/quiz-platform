@@ -9,7 +9,7 @@ import { TYPES, DIFFICULTIES, DIFF_CLS, domainLabel, lastResultMap } from '../li
 import { speak, stopSpeak, unlockSpeech, ttsSupported } from '../lib/tts.js'
 /* 题目配图（2026-09-21 图文结合）：imageFor 走主包轻模块；diagramSrc/diagramTitle
    在懒加载图谱库里（本页本来就是懒 chunk，随包可接受）。 */
-import { imageFor, diagramList } from '../lib/diagrams'
+import { imageFor, diagramList, diagramSrc } from '../lib/diagrams'
 
 /* 配图卡（与 Practice 页 QFigure 同款口径，白瓷风；2026-09-22 起支持一题多图）
    用 Fragment 而非包裹 div：单图题的 DOM 与改造前完全一致，不影响既有 CSS 选择器。 */
@@ -20,7 +20,7 @@ function BankFigure({ spec }) {
     <>
       {items.map((it, i) => (
         <figure className="q-figure" key={i}>
-          <img src={it.src} alt={it.title || '题目配图'} loading="lazy" />
+          <img src={it.src} alt={it.title || '题目配图'} loading="lazy" decoding="async" />
           {it.title && <figcaption>{it.title}</figcaption>}
         </figure>
       ))}
@@ -28,7 +28,29 @@ function BankFigure({ spec }) {
   )
 }
 
-const PAGE_SIZE = 50
+/* 图片加载优化（2026-09-22）：翻卡才发图请求，GitHub Pages 往返 1~3s 体感慢。
+   改为**页面空闲时预取**当前页全部配图（均值 ~40KB/张，一页 ≤50 张），
+   翻卡时图已在缓存内、立即显示。prefetch 用 <link rel=prefetch> 优先级低，不抢占正文带宽。 */
+function useIdlePrefetch(pageItems) {
+  React.useEffect(() => {
+    const t = setTimeout(() => {
+      for (const it of pageItems) {
+        const spec = imageFor(it.id);
+        if (!spec) continue;
+        for (const one of String(spec).split(/\r?\n/)) {
+          const src = diagramSrc(one);
+          if (!src || document.querySelector('link[href="' + src + '"]')) continue;
+          const l = document.createElement('link');
+          l.rel = 'prefetch'; l.as = 'image'; l.href = src;
+          document.head.appendChild(l);
+        }
+      }
+    }, 2500);
+    return () => clearTimeout(t);
+  }, [pageItems]);
+}
+
+NaN
 
 /* 题库页 · 题库书架 */
 export default function Bank() {
@@ -96,6 +118,7 @@ export default function Bank() {
 
   const pages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const view = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)
+  useIdlePrefetch(view)   // 空闲预取本页配图，翻卡即出图
 
   if (questions.length === 0) {
     return (

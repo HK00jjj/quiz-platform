@@ -30,7 +30,7 @@ function QFigure({ spec }) {
     <>
       {items.map((it, i) => (
         <figure className="q-figure" key={i}>
-          <img src={it.src} alt={it.title || '题目配图'} loading="lazy" />
+          <img src={it.src} alt={it.title || '题目配图'} loading="lazy" decoding="async" />
           {it.title && <figcaption>{it.title}</figcaption>}
         </figure>
       ))}
