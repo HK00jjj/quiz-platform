@@ -50,7 +50,7 @@ function useIdlePrefetch(pageItems) {
   }, [pageItems]);
 }
 
-NaN
+const PAGE_SIZE = 50
 
 /* 题库页 · 题库书架 */
 export default function Bank() {
