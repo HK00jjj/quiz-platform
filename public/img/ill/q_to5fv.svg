@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 360" font-family="'Microsoft YaHei',sans-serif">
+  <rect width="660" height="360" fill="#ffffff"/>
+  <text x="20" y="30" font-size="18" font-weight="bold" fill="#222">电工计算三个主干公式与两个算例</text>
+  <rect x="46" y="48" width="568" height="30" rx="5" fill="#eef2ff" stroke="#2F5FD0" stroke-width="1.3"/>
+  <text x="58" y="68" font-size="12.3" fill="#2F5FD0">欧姆定律　I = U / R</text>
+  <rect x="46" y="84" width="568" height="30" rx="5" fill="#eef2ff" stroke="#2F5FD0" stroke-width="1.3"/>
+  <text x="58" y="104" font-size="12.3" fill="#2F5FD0">单相功率　P = U · I</text>
+  <rect x="46" y="120" width="568" height="30" rx="5" fill="#eef2ff" stroke="#2F5FD0" stroke-width="1.3"/>
+  <text x="58" y="140" font-size="12.3" fill="#2F5FD0">三相功率　P = √3 · U · I · cosφ（比单相多 √3 与功率因数）</text>
+  <rect x="46" y="162" width="278" height="86" rx="8" fill="#fff8ec" stroke="#b8860b" stroke-width="1.4"/>
+  <text x="58" y="184" font-size="12.3" fill="#7a5c00">算例一：220V / 100W 灯泡工作电流</text>
+  <text x="58" y="208" font-size="12.3" fill="#333">I = P / U = 100 / 220 ≈ 0.45 A</text>
+  <text x="58" y="232" font-size="11.5" fill="#777">单相阻性回路，直接用单相功率公式</text>
+  <rect x="336" y="162" width="278" height="86" rx="8" fill="#e9f5ec" stroke="#2a7a2a" stroke-width="1.4"/>
+  <text x="348" y="184" font-size="12.3" fill="#2a7a2a">算例二：380V 三相 5.5kW 电机额定电流</text>
+  <text x="348" y="208" font-size="12.3" fill="#333">按每 kW 约 2A 口诀：5.5kW ≈ 11 A</text>
+  <text x="348" y="232" font-size="11.5" fill="#777">口诀只用于快速估算，以铭牌为准</text>
+  <rect x="30" y="258" width="600" height="82" rx="8" fill="#fff8ec" stroke="#b8860b" stroke-width="1.5"/>
+  <text x="46" y="280" font-size="12.3" fill="#7a5c00">口诀估算是「先估后校」：估出 11A 后，可用钳形表实测校准，最终以电机铭牌值为准。</text>
+  <text x="46" y="301" font-size="12.3" fill="#7a5c00">误诊提醒：把单相与三相公式混用（三相少了 √3 与 cosφ），电流与功率会整体算错。</text>
+</svg>

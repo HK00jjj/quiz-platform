@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 360" font-family="'Microsoft YaHei',sans-serif">
+  <rect width="660" height="360" fill="#ffffff"/>
+  <text x="20" y="30" font-size="18" font-weight="bold" fill="#222">现场排查顺序：先带电电压档初判，再断电电阻档定位（正解 A）</text>
+  <rect x="46" y="48" width="568" height="30" rx="5" fill="#fff8ec" stroke="#b8860b" stroke-width="1.3"/>
+  <text x="58" y="68" font-size="12.3" fill="#7a5c00">① 带电用电压档沿回路逐点测电压，找到「无电压」的分界点</text>
+  <rect x="46" y="84" width="568" height="30" rx="5" fill="#fafafa" stroke="#999" stroke-width="1.3"/>
+  <text x="58" y="104" font-size="12.3" fill="#555">② 故障范围即缩小到两个测点之间</text>
+  <rect x="46" y="120" width="568" height="30" rx="5" fill="#fafafa" stroke="#999" stroke-width="1.3"/>
+  <text x="58" y="140" font-size="12.3" fill="#555">③ 断电后用电阻档测通断与接触电阻，定位到具体元件或接点</text>
+  <rect x="46" y="162" width="568" height="52" rx="8" fill="#eef2ff" stroke="#2F5FD0" stroke-width="1.4"/>
+  <text x="58" y="182" font-size="12.3" fill="#2F5FD0">物理根源：电压档测两点间电位差，可带电直读；电阻档由表内电池供电，测的是断电</text>
+  <text x="58" y="202" font-size="12.3" fill="#2F5FD0">回路的通断与阻值——这是两种测法一切分工的来源。</text>
+  <rect x="46" y="228" width="568" height="30" rx="5" fill="#fdecec" stroke="#c33" stroke-width="1.3"/>
+  <text x="58" y="248" font-size="12.3" fill="#c33">✗B 直接断电拆线逐段测：盲目拆线，效率低且易扩大故障面</text>
+  <rect x="46" y="264" width="568" height="30" rx="5" fill="#fdecec" stroke="#c33" stroke-width="1.3"/>
+  <text x="58" y="284" font-size="12.3" fill="#c33">✗C 带电用电阻档：表内电池与外部电压叠加，烧表风险</text>
+</svg>

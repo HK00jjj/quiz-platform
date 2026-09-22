@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 400" font-family="'Microsoft YaHei',sans-serif">
+  <rect width="660" height="400" fill="#ffffff"/>
+  <text x="20" y="30" font-size="17.5" fill="#222" font-weight="bold">NPN 低电平有效：1M 必须接 +24V</text>
+  <rect x="34" y="48" width="300" height="180" rx="10" fill="#e9f5ec" stroke="#2a7a2a" stroke-width="1.8"/>
+  <text x="184" y="72" font-size="13" fill="#2a7a2a" font-weight="bold" text-anchor="middle">✓ 正解 D：1M 接 +24V</text>
+  <text x="52" y="96" font-size="12.3" fill="#333">NPN 动作时把信号线拉向 0V</text>
+  <text x="52" y="118" font-size="12.3" fill="#333">电流路径：+24V → 输入点 → 信号线</text>
+  <text x="52" y="140" font-size="12.3" fill="#333">→ 开关内部 → 0V（构成回路）</text>
+  <rect x="64" y="152" width="240" height="34" rx="10" fill="#eef2ff" stroke="#2F5FD0" stroke-width="1.8"/>
+  <text x="184" y="174" font-size="13" fill="#2F5FD0" font-weight="bold" text-anchor="middle">公共端必须站在另一端</text>
+  <text x="52" y="202" font-size="11.5" fill="#777">输入光耦点亮 = 回路导通有电流</text>
+
+  <rect x="348" y="48" width="278" height="180" rx="10" fill="#fdecec" stroke="#c33" stroke-width="1.8"/>
+  <text x="487" y="72" font-size="13" fill="#c33" font-weight="bold" text-anchor="middle">其余接法为什么错</text>
+  <text x="364" y="96" font-size="12.3" fill="#333">A 1M 接 0V：与 NPN 同侧，无回路</text>
+  <text x="364" y="116" font-size="12.3" fill="#333">B 1M 悬空：光耦无电流通路</text>
+  <text x="364" y="136" font-size="12.3" fill="#333">C 1M 接 PE：保护地不作信号回路</text>
+  <text x="364" y="160" font-size="12" fill="#c33">PNP 与 NPN 的公共端方向相反</text>
+  <text x="364" y="182" font-size="11.5" fill="#777">PNP 输出高电平 → 公共端接 0V</text>
+  <text x="364" y="202" font-size="11.5" fill="#777">换传感器类型必须重接公共端</text>
+
+  <rect x="34" y="242" width="592" height="84" rx="10" fill="#fafafa" stroke="#888" stroke-width="1.8"/>
+  <text x="50" y="264" font-size="12.5" fill="#555" font-weight="bold">判据：先确定传感器输出电平方向，再让公共端站在另一侧</text>
+  <text x="50" y="286" font-size="12.3" fill="#333">低电平有效（NPN）→ 1M 接 +24V ｜ 高电平有效（PNP）→ 1M 接 0V</text>
+  <text x="50" y="308" font-size="11.5" fill="#777">S7-200 SMART 的 1M 是这一组输入点的公共端，接错整组都不响应</text>
+  <rect x="30" y="336" width="600" height="50" rx="8" fill="#fff8ec" stroke="#b8860b" stroke-width="1.5"/>
+  <text x="46" y="358" font-size="12.3" fill="#7a5c00">记忆：NPN 拉低 → 1M 接 +24V；PNP 拉高 → 1M 接 0V。公共端站在输出电平的另一侧。</text>
+  <text x="46" y="379" font-size="12.3" fill="#7a5c00">误诊提醒：把公共端当保护地接 PE，回路根本不通。</text>
+</svg>

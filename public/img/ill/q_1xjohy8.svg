@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 400" font-family="'Microsoft YaHei',sans-serif">
+  <rect width="660" height="400" fill="#ffffff"/>
+  <text x="20" y="30" font-size="17.5" fill="#222" font-weight="bold">输出灯已亮：故障锁定在灯之后到负载之间</text>
+  <rect x="34" y="52" width="592" height="76" rx="10" fill="#fafafa" stroke="#888" stroke-width="1.8"/>
+  <text x="50" y="74" font-size="12.3" fill="#555">信号流：程序执行 → 输出模块 → 输出指示灯 → 公共端 → 输出端子 → 负载线圈</text>
+  <rect x="56" y="86" width="92" height="30" rx="10" fill="#e9f5ec" stroke="#2a7a2a" stroke-width="1.8"/>
+  <text x="102" y="106" font-size="12" fill="#2a7a2a" text-anchor="middle">程序已执行</text>
+  <rect x="160" y="86" width="92" height="30" rx="10" fill="#e9f5ec" stroke="#2a7a2a" stroke-width="1.8"/>
+  <text x="206" y="106" font-size="12" fill="#2a7a2a" text-anchor="middle">模块已动作</text>
+  <rect x="264" y="86" width="92" height="30" rx="10" fill="#e9f5ec" stroke="#2a7a2a" stroke-width="1.8"/>
+  <text x="310" y="106" font-size="12" fill="#2a7a2a" text-anchor="middle">灯亮（已确认）</text>
+  <rect x="368" y="86" width="116" height="30" rx="10" fill="#fdecec" stroke="#c33" stroke-width="1.8"/>
+  <text x="426" y="106" font-size="12" fill="#c33" text-anchor="middle">灯之后：待查</text>
+  <rect x="496" y="86" width="116" height="30" rx="10" fill="#fdecec" stroke="#c33" stroke-width="1.8"/>
+  <text x="554" y="106" font-size="12" fill="#c33" text-anchor="middle">负载线圈</text>
+
+  <rect x="34" y="142" width="286" height="176" rx="10" fill="#fdecec" stroke="#c33" stroke-width="1.8"/>
+  <text x="177" y="166" font-size="13" fill="#c33" font-weight="bold" text-anchor="middle">可能原因（都在灯之后）</text>
+  <text x="50" y="190" font-size="12.3" fill="#333">A 负载线圈（继电器/接触器）损坏</text>
+  <text x="50" y="212" font-size="12.3" fill="#333">B 输出端子接线松脱</text>
+  <text x="50" y="234" font-size="12.3" fill="#333">C 公共端保险熔断或公共电源缺失</text>
+  <text x="50" y="260" font-size="12" fill="#2a7a2a">查法：沿回路逐级量电压</text>
+  <text x="50" y="282" font-size="11.5" fill="#777">哪一级电压丢失，故障点就在该级</text>
+  <text x="50" y="302" font-size="11.5" fill="#777">灯亮已经把前两级排除掉了</text>
+
+  <rect x="334" y="142" width="292" height="176" rx="10" fill="#e9f5ec" stroke="#2a7a2a" stroke-width="1.8"/>
+  <text x="480" y="166" font-size="13" fill="#2a7a2a" font-weight="bold" text-anchor="middle">✓ 最不可能：D 输入滤波参数</text>
+  <text x="350" y="190" font-size="12.3" fill="#333">输入滤波影响的是输入采样响应</text>
+  <text x="350" y="212" font-size="12.3" fill="#333">它作用在信号链的「输入侧」</text>
+  <text x="350" y="234" font-size="12.3" fill="#333">与输出侧现象无因果关系</text>
+  <text x="350" y="260" font-size="12" fill="#c33">典型错法：不看信号流方向乱猜</text>
+  <text x="350" y="282" font-size="11.5" fill="#777">先按灯亮把范围一分为二，再逐级量</text>
+  <text x="350" y="302" font-size="11.5" fill="#777">本题问「最不可能」，选与现象无关项</text>
+  <rect x="30" y="330" width="600" height="56" rx="8" fill="#fff8ec" stroke="#b8860b" stroke-width="1.5"/>
+  <text x="46" y="352" font-size="12.3" fill="#7a5c00">记忆：输出灯亮 = 程序与模块已正常，故障必在灯之后；沿回路逐级量电压定位。</text>
+  <text x="46" y="373" font-size="12.3" fill="#7a5c00">误诊提醒：把输入侧参数（滤波、采样）当成输出故障原因，是典型的方向性错误。</text>
+</svg>

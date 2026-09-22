@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 400" font-family="'Microsoft YaHei',sans-serif">
+  <rect width="660" height="400" fill="#ffffff"/>
+  <text x="20" y="30" font-size="17.5" fill="#222" font-weight="bold">三相 380V 电机额定电流估算：一个千瓦两安培</text>
+  <rect x="34" y="48" width="300" height="150" rx="10" fill="#fafafa" stroke="#888" stroke-width="1.8"/>
+  <text x="184" y="72" font-size="13" fill="#555" font-weight="bold" text-anchor="middle">口诀与换算</text>
+  <rect x="58" y="84" width="252" height="40" rx="10" fill="#eef2ff" stroke="#2F5FD0" stroke-width="1.8"/>
+  <text x="184" y="109" font-size="16" fill="#2F5FD0" font-weight="bold" text-anchor="middle">1 kW  ≈  2 A</text>
+  <text x="58" y="148" font-size="12.3" fill="#333">例：7.5 kW → 约 15 A</text>
+  <text x="58" y="170" font-size="12.3" fill="#333">22 kW → 约 44 A</text>
+  <text x="58" y="190" font-size="11.5" fill="#777">牺牲精度换速度，只做现场估算</text>
+
+  <rect x="348" y="48" width="278" height="150" rx="10" fill="#e9f5ec" stroke="#2a7a2a" stroke-width="1.8"/>
+  <text x="487" y="72" font-size="13" fill="#2a7a2a" font-weight="bold" text-anchor="middle">✓ 正解 D：一个千瓦两安培</text>
+  <text x="364" y="96" font-size="12.3" fill="#333">A 十安培：把单相口诀套到三相</text>
+  <text x="364" y="116" font-size="12.3" fill="#333">C 零点五安培：量级差一个数量级</text>
+  <text x="364" y="136" font-size="12.3" fill="#333">B 与功率无关：否定了换算本身</text>
+  <text x="364" y="160" font-size="12" fill="#2a7a2a">整定：热继按实测或铭牌值约 1.1 倍</text>
+  <text x="364" y="182" font-size="12" fill="#c33">铭牌额定电流优先于任何估算</text>
+
+  <rect x="34" y="212" width="592" height="74" rx="10" fill="#fdecec" stroke="#c33" stroke-width="1.8"/>
+  <text x="50" y="234" font-size="12.5" fill="#c33" font-weight="bold">估算值的正确位置</text>
+  <text x="50" y="256" font-size="12.3" fill="#333">现场无铭牌时用口诀做预案 → 用钳形表卡单根相线实测 → 按实测值整定热继</text>
+  <text x="50" y="276" font-size="11.5" fill="#777">把估算值当整定值直接写入，是最常见的错法（精度不足以承担保护整定）</text>
+  <rect x="30" y="300" width="600" height="84" rx="8" fill="#fff8ec" stroke="#b8860b" stroke-width="1.5"/>
+  <text x="46" y="322" font-size="12.3" fill="#7a5c00">记忆：三相三百八，一个千瓦两安培；7.5kW 约 15A。热继整定按实测或铭牌额定值约 1.1 倍，</text>
+  <text x="46" y="343" font-size="12.3" fill="#7a5c00">估算只能做预案。</text>
+  <text x="46" y="364" font-size="12.3" fill="#7a5c00">误诊提醒：单相 220V 与三相 380V 口诀不同，混用会差出一倍以上的量级。</text>
+</svg>

@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 400" font-family="'Microsoft YaHei',sans-serif">
+  <rect width="660" height="400" fill="#ffffff"/>
+  <text x="20" y="30" font-size="17.5" fill="#222" font-weight="bold">整流二极管校核四参数：IFM、URM、IR、fM</text>
+  <rect x="34" y="48" width="300" height="196" rx="10" fill="#e9f5ec" stroke="#2a7a2a" stroke-width="1.8"/>
+  <text x="184" y="72" font-size="13" fill="#2a7a2a" font-weight="bold" text-anchor="middle">✓ 必须校核（ABCD）</text>
+  <text x="52" y="96" font-size="12.3" fill="#333">A IFM 最大整流电流：大于长期平均</text>
+  <text x="52" y="116" font-size="12.3" fill="#333">正向电流，不足则结温超限烧毁</text>
+  <text x="52" y="138" font-size="12.3" fill="#333">B URM 最高反向工作电压：大于实际</text>
+  <text x="52" y="158" font-size="12.3" fill="#333">承受的最大反向峰值，否则击穿</text>
+  <text x="52" y="182" font-size="12.3" fill="#333">C IR 反向饱和电流：高温漏电水平</text>
+  <text x="52" y="202" font-size="12.3" fill="#333">D fM 最高工作频率：开关能否跟上</text>
+  <text x="52" y="226" font-size="11.5" fill="#777">两条主线：正向通流 + 反向耐压</text>
+
+  <rect x="348" y="48" width="278" height="196" rx="10" fill="#fdecec" stroke="#c33" stroke-width="1.8"/>
+  <text x="480" y="72" font-size="13" fill="#c33" font-weight="bold" text-anchor="middle">✗ E 不是整流管参数</text>
+  <text x="364" y="96" font-size="12.3" fill="#333">IGT 门极触发电流是晶闸管的参数</text>
+  <text x="364" y="118" font-size="12.3" fill="#333">整流二极管没有门极，谈不上触发</text>
+  <text x="364" y="144" font-size="12" fill="#c33">错法：把电力电子器件参数张冠李戴</text>
+  <rect x="364" y="156" width="246" height="34" rx="10" fill="#fff8ec" stroke="#b8860b" stroke-width="1.8"/>
+  <text x="487" y="178" font-size="12.5" fill="#7a5c00" font-weight="bold" text-anchor="middle">器件类别先分清：二极管 / 晶闸管</text>
+  <text x="364" y="206" font-size="11.5" fill="#777">桥式整流四个臂承受的最大反向电压</text>
+  <text x="364" y="226" font-size="11.5" fill="#777">按变压器二次侧峰值取，不是有效值</text>
+
+  <rect x="34" y="258" width="592" height="58" rx="10" fill="#eef2ff" stroke="#2F5FD0" stroke-width="1.8"/>
+  <text x="50" y="280" font-size="12.3" fill="#333">选型顺序：先按负载电流定 IFM → 再按电路拓扑定 URM → 校核 IR 与 fM</text>
+  <text x="50" y="300" font-size="11.5" fill="#777">URM 取值留裕量：按最大反向峰值再乘安全系数</text>
+  <rect x="30" y="328" width="600" height="58" rx="8" fill="#fff8ec" stroke="#b8860b" stroke-width="1.5"/>
+  <text x="46" y="350" font-size="12.3" fill="#7a5c00">记忆：正向电流 IFM、反向耐压 URM、反向漏电 IR、最高频率 fM；IGT 属晶闸管。</text>
+  <text x="46" y="371" font-size="12.3" fill="#7a5c00">误诊提醒：把 URM 按有效值取，会低估反向峰值而击穿。</text>
+</svg>

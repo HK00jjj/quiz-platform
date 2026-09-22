@@ -1,20 +1,28 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 400" font-family="'Microsoft YaHei',sans-serif">
   <rect width="660" height="400" fill="#ffffff"/>
-  <text x="20" y="30" font-size="18" font-weight="bold" fill="#222">接触器使用类别：AC-3 对应笼型电动机的起动与运行中分断</text>
-  <rect x="46" y="48" width="568" height="30" rx="5" fill="#e9f5ec" stroke="#2a7a2a" stroke-width="1.3"/>
-  <text x="58" y="68" font-size="12.3" fill="#2a7a2a">AC-1　纯阻性负载通断（如电加热回路）——选项 B</text>
-  <rect x="46" y="84" width="568" height="30" rx="5" fill="#fafafa" stroke="#999" stroke-width="1.3"/>
-  <text x="58" y="104" font-size="12.3" fill="#555">AC-2　绕线转子电动机的起动与分断</text>
-  <rect x="46" y="120" width="568" height="30" rx="5" fill="#fff8ec" stroke="#b8860b" stroke-width="1.3"/>
-  <text x="58" y="140" font-size="12.3" fill="#7a5c00">AC-3　★笼型电动机起动、运行中分断（正解 A）</text>
-  <rect x="46" y="156" width="568" height="30" rx="5" fill="#fdecec" stroke="#c33" stroke-width="1.3"/>
-  <text x="58" y="176" font-size="12.3" fill="#c33">AC-4　点动、反接制动等频繁严酷操作——选项 C</text>
-  <rect x="46" y="192" width="568" height="30" rx="5" fill="#fafafa" stroke="#999" stroke-width="1.3"/>
-  <text x="58" y="212" font-size="12.3" fill="#555">AC-6b　容性负载通断（电容器组投切）——选项 D</text>
-  <rect x="46" y="232" width="568" height="66" rx="8" fill="#eef2ff" stroke="#2F5FD0" stroke-width="1.4"/>
-  <text x="58" y="252" font-size="12.3" fill="#2F5FD0">为什么 AC-3 电寿命高：接通电流大（5~7 倍），但分断时电机已接近额定转速、</text>
-  <text x="58" y="272" font-size="12.3" fill="#2F5FD0">电流接近额定值，触头烧蚀轻；AC-4 每次分断都切断数倍额定电流，电寿命仅为其几分之一。</text>
-  <rect x="30" y="308" width="600" height="76" rx="8" fill="#fff8ec" stroke="#b8860b" stroke-width="1.5"/>
-  <text x="46" y="330" font-size="12.3" fill="#7a5c00">使用类别描述「分断多大电流、多频繁」：电流越大越频繁 → 触头烧蚀越快 → 允许动作次数越低。</text>
-  <text x="46" y="351" font-size="12.3" fill="#7a5c00">误诊提醒：把 AC-1（阻性）套到 AC-3（选 B 错）；把 AC-4 严酷工况当普通起动（选 C 错）。</text>
+  <text x="20" y="30" font-size="17.5" fill="#222" font-weight="bold">接触器使用类别 AC-3：笼型电机启动与运行中分断</text>
+  <rect x="34" y="48" width="592" height="54" rx="10" fill="#fafafa" stroke="#888" stroke-width="1.8"/>
+  <text x="50" y="70" font-size="12.3" fill="#555">使用类别描述「要分断多大的电流」，本质是电寿命折算系数</text>
+  <text x="50" y="90" font-size="11.5" fill="#777">分断电流越大越频繁 → 触头烧蚀越快 → 允许动作次数越低</text>
+
+  <rect x="34" y="114" width="286" height="130" rx="10" fill="#e9f5ec" stroke="#2a7a2a" stroke-width="1.8"/>
+  <text x="177" y="138" font-size="13" fill="#2a7a2a" font-weight="bold" text-anchor="middle">✓ A：AC-3</text>
+  <text x="50" y="162" font-size="12.3" fill="#333">接通时 5~7 倍额定电流</text>
+  <text x="50" y="184" font-size="12.3" fill="#333">分断时电机已接近额定转速</text>
+  <text x="50" y="206" font-size="12.3" fill="#333">分断电流接近额定值</text>
+  <text x="50" y="228" font-size="12" fill="#2a7a2a">分断负担轻，电寿命高</text>
+
+  <rect x="334" y="114" width="292" height="130" rx="10" fill="#fdecec" stroke="#c33" stroke-width="1.8"/>
+  <text x="480" y="138" font-size="13" fill="#c33" font-weight="bold" text-anchor="middle">其余类别对照</text>
+  <text x="350" y="162" font-size="12.3" fill="#333">AC-1 纯阻性（电加热）——B 项</text>
+  <text x="350" y="184" font-size="12.3" fill="#333">AC-4 点动、反接制动——C 项</text>
+  <text x="350" y="206" font-size="12.3" fill="#333">电容性负载投切——D 项</text>
+  <text x="350" y="228" font-size="11.5" fill="#777">C 属严酷工况，每次分断都切数倍电流</text>
+
+  <rect x="34" y="256" width="592" height="60" rx="10" fill="#fff8ec" stroke="#b8860b" stroke-width="1.8"/>
+  <text x="50" y="278" font-size="12.3" fill="#7a5c00">选型判据：按负载类型与使用类别选，不是只看额定电流</text>
+  <text x="50" y="298" font-size="11.5" fill="#777">把 AC-3 的接触器用到 AC-4 工况，电寿命会断崖式下降</text>
+  <rect x="30" y="328" width="600" height="58" rx="8" fill="#fff8ec" stroke="#b8860b" stroke-width="1.5"/>
+  <text x="46" y="350" font-size="12.3" fill="#7a5c00">记忆：AC-1 阻性、AC-3 笼型电机启停、AC-4 点动与反接制动。</text>
+  <text x="46" y="371" font-size="12.3" fill="#7a5c00">误诊提醒：只比对额定电流而忽略使用类别，是最典型的选型错法。</text>
 </svg>
