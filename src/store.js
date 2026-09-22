@@ -6,7 +6,7 @@ import { newCard, reviewCard } from './lib/fsrs'
 import { fmtDate } from './lib/dates'
 import { buildSession, expandTriple, filtersKey, isObjective } from './lib/stats'
 import { classifyImport, parseBackup, parseBank, gradeObjective, assignGlobalSeq, dropNormalizedDupes, validBookMap, normalizeBookMap } from './lib/validate'
-import { saveImageMap, mergeImageMap } from './lib/image-map'
+import { saveImageMap, mergeImageMap, pruneImageMap } from './lib/image-map'
 import { idbGet, idbSet } from './lib/idbcache'
 
 const RESUME_KEY = 'quiz-platform.resume.v1'
@@ -266,6 +266,7 @@ async function reloadAll(opts = {}) {
       const imgJson = JSON.stringify(data.imgMap)
       if (imgJson !== lastImgMapJson) {
         mergeImageMap(data.imgMap)
+        pruneImageMap(data.imgMap)   // 清理本地已退役的 file 型影子条目（防破图+旧图题残留）
         lastImgMapJson = imgJson
       }
     }

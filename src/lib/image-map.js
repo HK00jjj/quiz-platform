@@ -67,6 +67,25 @@ export function readImageMap() {
   try { return JSON.parse(localStorage.getItem(IMG_MAP_KEY) || '{}') } catch { return {} }
 }
 
+/* 影子清理（2026-09-22）：云端 imgmap 是 file 型 spec 的唯一权威源。
+   只增不删的 merge 会让「已退役映射」永远留在本地 → 用户端持续显示破图 + 旧图题
+   （实测：q_2msoxu 退役后用户端仍显示破图 + 「（正解 B）」泄露图题）。
+   规则：本地 file:ill/ 型条目若不在云端映射中 → 删除；tpl_* 模板条目不受影响；
+   云端映射为空（拉取降级）时不清理，防误删。 */
+export function pruneImageMap(cloudMap) {
+  if (!cloudMap || typeof cloudMap !== 'object' || !Object.keys(cloudMap).length) return
+  try {
+    const map = readImageMap()
+    let pruned = 0
+    for (const k of Object.keys(map)) {
+      const v = map[k]
+      if (typeof v !== 'string' || v.split(/\r?\n/).every((l) => !l.startsWith('file:ill/'))) continue
+      if (!(k in cloudMap)) { delete map[k]; pruned++ }
+    }
+    if (pruned) localStorage.setItem(IMG_MAP_KEY, JSON.stringify(map))
+  } catch { /* ignore */ }
+}
+
 export function mergeImageMap(extra) {
   if (!extra || typeof extra !== 'object') return
   try {
