@@ -10,8 +10,10 @@ import { isObjective, domainLabel, DIFF_CLS } from '../lib/stats'
 import { gradeObjective, blanksOf, splitExpected, stemSpokenOf } from '../lib/validate'
 import { imageFor, diagramList } from '../lib/diagrams'
 /* 选项随机化用的位置排列（#6）。实现收敛到 lib/util.js（2026-09-11 审查整改：
-   此前与 stats/ability/Learn 各写一遍 Fisher-Yates）。 */
-import { shuffledOrder } from '../lib/util.js'
+   此前与 stats/ability/Learn 各写一遍 Fisher-Yates）。
+   v7.5（2026-09-22）：解析字母重映射也收敛到 util.js（remapOptionLetters），
+   屏幕渲染与 TTS 播报共用同源实现。 */
+import { shuffledOrder, remapOptionLetters } from '../lib/util.js'
 /* 解析语音播报（2026-09-13 增量）：启封自动朗读解析，🔊 一键可关，语速 1.25。
    2026-09-15 增量（用户钦定）：题卡到手自动读【题干】，选项不读——同一个 🔊 开关
    管两段（答题中读题干、揭晓后读答案+解析），各自有「已读」闸互不挤占。 */
@@ -81,7 +83,8 @@ function Expl({ text }) {
 
 /* ── 解析播报文本组装（纯函数，2026-09-13）──
    与屏幕同源：选择题答案/解析里的选项字母都按洗牌后的【显示字母】重映射
-   （同 remapExplLetters 的两步正则），朗读出来的「选B」与屏幕上的 B 一致。
+   （v7.5 起与 remapExplLetters 共用 util.js 的单遍扫描重映射 remapOptionLetters），
+   朗读出来的「选B」与屏幕上的 B 一致。
    order 必须传本帧渲染用的洗牌序（shuffleRef.current），不能重掷。 */
 function spokenOf(q, lastGrade, order) {
   const isChoice = q.type === '单选题' || q.type === '多选题'
@@ -92,13 +95,7 @@ function spokenOf(q, lastGrade, order) {
     dispMap[orig] = 'ABCDE'[pos]
   })
   const mapLetters = (s) => String(s ?? '').split('').map((c) => dispMap[c] ?? c).join('')
-  const remap = (t) => {
-    const s = String(t ?? '')
-    if (!isChoice || !Object.keys(dispMap).length) return s
-    return s
-      .replace(/(选|选项|答案)\s*([A-E])/g, (m, p, L) => p + (dispMap[L] ?? L))
-      .replace(/(?<![A-Za-z0-9.])([A-E])(?=项)/g, (m, L) => dispMap[L] ?? L)
-  }
+  const remap = (t) => remapOptionLetters(t, dispMap)
   const ans = isChoice ? mapLetters(lastGrade ? lastGrade.expected : q.answer)
     : q.type === '填空题' && lastGrade?.expectedParts
       ? lastGrade.expectedParts.map((p, i) => lastGrade.expectedParts.length > 1 ? `第${i + 1}空：${p}` : p).join('　')
@@ -570,20 +567,16 @@ export default function Practice() {
   /* 展示给用户的答案：选择题把原始字母换算成洗牌后的字母；填空题多空时逐空列出，
      比原来一串逗号好读。注意这里用 lastGrade 而不是下面才声明的 grade（const 有 TDZ，会整页崩溃）。 */
   const mapLetters = (s) => String(s ?? '').split('').map((c) => origToDisp[c] ?? c).join('')
-  /* v6.8 解析字母重映射（用户报障"题目与选项存在对不上"的根因修复）：
-     练习页选项经 shuffledOrder 洗牌展示，而【题库解析】里的"选B者误以为…""故选项C…"
-     用的是**命题时的原始字母**，过去原样渲染 → 用户按屏幕上的字母去对，对上的却是另一项。
-     这里把解析文本中的选项指代同步换算为洗牌后的字母。
-     限定范围：只重映射紧跟在 选 / 选项 / 答案 之后、或紧邻"项"字的 A~E 单字母，
-     绝不逐字符替换——否则 I0.0、AC-3、K1、DC24V、380V 这类技术符号会被误伤。
-     非选择题（optItems 为空 → origToDisp 为 {}）时本函数等价于恒等变换。 */
-  const remapExplLetters = (text) => {
-    const s = String(text ?? '')
-    if (!isChoice || !Object.keys(origToDisp).length) return s
-    return s
-      .replace(/(选|选项|答案)\s*([A-E])/g, (m, p, L) => p + (origToDisp[L] ?? L))
-      .replace(/(?<![A-Za-z0-9.])([A-E])(?=项)/g, (m, L) => origToDisp[L] ?? L)
-  }
+  /* v7.5 解析字母重映射升级（2026-09-22 · 用户报障"正确答案已跟随随机顺序变化，
+     解析仍固定显示原始字母"）：旧 v6.8 只覆盖「选B / 选项C / 答案D / D项」四种紧邻句式，
+     「正确选项为 AB」（带连接词）与「选 AB」多字母组合全部漏映射——正是截图场景；
+     「A正确」「（A对）」「A可行」「E描述的」等裸字母判动句式也未覆盖。
+     现收敛到 util.js 的单遍扫描实现 remapOptionLetters（五类句式一次扫描，
+     杜绝先后规则对同一字母二次映射；选项、正确答案、解析三者始终对应一致）。
+     技术符号守卫见 util.js 注释（Icu/Ics、O—C、A相/B级/A点/A端、AC/DC、3A/5A、
+     记为A、B、C、数字量D/模拟量A 等全部原样保留，500 条真实解析 + 21 条夹具实测零误伤）。
+     非选择题（optItems 为空 → origToDisp 为 {}）时等价恒等变换。 */
+  const remapExplLetters = (text) => remapOptionLetters(text, origToDisp)
   const shownAnswer = !objective ? q.answer
     : isChoice ? mapLetters(lastGrade ? lastGrade.expected : q.answer)
       : q.type === '填空题' && lastGrade?.expectedParts
