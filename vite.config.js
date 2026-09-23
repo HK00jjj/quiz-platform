@@ -1,6 +1,6 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import { copyFileSync, writeFileSync, readdirSync, readFileSync } from 'node:fs'
+import { copyFileSync, writeFileSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { resolve } from 'node:path'
 
 /* GitHub Pages 的 SPA fallback（2026-09-11 审查整改）：
@@ -117,9 +117,16 @@ const swPrecache = () => {
       for (const m of html.matchAll(/(?:src|href)="([^"]+assets\/[^"]+)"/g)) {
         precache.add(m[1].replace(/^\/quiz-platform\//, '').replace(/^\.?\//, ''))
       }
-      /* dist/img 由 purge-dist.mjs 保证只含被引用素材，整目录入清单 */
+      /* dist/img 由 purge-dist.mjs 保证只含被引用素材，整目录入清单。
+         2026-09-23 修复：只收**文件**——原写法不判 isFile，子目录名（如清空后的 img/ill）
+         会混进 PRECACHE，安装期 c.add 对目录 URL 必 404（单项 catch 吞掉不致命，但
+         每次装 SW 白打一发 404 请求）。img/ill 子树内的逐题配图不进 precache，
+         沿用「运行时按需缓存」通路（fetch 段 ASSET_RE 命中即入库）。 */
       try {
-        for (const n of readdirSync(resolve(out, 'img'))) precache.add('img/' + n)
+        const imgDir = resolve(out, 'img')
+        for (const n of readdirSync(imgDir)) {
+          if (statSync(resolve(imgDir, n)).isFile()) precache.add('img/' + n)
+        }
       } catch { /* 无 img 目录则跳过 */ }
       const cacheName = 'qp-static-' + new Date().toISOString().replace(/[-:.TZ]/g, '').slice(0, 14)
       writeFileSync(resolve(out, 'sw.js'), swTemplate(cacheName, [...precache].sort()))
