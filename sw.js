@@ -1,9 +1,9 @@
 
 /* 由 vite 构建 sw-precache 插件生成——勿手改，每次构建整体重写。
    清单=7 项（当前 index.html 引用集 + shell + dist/img）。 */
-const CACHE = "qp-static-20260922084842"
+const CACHE = "qp-static-20260923061006"
 const SCOPE = self.registration.scope
-const PRECACHE = ["assets/index-BpXS9i4r.js","assets/index-D64CG8PS.css","favicon.svg","img/ill","img/p38-1.webp","img/p38-2.webp","index.html"]
+const PRECACHE = ["assets/index-D64CG8PS.css","assets/index-Rf0iKyy2.js","favicon.svg","img/ill","img/p38-1.webp","img/p38-2.webp","index.html"]
 const ASSET_RE = /\.(?:js|css|webp|svg|png|jpe?g|ico|woff2?)$/
 
 self.addEventListener('install', (e) => {
