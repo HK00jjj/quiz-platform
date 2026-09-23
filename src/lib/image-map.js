@@ -67,20 +67,25 @@ export function readImageMap() {
   try { return JSON.parse(localStorage.getItem(IMG_MAP_KEY) || '{}') } catch { return {} }
 }
 
-/* 影子清理（2026-09-22）：云端 imgmap 是 file 型 spec 的唯一权威源。
-   只增不删的 merge 会让「已退役映射」永远留在本地 → 用户端持续显示破图 + 旧图题
-   （实测：q_2msoxu 退役后用户端仍显示破图 + 「（正解 B）」泄露图题）。
-   规则：本地 file:ill/ 型条目若不在云端映射中 → 删除；tpl_* 模板条目不受影响；
-   云端映射为空（拉取降级）时不清理，防误删。 */
+/* 影子清理（2026-09-22；2026-09-23 修复「权威空漏清」——用户实测全量清空后破图+旧图题残留）：
+   云端 imgmap 是 file 型 spec 的唯一权威源。只增不删的 merge 会让「已退役映射」
+   永远留在本地 → 用户端持续显示破图 + 旧图题（实测：q_2msoxu 退役后用户端仍显示
+   破图 + 「（正解 B）」泄露图题）。
+   规则：本地 file:ill/ 型条目若不在云端映射中 → 删除；tpl_* 模板条目不受影响。
+   【降级 vs 权威空的区分（本次修复点）】null/undefined = 拉取降级（db.js loadAll
+   的 catch 路径，store.js 的 if(data.imgMap) 已先行拦截）→ 不清理，防误删；
+   显式 {} = 云端权威空（行存在但映射被清空，如 2026-09-23 全量清除配图）→
+   清空全部本地 file 型条目。原写法把 {} 与降级混为一谈，权威空永远清不到。 */
 export function pruneImageMap(cloudMap) {
-  if (!cloudMap || typeof cloudMap !== 'object' || !Object.keys(cloudMap).length) return
+  if (!cloudMap || typeof cloudMap !== 'object') return
   try {
     const map = readImageMap()
+    const cloudEmpty = !Object.keys(cloudMap).length
     let pruned = 0
     for (const k of Object.keys(map)) {
       const v = map[k]
       if (typeof v !== 'string' || v.split(/\r?\n/).every((l) => !l.startsWith('file:ill/'))) continue
-      if (!(k in cloudMap)) { delete map[k]; pruned++ }
+      if (cloudEmpty || !(k in cloudMap)) { delete map[k]; pruned++ }
     }
     if (pruned) localStorage.setItem(IMG_MAP_KEY, JSON.stringify(map))
   } catch { /* ignore */ }
