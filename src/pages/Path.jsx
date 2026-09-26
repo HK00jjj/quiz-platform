@@ -18,6 +18,8 @@ import React, { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store'
 import { pathState, MASTERED, PATH_GRAPH } from '../lib/path'
+import { unlockCloudAudio, prefetchGACache } from '../lib/tts.js'
+import { stemSpokenOf } from '../lib/validate'
 
 const pct = (x) => (x == null ? '—' : (x * 100).toFixed(0) + '%')
 const LEVEL_NAME = { 1: '入门', 2: '基础', 3: '进阶', 4: '提高', 5: '综合', 6: '高级', 7: '精通' }
@@ -112,7 +114,16 @@ export default function Path() {
         (attributes ?? []).filter((a) => a.topicId === t.id).map((a) => a.id)
       )
       const n = await startSession('learn', { attrIds: attrOfTopic, size: 15 })
-      if (n > 0) nav('/practice')
+      if (n > 0) {
+        /* 2026-09-26（修"语音没有第一时间播放"）：与 Learn.run 同构——进练习的手势内
+           解锁云端 <audio> + 首题题干首块预载（手势到首题落地之间的路由/装载时间变成
+           GA 合成窗口，首题开口 gaCache 命中秒排；实测未预载首块合成 RTT ≈3.8s，
+           tools/tts_rtt_probe.cjs）。stemSpokenOf 与练习页同口径，失败静默。 */
+        unlockCloudAudio()
+        const qs = useStore.getState().sessionQuestions
+        if (qs && qs[0]) prefetchGACache(stemSpokenOf(qs[0]))
+        nav('/practice')
+      }
     } finally {
       setStarting(null)
     }

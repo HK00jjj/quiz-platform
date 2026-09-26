@@ -423,7 +423,13 @@ export default function Practice() {
     /* 取证插桩（2026-09-15，修"播一段就停"）：仅当 E2E/排障者设 window.__ttsfxArm 时记录依赖快照，线上零开销零泄漏 */
     try { if (window.__ttsfxArm) (window.__ttsfxLog = window.__ttsfxLog || []).push({ t: Date.now(), seal, phase, showAnswer, index, qid: q && q.id, ttsOn }) } catch { /* ignore */ }
     if (!ttsOK) return
-    const revealed = seal === 'broken' && (phase === 'feedback' || showAnswer)
+    /* 2026-09-26（修"解析没有第一时间播放"·提前开口）：revealed 判据从 broken 提前到
+       cracking——蜡封 520ms 裂开动画期间就开口（点击当拍触发本 effect），不再等动画结束。
+       安全性：① doCheck 里 breakSeal 与 submitObjective 同步连调（React 18 同批 commit），
+       cracking 拍的 lastGrade 已是本笔判分值，spokenOf 不会读旧版；② broken 拍 effect 重跑
+       时 spokenKeyRef 命中直接 return，不重播；③ wasRevealedRef 清场逻辑不受影响
+       （切题拍 seal='intact' 仍走「真正离开揭晓态才清场」守卫）。 */
+    const revealed = (seal === 'broken' || seal === 'cracking') && (phase === 'feedback' || showAnswer)
     if (!revealed || !q) {
       /* 2026-09-15 修正：无条件 stopSpeak 会跨两拍清场——第二拍（seal broken→intact）
          正好轰掉题干 effect 刚开的口。改为「只在真正离开揭晓态的那一拍清场」；
@@ -603,7 +609,8 @@ export default function Practice() {
     ttsOnRef.current = next                    // 手动同步实时 ref：关声瞬间 go() 就要看到，不等 layout effect
     if (!next) { pauseSpeak(); return }        // 暂停在原处；句柄保留，续播接着读完这（仅有的）一遍
     unlockCloudAudio()                    // 恢复播报也在手势内：顺手解锁云端 <audio>/AudioContext
-    const revealed = seal === 'broken' && (phase === 'feedback' || showAnswer)
+    /* 2026-09-26：与揭晓 effect 同步——cracking 拍也算揭晓态（520ms 动画期间开声按解析续播口径走） */
+    const revealed = (seal === 'broken' || seal === 'cracking') && (phase === 'feedback' || showAnswer)
     const expected = (revealed ? 'reveal|' : 'stem|') + index + '|' + (q ? q.id : '')
     if (currentPauseTag() === expected && resumeSpeak(stemLoopRef.current ? stemLoopRef.current.onDone : undefined)) return
     // ↑ 续播透传朗读 onDone（2026-09-16）：native"记块位置重建链"分支需要它在读完时
@@ -629,7 +636,8 @@ export default function Practice() {
      表达了"我要听"。 */
   function replayTts() {
     if (!q) return
-    const revealed = seal === 'broken' && (phase === 'feedback' || showAnswer)
+    /* 2026-09-26：与揭晓 effect 同步——cracking 拍也算揭晓态（蜡封动画期间重读按解析口径走） */
+    const revealed = (seal === 'broken' || seal === 'cracking') && (phase === 'feedback' || showAnswer)
     if (!ttsOn) { setTtsOn(true); setTtsEnabled(true); ttsOnRef.current = true }
     unlockCloudAudio()                    // 重读按钮也是手势：解锁云端 <audio>，避免首次被浏览器拦
     clearTimeout(rateRetry.current)
@@ -705,6 +713,18 @@ export default function Practice() {
        1600ms 拍兜解析图片迟到的高度回填。揭晓滚动所有权见 scrollToPanel 注释。 */
     ;[560, 1600].forEach((ms) => setTimeout(() => scrollToPanel(true), ms))
     unlockCloudAudio()                // 云端通路同样是"首次播放须在手势内"（<audio> 解锁）
+    /* 2026-09-26（修"解析没有第一时间播放"·判分版本预载）：题卡到手时后台预载的是
+       lastGrade=null 版解析（spokenOf 不带判分信息）；答对时判分版本文本与 null 版相同
+       （expected===answer）→ URL 幂等共享；**答错时 spokenOf 会带「正确答案：X」差异段
+       → URL 不同 → 揭晓开口时 gaCache 落空，实测首块合成 RTT ≈3.8s（tools/tts_rtt_probe.cjs）
+       ——这就是"点了解析要等好几秒才出声"的主场景。修法：趁判分手势 + 520ms 蜡封动画，
+       同参预载判分版本首块（prefetchCloudFirst 与 speak() 云端分支逐字节同 URL，
+       幂等共享 promise）：答对=免费幂等，答错=揭晓开口时缓存大概率已命中。失败静默。
+       守卫：显式选了系统音色（pref 为本机音名）时 speak() 走 native 线不消费 gaCache，
+       预载是纯浪费请求——只有自动档/云端音色才预载。 */
+    { const pv = ttsVoicePref(); if (!pv || isCloudVoice(pv)) {
+      try { prefetchCloudFirst(spokenOf(q, gradeObjective(q, inputText), shuffleRef.current.order)) } catch { /* 预载失败静默：揭晓走老路径 */ }
+    } }
     /* F1 反馈分级：review 先自查（提交判分但延迟启封、特效静默）——
        提交本身照常（三遍判制/记录不受影响），只是"看结果"的时机交给学习者。 */
     if (sessionMode === 'review') {
@@ -1089,7 +1109,15 @@ export default function Practice() {
                   回想比直接看解析记得更牢（生成效应）。
                 </div>
                 <button className="chip" style={{ fontSize: 12.5, padding: '5px 14px', marginTop: 8 }}
-                  onClick={() => { unlockSpeech(); unlockCloudAudio(); breakSeal() }}>
+                  onClick={() => {
+                    unlockSpeech(); unlockCloudAudio()
+                    /* 2026-09-26（同 doCheck 判分版本预载）：自查态揭晓前的手势内同参预载
+                       ——doCheck 已预载则幂等共享，否则这里补上（520ms 蜡封动画=合成窗口） */
+                    { const pv = ttsVoicePref(); if ((!pv || isCloudVoice(pv)) && q) {
+                      try { prefetchCloudFirst(spokenOf(q, lastGrade, shuffleRef.current.order)) } catch { /* 静默 */ }
+                    } }
+                    breakSeal()
+                  }}>
                   我已回想，对答案
                 </button>
               </div>

@@ -3739,3 +3739,18 @@ badge 加 position:relative。molten 熔炉区、🥅 标题小图标等其余�
 - `candy.css`：`.practice-stage::before` inset:-40px→0（渐变 70% 处已透明，无可见截断）；`.syrup-bar` min-width:120px→0（宽屏 flex:1 照常吃满，窄屏可收缩）。
 
 **验证（全绿）**：390×844 / 360×640 / 414×896 / 768×1024 / 1440×900 五尺寸水平偏移全部 0、overflowX/Y 全 false、组垂直空隙差 ≤2px；桌面 940/620 上限行为不变；退出 chip 恢复单行。六步链部署 commit `06ee5d0`（pages built），src `1283f6b`，verify-live **PASS**（dist 全量 122 资产 sha256 全等 + practice-play 载体特征确认）。线上登录态复测 390/360：偏移 0、零滚动、空隙差 2px。取证工具沉淀在 `chat-1/tools/`：`mprobe.cjs`（本地 demo 模式）/`mprobe-live.cjs`（线上登录版）/`verify-live.cjs`（部署核验：全量 sha256 对比 + 404 检查）/`verify-src-readme.cjs`（src 分支 README 复核，API 直读无缓存）——spawn Chrome+CDP 移动视口，点「随机练习」入口后量测 .practice-stage/.practice-top/.q-card-wrap 居中度并截图。
+## 2026-09-26 · 语音首响提速（§72 修"语音没有第一时间播放"）
+
+**触发**（用户）：「目前网站语音功能没有第一时间播放，解决这个问题。」
+
+**取证（tools/tts_timing_probe.cjs 新增，CDP headless+插桩，本地 preview 三轮）**：
+- 代理线路首响实测（tts_rtt_probe.cjs，Node 侧）：同 URL 首次合成 RTT ≈3.8s（DYNAMIC 无 CDN 缓存），重复请求 0.26~0.63s（边缘缓存效应）——未预载开口的干等量级即此。
+- 代码链确认三个非预载开口点 + 一处固定延迟：① Path.jsx startTopic 入口无首题题干预载（Learn.run 有，Path 漏）；② 客观题 doCheck 揭晓无判分版首块预载（后经证据修正：判分版与 null 版 URL 同文，expected 即正确答案，与对错无关——预载恒命中，非缺口）；③ 解析播报固定等 520ms 蜡封动画才触发（揭晓 effect 挂 seal==='broken'）。
+
+**修复（四处，全部最小侵入）**：
+1. `Practice.jsx` 揭晓 effect / toggleTts / replayTts 三处 revealed 判据 `seal==='broken'` → `(broken||cracking)`：解析开口提前到点击当拍（+11~22ms 实测），不再等 520ms 动画。安全性：doCheck 里 breakSeal 与 submitObjective 同批 commit（lastGrade 同拍就绪）；broken 拍 effect 重跑被 spokenKeyRef 挡住不重播；wasRevealedRef 清场守卫不变。
+2. `Practice.jsx` doCheck：判分手势内同参预载判分版首块（prefetchCloudFirst，带"显式系统音色不发请求"守卫）——幂等保险，防未来 spokenOf 语义引入判分差异段后预载落空。
+3. `Practice.jsx` review 自查态「我已回想，对答案」onClick：补同参预载（同上守卫）。
+4. `Path.jsx` startTopic：补 unlockCloudAudio + 首题题干首块预载（与 Learn.run 同构）。
+
+**验证（真机插桩三轮全绿）**：揭晓开口拍 dt=+19/+11/+17ms（旧版 +520ms）；题干预载 dt=-1723ms、解析首块预载 dt=-1681ms（开口前完成，开口零网络等待）；broken 拍重跑无重播（防叠音闸正常）；第二题题干开口 dt=+373~378ms（翻题预载覆盖）；答对/答错/主观（1200 行按钮 prefetchCloudFirst 既有）三场景行为一致。vite build 8.78s 无错。部署链六步 ALL OK，src 同步，verify-live PASS。
