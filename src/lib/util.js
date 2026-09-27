@@ -38,15 +38,15 @@ export function shuffledOrder(n, rng = Math.random) {
 const REMAP_KW = '(正确选项|正确答案|干扰项|正确项|故选|应选|则选|错选|漏选|误选|选择|可选|答案|选项|正解|多选|选)'
 const REMAP_CONN = '(为|是|应|了|：|:)?'
 const REMAP_BOUND = '(?![A-Za-z0-9/／\\-－·和与或])'
-const REMAP_RUN1 = '[A-E]+(?:\\s*[、,，]\\s*[A-E]|\\s*[和与或]\\s*[A-E])*'
-const REMAP_RUN2 = '[A-E]+(?:\\s*[、,，]\\s*[A-E]|\\s*[和与或]\\s*[A-E])+'
+const REMAP_RUN1 = '[A-F]+(?:\\s*[、,，]\\s*[A-F]|\\s*[和与或]\\s*[A-F])*'
+const REMAP_RUN2 = '[A-F]+(?:\\s*[、,，]\\s*[A-F]|\\s*[和与或]\\s*[A-F])+'
 const REMAP_FOLLOW = '(?:正确|对|错|可行|成立|符合|描述|所述|把|是|均|都|即|也|只|不|则|说|的)'
 const REMAP_RE = new RegExp(
   REMAP_KW + REMAP_CONN + '(\\s*)(' + REMAP_RUN1 + ')' + REMAP_BOUND +
-  '|(?<![A-Za-z0-9])([A-E])(\\s*)(?=项)' +
-  '|(?<![A-Za-z0-9])([A-E])(\\s*)(?=' + REMAP_FOLLOW + ')' +
+  '|(?<![A-Za-z0-9])([A-F])(\\s*)(?=项)' +
+  '|(?<![A-Za-z0-9])([A-F])(\\s*)(?=' + REMAP_FOLLOW + ')' +
   '|(?<![A-Za-z0-9])(' + REMAP_RUN2 + ')(\\s*)(?=' + REMAP_FOLLOW + ')' +
-  '|(?<![量相级类型])[（(]([A-E])[)）]',
+  '|(?<![量相级类型])[（(]([A-F])[)）]',
   'g')
 const REMAP_WEAK_KW = new Set(['选择', '可选', '多选', '选项', '选'])
 const REMAP_VETO_HEAD = /AC|DC|AD|DA|BCD/

@@ -229,7 +229,7 @@ function ExamModal({ pool, target, size, passScore, onDone }) {
         <div className="rank-bar" style={{ marginBottom: 12 }}><span style={{ width: `${Math.round((round / deck.qs.length) * 100)}%`, background: target.color }} /></div>
         <div className="exam-stem">{q.stem}</div>
         {isChoice && (q.options ?? []).map((raw, i) => {
-          const letter = raw.match(/^([A-E])[.、]/)?.[1] ?? 'ABCDE'[i]
+          const letter = raw.match(/^([A-F])[.、]/)?.[1] ?? 'ABCDE'[i]
           const on = isMulti ? multi.includes(letter) : input === letter
           return (
             <button key={i} className={'exam-opt' + (on ? ' on' : '') + (verdict ? ' locked' : '')}
@@ -237,7 +237,7 @@ function ExamModal({ pool, target, size, passScore, onDone }) {
               onClick={() => isMulti
                 ? setMulti((m) => m.includes(letter) ? m.filter((x) => x !== letter) : [...m, letter])
                 : setInput(letter)}>
-              <b>{letter}</b> {raw.replace(/^[A-E]\s*[.、]\s*/, '')}
+              <b>{letter}</b> {raw.replace(/^[A-F]\s*[.、]\s*/, '')}
             </button>
           )
         })}

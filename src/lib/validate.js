@@ -250,29 +250,32 @@ export class Validator {
   checkChoice(it) {
     const w = whereOf(it)
     const single = str(it.题型) === '单选题'
-    const n = single ? 4 : 5
-    const letters = single ? 'ABCD' : 'ABCDE'
+    /* v7.6（2026-09-27）：多选支持 5~6 选项（选择题化清单批 v1.0 任务书形态，A~F）。
+       n 取「答案字母所需的最小选项数」与「实际选项数」的兼容判定：实际 5 或 6 均合法。 */
     const opts = Array.isArray(it.选项) ? it.选项.map(String) : []
+    const n = single ? 4 : opts.length
+    const letters = single ? 'ABCD' : 'ABCDEF'.slice(0, Math.max(n, 5))
     const ans = str(it.答案)
-    if (opts.length !== n) this.err(w, `选项数应为${n}，实际${opts.length}`)
-    else for (let i = 0; i < n; i++) {
+    if (single && opts.length !== 4) this.err(w, `选项数应为4，实际${opts.length}`)
+    if (!single && opts.length !== 5 && opts.length !== 6) this.err(w, `多选题选项数应为5~6，实际${opts.length}`)
+    if (opts.length === n) for (let i = 0; i < n; i++) {
       const L = letters[i]
       if (!opts[i].startsWith(L + '. ') && !opts[i].startsWith(L + '.')) this.err(w, `第${i + 1}个选项未以“${L}. ”开头`)
     }
     if (single) {
       if (!/^[A-D]$/.test(ans)) this.err(w, `单选题答案应为单个字母A~D，实际“${ans}”`)
-    } else if (/^[A-E]{2,4}$/.test(ans)) {
+    } else if (/^[A-F]{2,6}$/.test(ans)) {
       if ([...ans].sort().join('') !== ans || new Set([...ans]).size !== ans.length) {
         this.err(w, `多选题答案须按字母升序且无重复，实际“${ans}”`)
       }
     } else {
-      this.err(w, `多选题答案应为2~4个字母连写，实际“${ans}”`)
+      this.err(w, `多选题答案应为2~5个字母连写（A~F），实际“${ans}”`)
     }
     /* §61 语义均衡检查（用户规则：四个选项里正确答案不能太过明显）：
        「最长最详细的就是答案」是 AI 出题最常见的泄露模式。格式校验拦不住它，只能在这里量长度。
        错误级：正确项 ≥ 2×最长干扰项 且 ≥12 字（明显泄露，拦截）；
        告警级：正确项比最长干扰项长 ≥8 字且 ≥12 字（偏明显，提醒均衡）。 */
-    const stripped = opts.map((o) => o.replace(/^[A-E][.、]\s*/, ''))
+    const stripped = opts.map((o) => o.replace(/^[A-F][.、]\s*/, ''))
     const maxWrong = Math.max(0, ...[...letters]
       .filter((L) => !ans.includes(L))
       .map((L) => (stripped[letters.indexOf(L)] ?? '').length))
@@ -589,7 +592,7 @@ export function normalizeAnswer(type, input) {
       return !m || m.length !== 1 ? null : m[0]
     }
     case '多选题': {
-      const m = t.toUpperCase().match(/[A-E]/g)
+      const m = t.toUpperCase().match(/[A-F]/g)
       if (!m) return null
       const s = [...new Set(m)].sort()
       return s.length < 2 ? null : s.join('')

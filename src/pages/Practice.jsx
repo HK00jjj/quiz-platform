@@ -91,8 +91,8 @@ function spokenOf(q, lastGrade, order) {
   const dispMap = {}
   if (isChoice) (order || []).forEach((oi, pos) => {
     const raw = (q.options ?? [])[oi] ?? ''
-    const orig = String(raw).match(/^([A-E])[.、]/)?.[1] ?? 'ABCDE'[oi]
-    dispMap[orig] = 'ABCDE'[pos]
+    const orig = String(raw).match(/^([A-F])[.、]/)?.[1] ?? 'ABCDEF'[oi]
+    dispMap[orig] = 'ABCDEF'[pos]
   })
   const mapLetters = (s) => String(s ?? '').split('').map((c) => dispMap[c] ?? c).join('')
   const remap = (t) => remapOptionLetters(t, dispMap)
@@ -346,7 +346,7 @@ export default function Practice() {
       /* 主键盘 Digit 与小键盘 Numpad 都认；直选同步移动指针 */
       const dm = /^Digit([1-5])$/.exec(e.code) || /^Numpad([1-5])$/.exec(e.code)
       const digit = dm ? Number(dm[1]) - 1
-        : /^Key([A-E])$/.test(e.code) ? 'ABCDE'.indexOf(e.code.slice(3)) : -1
+        : /^Key([A-F])$/.test(e.code) ? 'ABCDEF'.indexOf(e.code.slice(3)) : -1
       if (digit < 0) return
       const row = document.querySelectorAll('.opt-row')[digit]
       const judge = document.querySelectorAll('.judge-card')[digit]
@@ -563,8 +563,8 @@ export default function Practice() {
     const raw = q.options[oi] ?? ''
     return {
       oi, raw,
-      orig: raw.match(/^([A-E])[.、]/)?.[1] ?? 'ABCDE'[oi],
-      disp: 'ABCDE'[pos],
+      orig: raw.match(/^([A-F])[.、]/)?.[1] ?? 'ABCDEF'[oi],
+      disp: 'ABCDEF'[pos],
       text: raw.replace(/^[A-E]\s*[.、]\s*/, '')
     }
   }) : []
