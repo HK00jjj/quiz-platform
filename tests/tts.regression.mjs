@@ -139,10 +139,10 @@ ok(normalizeSpeech('3750Ω') === '3750欧姆', '⑨-1 Ω → 欧姆')
 ok(normalizeSpeech('3.75kΩ') === '3.75千欧' && normalizeSpeech('1.5MΩ') === '1.5兆欧', '⑨-2 kΩ/MΩ 复合单位优先于 Ω')
 ok(normalizeSpeech('0.22μF') === '0.22微法' && normalizeSpeech('200μA') === '200微安', '⑨-3 μF/μA → 微法/微安')
 ok(normalizeSpeech('25℃') === '25摄氏度' && normalizeSpeech('25°C') === '25摄氏度', '⑨-4 摄氏度两种写法')
-ok(normalizeSpeech('±5%') === '正负5%' && normalizeSpeech('≥1.5') === '大于等于1.5' && normalizeSpeech('≈0.8') === '约等于0.8', '⑨-5 ± / ≥ / ≈')
+ok(normalizeSpeech('±5%') === '正负百分之5' && normalizeSpeech('≥1.5') === '大于等于1.5' && normalizeSpeech('≈0.8') === '约等于0.8', '⑨-5 ± / ≥ / ≈（2026-09-27 起 % 前置读"百分之"）')
 ok(normalizeSpeech('3×4') === '3乘4', '⑨-6 × → 乘')
-ok(normalizeSpeech('τ=RC') === '套=R C', '⑨-7 希腊字母按工程口语译名读；RC 代号逐字母（2026-09-15 词典口径）')
-ok(normalizeSpeech('AC/DC') === 'A C 或 D C' && normalizeSpeech('I/O') === 'I 或 O', '⑨-8 斜杠组合读成"或"，两端缩写再逐字母（2026-09-15 词典口径）')
+ok(normalizeSpeech('τ=RC') === '陶 等于 R C', '⑨-7 希腊字母按工程口语译名读（2026-09-27 τ 修正为标准译名"陶"）；RC 代号逐字母')
+ok(normalizeSpeech('AC/DC') === 'A C 或 D C' && normalizeSpeech('I/O') === 'I 或 O', '⑨-8 斜杠并列组合读成"或"，两端缩写再逐字母（2026-09-27 斜杠三段式：字母并列紧凑读"或"）')
 /* ⑩ 内部标注不得入读（全库 1475 处 [错因:…] + 9318 处【】标签） */
 ok(!/\[错因/.test(cleanSpeechText('【误诊】A「短路」错。[错因:概念缺失]')), '⑩-1 [错因:…] 内部标签被剥掉，不会念出来')
 ok(cleanSpeechText('【概念】互感器是…').startsWith('概念，'), '⑩-2 【概念】→ "概念，"（去符号留停顿）')
@@ -396,5 +396,52 @@ ok(/import \{[^}]*\bcloudSupported\b[^}]*\} from '\.\.\/lib\/tts\.js'/.test(prac
     ok(missing.length === 0, '⑳-2 Practice 引用 tts.js 导出必须全部 import（缺失: ' + (missing.join(',') || '无') + '；通用锁防短路掩盖）')
   }
 }
+
+/* ── ㉑ 公式朗读专项（2026-09-27 全库符号审计后的修复锁；数据=tts_symbol_report.json：
+   全库 4479 题 / 248 万字符取证，逐类断言读音规则）── */
+// ㉑-1 单位量级与顺序（INC-20260927-01/02/03）
+ok(normalizeSpeech('0.5mΩ') === '0.5毫欧' && normalizeSpeech('0.5MΩ') === '0.5兆欧', '㉑-1a mΩ=毫欧 / MΩ=兆欧（原 [mM] 混读，接触电阻被念"兆欧"差 9 个数量级）')
+ok(normalizeSpeech('100kHz') === '100千赫兹' && normalizeSpeech('2MHz') === '2兆赫兹' && normalizeSpeech('50Hz') === '50赫兹', '㉑-1b kHz/MHz 先于 Hz（原顺序读成"100k赫兹"）')
+ok(normalizeSpeech('1kW·h') === '1千瓦时' && normalizeSpeech('29.6kVA') === '29.6千伏安', '㉑-1c kW·h 整体读"千瓦时"（· 乘规则不得抢先）')
+ok(normalizeSpeech('0.6mA') === '0.6毫安' && normalizeSpeech('5MA') === '5兆安', '㉑-1d mA 毫安 / MA 兆安按大小写')
+// ㉑-2 时间/长度/面积单位
+ok(normalizeSpeech('5min') === '5分钟' && normalizeSpeech('0.4s') === '0.4秒' && normalizeSpeech('0.5 h') === '0.5小时' && normalizeSpeech('20m') === '20米', '㉑-2a min/s/h/m 基本单位（原无规则）')
+ok(normalizeSpeech('2.5mm²') === '2.5平方毫米' && normalizeSpeech('25m³') === '25立方米' && normalizeSpeech('4m²') === '4平方米', '㉑-2b 面积/体积单位整体读（原 mm² 读"毫米平方"）')
+// ㉑-3 上下标
+ok(normalizeSpeech('3.6×10⁶ J') === '3.6乘10的6次方 J', '㉑-3a 10⁶ → 10的6次方（原上标被吞）')
+ok(normalizeSpeech('U₁') === 'U 1' && normalizeSpeech('Q₁−Q₂') === 'Q 1减Q 2', '㉑-3b 下标 ₁₂ → 数字（U+2212 → 减）')
+ok(normalizeSpeech('tanφ₁') === '正切1', '㉑-3c tanφ₁ → 正切1')
+// ㉑-4 希腊字母补全与修正
+ok(normalizeSpeech('ζ') === '泽塔' && normalizeSpeech('Φ') === '斐' && normalizeSpeech('τ') === '陶' && normalizeSpeech('Λ') === '兰姆达' && normalizeSpeech('∑') === '西格玛' && normalizeSpeech('△接法') === '三角形接法', '㉑-4 ζ/Φ/τ/Λ/∑/△ 补全（ζ=阻尼比 28 处、Φ=磁通 34 处原引擎瞎读）')
+ok(normalizeSpeech('0<ζ<1') === '0小于泽塔小于1' && normalizeSpeech('ΔU=IR') === '德尔塔U 等于 I R', '㉑-4b 比较符链与 ΔU 德尔塔（IR 压降逐字母）')
+// ㉑-5 加/正/负号
+ok(normalizeSpeech('+24V') === '正24伏' && normalizeSpeech('拉向+24V') === '拉向正24伏', '㉑-5a 电源正极 +24V → 正24伏')
+ok(normalizeSpeech('R=R1+R2') === 'R 等于 R 1加R 2', '㉑-5b 串联相加 + → 加')
+ok(normalizeSpeech('U = -36V') === 'U 等于 负36伏', '㉑-5c 符号位负号 → 负')
+ok(normalizeSpeech('4-20mA') === '4-20毫安' && normalizeSpeech('FX5U-32MT') === 'FX 5U 32MT', '㉑-5d 数字间/型号连字符不误读成"负"（区间/型号义，非减法）')
+ok(normalizeSpeech('1=L+、2=M') === '1 等于 L正、2 等于 M' && normalizeSpeech('M+') === 'M正', '㉑-5e L+/M+ 端子读正（题库实证 "1=L+、2=M、3=P"）')
+// ㉑-6 斜杠三段式（INC-20260927-04）
+ok(normalizeSpeech('I=U/R=220/22=10A') === 'I 等于 U除以R 等于 220除以22 等于 10安', '㉑-6a 欧姆定律整串：除法读"除以"（原读"或"）')
+ok(normalizeSpeech('0.0175×40/0.5=1.4Ω') === '0.0175乘40除以0.5 等于 1.4欧姆', '㉑-6b 电阻率计算：乘号后除法')
+ok(normalizeSpeech('R=R1R2/(R1+R2)') === 'R 等于 R 1R 2除以(R 1加R 2)', '㉑-6c 并联电阻公式整串')
+ok(normalizeSpeech('380/220V') === '380 或 220伏' && normalizeSpeech('50/60Hz') === '50 或 60赫兹', '㉑-6d 数字/数字+中文单位 → 或（并列电压/频率）')
+ok(normalizeSpeech('S/S端子') === 'S 或 S端子' && normalizeSpeech('NPN/PNP') === 'N P N 或 P N P' && normalizeSpeech('NO/NC') === 'NO 或 NC', '㉑-6e 字母并列 → 或（S/S 端子、NPN/PNP、NO/NC）')
+ok(normalizeSpeech('GB/T 50168') === '国标 T 50168', '㉑-6f GB/T → 国标 T')
+ok(normalizeSpeech('e=−L·di/dt') === 'e 等于 减L乘电流变化率', '㉑-6g di/dt → 电流变化率（u=L·di/dt 感应电动势）')
+ok(normalizeSpeech('R=ρL/S') === 'R 等于 柔L除以S', '㉑-6h 电阻率公式：ρ 在分子（希腊字母入分子字符集）')
+ok(normalizeSpeech('P=U²/R') === 'P 等于 U平方除以R', '㉑-6i U²/R：上标转换先于斜杠判定')
+ok(normalizeSpeech('（2-1.0）/2=50%') === '（2-1.0）除以2 等于 百分之50', '㉑-6j 括号闭合后斜杠 + 百分号前置')
+ok(normalizeSpeech('0.0175Ω·mm²/m') === '0.0175欧姆乘平方毫米每米', '㉑-6k 电阻率单位 Ω·mm²/m → 欧姆乘平方毫米每米')
+// ㉑-7 波浪号/比较符/百分号/全角
+ok(normalizeSpeech('0~10V') === '0到10伏' && normalizeSpeech('5～10mm') === '5到10毫米', '㉑-7a ~ 区间 → 到（全库 816 处）')
+ok(normalizeSpeech('100mA>50mA') === '100毫安大于50毫安' && normalizeSpeech('65.1mA<100mA') === '65.1毫安小于100毫安', '㉑-7b >/< → 大于/小于（原无规则）')
+ok(normalizeSpeech('效率=90%') === '效率 等于 百分之90' && normalizeSpeech('端子3＝PE') === '端子3 等于 P E', '㉑-7c % 前置"百分之"；全角＝ → 等于')
+ok(normalizeSpeech('F∝U²') === 'F正比于U平方' && normalizeSpeech('Ⅰ类设备') === '一类设备', '㉑-7d ∝ → 正比于；罗马数字 Ⅰ → 一')
+ok(normalizeSpeech('M>1') === 'M大于1' && normalizeSpeech('≥29.8A') === '大于等于29.8安', '㉑-7e 调制系数与 ≥')
+// ㉑-8 真实整题公式串（题库 seq 181/347 原句）
+const F181 = normalizeSpeech('R =（24 − 1.2 − 0.3）/ 0.006 = 22.5 / 0.006 = 3750Ω，即3.75kΩ；功耗 P = I²R = 0.006² × 3750 = 0.135W。')
+ok(F181.includes('（24 减 1.2 减 0.3）除以0.006') && F181.includes('22.5除以0.006') && F181.includes('3750欧姆') && F181.includes('3.75千欧') && F181.includes('I平方R') && F181.includes('0.006平方 乘 3750') && F181.includes('0.135瓦'), '㉑-8a seq181 功耗计算串全要素（分数/减号/平方/单位）')
+const F347 = normalizeSpeech('额定线电流I=P/(√3·U·cosφ·η)=15000/(1.732×380×0.85×0.9)≥29.8A')
+ok(F347.includes('P除以(根号3乘U乘功率因数乘伊塔)') && F347.includes('15000除以(1.732乘380乘0.85乘0.9)') && F347.includes('大于等于29.8安'), '㉑-8b seq347 线电流公式串（√3/·/cosφ/η/≥ 全要素）')
 
 console.log(`\ntts.regression：${n} 断言全绿`)
