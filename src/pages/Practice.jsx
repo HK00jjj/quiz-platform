@@ -296,7 +296,8 @@ export default function Practice() {
     return n
   }, [results])
 
-  /* §64 键盘流：1-5/A-E/小键盘直选、↑↓ 在选项间移动指针（未作答也可先移再确认）、
+  /* §64 键盘流：1-6/A-F/小键盘直选（2026-09-28 数字扩到 6：多选题允许 5~6 选项 A-F，按 6 直选第 6 行；不足 6 选项的题按 6 无行可点、无操作）、
+     ↑↓ 在选项间移动指针（未作答也可先移再确认）、
      Enter 提交与翻页、Ctrl+Enter 展开主观题答案、Shift+Enter=自判答错。
      全部走「点真实 DOM 按钮/选项行」复用现有判分链路，不碰 React state 内部
      （esbuild 不查未定义变量，直接改 state 极易埋雷）。焦点在输入框时数字是题目内容，
@@ -344,7 +345,7 @@ export default function Practice() {
       }
       if (typing || phase !== 'answering' || !objective) return
       /* 主键盘 Digit 与小键盘 Numpad 都认；直选同步移动指针 */
-      const dm = /^Digit([1-5])$/.exec(e.code) || /^Numpad([1-5])$/.exec(e.code)
+      const dm = /^Digit([1-6])$/.exec(e.code) || /^Numpad([1-6])$/.exec(e.code)
       const digit = dm ? Number(dm[1]) - 1
         : /^Key([A-F])$/.test(e.code) ? 'ABCDEF'.indexOf(e.code.slice(3)) : -1
       if (digit < 0) return
@@ -1212,7 +1213,7 @@ export default function Practice() {
                           <GiltBtn size="lg" block className="reveal-btn" disabled={!canSubmit} onClick={doCheck}>
                             <IconReveal /> 查看解析
                           </GiltBtn>
-                          <p className="kbd-hint">键盘 1-5 直选 · ↑↓ 切换选项 · Enter 确认</p>
+                          <p className="kbd-hint">键盘 1-6 直选 · ↑↓ 切换选项 · Enter 确认</p>
                         </>
                       ) : showAnswer ? (
                         <>
@@ -1286,7 +1287,7 @@ export default function Practice() {
           <div className="nav-sheet" role="dialog" aria-label="快捷键与帮助" onClick={(e) => e.stopPropagation()}>
             <div className="nav-hd"><b>快捷键与帮助</b><button className="chip tool" onClick={() => setHelpOpen(false)} aria-label="关闭">✕</button></div>
             <div className="help-grid">
-              <span className="kbd-key">1-5 / A-E</span><span>直选选项或判断</span>
+              <span className="kbd-key">1-6 / A-F</span><span>直选选项或判断</span>
               <span className="kbd-key">↑ ↓</span><span>在选项间移动</span>
               <span className="kbd-key">Enter</span><span>提交作答 / 确认下一题</span>
               <span className="kbd-key">Ctrl+Enter</span><span>展开主观题参考答案</span>

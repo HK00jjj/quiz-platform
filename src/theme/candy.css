@@ -1870,7 +1870,7 @@ body { background: linear-gradient(160deg, #FFF8FA 0%, #E2EEE7 58%, #E6F5EC 82%,
 .kbd-hint { margin: 8px 0 0; font-size: 11px; text-align: center;
   letter-spacing: .4px; color: var(--ink-2) !important; }
 /* 触屏设备无键盘（2026-09-16，手机端答题界面"不适配"观感项之一）：
-   "键盘 1-5 直选 · ↑↓ 切换选项"对手机用户是纯噪音，还占牌底一行高度。
+   "键盘 1-6 直选 · ↑↓ 切换选项"对手机用户是纯噪音，还占牌底一行高度。
    hover:none + pointer:coarse = 触屏主设（手机/平板）；桌面带鼠标不受影响。 */
 @media (hover: none) and (pointer: coarse) {
   .kbd-hint { display: none; }

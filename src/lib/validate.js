@@ -42,12 +42,14 @@ const DIFFS = ['基础', '应用', '综合']
 const COG = ['记忆', '理解', '应用', '分析', '评价', '创造']
 const DOMAINS = Array.from({ length: 33 }, (_, i) => `K${i + 1}`)
 const META_MAP = { 基础: ['记忆', '理解'], 应用: ['应用', '分析'], 综合: ['评价', '创造'] }
-/* v6.8 解析长度口径：上限上调（旧 300/400/500 会扼杀"概念先行 + 完整结论链"），
-   同时新设信息量下限——正文（剥去【】标记后）低于下限即判"解析过于简单"。 */
+/* v8.0 解析长度口径（2026-09-28，用户拍板「正解取消+误诊简化」后下限重校）：
+   下限 200/160/120 → 170/130/100（解析预算重分配 427→约320 字/题，见《流程提速分析与优化方案_20260928.md》附录 A.5）；
+   上限 800/700/600 维持不变。低于下限仍为告警级（存量数据不"变砖"）。
+   同步纪律：pipeline/analysis_quality_check.mjs v8.0 的 FLOOR 常量须与本处一致（两处唯一允许的重复）。 */
 const ANALYSIS_LIMIT = { '综合设计/故障诊断题': 800, 计算分析题: 700 }
 const ANALYSIS_LIMIT_DEFAULT = 600
-const ANALYSIS_FLOOR = { '综合设计/故障诊断题': 200, 计算分析题: 160 }
-const ANALYSIS_FLOOR_DEFAULT = 120
+const ANALYSIS_FLOOR = { '综合设计/故障诊断题': 170, 计算分析题: 130 }
+const ANALYSIS_FLOOR_DEFAULT = 100
 const COMPREHENSIVE_ELEMENTS = ['方案', '选型计算', '控制逻辑', '保护与安全']
 /* v6.9 错因标签枚举（v6.9 规则 §6.4）：解析【误诊】段末尾可附 [错因:枚举值]，
    一题最多一个；机器只校验"出现即须在枚举内"，未出现不拦截（存量题不失效）。
@@ -245,7 +247,7 @@ export class Validator {
     if (a.length > limit) this.warn(w, `"解析"${a.length}字，超出建议上限${limit}字`)
     const bodyLen = a.replace(/【[^】]*】/g, '').trim().length
     const floor = ANALYSIS_FLOOR[type] ?? ANALYSIS_FLOOR_DEFAULT
-    if (bodyLen < floor) this.warn(w, `“解析”正文仅 ${bodyLen} 字，低于 v6.8 信息量下限 ${floor} 字——解析过于简单，须按【概念】【推导】【误诊】【记忆点】四段重写`)
+    if (bodyLen < floor) this.warn(w, `“解析”正文仅 ${bodyLen} 字，低于 v8.0 信息量下限 ${floor} 字——解析过于简单，须按【概念】【推导】【误诊】【记忆点】四段重写（概念含关系式、推导步步有据、误诊两层+错因标签、记忆点带本题特征参数）`)
   }
   checkChoice(it) {
     const w = whereOf(it)
