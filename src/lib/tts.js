@@ -946,8 +946,22 @@ const SILENT_WAV = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAgD4AAI
 let cloudUnlocked = false
 export function unlockCloudAudio() {
   /* GA（Web Audio）：每次手势都顺手 resume——移动端 AudioContext 必须在手势栈里
-     从 suspended 变 running；重复 resume 无害。legacy 元素解锁仍只做一次。 */
-  try { const c = gaCtxOf(); if (c && c.state === 'suspended') { const p = c.resume(); if (p && p.catch) p.catch(() => {}) } } catch { /* ignore */ }
+     从 suspended 变 running；重复 resume 无害。legacy 元素解锁仍只做一次。
+     【2026-09-28 修复"题干暂停→开解析续播"】ctx.state==='suspended' 有两种来源：
+     ① 浏览器自动挂起（本函数要解锁的情形）② pauseSpeak 的主动 suspend——GA 线
+     "暂停在原处"的实现机制，绝不能 resume。存在暂停中的播报会话时必须跳过 resume：
+     否则题干里暂停的语音会在「提交判分/展开参考答案/我已回想对答案」等手势里被
+     这里误唤醒，进入解析页后从暂停点继续播放（用户实测症状）。真正要恢复播放的
+     路径各自有自己的 ctx.resume()（resumeCloud / stopGASources / speakCloudGA 开口处），
+     不依赖本函数——守卫不影响续播/重读/新播报任何路径。插桩沿用 __ttsfxArm 惯例。 */
+  try {
+    const c = gaCtxOf()
+    if (c && c.state === 'suspended') {
+      const pauseHeld = !!(ga && ga.paused && !ga.done) || !!(session && session.paused && !session.done)
+      try { if (window.__ttsfxArm) (window.__ttsfxLog = window.__ttsfxLog || []).push({ t: Date.now(), ev: 'unlockGuard', suspended: true, pauseHeld }) } catch { /* ignore */ }
+      if (!pauseHeld) { const p = c.resume(); if (p && p.catch) p.catch(() => {}) }
+    }
+  } catch { /* ignore */ }
   const els = ensureCloudEls()
   if (!els) return false
   if (cloudUnlocked) return true

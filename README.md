@@ -3754,3 +3754,12 @@ badge 加 position:relative。molten 熔炉区、🥅 标题小图标等其余�
 4. `Path.jsx` startTopic：补 unlockCloudAudio + 首题题干首块预载（与 Learn.run 同构）。
 
 **验证（真机插桩三轮全绿）**：揭晓开口拍 dt=+19/+11/+17ms（旧版 +520ms）；题干预载 dt=-1723ms、解析首块预载 dt=-1681ms（开口前完成，开口零网络等待）；broken 拍重跑无重播（防叠音闸正常）；第二题题干开口 dt=+373~378ms（翻题预载覆盖）；答对/答错/主观（1200 行按钮 prefetchCloudFirst 既有）三场景行为一致。vite build 8.78s 无错。部署链六步 ALL OK，src 同步，verify-live PASS。
+## 2026-09-28 · 题干暂停跨页同步修复（§73 修"题干暂停后开解析语音继续播放"）
+
+**触发**（用户）：「在题干页面点击暂停语音后，再打开解析页面时语音仍然会继续播放。预期是暂停状态在题干与解析之间保持同步。」
+
+**根因（机制级，tts.js + 全部手势调用点取证）**：GA 云端线（自动档默认路径）的「暂停在原处」= `pauseSpeak → AudioContext.suspend()` 冻结时间线，`session.paused=true` 本身没丢。但进入解析页的全部手势按钮（客观题 doCheck:716 / 主观题"展开参考答案":1229 / 自查"我已回想对答案":1114）onClick 都调用 `unlockCloudAudio()`，其 GA 分支无条件 `ctx.resume()`——把被 suspend 冻结的题干语音误唤醒，从暂停点继续播放；与此同时揭晓 effect 因 `ttsOn=false` 正确保持静音，所以用户听到的是**题干残留语音续播**而非解析。suspended 有两种来源（浏览器自动挂起=要解锁；pauseSpeak 主动暂停=绝不能 resume），旧代码未区分。
+
+**修复（单点机制级，tts.js unlockCloudAudio）**：GA resume 分支加守卫——存在暂停中的播报会话（`ga.paused` 或 `session.paused`，含 done 排除）时跳过 resume；插桩 `__ttsfxLog` unlockGuard 拍（__ttsfxArm 惯例，线上零开销）。全部 8 个调用点统一生效；真正恢复播放的路径各自自带 ctx.resume()（resumeCloud/stopGASources/speakCloudGA 开口），不依赖本函数，续播/重读/新播报零影响。
+
+**验证（tools/verify_pause_sync.cjs 新增，CDP+AudioContext 实例捕获，9/9 PASS）**：A1 题干暂停 ctx=suspended；B1 **暂停态提交后 ctx 仍 suspended**（修复前=running 即本 bug）、B2 unlockGuard pauseHeld=true、B3 解析未开口（TTS 请求 2→2）；C1/C2 揭晓后主动开声→解析开口+ctx running（守卫不误伤）；D1/D2/D3 第二题同上下文续播 ctx running 且无新请求（GA resume 接读，守卫不误伤 resumeSpeak）。vite build 9.9s 无错。
