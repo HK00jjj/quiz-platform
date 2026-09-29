@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 400" font-family="sans-serif">
+  <defs>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#333333"/>
+    </marker>
+  </defs>
+  <rect width="660" height="400" fill="#ffffff"/>
+
+  <!-- 电流方向（向右）大箭头 -->
+  <text x="330" y="85" font-size="17" font-weight="bold" text-anchor="middle" fill="#111111">电流方向 I</text>
+  <polygon points="180,98 445,98 445,91 478,105 445,119 445,112 180,112" fill="#333333"/>
+
+  <!-- 导体 -->
+  <rect x="150" y="155" width="360" height="90" fill="#fafafa" stroke="#333333" stroke-width="2"/>
+
+  <!-- 自由电子与向左箭头 -->
+  <circle cx="215" cy="200" r="12" fill="#ffffff" stroke="#333333" stroke-width="2"/>
+  <text x="215" y="206" font-size="15" text-anchor="middle" fill="#333333">−</text>
+  <line x1="199" y1="200" x2="170" y2="200" stroke="#333333" stroke-width="2" marker-end="url(#ar)"/>
+
+  <circle cx="295" cy="200" r="12" fill="#ffffff" stroke="#333333" stroke-width="2"/>
+  <text x="295" y="206" font-size="15" text-anchor="middle" fill="#333333">−</text>
+  <line x1="279" y1="200" x2="250" y2="200" stroke="#333333" stroke-width="2" marker-end="url(#ar)"/>
+
+  <circle cx="375" cy="200" r="12" fill="#ffffff" stroke="#333333" stroke-width="2"/>
+  <text x="375" y="206" font-size="15" text-anchor="middle" fill="#333333">−</text>
+  <line x1="359" y1="200" x2="330" y2="200" stroke="#333333" stroke-width="2" marker-end="url(#ar)"/>
+
+  <circle cx="455" cy="200" r="12" fill="#ffffff" stroke="#333333" stroke-width="2"/>
+  <text x="455" y="206" font-size="15" text-anchor="middle" fill="#333333">−</text>
+  <line x1="439" y1="200" x2="410" y2="200" stroke="#333333" stroke-width="2" marker-end="url(#ar)"/>
+
+  <!-- 右侧注释框 -->
+  <rect x="530" y="150" width="120" height="100" fill="#ffffff" stroke="#333333" stroke-width="1.5" stroke-dasharray="6,4"/>
+  <text x="590" y="185" font-size="14" text-anchor="middle" fill="#444444">电流与电子</text>
+  <text x="590" y="215" font-size="16" font-weight="bold" text-anchor="middle" fill="#111111">方向相反</text>
+  <line x1="528" y1="200" x2="514" y2="200" stroke="#888888" stroke-width="1.5" stroke-dasharray="4,3"/>
+
+  <!-- 电子移动方向（向左）箭头 -->
+  <polygon points="480,275 220,275 220,268 185,280 220,292 220,285 480,285" fill="#333333"/>
+  <text x="330" y="316" font-size="15" text-anchor="middle" fill="#111111">自由电子（−）定向移动方向</text>
+
+  <!-- 底部结论 -->
+  <text x="330" y="352" font-size="15" font-weight="bold" text-anchor="middle" fill="#111111">电子带负电，其移动方向与电流方向相反</text>
+</svg>

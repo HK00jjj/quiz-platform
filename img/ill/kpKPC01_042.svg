@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 400">
+  <rect x="0" y="0" width="660" height="400" fill="#ffffff"/>
+  <g font-family="sans-serif" fill="#1a1a1a">
+    <text x="330" y="32" font-size="20" font-weight="bold" text-anchor="middle">通电线圈：电流反向，磁场方向随之反向</text>
+
+    <!-- 左：原接法螺线管 -->
+    <path d="M 120 190 A 15 20 0 0 1 150 190 A 15 20 0 0 1 180 190 A 15 20 0 0 1 210 190 A 15 20 0 0 1 240 190 A 15 20 0 0 1 270 190 A 15 20 0 0 1 300 190 A 15 20 0 0 1 330 190" fill="none" stroke="#1a1a1a" stroke-width="2.5"/>
+    <line x1="120" y1="190" x2="72" y2="190" stroke="#1a1a1a" stroke-width="2"/>
+    <line x1="330" y1="190" x2="360" y2="190" stroke="#1a1a1a" stroke-width="2"/>
+    <line x1="78" y1="190" x2="106" y2="190" stroke="#1a1a1a" stroke-width="2"/>
+    <polygon points="114,190 100,183 100,197" fill="#1a1a1a"/>
+    <text x="82" y="170" font-size="14">电流 I</text>
+    <!-- 管内磁感线：向右 -->
+    <line x1="150" y1="176" x2="290" y2="176" stroke="#444444" stroke-width="1.5" stroke-dasharray="6 5"/>
+    <polygon points="300,176 286,170 286,182" fill="#444444"/>
+    <line x1="150" y1="204" x2="290" y2="204" stroke="#444444" stroke-width="1.5" stroke-dasharray="6 5"/>
+    <polygon points="300,204 286,198 286,210" fill="#444444"/>
+    <text x="108" y="228" font-size="17" font-weight="bold" text-anchor="middle">S</text>
+    <text x="348" y="200" font-size="17" font-weight="bold" text-anchor="middle">N</text>
+    <text x="225" y="250" font-size="15" text-anchor="middle">原接法：管内磁感线向右</text>
+
+    <!-- 中间：反向标注 -->
+    <text x="365" y="120" font-size="16" font-weight="bold" text-anchor="middle">电流对调</text>
+    <text x="365" y="272" font-size="16" font-weight="bold" text-anchor="middle">磁场反向</text>
+
+    <!-- 右：接法对调后螺线管 -->
+    <path d="M 400 190 A 15 20 0 0 1 430 190 A 15 20 0 0 1 460 190 A 15 20 0 0 1 490 190 A 15 20 0 0 1 520 190 A 15 20 0 0 1 550 190 A 15 20 0 0 1 580 190 A 15 20 0 0 1 610 190" fill="none" stroke="#1a1a1a" stroke-width="2.5"/>
+    <line x1="400" y1="190" x2="372" y2="190" stroke="#1a1a1a" stroke-width="2"/>
+    <line x1="610" y1="190" x2="656" y2="190" stroke="#1a1a1a" stroke-width="2"/>
+    <line x1="648" y1="190" x2="620" y2="190" stroke="#1a1a1a" stroke-width="2"/>
+    <polygon points="612,190 626,183 626,197" fill="#1a1a1a"/>
+    <text x="628" y="170" font-size="14">电流 I</text>
+    <!-- 管内磁感线：向左 -->
+    <line x1="430" y1="176" x2="570" y2="176" stroke="#444444" stroke-width="1.5" stroke-dasharray="6 5"/>
+    <polygon points="420,176 434,170 434,182" fill="#444444"/>
+    <line x1="430" y1="204" x2="570" y2="204" stroke="#444444" stroke-width="1.5" stroke-dasharray="6 5"/>
+    <polygon points="420,204 434,198 434,210" fill="#444444"/>
+    <text x="392" y="200" font-size="17" font-weight="bold" text-anchor="middle">N</text>
+    <text x="632" y="228" font-size="17" font-weight="bold" text-anchor="middle">S</text>
+    <text x="505" y="250" font-size="15" text-anchor="middle">对调后：管内磁感线向左</text>
+
+    <!-- 结论框 -->
+    <rect x="100" y="300" width="460" height="70" fill="none" stroke="#555555" stroke-width="1.5" rx="6"/>
+    <text x="330" y="330" font-size="15" text-anchor="middle" font-weight="bold">电流方向反向 → 磁场方向随之反向</text>
+    <text x="330" y="356" font-size="14" text-anchor="middle" fill="#333333">电流大小未变，磁场强弱不变，只是磁感线方向跟着改变</text>
+  </g>
+</svg>

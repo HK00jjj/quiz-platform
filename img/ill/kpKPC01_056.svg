@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 400" font-family="sans-serif">
+  <rect x="0" y="0" width="660" height="400" fill="#ffffff"/>
+  <text x="330" y="28" font-size="19" font-weight="bold" fill="#1a1a1a" text-anchor="middle">互感实验：相互靠近的线圈间的磁耦合</text>
+
+  <!-- 线圈1 -->
+  <text x="155" y="106" font-size="15" font-weight="bold" fill="#222" text-anchor="middle">线圈 1</text>
+  <rect x="100" y="116" width="110" height="9" fill="#ffffff" stroke="#222" stroke-width="2"/>
+  <rect x="100" y="184" width="110" height="9" fill="#ffffff" stroke="#222" stroke-width="2"/>
+  <g stroke="#222" stroke-width="2.2" fill="none">
+    <path d="M110,180 a11,13 0 0 1 22,0"/>
+    <path d="M132,180 a11,13 0 0 1 22,0"/>
+    <path d="M154,180 a11,13 0 0 1 22,0"/>
+    <path d="M176,180 a11,13 0 0 1 22,0"/>
+  </g>
+  <!-- 线圈2 -->
+  <text x="355" y="106" font-size="15" font-weight="bold" fill="#222" text-anchor="middle">线圈 2</text>
+  <rect x="300" y="116" width="110" height="9" fill="#ffffff" stroke="#222" stroke-width="2"/>
+  <rect x="300" y="184" width="110" height="9" fill="#ffffff" stroke="#222" stroke-width="2"/>
+  <g stroke="#222" stroke-width="2.2" fill="none">
+    <path d="M310,180 a11,13 0 0 1 22,0"/>
+    <path d="M332,180 a11,13 0 0 1 22,0"/>
+    <path d="M354,180 a11,13 0 0 1 22,0"/>
+    <path d="M376,180 a11,13 0 0 1 22,0"/>
+  </g>
+
+  <!-- 磁耦合虚线弧 -->
+  <g stroke="#555" stroke-width="1.8" fill="none" stroke-dasharray="7 4">
+    <path d="M214,140 Q 258,126 296,140"/>
+    <path d="M214,158 Q 258,150 296,158"/>
+    <path d="M214,176 Q 258,176 296,168"/>
+  </g>
+  <polygon points="304,137 291,132 290,144" fill="#555"/>
+  <polygon points="304,158 291,154 291,163" fill="#555"/>
+  <text x="258" y="200" font-size="14" fill="#555" text-anchor="middle">磁耦合（无需导线连通）</text>
+
+  <!-- 线圈1 回路：电池 + 开关 -->
+  <polyline points="100,193 100,300" fill="none" stroke="#222" stroke-width="2"/>
+  <polyline points="210,193 210,300" fill="none" stroke="#222" stroke-width="2"/>
+  <!-- 电池符号（左竖线上） -->
+  <line x1="86" y1="240" x2="114" y2="240" stroke="#222" stroke-width="3"/>
+  <line x1="93" y1="250" x2="107" y2="250" stroke="#222" stroke-width="2"/>
+  <text x="70" y="248" font-size="14" fill="#222" text-anchor="end">电源</text>
+  <!-- 开关（底边上） -->
+  <line x1="100" y1="300" x2="143" y2="300" stroke="#222" stroke-width="2"/>
+  <line x1="167" y1="300" x2="210" y2="300" stroke="#222" stroke-width="2"/>
+  <circle cx="143" cy="300" r="3.5" fill="#ffffff" stroke="#222" stroke-width="2"/>
+  <circle cx="167" cy="300" r="3.5" fill="#ffffff" stroke="#222" stroke-width="2"/>
+  <line x1="145" y1="298" x2="165" y2="282" stroke="#222" stroke-width="2"/>
+  <text x="155" y="326" font-size="13" fill="#222" text-anchor="middle">通入变化电流 i（Δi≠0）</text>
+  <!-- 电流方向箭头 -->
+  <polygon points="100,278 95,290 105,290" fill="#1a5c2e"/>
+
+  <!-- 线圈2 回路：检流计 -->
+  <polyline points="300,193 300,300 326,300" fill="none" stroke="#222" stroke-width="2"/>
+  <polyline points="384,300 410,300 410,193" fill="none" stroke="#222" stroke-width="2"/>
+  <circle cx="355" cy="300" r="29" fill="#ffffff" stroke="#222" stroke-width="2.2"/>
+  <text x="355" y="284" font-size="11" fill="#222" text-anchor="middle">0</text>
+  <line x1="355" y1="306" x2="370" y2="286" stroke="#8a4a12" stroke-width="2.5"/>
+  <circle cx="355" cy="306" r="3" fill="#222"/>
+  <text x="355" y="348" font-size="13" fill="#222" text-anchor="middle">产生感应电动势</text>
+
+  <!-- 右侧要点框 -->
+  <rect x="468" y="100" width="178" height="164" rx="8" fill="#f7f7f7" stroke="#222" stroke-width="1.8"/>
+  <text x="557" y="128" font-size="15" font-weight="bold" fill="#222" text-anchor="middle">互感发生条件</text>
+  <text x="482" y="158" font-size="14" fill="#222">① 两线圈相互靠近</text>
+  <text x="482" y="184" font-size="14" fill="#222">② 一线圈电流变化</text>
+  <text x="497" y="206" font-size="14" fill="#222">（Δi ≠ 0）</text>
+  <text x="482" y="232" font-size="14" fill="#8a1f1f">稳定电流 → 无互感</text>
+  <text x="482" y="254" font-size="13" fill="#555">磁耦合不靠导线连通</text>
+
+  <line x1="40" y1="360" x2="620" y2="360" stroke="#bbb" stroke-width="1"/>
+  <text x="330" y="382" font-size="14" fill="#333" text-anchor="middle">一个线圈的电流变化 → 磁场变化 → 在靠近的另一线圈中激起感应电动势（互感）</text>
+</svg>

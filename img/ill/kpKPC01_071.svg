@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 400" font-family="sans-serif">
+  <rect x="0" y="0" width="660" height="400" fill="#ffffff"/>
+  <defs>
+    <marker id="arr71" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L10,4 L0,8 Z" fill="#333333"/>
+    </marker>
+  </defs>
+
+  <text x="330" y="30" font-size="17" font-weight="bold" fill="#1a1a1a" text-anchor="middle">设备外壳带电时漏电电流经接地线泄入大地的路径图</text>
+
+  <!-- 设备 -->
+  <rect x="200" y="70" width="180" height="100" fill="none" stroke="#1a1a1a" stroke-width="3.5"/>
+  <circle cx="290" cy="120" r="24" fill="none" stroke="#1a1a1a" stroke-width="2"/>
+  <text x="290" y="127" font-size="18" font-weight="bold" fill="#1a1a1a" text-anchor="middle">M</text>
+  <path d="M 356 52 L 342 74 L 352 74 L 336 98" fill="none" stroke="#1a1a1a" stroke-width="2.5"/>
+  <text x="392" y="66" font-size="14" fill="#1a1a1a">外壳带电（漏电）</text>
+
+  <!-- 主泄流路径：接地线 -->
+  <line x1="290" y1="170" x2="290" y2="268" stroke="#1a1a1a" stroke-width="4"/>
+  <line x1="290" y1="190" x2="290" y2="230" stroke="#333333" stroke-width="3" marker-end="url(#arr71)"/>
+  <text x="300" y="216" font-size="15" font-weight="bold" fill="#1a1a1a">I漏</text>
+  <text x="300" y="252" font-size="14" fill="#333333">R地 很小</text>
+
+  <!-- 接地符号 -->
+  <line x1="290" y1="268" x2="290" y2="296" stroke="#1a1a1a" stroke-width="2.5"/>
+  <line x1="268" y1="276" x2="312" y2="276" stroke="#1a1a1a" stroke-width="2.5"/>
+  <line x1="276" y1="284" x2="304" y2="284" stroke="#1a1a1a" stroke-width="2.5"/>
+  <line x1="283" y1="292" x2="297" y2="292" stroke="#1a1a1a" stroke-width="2.5"/>
+
+  <!-- 人触摸外壳 -->
+  <circle cx="480" cy="152" r="13" fill="none" stroke="#1a1a1a" stroke-width="2"/>
+  <line x1="480" y1="165" x2="480" y2="225" stroke="#1a1a1a" stroke-width="2"/>
+  <line x1="480" y1="225" x2="466" y2="278" stroke="#1a1a1a" stroke-width="2"/>
+  <line x1="480" y1="225" x2="494" y2="278" stroke="#1a1a1a" stroke-width="2"/>
+  <line x1="470" y1="138" x2="384" y2="122" stroke="#1a1a1a" stroke-width="2"/>
+  <line x1="428" y1="132" x2="400" y2="126" stroke="#333333" stroke-width="1.8" marker-end="url(#arr71)"/>
+  <text x="440" y="112" font-size="14" fill="#333333">I人 很小</text>
+  <circle cx="382" cy="122" r="4" fill="#1a1a1a"/>
+
+  <!-- 主路径文字 -->
+  <text x="56" y="222" font-size="14" font-weight="bold" fill="#1a1a1a">漏电电流主要</text>
+  <text x="56" y="242" font-size="14" font-weight="bold" fill="#1a1a1a">经接地线入地</text>
+
+  <!-- 大地 -->
+  <line x1="80" y1="280" x2="580" y2="280" stroke="#1a1a1a" stroke-width="2.5"/>
+  <line x1="110" y1="280" x2="100" y2="292" stroke="#1a1a1a" stroke-width="1.5"/>
+  <line x1="170" y1="280" x2="160" y2="292" stroke="#1a1a1a" stroke-width="1.5"/>
+  <line x1="230" y1="280" x2="220" y2="292" stroke="#1a1a1a" stroke-width="1.5"/>
+  <line x1="350" y1="280" x2="340" y2="292" stroke="#1a1a1a" stroke-width="1.5"/>
+  <line x1="410" y1="280" x2="400" y2="292" stroke="#1a1a1a" stroke-width="1.5"/>
+  <line x1="470" y1="280" x2="460" y2="292" stroke="#1a1a1a" stroke-width="1.5"/>
+  <line x1="530" y1="280" x2="520" y2="292" stroke="#1a1a1a" stroke-width="1.5"/>
+  <text x="586" y="286" font-size="14" fill="#1a1a1a">大地</text>
+
+  <!-- 说明 -->
+  <rect x="80" y="318" width="500" height="64" fill="none" stroke="#333333" stroke-width="1.5" stroke-dasharray="6,4"/>
+  <text x="330" y="342" font-size="14" fill="#1a1a1a" text-anchor="middle">外壳可靠接地后，接地线为漏电电流提供低阻入地通路</text>
+  <text x="330" y="366" font-size="15" font-weight="bold" fill="#1a1a1a" text-anchor="middle">流经人体的电流大大减小，防止触电</text>
+</svg>

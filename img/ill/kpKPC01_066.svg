@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 400" font-family="sans-serif">
+  <rect x="0" y="0" width="660" height="400" fill="#ffffff"/>
+  <defs>
+    <marker id="arr66" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L10,4 L0,8 Z" fill="#333333"/>
+    </marker>
+  </defs>
+
+  <text x="330" y="30" font-size="17" font-weight="bold" fill="#1a1a1a" text-anchor="middle">接零后漏电形成单相短路使熔断器熔断</text>
+
+  <!-- 母线 -->
+  <line x1="140" y1="70" x2="140" y2="330" stroke="#1a1a1a" stroke-width="3"/>
+  <line x1="520" y1="70" x2="520" y2="330" stroke="#1a1a1a" stroke-width="3"/>
+  <text x="62" y="80" font-size="14" fill="#1a1a1a">L（相线）</text>
+  <text x="528" y="80" font-size="14" fill="#1a1a1a">N（零线）</text>
+
+  <!-- 相线→熔断器→设备 -->
+  <line x1="140" y1="150" x2="195" y2="150" stroke="#1a1a1a" stroke-width="2"/>
+  <rect x="195" y="140" width="44" height="20" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+  <line x1="239" y1="150" x2="340" y2="150" stroke="#1a1a1a" stroke-width="2"/>
+  <line x1="340" y1="150" x2="340" y2="190" stroke="#1a1a1a" stroke-width="2"/>
+  <text x="150" y="126" font-size="14" fill="#1a1a1a">熔断器 FU</text>
+  <text x="150" y="144" font-size="14" font-weight="bold" fill="#1a1a1a">（熔断）</text>
+  <line x1="212" y1="132" x2="208" y2="122" stroke="#1a1a1a" stroke-width="1.8"/>
+  <line x1="222" y1="132" x2="226" y2="122" stroke="#1a1a1a" stroke-width="1.8"/>
+
+  <!-- 设备 -->
+  <rect x="280" y="190" width="120" height="80" fill="none" stroke="#1a1a1a" stroke-width="3.5"/>
+  <circle cx="340" cy="238" r="22" fill="none" stroke="#1a1a1a" stroke-width="2"/>
+  <text x="340" y="245" font-size="17" font-weight="bold" fill="#1a1a1a" text-anchor="middle">M</text>
+
+  <!-- 碰壳故障点 -->
+  <line x1="332" y1="182" x2="348" y2="198" stroke="#1a1a1a" stroke-width="3"/>
+  <line x1="348" y1="182" x2="332" y2="198" stroke="#1a1a1a" stroke-width="3"/>
+  <text x="356" y="186" font-size="14" fill="#1a1a1a">绝缘损坏（碰壳）</text>
+
+  <!-- 设备工作零线回路 -->
+  <line x1="340" y1="270" x2="340" y2="300" stroke="#1a1a1a" stroke-width="2"/>
+  <line x1="340" y1="300" x2="520" y2="300" stroke="#1a1a1a" stroke-width="2"/>
+  <text x="400" y="292" font-size="13" fill="#333333">工作回路</text>
+
+  <!-- 外壳接零（保护线） -->
+  <line x1="400" y1="238" x2="520" y2="238" stroke="#1a1a1a" stroke-width="3.5"/>
+  <circle cx="520" cy="238" r="4.5" fill="#1a1a1a"/>
+  <text x="416" y="226" font-size="13" fill="#333333">外壳接零线</text>
+
+  <!-- 短路电流路径箭头 -->
+  <line x1="272" y1="150" x2="302" y2="150" stroke="#333333" stroke-width="2.5" marker-end="url(#arr66)"/>
+  <line x1="340" y1="160" x2="340" y2="176" stroke="#333333" stroke-width="2.5" marker-end="url(#arr66)"/>
+  <line x1="440" y1="238" x2="470" y2="238" stroke="#333333" stroke-width="2.5" marker-end="url(#arr66)"/>
+  <text x="424" y="262" font-size="15" font-weight="bold" fill="#1a1a1a">I短 很大</text>
+
+  <!-- 机理说明 -->
+  <rect x="55" y="342" width="550" height="50" fill="none" stroke="#333333" stroke-width="1.5" stroke-dasharray="6,4"/>
+  <text x="330" y="362" font-size="14" fill="#1a1a1a" text-anchor="middle">外壳漏电 → 相线经外壳与零线形成单相短路 → 回路电阻很小，短路电流很大</text>
+  <text x="330" y="384" font-size="14" font-weight="bold" fill="#1a1a1a" text-anchor="middle">大电流使熔断器迅速熔断、切断电源</text>
+</svg>

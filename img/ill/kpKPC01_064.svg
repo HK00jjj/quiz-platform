@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 400" font-family="sans-serif">
+  <rect x="0" y="0" width="660" height="400" fill="#ffffff"/>
+  <defs>
+    <marker id="arr64" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L10,4 L0,8 Z" fill="#333333"/>
+    </marker>
+  </defs>
+
+  <text x="330" y="30" font-size="17" font-weight="bold" fill="#1a1a1a" text-anchor="middle">漏电电流经接地装置分流泄入大地</text>
+
+  <!-- 设备 -->
+  <rect x="230" y="60" width="200" height="95" fill="none" stroke="#1a1a1a" stroke-width="3.5"/>
+  <circle cx="330" cy="107" r="26" fill="none" stroke="#1a1a1a" stroke-width="2"/>
+  <text x="330" y="114" font-size="19" font-weight="bold" fill="#1a1a1a" text-anchor="middle">M</text>
+  <path d="M 392 44 L 378 66 L 388 66 L 372 90" fill="none" stroke="#1a1a1a" stroke-width="2.5"/>
+  <text x="404" y="52" font-size="14" fill="#1a1a1a">外壳漏电</text>
+
+  <!-- 接地支路（左） -->
+  <line x1="230" y1="107" x2="110" y2="107" stroke="#1a1a1a" stroke-width="3.5"/>
+  <line x1="110" y1="107" x2="110" y2="266" stroke="#1a1a1a" stroke-width="3.5"/>
+  <line x1="176" y1="107" x2="146" y2="107" stroke="#333333" stroke-width="2.5" marker-end="url(#arr64)"/>
+  <line x1="110" y1="176" x2="110" y2="206" stroke="#333333" stroke-width="2.5" marker-end="url(#arr64)"/>
+  <text x="62" y="86" font-size="14" fill="#333333">接地支路</text>
+  <text x="62" y="106" font-size="14" fill="#333333">R地≈4Ω（很小）</text>
+  <text x="56" y="200" font-size="14" font-weight="bold" fill="#1a1a1a">I1 很大</text>
+
+  <!-- 人体支路（右） -->
+  <line x1="430" y1="107" x2="530" y2="107" stroke="#1a1a1a" stroke-width="2"/>
+  <line x1="466" y1="107" x2="496" y2="107" stroke="#333333" stroke-width="2" marker-end="url(#arr64)"/>
+  <text x="438" y="86" font-size="14" fill="#333333">人体支路</text>
+  <text x="438" y="106" font-size="14" fill="#333333">R人（远大于R地）</text>
+  <text x="452" y="180" font-size="14" font-weight="bold" fill="#1a1a1a">I2 很小</text>
+
+  <!-- 人 -->
+  <circle cx="530" cy="132" r="13" fill="none" stroke="#1a1a1a" stroke-width="2"/>
+  <line x1="530" y1="145" x2="530" y2="215" stroke="#1a1a1a" stroke-width="2"/>
+  <line x1="530" y1="215" x2="514" y2="292" stroke="#1a1a1a" stroke-width="2"/>
+  <line x1="530" y1="215" x2="546" y2="292" stroke="#1a1a1a" stroke-width="2"/>
+
+  <!-- 接地符号（左支路） -->
+  <line x1="110" y1="266" x2="110" y2="296" stroke="#1a1a1a" stroke-width="2.5"/>
+  <line x1="88" y1="274" x2="132" y2="274" stroke="#1a1a1a" stroke-width="2.5"/>
+  <line x1="96" y1="282" x2="124" y2="282" stroke="#1a1a1a" stroke-width="2.5"/>
+  <line x1="103" y1="290" x2="117" y2="290" stroke="#1a1a1a" stroke-width="2.5"/>
+
+  <!-- 大地 -->
+  <line x1="70" y1="298" x2="590" y2="298" stroke="#1a1a1a" stroke-width="2.5"/>
+  <line x1="100" y1="298" x2="90" y2="310" stroke="#1a1a1a" stroke-width="1.5"/>
+  <line x1="170" y1="298" x2="160" y2="310" stroke="#1a1a1a" stroke-width="1.5"/>
+  <line x1="240" y1="298" x2="230" y2="310" stroke="#1a1a1a" stroke-width="1.5"/>
+  <line x1="310" y1="298" x2="300" y2="310" stroke="#1a1a1a" stroke-width="1.5"/>
+  <line x1="380" y1="298" x2="370" y2="310" stroke="#1a1a1a" stroke-width="1.5"/>
+  <line x1="450" y1="298" x2="440" y2="310" stroke="#1a1a1a" stroke-width="1.5"/>
+  <line x1="520" y1="298" x2="510" y2="310" stroke="#1a1a1a" stroke-width="1.5"/>
+  <text x="596" y="304" font-size="14" fill="#1a1a1a">大地</text>
+
+  <!-- 分流原理说明 -->
+  <rect x="75" y="326" width="510" height="58" fill="none" stroke="#333333" stroke-width="1.5" stroke-dasharray="6,4"/>
+  <text x="330" y="348" font-size="14" fill="#1a1a1a" text-anchor="middle">并联分流：两支路电压相等，由 I=U/R，电阻越小分得电流越大</text>
+  <text x="330" y="372" font-size="15" font-weight="bold" fill="#1a1a1a" text-anchor="middle">人体电阻远大于接地电阻，漏电电流绝大部分经接地装置泄入大地</text>
+</svg>

@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 400" font-family="sans-serif">
+  <rect x="0" y="0" width="660" height="400" fill="#ffffff"/>
+  <defs>
+    <marker id="arr70" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L10,4 L0,8 Z" fill="#333333"/>
+    </marker>
+  </defs>
+
+  <text x="330" y="30" font-size="17" font-weight="bold" fill="#1a1a1a" text-anchor="middle">电动机金属外壳经接地线与大地连接的示意图</text>
+
+  <!-- 电源接线端子 -->
+  <rect x="255" y="70" width="18" height="12" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+  <rect x="345" y="70" width="18" height="12" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+  <line x1="264" y1="70" x2="264" y2="50" stroke="#1a1a1a" stroke-width="2"/>
+  <line x1="354" y1="70" x2="354" y2="50" stroke="#1a1a1a" stroke-width="2"/>
+  <text x="396" y="58" font-size="13" fill="#333333">接线端子（不接地）</text>
+  <line x1="392" y1="62" x2="370" y2="70" stroke="#333333" stroke-width="1.5" marker-end="url(#arr70)"/>
+
+  <!-- 电动机机身：粗边框=金属外壳 -->
+  <rect x="200" y="82" width="220" height="138" fill="none" stroke="#1a1a1a" stroke-width="5"/>
+  <circle cx="310" cy="150" r="30" fill="none" stroke="#1a1a1a" stroke-width="2"/>
+  <text x="310" y="157" font-size="19" font-weight="bold" fill="#1a1a1a" text-anchor="middle">M</text>
+  <rect x="240" y="100" width="36" height="20" fill="none" stroke="#1a1a1a" stroke-width="1.8"/>
+  <rect x="344" y="180" width="36" height="20" fill="none" stroke="#1a1a1a" stroke-width="1.8"/>
+
+  <!-- 部位标注 -->
+  <text x="56" y="106" font-size="13" fill="#333333">带电的导体部分</text>
+  <text x="56" y="124" font-size="13" fill="#333333">（不接地）</text>
+  <line x1="152" y1="110" x2="234" y2="110" stroke="#333333" stroke-width="1.5" marker-end="url(#arr70)"/>
+
+  <line x1="440" y1="108" x2="424" y2="104" stroke="#333333" stroke-width="1.5" marker-end="url(#arr70)"/>
+  <text x="446" y="104" font-size="14" font-weight="bold" fill="#1a1a1a">金属外壳</text>
+  <text x="446" y="124" font-size="14" font-weight="bold" fill="#1a1a1a">（接地对象）</text>
+
+  <!-- 接地连接点 -->
+  <rect x="224" y="214" width="12" height="12" fill="#1a1a1a"/>
+
+  <!-- 接地线 -->
+  <line x1="230" y1="226" x2="230" y2="308" stroke="#1a1a1a" stroke-width="3"/>
+  <text x="244" y="270" font-size="14" fill="#1a1a1a">接地线</text>
+
+  <!-- 大地 -->
+  <line x1="80" y1="310" x2="580" y2="310" stroke="#1a1a1a" stroke-width="2.5"/>
+  <line x1="110" y1="310" x2="100" y2="322" stroke="#1a1a1a" stroke-width="1.5"/>
+  <line x1="170" y1="310" x2="160" y2="322" stroke="#1a1a1a" stroke-width="1.5"/>
+  <line x1="290" y1="310" x2="280" y2="322" stroke="#1a1a1a" stroke-width="1.5"/>
+  <line x1="350" y1="310" x2="340" y2="322" stroke="#1a1a1a" stroke-width="1.5"/>
+  <line x1="410" y1="310" x2="400" y2="322" stroke="#1a1a1a" stroke-width="1.5"/>
+  <line x1="470" y1="310" x2="460" y2="322" stroke="#1a1a1a" stroke-width="1.5"/>
+  <line x1="530" y1="310" x2="520" y2="322" stroke="#1a1a1a" stroke-width="1.5"/>
+  <text x="586" y="316" font-size="14" fill="#1a1a1a">大地</text>
+
+  <!-- 接地符号 -->
+  <line x1="230" y1="310" x2="230" y2="340" stroke="#1a1a1a" stroke-width="2.5"/>
+  <line x1="208" y1="318" x2="252" y2="318" stroke="#1a1a1a" stroke-width="2.5"/>
+  <line x1="216" y1="326" x2="244" y2="326" stroke="#1a1a1a" stroke-width="2.5"/>
+  <line x1="223" y1="334" x2="237" y2="334" stroke="#1a1a1a" stroke-width="2.5"/>
+
+  <!-- 说明 -->
+  <rect x="90" y="354" width="480" height="36" fill="none" stroke="#333333" stroke-width="1.5" stroke-dasharray="6,4"/>
+  <text x="330" y="378" font-size="15" font-weight="bold" fill="#1a1a1a" text-anchor="middle">接地应与大地可靠连接的是设备的金属外壳，不是带电部分</text>
+</svg>

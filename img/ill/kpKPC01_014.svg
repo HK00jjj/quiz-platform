@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 400" font-family="sans-serif">
+  <rect x="0" y="0" width="660" height="400" fill="#ffffff"/>
+  <text x="330" y="34" font-size="21" font-weight="bold" text-anchor="middle" fill="#222222">电阻的串联分压电路</text>
+
+  <!-- 回路：左 x=120 右 x=540 顶 y=110 底 y=300 -->
+  <!-- 左竖线 + 电池（正极在上） -->
+  <line x1="120" y1="110" x2="120" y2="192" stroke="#222222" stroke-width="2"/>
+  <line x1="106" y1="192" x2="134" y2="192" stroke="#222222" stroke-width="2.5"/>
+  <line x1="113" y1="202" x2="127" y2="202" stroke="#222222" stroke-width="2.5"/>
+  <line x1="120" y1="202" x2="120" y2="300" stroke="#222222" stroke-width="2"/>
+  <text x="82" y="196" font-size="15" fill="#222222">E=6V</text>
+  <text x="140" y="188" font-size="14" fill="#222222">+</text>
+  <text x="140" y="216" font-size="14" fill="#222222">−</text>
+
+  <!-- 顶线：R1、R2 空心矩形串联 -->
+  <line x1="120" y1="110" x2="225" y2="110" stroke="#222222" stroke-width="2"/>
+  <rect x="225" y="95" width="70" height="30" fill="#ffffff" stroke="#222222" stroke-width="2"/>
+  <line x1="295" y1="110" x2="375" y2="110" stroke="#222222" stroke-width="2"/>
+  <rect x="375" y="95" width="70" height="30" fill="#ffffff" stroke="#222222" stroke-width="2"/>
+  <line x1="445" y1="110" x2="540" y2="110" stroke="#222222" stroke-width="2"/>
+  <text x="260" y="84" font-size="16" text-anchor="middle" fill="#222222">R1=5Ω</text>
+  <text x="410" y="84" font-size="16" text-anchor="middle" fill="#222222">R2=7Ω</text>
+
+  <!-- 电流方向箭头（顶线，从正极流向 R1） -->
+  <polygon points="175,110 162,104 162,116" fill="#222222"/>
+  <text x="172" y="140" font-size="15" text-anchor="middle" fill="#222222">I=0.5A</text>
+
+  <!-- 右竖线与底线 -->
+  <line x1="540" y1="110" x2="540" y2="300" stroke="#222222" stroke-width="2"/>
+  <line x1="120" y1="300" x2="540" y2="300" stroke="#222222" stroke-width="2"/>
+
+  <!-- UR1 分压弧形标注 -->
+  <path d="M 225 145 Q 260 168 295 145" fill="none" stroke="#1a4f8a" stroke-width="1.8"/>
+  <polygon points="295,145 283,146 289,156" fill="#1a4f8a"/>
+  <text x="260" y="185" font-size="15" text-anchor="middle" fill="#1a4f8a">UR1=2.5V</text>
+
+  <!-- UR2 分压弧形标注 -->
+  <path d="M 375 145 Q 410 168 445 145" fill="none" stroke="#1a4f8a" stroke-width="1.8"/>
+  <polygon points="445,145 433,146 439,156" fill="#1a4f8a"/>
+  <text x="410" y="185" font-size="15" text-anchor="middle" fill="#1a4f8a">UR2=3.5V</text>
+
+  <!-- 总电压弧形标注 -->
+  <path d="M 155 230 Q 120 255 155 280" fill="none" stroke="#8a3b00" stroke-width="1.8"/>
+  <polygon points="155,280 145,271 141,283" fill="#8a3b00"/>
+  <text x="176" y="260" font-size="15" fill="#8a3b00">U=6V</text>
+
+  <!-- 底部分压计算 -->
+  <text x="330" y="345" font-size="15" text-anchor="middle" fill="#222222">总电阻 R = R1 + R2 = 5Ω + 7Ω = 12Ω，　电流 I = U/R = 6V ÷ 12Ω = 0.5A</text>
+  <text x="330" y="375" font-size="15" text-anchor="middle" fill="#1a4f8a">分压：UR2 = I·R2 = 0.5A × 7Ω = 3.5V　（阻值越大，分得电压越高）</text>
+</svg>

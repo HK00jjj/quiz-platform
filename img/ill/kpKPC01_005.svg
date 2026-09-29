@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 400" font-family="sans-serif">
+  <defs>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#333333"/>
+    </marker>
+  </defs>
+  <rect width="660" height="400" fill="#ffffff"/>
+
+  <!-- 图例：正电荷 -->
+  <circle cx="75" cy="112" r="9" fill="#ffffff" stroke="#333333" stroke-width="1.8"/>
+  <text x="75" y="118" font-size="14" text-anchor="middle" fill="#333333">＋</text>
+  <text x="92" y="118" font-size="14" fill="#444444">正电荷</text>
+
+  <!-- 电流方向大箭头与标注 -->
+  <text x="330" y="72" font-size="18" font-weight="bold" text-anchor="middle" fill="#111111">电流方向 I</text>
+  <polygon points="180,98 448,98 448,91 480,105 448,119 448,112 180,112" fill="#333333"/>
+
+  <!-- 导体管道 -->
+  <rect x="140" y="140" width="380" height="120" fill="#fafafa" stroke="#333333" stroke-width="2"/>
+  <line x1="70" y1="200" x2="140" y2="200" stroke="#333333" stroke-width="2"/>
+  <line x1="520" y1="200" x2="590" y2="200" stroke="#333333" stroke-width="2"/>
+
+  <!-- 正电荷与同向箭头 -->
+  <circle cx="205" cy="200" r="13" fill="#ffffff" stroke="#333333" stroke-width="2"/>
+  <text x="205" y="207" font-size="16" text-anchor="middle" fill="#333333">＋</text>
+  <line x1="221" y1="200" x2="252" y2="200" stroke="#333333" stroke-width="2" marker-end="url(#ar)"/>
+
+  <circle cx="285" cy="200" r="13" fill="#ffffff" stroke="#333333" stroke-width="2"/>
+  <text x="285" y="207" font-size="16" text-anchor="middle" fill="#333333">＋</text>
+  <line x1="301" y1="200" x2="332" y2="200" stroke="#333333" stroke-width="2" marker-end="url(#ar)"/>
+
+  <circle cx="365" cy="200" r="13" fill="#ffffff" stroke="#333333" stroke-width="2"/>
+  <text x="365" y="207" font-size="16" text-anchor="middle" fill="#333333">＋</text>
+  <line x1="381" y1="200" x2="412" y2="200" stroke="#333333" stroke-width="2" marker-end="url(#ar)"/>
+
+  <circle cx="445" cy="200" r="13" fill="#ffffff" stroke="#333333" stroke-width="2"/>
+  <text x="445" y="207" font-size="16" text-anchor="middle" fill="#333333">＋</text>
+  <line x1="461" y1="200" x2="492" y2="200" stroke="#333333" stroke-width="2" marker-end="url(#ar)"/>
+
+  <!-- 下方规定说明 -->
+  <text x="330" y="300" font-size="16" font-weight="bold" text-anchor="middle" fill="#111111">规定：正电荷定向移动的方向为电流的方向</text>
+  <text x="330" y="332" font-size="14" text-anchor="middle" fill="#444444">该规定对任何导体统一适用</text>
+</svg>

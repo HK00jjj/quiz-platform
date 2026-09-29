@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 400" font-family="sans-serif">
+  <rect x="0" y="0" width="660" height="400" fill="#ffffff"/>
+  <text x="330" y="34" font-size="20" font-weight="bold" fill="#1a1a1a" text-anchor="middle">左手定则：磁感线必须垂直穿过掌心</text>
+
+  <!-- 中缝分隔虚线 -->
+  <line x1="330" y1="55" x2="330" y2="355" stroke="#888" stroke-width="1.5" stroke-dasharray="6 5"/>
+
+  <!-- ========== 左栏：正确做法 ========== -->
+  <text x="175" y="72" font-size="16" font-weight="bold" fill="#1a5c2e" text-anchor="middle">正确（√）：垂直穿过掌心</text>
+
+  <!-- 左手掌（掌心朝向读者，四指朝上，拇指朝左） -->
+  <g transform="translate(175,235)" stroke="#222" stroke-width="2.5" fill="#ffffff">
+    <rect x="-88" y="30" width="52" height="15" rx="7.5" transform="rotate(-28 -36 37)"/>
+    <rect x="-45" y="12" width="90" height="82" rx="18"/>
+    <rect x="-42" y="-30" width="14" height="52" rx="7"/>
+    <rect x="-22" y="-44" width="14" height="66" rx="7"/>
+    <rect x="-2" y="-40" width="14" height="62" rx="7"/>
+    <rect x="18" y="-28" width="14" height="50" rx="7"/>
+  </g>
+  <text x="175" y="290" font-size="14" fill="#444" text-anchor="middle">掌心</text>
+
+  <!-- 掌心处的 ⊗ 符号：磁感线垂直纸面穿入掌心 -->
+  <g stroke="#222" stroke-width="2" fill="#ffffff">
+    <circle cx="161" cy="305" r="9"/>
+    <line x1="155" y1="299" x2="167" y2="311"/>
+    <line x1="167" y1="299" x2="155" y2="311"/>
+    <circle cx="193" cy="309" r="9"/>
+    <line x1="187" y1="303" x2="199" y2="315"/>
+    <line x1="199" y1="303" x2="187" y2="315"/>
+  </g>
+  <text x="247" y="316" font-size="15" fill="#222">B（磁感线穿入）</text>
+
+  <!-- 四指方向：电流 I -->
+  <line x1="200" y1="180" x2="200" y2="132" stroke="#1a5c2e" stroke-width="3"/>
+  <polygon points="200,124 194,138 206,138" fill="#1a5c2e"/>
+  <text x="212" y="150" font-size="16" font-weight="bold" fill="#1a5c2e">I</text>
+  <text x="224" y="170" font-size="13" fill="#1a5c2e">四指指电流</text>
+
+  <!-- 拇指方向：安培力 F -->
+  <line x1="88" y1="262" x2="48" y2="262" stroke="#8a4a12" stroke-width="3"/>
+  <polygon points="40,262 54,256 54,268" fill="#8a4a12"/>
+  <text x="34" y="268" font-size="16" font-weight="bold" fill="#8a4a12">F</text>
+
+  <text x="175" y="352" font-size="15" fill="#1a5c2e" text-anchor="middle">磁感线 ⊥ 掌心，拇指才能正确指示 F</text>
+
+  <!-- ========== 右栏：错误做法 ========== -->
+  <text x="490" y="72" font-size="16" font-weight="bold" fill="#8a1f1f" text-anchor="middle">错误（×）：平行贴着掌心</text>
+
+  <g transform="translate(490,235)" stroke="#222" stroke-width="2.5" fill="#ffffff">
+    <rect x="-88" y="30" width="52" height="15" rx="7.5" transform="rotate(-28 -36 37)"/>
+    <rect x="-45" y="12" width="90" height="82" rx="18"/>
+    <rect x="-42" y="-30" width="14" height="52" rx="7"/>
+    <rect x="-22" y="-44" width="14" height="66" rx="7"/>
+    <rect x="-2" y="-40" width="14" height="62" rx="7"/>
+    <rect x="18" y="-28" width="14" height="50" rx="7"/>
+  </g>
+  <text x="490" y="290" font-size="14" fill="#444" text-anchor="middle">掌心</text>
+
+  <!-- 贴着掌面平行的磁感线箭头 -->
+  <g stroke="#8a1f1f" stroke-width="2.5" fill="#8a1f1f">
+    <line x1="456" y1="272" x2="520" y2="272"/>
+    <polygon points="528,272 516,267 516,277"/>
+    <line x1="456" y1="292" x2="520" y2="292"/>
+    <polygon points="528,292 516,287 516,297"/>
+    <line x1="456" y1="312" x2="520" y2="312"/>
+    <polygon points="528,312 516,307 516,317"/>
+  </g>
+  <text x="545" y="296" font-size="15" fill="#8a1f1f">B 平贴掌面</text>
+
+  <text x="490" y="352" font-size="15" fill="#8a1f1f" text-anchor="middle">磁感线 ∥ 掌面流过，拇指无法指示 F</text>
+
+  <!-- 底部注释 -->
+  <line x1="40" y1="366" x2="620" y2="366" stroke="#bbb" stroke-width="1"/>
+  <text x="330" y="388" font-size="14" fill="#333" text-anchor="middle">左手定则三要素：磁感线垂直穿入掌心、四指指向电流 I、大拇指指向安培力 F（三者两两垂直）</text>
+</svg>

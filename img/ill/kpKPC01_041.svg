@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 400">
+  <rect x="0" y="0" width="660" height="400" fill="#ffffff"/>
+  <g font-family="sans-serif" fill="#1a1a1a">
+    <text x="330" y="30" font-size="20" font-weight="bold" text-anchor="middle">通电线圈产生磁场：磁化铁棒吸钉实验</text>
+
+    <!-- 铁棒与线圈 -->
+    <rect x="230" y="95" width="200" height="26" fill="#e8e8e8" stroke="#1a1a1a" stroke-width="2"/>
+    <ellipse cx="256" cy="108" rx="7" ry="22" fill="none" stroke="#1a1a1a" stroke-width="2"/>
+    <ellipse cx="282" cy="108" rx="7" ry="22" fill="none" stroke="#1a1a1a" stroke-width="2"/>
+    <ellipse cx="308" cy="108" rx="7" ry="22" fill="none" stroke="#1a1a1a" stroke-width="2"/>
+    <ellipse cx="334" cy="108" rx="7" ry="22" fill="none" stroke="#1a1a1a" stroke-width="2"/>
+    <ellipse cx="360" cy="108" rx="7" ry="22" fill="none" stroke="#1a1a1a" stroke-width="2"/>
+    <ellipse cx="386" cy="108" rx="7" ry="22" fill="none" stroke="#1a1a1a" stroke-width="2"/>
+    <text x="330" y="82" font-size="14" text-anchor="middle">线圈（多匝）</text>
+
+    <!-- 被吸住的铁钉 -->
+    <rect x="314" y="120" width="32" height="8" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+    <rect x="322" y="128" width="16" height="66" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+    <polygon points="322,194 338,194 330,210" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+    <text x="360" y="168" font-size="14">铁钉</text>
+    <line x1="356" y1="163" x2="342" y2="158" stroke="#555555" stroke-width="1"/>
+
+    <!-- 回路：左引线、电池、开关、右引线 -->
+    <line x1="230" y1="108" x2="150" y2="108" stroke="#1a1a1a" stroke-width="2"/>
+    <line x1="150" y1="108" x2="150" y2="225" stroke="#1a1a1a" stroke-width="2"/>
+    <line x1="150" y1="225" x2="170" y2="225" stroke="#1a1a1a" stroke-width="2"/>
+    <line x1="170" y1="210" x2="170" y2="240" stroke="#1a1a1a" stroke-width="3"/>
+    <line x1="190" y1="217" x2="190" y2="233" stroke="#1a1a1a" stroke-width="3"/>
+    <line x1="190" y1="225" x2="250" y2="225" stroke="#1a1a1a" stroke-width="2"/>
+    <circle cx="250" cy="225" r="3.5" fill="#1a1a1a"/>
+    <circle cx="300" cy="225" r="3.5" fill="#1a1a1a"/>
+    <line x1="250" y1="225" x2="296" y2="207" stroke="#1a1a1a" stroke-width="2"/>
+    <line x1="300" y1="225" x2="510" y2="225" stroke="#1a1a1a" stroke-width="2"/>
+    <line x1="510" y1="225" x2="510" y2="108" stroke="#1a1a1a" stroke-width="2"/>
+    <line x1="510" y1="108" x2="430" y2="108" stroke="#1a1a1a" stroke-width="2"/>
+    <text x="180" y="258" font-size="14" text-anchor="middle">电池</text>
+    <text x="272" y="196" font-size="14" text-anchor="middle">开关 S</text>
+    <line x1="200" y1="108" x2="218" y2="108" stroke="#1a1a1a" stroke-width="2"/>
+    <polygon points="224,108 212,102 212,114" fill="#1a1a1a"/>
+    <text x="206" y="98" font-size="14">I</text>
+
+    <!-- 右侧说明 -->
+    <text x="568" y="140" font-size="15" text-anchor="middle">线圈通电产生磁场</text>
+    <text x="568" y="162" font-size="15" text-anchor="middle">铁棒被磁化</text>
+    <text x="568" y="184" font-size="15" text-anchor="middle">吸起下方铁钉</text>
+
+    <!-- 工况对比：闭合开关 -->
+    <rect x="70" y="265" width="250" height="120" fill="none" stroke="#555555" stroke-width="1.5" rx="6"/>
+    <text x="195" y="288" font-size="15" font-weight="bold" text-anchor="middle">闭合开关 S：有电流</text>
+    <rect x="110" y="305" width="170" height="14" fill="#e8e8e8" stroke="#1a1a1a" stroke-width="1.5"/>
+    <ellipse cx="150" cy="312" rx="5" ry="12" fill="none" stroke="#1a1a1a" stroke-width="1.5"/>
+    <ellipse cx="180" cy="312" rx="5" ry="12" fill="none" stroke="#1a1a1a" stroke-width="1.5"/>
+    <ellipse cx="210" cy="312" rx="5" ry="12" fill="none" stroke="#1a1a1a" stroke-width="1.5"/>
+    <ellipse cx="240" cy="312" rx="5" ry="12" fill="none" stroke="#1a1a1a" stroke-width="1.5"/>
+    <rect x="190" y="319" width="12" height="6" fill="#ffffff" stroke="#1a1a1a" stroke-width="1.5"/>
+    <rect x="194" y="325" width="6" height="30" fill="#ffffff" stroke="#1a1a1a" stroke-width="1.5"/>
+    <polygon points="194,355 200,355 197,362" fill="#ffffff" stroke="#1a1a1a" stroke-width="1.5"/>
+    <text x="252" y="345" font-size="14">铁钉被吸起</text>
+
+    <!-- 工况对比：断开开关 -->
+    <rect x="340" y="265" width="250" height="120" fill="none" stroke="#555555" stroke-width="1.5" rx="6"/>
+    <text x="465" y="288" font-size="15" font-weight="bold" text-anchor="middle">断开开关 S：无电流</text>
+    <rect x="380" y="305" width="170" height="14" fill="#e8e8e8" stroke="#1a1a1a" stroke-width="1.5"/>
+    <ellipse cx="420" cy="312" rx="5" ry="12" fill="none" stroke="#1a1a1a" stroke-width="1.5"/>
+    <ellipse cx="450" cy="312" rx="5" ry="12" fill="none" stroke="#1a1a1a" stroke-width="1.5"/>
+    <ellipse cx="480" cy="312" rx="5" ry="12" fill="none" stroke="#1a1a1a" stroke-width="1.5"/>
+    <ellipse cx="510" cy="312" rx="5" ry="12" fill="none" stroke="#1a1a1a" stroke-width="1.5"/>
+    <rect x="459" y="336" width="12" height="6" fill="#ffffff" stroke="#1a1a1a" stroke-width="1.5"/>
+    <rect x="463" y="342" width="6" height="22" fill="#ffffff" stroke="#1a1a1a" stroke-width="1.5"/>
+    <polygon points="463,364 469,364 466,371" fill="#ffffff" stroke="#1a1a1a" stroke-width="1.5"/>
+    <line x1="500" y1="336" x2="500" y2="356" stroke="#888888" stroke-width="1.5"/>
+    <polygon points="500,362 494,350 506,350" fill="#888888"/>
+    <text x="525" y="352" font-size="14">铁钉掉落</text>
+
+    <text x="330" y="396" font-size="14" text-anchor="middle" fill="#333333">磁随电流走：通电有磁性，断电磁性消失</text>
+  </g>
+</svg>

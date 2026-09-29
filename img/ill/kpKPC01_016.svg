@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 400" font-family="sans-serif">
+  <rect x="0" y="0" width="660" height="400" fill="#ffffff"/>
+  <text x="330" y="34" font-size="21" font-weight="bold" text-anchor="middle" fill="#222222">电阻的串联总电压关系</text>
+
+  <!-- 回路：左 x=110 右 x=410 顶 y=100 底 y=310 -->
+  <!-- 左竖线 + 电池 -->
+  <line x1="110" y1="100" x2="110" y2="182" stroke="#222222" stroke-width="2"/>
+  <line x1="96" y1="182" x2="124" y2="182" stroke="#222222" stroke-width="2.5"/>
+  <line x1="103" y1="192" x2="117" y2="192" stroke="#222222" stroke-width="2.5"/>
+  <line x1="110" y1="192" x2="110" y2="310" stroke="#222222" stroke-width="2"/>
+  <text x="72" y="193" font-size="15" text-anchor="middle" fill="#222222">E</text>
+
+  <!-- 顶线 + R1 横放 -->
+  <line x1="110" y1="100" x2="220" y2="100" stroke="#222222" stroke-width="2"/>
+  <rect x="220" y="85" width="70" height="30" fill="#ffffff" stroke="#222222" stroke-width="2"/>
+  <line x1="290" y1="100" x2="410" y2="100" stroke="#222222" stroke-width="2"/>
+  <text x="255" y="74" font-size="16" text-anchor="middle" fill="#222222">R1</text>
+
+  <!-- 右竖线 + R2 竖放 -->
+  <line x1="410" y1="100" x2="410" y2="165" stroke="#222222" stroke-width="2"/>
+  <rect x="395" y="165" width="30" height="70" fill="#ffffff" stroke="#222222" stroke-width="2"/>
+  <line x1="410" y1="235" x2="410" y2="310" stroke="#222222" stroke-width="2"/>
+  <text x="444" y="205" font-size="16" fill="#222222">R2</text>
+
+  <!-- 底线 -->
+  <line x1="110" y1="310" x2="410" y2="310" stroke="#222222" stroke-width="2"/>
+
+  <!-- 电流箭头 -->
+  <polygon points="170,100 157,94 157,106" fill="#222222"/>
+  <text x="168" y="130" font-size="15" text-anchor="middle" fill="#222222">I</text>
+
+  <!-- UR1 弧形标注（R1 下方） -->
+  <path d="M 220 135 Q 255 158 290 135" fill="none" stroke="#1a4f8a" stroke-width="1.8"/>
+  <polygon points="290,135 278,136 284,146" fill="#1a4f8a"/>
+  <text x="255" y="175" font-size="15" text-anchor="middle" fill="#1a4f8a">UR1</text>
+
+  <!-- UR2 弧形标注（R2 左侧） -->
+  <path d="M 378 165 Q 355 200 378 235" fill="none" stroke="#1a4f8a" stroke-width="1.8"/>
+  <polygon points="378,235 368,226 364,238" fill="#1a4f8a"/>
+  <text x="344" y="205" font-size="15" text-anchor="middle" fill="#1a4f8a">UR2</text>
+
+  <!-- U 总电压大弧（回路内左侧） -->
+  <path d="M 152 122 Q 185 205 152 288" fill="none" stroke="#8a3b00" stroke-width="2"/>
+  <polygon points="152,288 144,275 156,276" fill="#8a3b00"/>
+  <text x="172" y="210" font-size="16" fill="#8a3b00">U</text>
+
+  <!-- 中央公式 -->
+  <text x="272" y="272" font-size="24" font-weight="bold" text-anchor="middle" fill="#222222">U = UR1 + UR2</text>
+
+  <!-- 底部说明 -->
+  <text x="330" y="352" font-size="15" text-anchor="middle" fill="#222222">总电压等于各串联电阻两端电压之和（串联电流处处相等，各段电压按 U=IR 分配）</text>
+  <text x="330" y="380" font-size="15" text-anchor="middle" fill="#8a3b00">例：6V = 2.5V + 3.5V，各段电压相加恰为总电压</text>
+</svg>

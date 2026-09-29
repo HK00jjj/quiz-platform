@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 400">
+  <rect x="0" y="0" width="660" height="400" fill="#ffffff"/>
+  <g font-family="sans-serif" fill="#1a1a1a">
+    <text x="330" y="32" font-size="20" font-weight="bold" text-anchor="middle">右手螺旋定则（直导体）：弯曲四指指磁感线方向</text>
+
+    <!-- 通电直导体（竖直） -->
+    <line x1="330" y1="90" x2="330" y2="300" stroke="#1a1a1a" stroke-width="5"/>
+    <line x1="330" y1="268" x2="330" y2="206" stroke="#1a1a1a" stroke-width="2"/>
+    <polygon points="330,196 322,212 338,212" fill="#1a1a1a"/>
+    <text x="346" y="252" font-size="16" font-weight="bold">I</text>
+    <text x="330" y="80" font-size="14" text-anchor="middle">通电直导体</text>
+
+    <!-- 环绕磁感线（同心椭圆） -->
+    <ellipse cx="330" cy="190" rx="80" ry="32" fill="none" stroke="#444444" stroke-width="1.5"/>
+    <ellipse cx="330" cy="190" rx="130" ry="50" fill="none" stroke="#444444" stroke-width="1.5"/>
+    <!-- 方向箭头：右侧向下、左侧向上（环绕方向） -->
+    <polygon points="410,196 404,182 416,182" fill="#444444"/>
+    <polygon points="250,184 244,198 256,198" fill="#444444"/>
+    <polygon points="460,196 454,182 466,182" fill="#444444"/>
+    <polygon points="200,184 194,198 206,198" fill="#444444"/>
+    <text x="120" y="262" font-size="15">磁感线：以导体为轴的同心圆</text>
+    <line x1="185" y1="255" x2="215" y2="230" stroke="#555555" stroke-width="1"/>
+
+    <!-- 右手示意：掌+四指+拇指 -->
+    <rect x="372" y="196" width="46" height="54" rx="10" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+    <line x1="372" y1="212" x2="340" y2="212" stroke="#1a1a1a" stroke-width="7" stroke-linecap="round"/>
+    <line x1="372" y1="226" x2="336" y2="226" stroke="#1a1a1a" stroke-width="7" stroke-linecap="round"/>
+    <line x1="372" y1="240" x2="340" y2="240" stroke="#1a1a1a" stroke-width="7" stroke-linecap="round"/>
+    <line x1="394" y1="196" x2="394" y2="164" stroke="#1a1a1a" stroke-width="10" stroke-linecap="round"/>
+    <polygon points="394,150 385,167 403,167" fill="#1a1a1a"/>
+    <text x="395" y="270" font-size="14" text-anchor="middle">右手</text>
+    <text x="480" y="140" font-size="15">拇指 → 电流方向</text>
+    <line x1="440" y1="146" x2="400" y2="158" stroke="#555555" stroke-width="1"/>
+    <text x="490" y="230" font-size="15">弯曲四指 → 磁感线</text>
+    <text x="490" y="252" font-size="15">环绕方向</text>
+    <line x1="486" y1="228" x2="418" y2="226" stroke="#555555" stroke-width="1"/>
+
+    <!-- 结论框 -->
+    <rect x="120" y="316" width="420" height="66" fill="none" stroke="#555555" stroke-width="1.5" rx="6"/>
+    <text x="330" y="344" font-size="15" text-anchor="middle" font-weight="bold">直导体：拇指 = 电流方向，弯曲四指 = 磁感线方向</text>
+    <text x="330" y="368" font-size="14" text-anchor="middle" fill="#333333">磁感线是以通电导体为轴的一圈圈同心圆</text>
+  </g>
+</svg>

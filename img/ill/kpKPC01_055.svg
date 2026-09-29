@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 400" font-family="sans-serif">
+  <rect x="0" y="0" width="660" height="400" fill="#ffffff"/>
+  <text x="330" y="28" font-size="19" font-weight="bold" fill="#1a1a1a" text-anchor="middle">N 极插入线圈：感应磁场方向的判断</text>
+
+  <!-- ===== 左：场景图 ===== -->
+  <!-- 磁铁 N 朝下插入 -->
+  <rect x="165" y="58" width="50" height="50" fill="#eeeeee" stroke="#222" stroke-width="2"/>
+  <rect x="165" y="108" width="50" height="54" fill="#3a3a3a" stroke="#222" stroke-width="2"/>
+  <text x="190" y="80" font-size="15" font-weight="bold" fill="#222" text-anchor="middle">S</text>
+  <text x="190" y="142" font-size="15" font-weight="bold" fill="#ffffff" text-anchor="middle">N</text>
+  <line x1="232" y1="66" x2="232" y2="100" stroke="#222" stroke-width="2.5"/>
+  <polygon points="232,110 227,98 237,98" fill="#222"/>
+  <text x="252" y="88" font-size="13" fill="#222">N 极向下插入</text>
+  <!-- 线圈 -->
+  <ellipse cx="190" cy="188" rx="58" ry="14" fill="none" stroke="#222" stroke-width="2.5"/>
+  <ellipse cx="190" cy="204" rx="58" ry="14" fill="none" stroke="#222" stroke-width="2.5"/>
+  <text x="272" y="196" font-size="13" fill="#555">闭合线圈</text>
+  <!-- 原磁通：向下实线 -->
+  <line x1="190" y1="170" x2="190" y2="282" stroke="#222" stroke-width="3"/>
+  <polygon points="190,292 184,280 196,280" fill="#222"/>
+  <text x="200" y="238" font-size="14" fill="#222">Φ原 向下</text>
+  <text x="200" y="258" font-size="14" fill="#222">且不断增大</text>
+  <!-- 感应磁场：向上虚线 -->
+  <line x1="112" y1="282" x2="112" y2="186" stroke="#1a5c2e" stroke-width="3" stroke-dasharray="8 4"/>
+  <polygon points="112,176 106,188 118,188" fill="#1a5c2e"/>
+  <text x="102" y="228" font-size="14" fill="#1a5c2e" text-anchor="end">Φ感 向上</text>
+  <text x="102" y="248" font-size="14" fill="#1a5c2e" text-anchor="end">反向顶住</text>
+  <!-- 线圈中感应电流示意小箭头 -->
+  <path d="M138,182 q 14,-10 30,-8" fill="none" stroke="#8a4a12" stroke-width="2"/>
+  <polygon points="172,175 160,171 161,182" fill="#8a4a12"/>
+  <text x="190" y="330" font-size="14" fill="#333" text-anchor="middle">磁通增大时感应磁场与原磁通反向</text>
+
+  <!-- ===== 右：判断三步流程 ===== -->
+  <text x="505" y="80" font-size="16" font-weight="bold" fill="#222" text-anchor="middle">楞次定律判断三步</text>
+  <rect x="365" y="94" width="280" height="56" rx="6" fill="#ffffff" stroke="#555" stroke-width="1.8"/>
+  <text x="505" y="117" font-size="14" fill="#222" text-anchor="middle">① 判原磁通：方向向下</text>
+  <text x="505" y="138" font-size="14" fill="#222" text-anchor="middle">插入过程中不断增大</text>
+  <line x1="505" y1="150" x2="505" y2="166" stroke="#555" stroke-width="2"/>
+  <polygon points="505,174 500,163 510,163" fill="#555"/>
+  <rect x="365" y="178" width="280" height="56" rx="6" fill="#eef6ee" stroke="#1a5c2e" stroke-width="2.5"/>
+  <text x="505" y="201" font-size="14" font-weight="bold" fill="#1a5c2e" text-anchor="middle">② 增则反：</text>
+  <text x="505" y="222" font-size="14" font-weight="bold" fill="#1a5c2e" text-anchor="middle">感应磁场方向向上，阻碍增大</text>
+  <line x1="505" y1="234" x2="505" y2="250" stroke="#555" stroke-width="2"/>
+  <polygon points="505,258 500,247 510,247" fill="#555"/>
+  <rect x="365" y="262" width="280" height="56" rx="6" fill="#ffffff" stroke="#555" stroke-width="1.8"/>
+  <text x="505" y="285" font-size="14" fill="#222" text-anchor="middle">③ 右手螺旋定则：</text>
+  <text x="505" y="306" font-size="14" fill="#222" text-anchor="middle">由感应磁场方向定感应电流方向</text>
+
+  <line x1="40" y1="352" x2="620" y2="352" stroke="#bbb" stroke-width="1"/>
+  <text x="330" y="374" font-size="14" fill="#333" text-anchor="middle">结论：原磁通向下且增大 → 感应磁场向上，与原磁通反向，阻碍其增大</text>
+</svg>

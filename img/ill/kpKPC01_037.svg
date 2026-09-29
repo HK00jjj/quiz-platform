@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 400">
+  <rect x="0" y="0" width="660" height="400" fill="#ffffff"/>
+  <g font-family="sans-serif" fill="#1a1a1a">
+    <text x="330" y="32" font-size="20" font-weight="bold" text-anchor="middle">星形连接供电方式：中性线一分三</text>
+
+    <!-- 发电机（星形连接） -->
+    <circle cx="95" cy="180" r="45" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+    <circle cx="95" cy="180" r="4" fill="#1a1a1a"/>
+    <line x1="95" y1="180" x2="112" y2="142" stroke="#1a1a1a" stroke-width="2"/>
+    <line x1="95" y1="180" x2="138" y2="180" stroke="#1a1a1a" stroke-width="2"/>
+    <line x1="95" y1="180" x2="112" y2="218" stroke="#1a1a1a" stroke-width="2"/>
+    <text x="95" y="120" font-size="15" text-anchor="middle">发电机</text>
+    <text x="150" y="262" font-size="14">（星形连接）</text>
+
+    <!-- 三根相线 -->
+    <line x1="113" y1="140" x2="545" y2="140" stroke="#1a1a1a" stroke-width="2"/>
+    <line x1="140" y1="180" x2="545" y2="180" stroke="#1a1a1a" stroke-width="2"/>
+    <line x1="113" y1="220" x2="545" y2="220" stroke="#1a1a1a" stroke-width="2"/>
+    <text x="350" y="128" font-size="14" text-anchor="middle">相线 U</text>
+    <text x="350" y="168" font-size="14" text-anchor="middle">相线 V</text>
+    <text x="350" y="208" font-size="14" text-anchor="middle">相线 W</text>
+
+    <!-- 用户1 支路：x=300，跳桥跨过 V、W 相线 -->
+    <path d="M 300 140 L 300 173 A 7 7 0 0 1 300 187 L 300 213 A 7 7 0 0 1 300 227 L 300 234" fill="none" stroke="#1a1a1a" stroke-width="2"/>
+    <circle cx="300" cy="250" r="16" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+    <line x1="289" y1="239" x2="311" y2="261" stroke="#1a1a1a" stroke-width="1.5"/>
+    <line x1="311" y1="239" x2="289" y2="261" stroke="#1a1a1a" stroke-width="1.5"/>
+    <line x1="300" y1="266" x2="300" y2="330" stroke="#1a1a1a" stroke-width="2"/>
+    <text x="326" y="256" font-size="14">用户1</text>
+
+    <!-- 用户2 支路：x=420，跳桥跨过 W 相线 -->
+    <path d="M 420 180 L 420 213 A 7 7 0 0 1 420 227 L 420 249" fill="none" stroke="#1a1a1a" stroke-width="2"/>
+    <circle cx="420" cy="265" r="16" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+    <line x1="409" y1="254" x2="431" y2="276" stroke="#1a1a1a" stroke-width="1.5"/>
+    <line x1="431" y1="254" x2="409" y2="276" stroke="#1a1a1a" stroke-width="1.5"/>
+    <line x1="420" y1="281" x2="420" y2="330" stroke="#1a1a1a" stroke-width="2"/>
+    <text x="446" y="271" font-size="14">用户2</text>
+
+    <!-- 用户3 支路：x=540 -->
+    <line x1="540" y1="220" x2="540" y2="244" stroke="#1a1a1a" stroke-width="2"/>
+    <circle cx="540" cy="260" r="16" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+    <line x1="529" y1="249" x2="551" y2="271" stroke="#1a1a1a" stroke-width="1.5"/>
+    <line x1="551" y1="249" x2="529" y2="271" stroke="#1a1a1a" stroke-width="1.5"/>
+    <line x1="540" y1="276" x2="540" y2="330" stroke="#1a1a1a" stroke-width="2"/>
+    <text x="566" y="266" font-size="14">用户3</text>
+
+    <!-- 中性线 -->
+    <line x1="95" y1="225" x2="95" y2="330" stroke="#1a1a1a" stroke-width="2.5"/>
+    <line x1="95" y1="330" x2="580" y2="330" stroke="#1a1a1a" stroke-width="2.5"/>
+    <text x="200" y="352" font-size="15" font-weight="bold">中性线 N</text>
+
+    <!-- 一分为三的分支标注 -->
+    <circle cx="300" cy="330" r="3.5" fill="#1a1a1a"/>
+    <circle cx="420" cy="330" r="3.5" fill="#1a1a1a"/>
+    <circle cx="540" cy="330" r="3.5" fill="#1a1a1a"/>
+    <text x="440" y="312" font-size="14" text-anchor="middle">分三支接三个用户</text>
+    <line x1="440" y1="318" x2="440" y2="326" stroke="#1a1a1a" stroke-width="1"/>
+
+    <text x="330" y="384" font-size="15" text-anchor="middle" fill="#333333">中性线引到用户端一分为三，三个用户共用同一条中性线</text>
+  </g>
+</svg>

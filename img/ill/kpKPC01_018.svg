@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 400" font-family="sans-serif">
+  <rect x="0" y="0" width="660" height="400" fill="#ffffff"/>
+  <text x="330" y="32" font-size="21" font-weight="bold" text-anchor="middle" fill="#222222">电阻的并联电路特点示意</text>
+
+  <!-- ======== 上半部：并联电路 ======== -->
+  <!-- 电池（左侧竖放） -->
+  <line x1="100" y1="80" x2="100" y2="150" stroke="#222222" stroke-width="2"/>
+  <line x1="86" y1="150" x2="114" y2="150" stroke="#222222" stroke-width="2.5"/>
+  <line x1="93" y1="160" x2="107" y2="160" stroke="#222222" stroke-width="2.5"/>
+  <line x1="100" y1="160" x2="100" y2="265" stroke="#222222" stroke-width="2"/>
+  <text x="66" y="161" font-size="15" text-anchor="middle" fill="#222222">E</text>
+
+  <!-- 顶线 + 节点 A -->
+  <line x1="100" y1="80" x2="250" y2="80" stroke="#222222" stroke-width="2"/>
+  <circle cx="250" cy="80" r="4" fill="#222222"/>
+  <polygon points="180,80 167,74 167,86" fill="#222222"/>
+  <text x="176" y="68" font-size="15" text-anchor="middle" fill="#222222">I</text>
+
+  <!-- 支路1：R1 -->
+  <line x1="250" y1="80" x2="290" y2="80" stroke="#222222" stroke-width="2"/>
+  <rect x="290" y="65" width="55" height="30" fill="#ffffff" stroke="#222222" stroke-width="2"/>
+  <line x1="345" y1="80" x2="415" y2="80" stroke="#222222" stroke-width="2"/>
+  <text x="317" y="58" font-size="15" text-anchor="middle" fill="#222222">R1</text>
+  <polygon points="403,80 391,74 391,86" fill="#222222"/>
+  <text x="398" y="106" font-size="14" text-anchor="middle" fill="#1a4f8a">I1</text>
+
+  <!-- 支路2：R2 -->
+  <line x1="250" y1="80" x2="250" y2="200" stroke="#222222" stroke-width="2"/>
+  <line x1="250" y1="200" x2="290" y2="200" stroke="#222222" stroke-width="2"/>
+  <rect x="290" y="185" width="55" height="30" fill="#ffffff" stroke="#222222" stroke-width="2"/>
+  <line x1="345" y1="200" x2="415" y2="200" stroke="#222222" stroke-width="2"/>
+  <line x1="415" y1="200" x2="415" y2="80" stroke="#222222" stroke-width="2"/>
+  <text x="317" y="240" font-size="15" text-anchor="middle" fill="#222222">R2</text>
+  <polygon points="403,200 391,194 391,206" fill="#222222"/>
+  <text x="398" y="226" font-size="14" text-anchor="middle" fill="#1a4f8a">I2</text>
+
+  <!-- 节点 B 与回线 -->
+  <circle cx="415" cy="80" r="4" fill="#222222"/>
+  <line x1="415" y1="80" x2="480" y2="80" stroke="#222222" stroke-width="2"/>
+  <line x1="480" y1="80" x2="480" y2="265" stroke="#222222" stroke-width="2"/>
+  <line x1="100" y1="265" x2="480" y2="265" stroke="#222222" stroke-width="2"/>
+
+  <!-- 汇流标注 -->
+  <polygon points="446,132 434,126 434,138" fill="#222222"/>
+  <text x="452" y="156" font-size="14" fill="#222222">I = I1 + I2</text>
+
+  <!-- ======== 下半部：三个特点框 ======== -->
+  <rect x="15" y="290" width="195" height="80" fill="#f7f7f7" stroke="#999999" stroke-width="1.5"/>
+  <text x="112" y="318" font-size="15" font-weight="bold" text-anchor="middle" fill="#222222">① 电压相等</text>
+  <text x="112" y="348" font-size="15" text-anchor="middle" fill="#1a4f8a">U1 = U2 = U</text>
+
+  <rect x="232" y="290" width="195" height="80" fill="#f7f7f7" stroke="#999999" stroke-width="1.5"/>
+  <text x="330" y="318" font-size="15" font-weight="bold" text-anchor="middle" fill="#222222">② 电流相加</text>
+  <text x="330" y="348" font-size="15" text-anchor="middle" fill="#1a4f8a">I = I1 + I2</text>
+
+  <rect x="450" y="290" width="195" height="80" fill="#f7f7f7" stroke="#999999" stroke-width="1.5"/>
+  <text x="547" y="318" font-size="15" font-weight="bold" text-anchor="middle" fill="#222222">③ 倒数求和</text>
+  <text x="547" y="348" font-size="15" text-anchor="middle" fill="#1a4f8a">1/R = 1/R1 + 1/R2</text>
+
+  <text x="330" y="392" font-size="14" text-anchor="middle" fill="#8a3b00">并联判据：头头相接、尾尾相连，各支路都直接跨接在电源两端</text>
+</svg>

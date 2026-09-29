@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 400" font-family="sans-serif">
+  <rect x="0" y="0" width="660" height="400" fill="#ffffff"/>
+  <text x="330" y="28" font-size="19" font-weight="bold" fill="#1a1a1a" text-anchor="middle">楞次定律：感应电流的磁场阻碍磁通量的变化</text>
+
+  <!-- 定律文字框 -->
+  <rect x="85" y="40" width="490" height="34" rx="6" fill="#f7f7f7" stroke="#222" stroke-width="1.8"/>
+  <text x="330" y="62" font-size="15" font-weight="bold" fill="#222" text-anchor="middle">感应电流的磁场，总要阻碍引起感应电流的磁通量的变化</text>
+
+  <!-- 中缝 -->
+  <line x1="330" y1="88" x2="330" y2="345" stroke="#888" stroke-width="1.2" stroke-dasharray="6 5"/>
+
+  <!-- ===== 左：插入（磁通增大） ===== -->
+  <text x="175" y="100" font-size="15" font-weight="bold" fill="#222" text-anchor="middle">插入：磁通增大 → 增则反</text>
+  <!-- 磁铁 N 朝下插入 -->
+  <rect x="154" y="92" width="42" height="50" fill="#eeeeee" stroke="#222" stroke-width="2"/>
+  <rect x="154" y="142" width="42" height="50" fill="#3a3a3a" stroke="#222" stroke-width="2"/>
+  <text x="175" y="113" font-size="14" font-weight="bold" fill="#222" text-anchor="middle">S</text>
+  <text x="175" y="173" font-size="14" font-weight="bold" fill="#ffffff" text-anchor="middle">N</text>
+  <line x1="214" y1="98" x2="214" y2="128" stroke="#222" stroke-width="2.5"/>
+  <polygon points="214,138 209,126 219,126" fill="#222"/>
+  <text x="238" y="120" font-size="13" fill="#222">插入</text>
+  <!-- 线圈（水平椭圆两匝） -->
+  <ellipse cx="175" cy="204" rx="52" ry="13" fill="none" stroke="#222" stroke-width="2.5"/>
+  <ellipse cx="175" cy="218" rx="52" ry="13" fill="none" stroke="#222" stroke-width="2.5"/>
+  <text x="252" y="212" font-size="13" fill="#555">闭合线圈</text>
+  <!-- 原磁通向下 -->
+  <line x1="175" y1="238" x2="175" y2="288" stroke="#222" stroke-width="3"/>
+  <polygon points="175,298 169,286 181,286" fill="#222"/>
+  <text x="185" y="262" font-size="14" fill="#222">Φ原 向下（增大）</text>
+  <!-- 感应磁场向上（虚线） -->
+  <line x1="118" y1="288" x2="118" y2="242" stroke="#1a5c2e" stroke-width="3" stroke-dasharray="8 4"/>
+  <polygon points="118,232 112,244 124,244" fill="#1a5c2e"/>
+  <text x="108" y="266" font-size="14" fill="#1a5c2e" text-anchor="end">Φ感 向上（反向）</text>
+  <text x="175" y="336" font-size="14" fill="#1a5c2e" text-anchor="middle">感应磁场与原磁通方向相反</text>
+
+  <!-- ===== 右：拔出（磁通减小） ===== -->
+  <text x="490" y="100" font-size="15" font-weight="bold" fill="#222" text-anchor="middle">拔出：磁通减小 → 减则同</text>
+  <!-- 磁铁已上移（拔出中） -->
+  <rect x="469" y="56" width="42" height="46" fill="#eeeeee" stroke="#222" stroke-width="2"/>
+  <rect x="469" y="102" width="42" height="44" fill="#3a3a3a" stroke="#222" stroke-width="2"/>
+  <text x="490" y="77" font-size="14" font-weight="bold" fill="#222" text-anchor="middle">S</text>
+  <text x="490" y="130" font-size="14" font-weight="bold" fill="#ffffff" text-anchor="middle">N</text>
+  <line x1="528" y1="118" x2="528" y2="88" stroke="#222" stroke-width="2.5"/>
+  <polygon points="528,78 523,90 533,90" fill="#222"/>
+  <text x="550" y="106" font-size="13" fill="#222">拔出</text>
+  <!-- 线圈 -->
+  <ellipse cx="490" cy="204" rx="52" ry="13" fill="none" stroke="#222" stroke-width="2.5"/>
+  <ellipse cx="490" cy="218" rx="52" ry="13" fill="none" stroke="#222" stroke-width="2.5"/>
+  <text x="567" y="212" font-size="13" fill="#555">闭合线圈</text>
+  <!-- 原磁通向下（减小） -->
+  <line x1="490" y1="238" x2="490" y2="288" stroke="#222" stroke-width="3"/>
+  <polygon points="490,298 484,286 496,286" fill="#222"/>
+  <text x="500" y="262" font-size="14" fill="#222">Φ原 向下（减小）</text>
+  <!-- 感应磁场向下同向（虚线） -->
+  <line x1="433" y1="238" x2="433" y2="288" stroke="#1a5c2e" stroke-width="3" stroke-dasharray="8 4"/>
+  <polygon points="433,298 427,286 439,286" fill="#1a5c2e"/>
+  <text x="423" y="262" font-size="14" fill="#1a5c2e" text-anchor="end">Φ感 向下（同向）</text>
+  <text x="490" y="336" font-size="14" fill="#1a5c2e" text-anchor="middle">感应磁场与原磁通方向相同</text>
+
+  <line x1="40" y1="352" x2="620" y2="352" stroke="#bbb" stroke-width="1"/>
+  <text x="330" y="374" font-size="14" fill="#333" text-anchor="middle">增则反、减则同：阻碍的是磁通量的"变化"趋势，而非原磁场本身</text>
+</svg>

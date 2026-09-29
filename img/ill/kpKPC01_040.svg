@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 400">
+  <rect x="0" y="0" width="660" height="400" fill="#ffffff"/>
+  <g font-family="sans-serif" fill="#1a1a1a">
+    <text x="330" y="34" font-size="20" font-weight="bold" text-anchor="middle">磁铁吸引铁钉：磁极不可分割</text>
+
+    <!-- 完整磁铁 -->
+    <rect x="150" y="70" width="180" height="42" fill="#4a4a4a" stroke="#1a1a1a" stroke-width="2"/>
+    <rect x="330" y="70" width="180" height="42" fill="#d9d9d9" stroke="#1a1a1a" stroke-width="2"/>
+    <text x="240" y="99" font-size="20" font-weight="bold" text-anchor="middle" fill="#ffffff">N</text>
+    <text x="420" y="99" font-size="20" font-weight="bold" text-anchor="middle">S</text>
+
+    <!-- 锯断位置 -->
+    <text x="330" y="52" font-size="14" text-anchor="middle">沿中间锯断</text>
+    <polyline points="326,58 334,66 326,74 334,82 326,90 334,98 326,106 334,114 326,122 334,130" fill="none" stroke="#1a1a1a" stroke-width="1.5"/>
+    <line x1="330" y1="150" x2="330" y2="184" stroke="#888888" stroke-width="2"/>
+    <polygon points="330,192 323,178 337,178" fill="#888888"/>
+
+    <!-- 断口新磁极标注 -->
+    <text x="410" y="200" font-size="15">断口处生成新磁极</text>
+    <line x1="345" y1="205" x2="330" y2="212" stroke="#555555" stroke-width="1"/>
+    <line x1="400" y1="204" x2="370" y2="212" stroke="#555555" stroke-width="1"/>
+
+    <!-- 新磁铁① -->
+    <rect x="90" y="220" width="120" height="42" fill="#4a4a4a" stroke="#1a1a1a" stroke-width="2"/>
+    <rect x="210" y="220" width="120" height="42" fill="#d9d9d9" stroke="#1a1a1a" stroke-width="2"/>
+    <text x="150" y="249" font-size="20" font-weight="bold" text-anchor="middle" fill="#ffffff">N</text>
+    <text x="270" y="249" font-size="20" font-weight="bold" text-anchor="middle">S</text>
+    <text x="210" y="290" font-size="14" text-anchor="middle" fill="#555555">新的磁铁①（N+S）</text>
+
+    <!-- 新磁铁② -->
+    <rect x="360" y="220" width="120" height="42" fill="#4a4a4a" stroke="#1a1a1a" stroke-width="2"/>
+    <rect x="480" y="220" width="120" height="42" fill="#d9d9d9" stroke="#1a1a1a" stroke-width="2"/>
+    <text x="420" y="249" font-size="20" font-weight="bold" text-anchor="middle" fill="#ffffff">N</text>
+    <text x="540" y="249" font-size="20" font-weight="bold" text-anchor="middle">S</text>
+    <text x="480" y="290" font-size="14" text-anchor="middle" fill="#555555">新的磁铁②（N+S）</text>
+
+    <!-- 结论框 -->
+    <rect x="95" y="312" width="470" height="66" fill="none" stroke="#555555" stroke-width="1.5" rx="6"/>
+    <text x="330" y="340" font-size="15" text-anchor="middle" font-weight="bold">任何磁铁都同时具有 N 极和 S 极，磁极不可分割</text>
+    <text x="330" y="364" font-size="14" text-anchor="middle" fill="#333333">锯断后每一段仍是完整磁铁，不会出现只有单个磁极的磁铁</text>
+  </g>
+</svg>

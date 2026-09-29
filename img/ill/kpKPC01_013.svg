@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 400" font-family="sans-serif">
+  <rect x="0" y="0" width="660" height="400" fill="#ffffff"/>
+  <text x="330" y="34" font-size="21" font-weight="bold" text-anchor="middle" fill="#222222">电路的三种状态</text>
+
+  <!-- 三格分隔虚线 -->
+  <line x1="220" y1="58" x2="220" y2="368" stroke="#aaaaaa" stroke-width="1" stroke-dasharray="5,4"/>
+  <line x1="440" y1="58" x2="440" y2="368" stroke="#aaaaaa" stroke-width="1" stroke-dasharray="5,4"/>
+
+  <!-- ======== 格1 通路 ======== -->
+  <text x="110" y="84" font-size="18" font-weight="bold" text-anchor="middle" fill="#222222">① 通路</text>
+  <!-- 回路：左竖线电池 -->
+  <line x1="60" y1="120" x2="60" y2="185" stroke="#222222" stroke-width="2"/>
+  <line x1="46" y1="185" x2="74" y2="185" stroke="#222222" stroke-width="2.5"/>
+  <line x1="53" y1="195" x2="67" y2="195" stroke="#222222" stroke-width="2.5"/>
+  <line x1="60" y1="195" x2="60" y2="280" stroke="#222222" stroke-width="2"/>
+  <text x="34" y="196" font-size="15" text-anchor="middle" fill="#222222">E</text>
+  <!-- 顶部：闭合开关 -->
+  <line x1="60" y1="120" x2="85" y2="120" stroke="#222222" stroke-width="2"/>
+  <circle cx="85" cy="120" r="3.5" fill="#222222"/>
+  <circle cx="135" cy="120" r="3.5" fill="#222222"/>
+  <line x1="85" y1="120" x2="135" y2="120" stroke="#222222" stroke-width="2.5"/>
+  <line x1="135" y1="120" x2="160" y2="120" stroke="#222222" stroke-width="2"/>
+  <!-- 右竖线 + 灯泡 -->
+  <line x1="160" y1="120" x2="160" y2="186" stroke="#222222" stroke-width="2"/>
+  <circle cx="160" cy="200" r="14" fill="#ffffff" stroke="#222222" stroke-width="2"/>
+  <line x1="150" y1="190" x2="170" y2="210" stroke="#222222" stroke-width="1.8"/>
+  <line x1="150" y1="210" x2="170" y2="190" stroke="#222222" stroke-width="1.8"/>
+  <line x1="160" y1="214" x2="160" y2="280" stroke="#222222" stroke-width="2"/>
+  <line x1="60" y1="280" x2="160" y2="280" stroke="#222222" stroke-width="2"/>
+  <!-- 电流箭头 -->
+  <polygon points="115,280 103,274 103,286" fill="#222222"/>
+  <text x="110" y="268" font-size="15" text-anchor="middle" fill="#222222">I 正常</text>
+  <text x="184" y="205" font-size="14" fill="#1a6b1a">灯亮</text>
+  <text x="110" y="322" font-size="14" text-anchor="middle" fill="#222222">回路闭合</text>
+  <text x="110" y="344" font-size="14" text-anchor="middle" fill="#222222">负载正常工作</text>
+
+  <!-- ======== 格2 开路 ======== -->
+  <text x="330" y="84" font-size="18" font-weight="bold" text-anchor="middle" fill="#222222">② 开路</text>
+  <line x1="280" y1="120" x2="280" y2="185" stroke="#222222" stroke-width="2"/>
+  <line x1="266" y1="185" x2="294" y2="185" stroke="#222222" stroke-width="2.5"/>
+  <line x1="273" y1="195" x2="287" y2="195" stroke="#222222" stroke-width="2.5"/>
+  <line x1="280" y1="195" x2="280" y2="280" stroke="#222222" stroke-width="2"/>
+  <text x="254" y="196" font-size="15" text-anchor="middle" fill="#222222">E</text>
+  <!-- 顶部：断开开关 -->
+  <line x1="280" y1="120" x2="305" y2="120" stroke="#222222" stroke-width="2"/>
+  <circle cx="305" cy="120" r="3.5" fill="#222222"/>
+  <circle cx="355" cy="120" r="3.5" fill="#222222"/>
+  <line x1="305" y1="120" x2="348" y2="96" stroke="#222222" stroke-width="2.5"/>
+  <line x1="355" y1="120" x2="380" y2="120" stroke="#222222" stroke-width="2"/>
+  <text x="362" y="96" font-size="14" fill="#8a3b00">断开</text>
+  <line x1="380" y1="120" x2="380" y2="186" stroke="#222222" stroke-width="2"/>
+  <circle cx="380" cy="200" r="14" fill="#ffffff" stroke="#222222" stroke-width="2"/>
+  <line x1="370" y1="190" x2="390" y2="210" stroke="#222222" stroke-width="1.8"/>
+  <line x1="370" y1="210" x2="390" y2="190" stroke="#222222" stroke-width="1.8"/>
+  <line x1="380" y1="214" x2="380" y2="280" stroke="#222222" stroke-width="2"/>
+  <line x1="280" y1="280" x2="380" y2="280" stroke="#222222" stroke-width="2"/>
+  <text x="330" y="268" font-size="15" font-weight="bold" text-anchor="middle" fill="#8a3b00">I = 0</text>
+  <text x="404" y="205" font-size="14" fill="#666666">灯不亮</text>
+  <text x="330" y="322" font-size="14" text-anchor="middle" fill="#222222">某处断开</text>
+  <text x="330" y="344" font-size="14" text-anchor="middle" fill="#222222">无电流，负载停止工作</text>
+
+  <!-- ======== 格3 短路 ======== -->
+  <text x="550" y="84" font-size="18" font-weight="bold" text-anchor="middle" fill="#222222">③ 短路</text>
+  <line x1="500" y1="120" x2="500" y2="185" stroke="#222222" stroke-width="2"/>
+  <line x1="486" y1="185" x2="514" y2="185" stroke="#222222" stroke-width="2.5"/>
+  <line x1="493" y1="195" x2="507" y2="195" stroke="#222222" stroke-width="2.5"/>
+  <line x1="500" y1="195" x2="500" y2="280" stroke="#222222" stroke-width="2"/>
+  <text x="474" y="196" font-size="15" text-anchor="middle" fill="#222222">E</text>
+  <!-- 顶部：纯导线直连（无负载） -->
+  <line x1="500" y1="120" x2="600" y2="120" stroke="#222222" stroke-width="2"/>
+  <line x1="600" y1="120" x2="600" y2="280" stroke="#222222" stroke-width="2"/>
+  <line x1="500" y1="280" x2="600" y2="280" stroke="#222222" stroke-width="2"/>
+  <!-- 大电流箭头 -->
+  <polygon points="560,120 546,113 546,127" fill="#a01010"/>
+  <polygon points="560,280 546,273 546,287" fill="#a01010"/>
+  <text x="552" y="212" font-size="15" font-weight="bold" text-anchor="middle" fill="#a01010">I 很大</text>
+  <text x="550" y="322" font-size="14" text-anchor="middle" fill="#a01010">电源两端不经负载直连</text>
+  <text x="550" y="344" font-size="14" text-anchor="middle" fill="#a01010">易烧坏电源和导线</text>
+
+  <text x="330" y="388" font-size="14" text-anchor="middle" fill="#444444">三种状态按"通断与是否接负载"区分：通路、开路、短路</text>
+</svg>

@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 400" font-family="sans-serif">
+  <rect x="0" y="0" width="660" height="400" fill="#ffffff"/>
+  <text x="330" y="32" font-size="21" font-weight="bold" text-anchor="middle" fill="#222222">正弦交流电波形</text>
+
+  <!-- 坐标轴 -->
+  <line x1="80" y1="330" x2="80" y2="80" stroke="#222222" stroke-width="2"/>
+  <polygon points="80,70 74,84 86,84" fill="#222222"/>
+  <line x1="80" y1="210" x2="625" y2="210" stroke="#222222" stroke-width="2"/>
+  <polygon points="635,210 621,204 621,216" fill="#222222"/>
+  <text x="66" y="92" font-size="16" font-style="italic" fill="#222222">i</text>
+  <text x="628" y="236" font-size="16" font-style="italic" fill="#222222">t</text>
+  <text x="64" y="228" font-size="15" fill="#222222">O</text>
+
+  <!-- 峰值虚线 -->
+  <line x1="80" y1="110" x2="215" y2="110" stroke="#999999" stroke-width="1.2" stroke-dasharray="5,4"/>
+  <line x1="80" y1="310" x2="285" y2="310" stroke="#999999" stroke-width="1.2" stroke-dasharray="5,4"/>
+  <text x="88" y="103" font-size="15" fill="#555555">+Im</text>
+  <text x="88" y="330" font-size="15" fill="#555555">−Im</text>
+
+  <!-- 正弦波（两个周期，半周期宽135） -->
+  <path d="M 80 210 C 113.8 76.7 181.3 76.7 215 210 C 248.8 343.3 316.3 343.3 350 210 C 383.8 76.7 451.3 76.7 485 210 C 518.8 343.3 586.3 343.3 620 210"
+        fill="none" stroke="#1a4f8a" stroke-width="2.5"/>
+
+  <!-- 正负半周标注 -->
+  <text x="147" y="196" font-size="15" text-anchor="middle" fill="#8a3b00">正半周</text>
+  <text x="282" y="232" font-size="15" text-anchor="middle" fill="#8a3b00">负半周</text>
+
+  <!-- 两要素引线标注 -->
+  <line x1="147" y1="110" x2="147" y2="88" stroke="#8a3b00" stroke-width="1.2"/>
+  <text x="147" y="76" font-size="15" text-anchor="middle" fill="#8a3b00">大小随时间变化</text>
+  <text x="500" y="120" font-size="15" fill="#8a3b00">方向随时间交替变化</text>
+  <line x1="498" y1="126" x2="430" y2="180" stroke="#8a3b00" stroke-width="1.2"/>
+
+  <!-- 底部结论 -->
+  <text x="330" y="366" font-size="16" text-anchor="middle" fill="#222222">交流电：方向和大小都随时间做周期性变化</text>
+</svg>
