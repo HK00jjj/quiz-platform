@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 400" font-family="sans-serif">
+  <defs>
+    <marker id="ah" markerWidth="9" markerHeight="9" refX="7.5" refY="4" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0.5 L8,4 L0,7.5 z" fill="#333333"/>
+    </marker>
+    <marker id="ah2" markerWidth="9" markerHeight="9" refX="0.5" refY="4" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M8,0.5 L0,4 L8,7.5 z" fill="#333333"/>
+    </marker>
+  </defs>
+  <rect x="0" y="0" width="660" height="400" fill="#ffffff"/>
+  <text x="330" y="25" font-size="17" fill="#1a1a1a" text-anchor="middle" font-weight="bold">正弦交流电波形：初相位 φ 与表达式</text>
+
+  <line x1="80" y1="350" x2="80" y2="92" stroke="#333333" stroke-width="1.5" marker-end="url(#ah)"/>
+  <line x1="80" y1="250" x2="634" y2="250" stroke="#333333" stroke-width="1.5" marker-end="url(#ah)"/>
+  <text x="60" y="102" font-size="14" fill="#1a1a1a">u</text>
+  <text x="620" y="272" font-size="14" fill="#1a1a1a">t</text>
+
+  <path d="M48.75,250 C90.42,92.5 132.08,92.5 173.75,250 C215.42,407.5 257.08,407.5 298.75,250 C340.42,92.5 382.08,92.5 423.75,250 C465.42,407.5 507.08,407.5 548.75,250" fill="none" stroke="#8b1a1a" stroke-width="2.2"/>
+  <path d="M80,250 C121.67,92.5 163.33,92.5 205,250 C246.67,407.5 288.33,407.5 330,250 C371.67,92.5 413.33,92.5 455,250 C496.67,407.5 538.33,407.5 580,250" fill="none" stroke="#1a5fb4" stroke-width="2.2"/>
+
+  <text x="78" y="130" font-size="14" fill="#8b1a1a" text-anchor="middle">u₁（φ&gt;0）</text>
+  <text x="222" y="130" font-size="14" fill="#1a5fb4" text-anchor="middle">u₂（φ=0°）</text>
+
+  <line x1="80" y1="145" x2="111.25" y2="145" stroke="#888888" stroke-width="1.2" stroke-dasharray="5 4"/>
+  <text x="56" y="150" font-size="14" fill="#1a1a1a">Um</text>
+
+  <line x1="173.75" y1="264" x2="205" y2="264" stroke="#333333" stroke-width="1.2" marker-start="url(#ah2)" marker-end="url(#ah)"/>
+  <text x="189" y="282" font-size="14" fill="#1a1a1a" text-anchor="middle">φ</text>
+
+  <text x="330" y="378" font-size="15" fill="#1a1a1a" text-anchor="middle">u₁ = Um·sin(ωt+φ)（φ≠0）　　u₂ = Um·sinωt（仅 φ=0 时成立）</text>
+  <text x="330" y="396" font-size="14" fill="#666666" text-anchor="middle">初相位 φ 是 t=0 时刻的角度；φ≠0 时表达式必须带上 φ</text>
+</svg>

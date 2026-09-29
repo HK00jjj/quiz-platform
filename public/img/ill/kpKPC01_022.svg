@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 400" font-family="sans-serif">
+  <rect x="0" y="0" width="660" height="400" fill="#ffffff"/>
+  <text x="330" y="32" font-size="21" font-weight="bold" text-anchor="middle" fill="#222222">脉动直流电波形辨析</text>
+
+  <!-- 坐标轴 -->
+  <line x1="80" y1="320" x2="80" y2="70" stroke="#222222" stroke-width="2"/>
+  <polygon points="80,60 74,74 86,74" fill="#222222"/>
+  <line x1="80" y1="230" x2="615" y2="230" stroke="#222222" stroke-width="2"/>
+  <polygon points="625,230 611,224 611,236" fill="#222222"/>
+  <text x="66" y="84" font-size="16" font-style="italic" fill="#222222">i</text>
+  <text x="618" y="256" font-size="16" font-style="italic" fill="#222222">t</text>
+  <text x="64" y="248" font-size="15" fill="#222222">O</text>
+
+  <!-- 脉动波形：四个半波，始终在零线上方 -->
+  <path d="M 80 230 C 112 97 178 97 210 230 C 242 97 308 97 340 230 C 372 97 438 97 470 230 C 502 97 568 97 600 230"
+        fill="none" stroke="#1a4f8a" stroke-width="2.5"/>
+
+  <!-- 标注：大小变化 -->
+  <text x="145" y="120" font-size="15" fill="#8a3b00">大小随时间不断变化</text>
+  <line x1="176" y1="126" x2="150" y2="160" stroke="#8a3b00" stroke-width="1.2"/>
+
+  <!-- 标注：方向不变 -->
+  <text x="330" y="272" font-size="15" fill="#1a6b1a">方向始终不变（始终为正，不越过零线）</text>
+  <line x1="410" y1="258" x2="330" y2="242" stroke="#1a6b1a" stroke-width="1.2"/>
+
+  <!-- 判据框 -->
+  <rect x="450" y="80" width="180" height="100" fill="#f7f7f7" stroke="#999999" stroke-width="1.5"/>
+  <text x="540" y="108" font-size="15" font-weight="bold" text-anchor="middle" fill="#222222">归属判据</text>
+  <line x1="462" y1="120" x2="618" y2="120" stroke="#999999" stroke-width="1"/>
+  <text x="540" y="146" font-size="14" text-anchor="middle" fill="#222222">交直流的分界看方向</text>
+  <text x="540" y="170" font-size="14" text-anchor="middle" fill="#1a6b1a">方向不变 → 直流电</text>
+
+  <!-- 底部结论 -->
+  <text x="330" y="360" font-size="16" text-anchor="middle" fill="#222222">脉动直流电方向不变，仍属直流电，不属于交流电</text>
+  <text x="330" y="386" font-size="14" text-anchor="middle" fill="#8a3b00">大小变化 ≠ 交流电，交流电须方向和大小都周期变化</text>
+</svg>

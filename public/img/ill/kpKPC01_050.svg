@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 400" font-family="sans-serif">
+  <rect x="0" y="0" width="660" height="400" fill="#ffffff"/>
+  <text x="330" y="30" font-size="20" font-weight="bold" fill="#1a1a1a" text-anchor="middle">安培力计算：导体与磁场的夹角 α 决定 F 的大小</text>
+
+  <!-- 公式框 -->
+  <rect x="235" y="42" width="190" height="34" rx="6" fill="#ffffff" stroke="#222" stroke-width="2"/>
+  <text x="330" y="65" font-size="19" font-weight="bold" fill="#222" text-anchor="middle">F = B·I·L·sinα</text>
+  <text x="330" y="98" font-size="14" fill="#444" text-anchor="middle">已知：B = 0.5T，I = 2A，L = 0.4m</text>
+
+  <!-- 中缝分隔 -->
+  <line x1="330" y1="112" x2="330" y2="345" stroke="#888" stroke-width="1.5" stroke-dasharray="6 5"/>
+
+  <!-- ===== 工况① 导体垂直于磁场 ===== -->
+  <text x="170" y="138" font-size="15" font-weight="bold" fill="#1a5c2e" text-anchor="middle">工况① 导体⊥磁场（α=90°）</text>
+  <g stroke="#555" stroke-width="1.8" fill="#555">
+    <line x1="45" y1="170" x2="280" y2="170"/><polygon points="290,170 278,165 278,175"/>
+    <line x1="45" y1="200" x2="280" y2="200"/><polygon points="290,200 278,195 278,205"/>
+    <line x1="45" y1="230" x2="280" y2="230"/><polygon points="290,230 278,225 278,235"/>
+    <line x1="45" y1="260" x2="280" y2="260"/><polygon points="290,260 278,255 278,265"/>
+  </g>
+  <text x="298" y="182" font-size="15" fill="#555">B</text>
+  <!-- 竖直导体（与水平磁感线垂直），截面电流 ⊗ -->
+  <line x1="170" y1="152" x2="170" y2="272" stroke="#222" stroke-width="4"/>
+  <circle cx="170" cy="212" r="12" fill="#ffffff" stroke="#222" stroke-width="2"/>
+  <line x1="162" y1="204" x2="178" y2="220" stroke="#222" stroke-width="2"/>
+  <line x1="178" y1="204" x2="162" y2="220" stroke="#222" stroke-width="2"/>
+  <!-- 90° 直角符号 -->
+  <rect x="170" y="184" width="14" height="14" fill="none" stroke="#222" stroke-width="1.5"/>
+  <text x="196" y="176" font-size="14" fill="#222">α=90°</text>
+  <!-- F 箭头向上 -->
+  <line x1="170" y1="150" x2="170" y2="120" stroke="#8a4a12" stroke-width="4"/>
+  <polygon points="170,110 163,126 177,126" fill="#8a4a12"/>
+  <text x="182" y="126" font-size="16" font-weight="bold" fill="#8a4a12">F</text>
+  <text x="82" y="132" font-size="13" fill="#8a4a12">受力最大</text>
+  <!-- 计算框 -->
+  <rect x="40" y="288" width="260" height="52" rx="6" fill="#f4f9f4" stroke="#1a5c2e" stroke-width="1.5"/>
+  <text x="170" y="309" font-size="14" fill="#1a5c2e" text-anchor="middle">F = BIL·sin90°</text>
+  <text x="170" y="330" font-size="15" font-weight="bold" fill="#1a5c2e" text-anchor="middle">= 0.5×2×0.4×1 = 0.4 N</text>
+
+  <!-- ===== 工况② 导体平行于磁场 ===== -->
+  <text x="490" y="138" font-size="15" font-weight="bold" fill="#8a1f1f" text-anchor="middle">工况② 导体∥磁场（α=0°）</text>
+  <g stroke="#555" stroke-width="1.8" fill="#555">
+    <line x1="365" y1="170" x2="600" y2="170"/><polygon points="610,170 598,165 598,175"/>
+    <line x1="365" y1="200" x2="600" y2="200"/><polygon points="610,200 598,195 598,205"/>
+    <line x1="365" y1="230" x2="600" y2="230"/><polygon points="610,230 598,225 598,235"/>
+    <line x1="365" y1="260" x2="600" y2="260"/><polygon points="610,260 598,255 598,265"/>
+  </g>
+  <text x="618" y="182" font-size="15" fill="#555">B</text>
+  <!-- 水平导体（与磁感线平行） -->
+  <line x1="428" y1="212" x2="552" y2="212" stroke="#222" stroke-width="4"/>
+  <circle cx="490" cy="212" r="12" fill="#ffffff" stroke="#222" stroke-width="2"/>
+  <line x1="482" y1="204" x2="498" y2="220" stroke="#222" stroke-width="2"/>
+  <line x1="498" y1="204" x2="482" y2="220" stroke="#222" stroke-width="2"/>
+  <text x="512" y="196" font-size="14" fill="#222">α=0°</text>
+  <text x="490" y="156" font-size="15" font-weight="bold" fill="#8a1f1f" text-anchor="middle">F = 0（不受力）</text>
+  <!-- 计算框 -->
+  <rect x="360" y="288" width="260" height="52" rx="6" fill="#fdf4f4" stroke="#8a1f1f" stroke-width="1.5"/>
+  <text x="490" y="309" font-size="14" fill="#8a1f1f" text-anchor="middle">F = BIL·sin0°</text>
+  <text x="490" y="330" font-size="15" font-weight="bold" fill="#8a1f1f" text-anchor="middle">= 0.5×2×0.4×0 = 0 N</text>
+
+  <line x1="40" y1="356" x2="620" y2="356" stroke="#bbb" stroke-width="1"/>
+  <text x="330" y="378" font-size="14" fill="#333" text-anchor="middle">sinα 是受力大小的调制因子：α=90° 时 F=BIL 最大；α=0° 时导体与磁场平行，F 为零</text>
+</svg>

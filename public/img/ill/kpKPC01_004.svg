@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 400" font-family="sans-serif">
+  <defs>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#555555"/>
+    </marker>
+  </defs>
+  <rect width="660" height="400" fill="#ffffff"/>
+
+  <!-- 中央分隔虚线 -->
+  <line x1="330" y1="50" x2="330" y2="320" stroke="#aaaaaa" stroke-width="1.5" stroke-dasharray="6,5"/>
+
+  <!-- 左栏：无规则热运动 -->
+  <text x="165" y="72" font-size="16" font-weight="bold" text-anchor="middle" fill="#111111">无规则热运动</text>
+  <rect x="55" y="95" width="220" height="140" fill="#fafafa" stroke="#333333" stroke-width="1.8"/>
+
+  <!-- 电荷（混合正负）与杂乱箭头 -->
+  <circle cx="95" cy="130" r="10" fill="#ffffff" stroke="#333333" stroke-width="1.8"/>
+  <text x="95" y="136" font-size="14" text-anchor="middle" fill="#333333">−</text>
+  <line x1="90" y1="135" x2="72" y2="153" stroke="#555555" stroke-width="1.8" marker-end="url(#ar)"/>
+
+  <circle cx="165" cy="122" r="10" fill="#ffffff" stroke="#333333" stroke-width="1.8"/>
+  <text x="165" y="128" font-size="14" text-anchor="middle" fill="#333333">＋</text>
+  <line x1="170" y1="117" x2="190" y2="102" stroke="#555555" stroke-width="1.8" marker-end="url(#ar)"/>
+
+  <circle cx="230" cy="140" r="10" fill="#ffffff" stroke="#333333" stroke-width="1.8"/>
+  <text x="230" y="146" font-size="14" text-anchor="middle" fill="#333333">−</text>
+  <line x1="230" y1="150" x2="230" y2="172" stroke="#555555" stroke-width="1.8" marker-end="url(#ar)"/>
+
+  <circle cx="90" cy="190" r="10" fill="#ffffff" stroke="#333333" stroke-width="1.8"/>
+  <text x="90" y="196" font-size="14" text-anchor="middle" fill="#333333">＋</text>
+  <line x1="80" y1="190" x2="62" y2="190" stroke="#555555" stroke-width="1.8" marker-end="url(#ar)"/>
+
+  <circle cx="160" cy="196" r="10" fill="#ffffff" stroke="#333333" stroke-width="1.8"/>
+  <text x="160" y="202" font-size="14" text-anchor="middle" fill="#333333">−</text>
+  <line x1="166" y1="201" x2="184" y2="217" stroke="#555555" stroke-width="1.8" marker-end="url(#ar)"/>
+
+  <circle cx="235" cy="192" r="10" fill="#ffffff" stroke="#333333" stroke-width="1.8"/>
+  <text x="235" y="198" font-size="14" text-anchor="middle" fill="#333333">＋</text>
+  <line x1="235" y1="182" x2="235" y2="160" stroke="#555555" stroke-width="1.8" marker-end="url(#ar)"/>
+
+  <text x="165" y="272" font-size="15" text-anchor="middle" fill="#444444">方向杂乱无章</text>
+  <text x="165" y="302" font-size="17" font-weight="bold" text-anchor="middle" fill="#111111">× 不能形成电流</text>
+
+  <!-- 右栏：定向移动 -->
+  <text x="495" y="72" font-size="16" font-weight="bold" text-anchor="middle" fill="#111111">电荷的定向移动</text>
+  <rect x="385" y="95" width="220" height="140" fill="#fafafa" stroke="#333333" stroke-width="1.8"/>
+
+  <circle cx="425" cy="165" r="11" fill="#ffffff" stroke="#333333" stroke-width="1.8"/>
+  <text x="425" y="171" font-size="14" text-anchor="middle" fill="#333333">＋</text>
+  <line x1="439" y1="165" x2="462" y2="165" stroke="#555555" stroke-width="2" marker-end="url(#ar)"/>
+
+  <circle cx="475" cy="165" r="11" fill="#ffffff" stroke="#333333" stroke-width="1.8"/>
+  <text x="475" y="171" font-size="14" text-anchor="middle" fill="#333333">＋</text>
+  <line x1="489" y1="165" x2="512" y2="165" stroke="#555555" stroke-width="2" marker-end="url(#ar)"/>
+
+  <circle cx="525" cy="165" r="11" fill="#ffffff" stroke="#333333" stroke-width="1.8"/>
+  <text x="525" y="171" font-size="14" text-anchor="middle" fill="#333333">＋</text>
+  <line x1="539" y1="165" x2="562" y2="165" stroke="#555555" stroke-width="2" marker-end="url(#ar)"/>
+
+  <polygon points="608,157 630,157 630,151 648,165 630,179 630,173 608,173" fill="#333333"/>
+  <text x="628" y="145" font-size="16" font-style="italic" font-weight="bold" text-anchor="middle" fill="#111111">I</text>
+
+  <text x="495" y="272" font-size="15" text-anchor="middle" fill="#444444">沿同一方向移动</text>
+  <text x="495" y="302" font-size="17" font-weight="bold" text-anchor="middle" fill="#111111">√ 形成电流</text>
+
+  <!-- 底部结论 -->
+  <text x="330" y="352" font-size="15" font-weight="bold" text-anchor="middle" fill="#111111">电荷只有做定向移动，才能形成电流</text>
+</svg>

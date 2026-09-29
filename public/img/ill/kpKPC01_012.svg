@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 400" font-family="sans-serif">
+  <defs>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#333333"/>
+    </marker>
+  </defs>
+  <rect width="660" height="400" fill="#ffffff"/>
+
+  <!-- 电路回路 -->
+  <line x1="100" y1="110" x2="180" y2="110" stroke="#333333" stroke-width="2"/>
+  <line x1="240" y1="110" x2="400" y2="110" stroke="#333333" stroke-width="2"/>
+  <line x1="400" y1="110" x2="400" y2="180" stroke="#333333" stroke-width="2"/>
+  <line x1="400" y1="240" x2="400" y2="310" stroke="#333333" stroke-width="2"/>
+  <line x1="400" y1="310" x2="320" y2="310" stroke="#333333" stroke-width="2"/>
+  <line x1="260" y1="310" x2="100" y2="310" stroke="#333333" stroke-width="2"/>
+  <line x1="100" y1="310" x2="100" y2="215" stroke="#333333" stroke-width="2"/>
+  <line x1="100" y1="200" x2="100" y2="110" stroke="#333333" stroke-width="2"/>
+
+  <!-- 电源与电动势 E -->
+  <line x1="80" y1="200" x2="120" y2="200" stroke="#333333" stroke-width="2.5"/>
+  <line x1="90" y1="215" x2="110" y2="215" stroke="#333333" stroke-width="2.5"/>
+  <text x="76" y="195" font-size="14" fill="#333333">＋</text>
+  <text x="76" y="231" font-size="14" fill="#333333">−</text>
+  <text x="54" y="212" font-size="17" font-style="italic" font-weight="bold" fill="#111111">E</text>
+  <text x="130" y="265" font-size="14" fill="#444444">电动势 E：电源内部由 − 极指向 ＋ 极</text>
+
+  <!-- 电阻 R1、R2、R3 -->
+  <rect x="180" y="98" width="60" height="24" fill="#ffffff" stroke="#333333" stroke-width="2"/>
+  <text x="210" y="90" font-size="15" font-style="italic" text-anchor="middle" fill="#111111">R1</text>
+  <rect x="388" y="180" width="24" height="60" fill="#ffffff" stroke="#333333" stroke-width="2"/>
+  <text x="428" y="216" font-size="15" font-style="italic" fill="#111111">R2</text>
+  <rect x="200" y="298" width="60" height="24" fill="#ffffff" stroke="#333333" stroke-width="2"/>
+  <text x="230" y="342" font-size="15" font-style="italic" text-anchor="middle" fill="#111111">R3</text>
+
+  <!-- 电流箭头 -->
+  <polygon points="135,105 165,105 165,101 179,110 165,119 165,115 135,115" fill="#333333" transform="translate(0,-5)"/>
+
+  <!-- A、B 两点 -->
+  <circle cx="320" cy="110" r="4" fill="#333333"/>
+  <text x="308" y="96" font-size="15" font-weight="bold" fill="#111111">A</text>
+  <text x="336" y="96" font-size="15" font-style="italic" fill="#111111">VA</text>
+  <circle cx="320" cy="310" r="4" fill="#333333"/>
+  <text x="296" y="330" font-size="15" font-weight="bold" fill="#111111">B</text>
+
+  <!-- B 点接地符号 -->
+  <line x1="320" y1="314" x2="320" y2="336" stroke="#333333" stroke-width="2"/>
+  <line x1="304" y1="336" x2="336" y2="336" stroke="#333333" stroke-width="2"/>
+  <line x1="310" y1="342" x2="330" y2="342" stroke="#333333" stroke-width="2"/>
+  <line x1="316" y1="348" x2="324" y2="348" stroke="#333333" stroke-width="2"/>
+  <text x="346" y="348" font-size="16" font-weight="bold" fill="#111111">0V</text>
+
+  <!-- UAB 弧形箭头（A 到 B） -->
+  <path d="M 320,122 Q 250,210 320,296" fill="none" stroke="#333333" stroke-width="2" marker-end="url(#ar)"/>
+  <text x="242" y="212" font-size="16" font-style="italic" font-weight="bold" fill="#111111">UAB</text>
+  <text x="334" y="134" font-size="15" fill="#333333">＋</text>
+  <text x="334" y="294" font-size="15" fill="#333333">−</text>
+
+  <!-- 右侧标注框 -->
+  <rect x="455" y="65" width="190" height="275" rx="10" fill="#ffffff" stroke="#333333" stroke-width="1.8"/>
+  <text x="550" y="100" font-size="16" font-weight="bold" text-anchor="middle" fill="#111111">电位 VA</text>
+  <text x="550" y="128" font-size="14" text-anchor="middle" fill="#444444">某点对参考点的电压</text>
+  <text x="550" y="152" font-size="14" text-anchor="middle" fill="#444444">随参考点改变</text>
+  <line x1="470" y1="172" x2="630" y2="172" stroke="#999999" stroke-width="1" stroke-dasharray="4,3"/>
+  <text x="550" y="202" font-size="16" font-weight="bold" text-anchor="middle" fill="#111111">电压 UAB</text>
+  <text x="550" y="230" font-size="14" text-anchor="middle" fill="#444444">两点电位之差</text>
+  <text x="550" y="254" font-size="14" text-anchor="middle" fill="#444444">与参考点无关</text>
+  <line x1="470" y1="274" x2="630" y2="274" stroke="#999999" stroke-width="1" stroke-dasharray="4,3"/>
+  <text x="550" y="306" font-size="16" font-weight="bold" text-anchor="middle" fill="#111111">接地符号处</text>
+  <text x="550" y="330" font-size="14" text-anchor="middle" fill="#444444">电位规定为 0V</text>
+
+  <!-- 底部结论 -->
+  <text x="330" y="382" font-size="14" text-anchor="middle" fill="#111111">电位随参考点而变，接地符号处电位为 0V</text>
+</svg>

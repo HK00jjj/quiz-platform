@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 400" font-family="sans-serif">
+  <rect x="0" y="0" width="660" height="400" fill="#ffffff"/>
+  <text x="330" y="34" font-size="21" font-weight="bold" text-anchor="middle" fill="#222222">电阻的串联电路特点示意</text>
+
+  <!-- ======== 左侧：串联电路 ======== -->
+  <!-- 回路：左 x=80 右 x=300 顶 y=120 底 y=300 -->
+  <!-- 顶线：R1、R2 头尾相连 -->
+  <line x1="80" y1="120" x2="115" y2="120" stroke="#222222" stroke-width="2"/>
+  <rect x="115" y="105" width="60" height="30" fill="#ffffff" stroke="#222222" stroke-width="2"/>
+  <line x1="175" y1="120" x2="200" y2="120" stroke="#222222" stroke-width="2"/>
+  <rect x="200" y="105" width="60" height="30" fill="#ffffff" stroke="#222222" stroke-width="2"/>
+  <line x1="260" y1="120" x2="300" y2="120" stroke="#222222" stroke-width="2"/>
+  <text x="145" y="94" font-size="16" text-anchor="middle" fill="#222222">R1</text>
+  <text x="230" y="94" font-size="16" text-anchor="middle" fill="#222222">R2</text>
+
+  <!-- 左右竖线 -->
+  <line x1="80" y1="120" x2="80" y2="300" stroke="#222222" stroke-width="2"/>
+  <line x1="300" y1="120" x2="300" y2="300" stroke="#222222" stroke-width="2"/>
+
+  <!-- 底线：电池水平放置（长短线为竖直一对） -->
+  <line x1="80" y1="300" x2="176" y2="300" stroke="#222222" stroke-width="2"/>
+  <line x1="176" y1="286" x2="176" y2="314" stroke="#222222" stroke-width="2.5"/>
+  <line x1="188" y1="292" x2="188" y2="308" stroke="#222222" stroke-width="2.5"/>
+  <line x1="188" y1="300" x2="300" y2="300" stroke="#222222" stroke-width="2"/>
+  <text x="182" y="336" font-size="15" text-anchor="middle" fill="#222222">E</text>
+
+  <!-- 电流方向：左竖线向上箭头，串联一条通路 -->
+  <polygon points="80,180 74,193 86,193" fill="#222222"/>
+  <text x="56" y="196" font-size="16" text-anchor="middle" fill="#222222">I</text>
+  <polygon points="285,120 273,114 273,126" fill="#222222"/>
+  <text x="284" y="146" font-size="14" text-anchor="middle" fill="#222222">I1</text>
+  <polygon points="205,120 193,114 193,126" fill="#222222"/>
+  <text x="204" y="146" font-size="14" text-anchor="middle" fill="#222222">I2</text>
+
+  <!-- 连接点强调：头尾相连 -->
+  <circle cx="175" cy="120" r="4" fill="#222222"/>
+  <circle cx="200" cy="120" r="4" fill="#222222"/>
+  <text x="190" y="172" font-size="14" text-anchor="middle" fill="#8a3b00">头尾相连</text>
+  <text x="190" y="212" font-size="14" text-anchor="middle" fill="#555555">只有一条电流通路</text>
+
+  <!-- ======== 右侧：特点框 ======== -->
+  <rect x="360" y="70" width="275" height="270" fill="#f7f7f7" stroke="#999999" stroke-width="1.5"/>
+  <text x="497" y="102" font-size="17" font-weight="bold" text-anchor="middle" fill="#222222">串联电路特点</text>
+  <line x1="380" y1="116" x2="615" y2="116" stroke="#999999" stroke-width="1"/>
+
+  <text x="384" y="150" font-size="15" fill="#222222">① 电流处处相等：</text>
+  <text x="404" y="176" font-size="15" fill="#1a4f8a">I = I1 = I2</text>
+
+  <text x="384" y="212" font-size="15" fill="#222222">② 总电阻等于各电阻之和：</text>
+  <text x="404" y="238" font-size="15" fill="#1a4f8a">R = R1 + R2</text>
+
+  <text x="384" y="274" font-size="15" fill="#222222">③ 总电压等于各段电压之和：</text>
+  <text x="404" y="300" font-size="15" fill="#1a4f8a">U = UR1 + UR2</text>
+
+  <text x="497" y="382" font-size="14" text-anchor="middle" fill="#8a3b00">阻值越大的电阻，分得的电压越高</text>
+</svg>

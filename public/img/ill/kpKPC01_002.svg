@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 400" font-family="sans-serif">
+  <defs>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#333333"/>
+    </marker>
+  </defs>
+  <rect width="660" height="400" fill="#ffffff"/>
+
+  <!-- 电路：矩形回路 -->
+  <line x1="80" y1="110" x2="190" y2="110" stroke="#333333" stroke-width="2"/>
+  <circle cx="190" cy="110" r="4" fill="#333333"/>
+  <line x1="194" y1="110" x2="256" y2="110" stroke="#333333" stroke-width="2"/>
+  <circle cx="260" cy="110" r="4" fill="#333333"/>
+  <line x1="264" y1="110" x2="460" y2="110" stroke="#333333" stroke-width="2"/>
+  <line x1="460" y1="110" x2="460" y2="152" stroke="#333333" stroke-width="2"/>
+  <circle cx="460" cy="180" r="28" fill="#ffffff" stroke="#333333" stroke-width="2"/>
+  <line x1="440" y1="160" x2="480" y2="200" stroke="#333333" stroke-width="2"/>
+  <line x1="480" y1="160" x2="440" y2="200" stroke="#333333" stroke-width="2"/>
+  <line x1="460" y1="208" x2="460" y2="300" stroke="#333333" stroke-width="2"/>
+  <line x1="460" y1="300" x2="80" y2="300" stroke="#333333" stroke-width="2"/>
+  <line x1="80" y1="300" x2="80" y2="200" stroke="#333333" stroke-width="2"/>
+  <line x1="80" y1="185" x2="80" y2="110" stroke="#333333" stroke-width="2"/>
+
+  <!-- 电池符号（长短线对） -->
+  <line x1="60" y1="185" x2="100" y2="185" stroke="#333333" stroke-width="2.5"/>
+  <line x1="70" y1="200" x2="90" y2="200" stroke="#333333" stroke-width="2.5"/>
+  <line x1="80" y1="200" x2="80" y2="300" stroke="#333333" stroke-width="2"/>
+  <text x="50" y="196" font-size="15" font-style="italic" font-weight="bold" fill="#333333">E</text>
+
+  <!-- 电流方向 -->
+  <polygon points="300,105 335,105 335,100 350,110 335,120 335,115 300,115" fill="#333333" transform="translate(0,-5)"/>
+  <polygon points="250,295 215,295 215,290 200,300 215,310 215,305 250,305" fill="#333333" transform="translate(0,-5)"/>
+  <text x="228" y="288" font-size="15" font-style="italic" font-weight="bold" text-anchor="middle" fill="#333333">I</text>
+
+  <!-- 标注气泡1：开关 -->
+  <rect x="120" y="30" width="240" height="38" rx="10" fill="#ffffff" stroke="#333333" stroke-width="1.5"/>
+  <text x="240" y="55" font-size="15" font-weight="bold" text-anchor="middle" fill="#111111">开关：控制电路的通断</text>
+  <line x1="230" y1="68" x2="222" y2="103" stroke="#333333" stroke-width="1.2" marker-end="url(#ar)"/>
+
+  <!-- 标注气泡2：导线 -->
+  <rect x="380" y="30" width="220" height="38" rx="10" fill="#ffffff" stroke="#333333" stroke-width="1.5"/>
+  <text x="490" y="55" font-size="15" font-weight="bold" text-anchor="middle" fill="#111111">导线：输送电能</text>
+  <line x1="470" y1="68" x2="435" y2="103" stroke="#333333" stroke-width="1.2" marker-end="url(#ar)"/>
+
+  <!-- 灯泡工作 -->
+  <text x="505" y="186" font-size="14" fill="#444444">灯亮</text>
+
+  <!-- 底部结论 -->
+  <text x="330" y="355" font-size="16" font-weight="bold" text-anchor="middle" fill="#111111">导线管输送，开关管通断 —— 两者合称中间环节</text>
+</svg>

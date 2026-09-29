@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 400" font-family="sans-serif">
+  <defs>
+    <marker id="ah" markerWidth="9" markerHeight="9" refX="7.5" refY="4" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0.5 L8,4 L0,7.5 z" fill="#333333"/>
+    </marker>
+    <marker id="ah2" markerWidth="9" markerHeight="9" refX="0.5" refY="4" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M8,0.5 L0,4 L8,7.5 z" fill="#333333"/>
+    </marker>
+  </defs>
+  <rect x="0" y="0" width="660" height="400" fill="#ffffff"/>
+  <text x="330" y="25" font-size="17" fill="#1a1a1a" text-anchor="middle" font-weight="bold">交流电变化快慢与频率的关系</text>
+
+  <text x="75" y="55" font-size="15" fill="#8b1a1a">① 变化快：周期 T₁ 短 → 频率 f₁ 高</text>
+  <line x1="70" y1="190" x2="70" y2="98" stroke="#333333" stroke-width="1.5" marker-end="url(#ah)"/>
+  <line x1="70" y1="150" x2="482" y2="150" stroke="#333333" stroke-width="1.5" marker-end="url(#ah)"/>
+  <text x="55" y="102" font-size="14" fill="#1a1a1a">i₁</text>
+  <text x="468" y="170" font-size="14" fill="#1a1a1a">t</text>
+  <path d="M70,150 C88.33,102 106.67,102 125,150 C143.33,198 161.67,198 180,150 C198.33,102 216.67,102 235,150 C253.33,198 271.67,198 290,150 C308.33,102 326.67,102 345,150 C363.33,198 381.67,198 400,150 C418.33,102 436.67,102 455,150" fill="none" stroke="#8b1a1a" stroke-width="2.2"/>
+  <line x1="70" y1="112" x2="180" y2="112" stroke="#333333" stroke-width="1.2" marker-start="url(#ah2)" marker-end="url(#ah)"/>
+  <text x="118" y="105" font-size="14" fill="#1a1a1a">T₁</text>
+
+  <text x="75" y="240" font-size="15" fill="#1a3a6b">② 变化慢：周期 T₂ 长 → 频率 f₂ 低</text>
+  <line x1="70" y1="375" x2="70" y2="283" stroke="#333333" stroke-width="1.5" marker-end="url(#ah)"/>
+  <line x1="70" y1="335" x2="632" y2="335" stroke="#333333" stroke-width="1.5" marker-end="url(#ah)"/>
+  <text x="55" y="290" font-size="14" fill="#1a1a1a">i₂</text>
+  <text x="618" y="355" font-size="14" fill="#1a1a1a">t</text>
+  <path d="M70,335 C106.67,287 143.33,287 180,335 C216.67,383 253.33,383 290,335 C326.67,287 363.33,287 400,335 C436.67,383 473.33,383 510,335 C546.67,287 583.33,287 620,335" fill="none" stroke="#1a3a6b" stroke-width="2.2"/>
+  <line x1="70" y1="297" x2="290" y2="297" stroke="#333333" stroke-width="1.2" marker-start="url(#ah2)" marker-end="url(#ah)"/>
+  <text x="168" y="290" font-size="14" fill="#1a1a1a">T₂</text>
+
+  <text x="330" y="392" font-size="15" fill="#1a1a1a" text-anchor="middle">T₁ &lt; T₂ ⟹ f₁ = 1/T₁ &gt; f₂ = 1/T₂：变化越快，周期越短，频率越高</text>
+</svg>

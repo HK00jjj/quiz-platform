@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 400" font-family="sans-serif">
+  <rect x="0" y="0" width="660" height="400" fill="#ffffff"/>
+  <text x="330" y="32" font-size="21" font-weight="bold" text-anchor="middle" fill="#222222">周期与频率换算说明图</text>
+
+  <!-- ======== 左框：周期 T ======== -->
+  <rect x="40" y="105" width="200" height="130" fill="#ffffff" stroke="#222222" stroke-width="1.8"/>
+  <text x="140" y="136" font-size="17" font-weight="bold" text-anchor="middle" fill="#222222">周期 T</text>
+  <line x1="56" y1="148" x2="224" y2="148" stroke="#999999" stroke-width="1"/>
+  <text x="140" y="174" font-size="14" text-anchor="middle" fill="#222222">交流电重复变化一次</text>
+  <text x="140" y="196" font-size="14" text-anchor="middle" fill="#222222">所需的时间</text>
+  <text x="140" y="224" font-size="15" text-anchor="middle" fill="#1a4f8a">单位：秒(s)</text>
+
+  <!-- ======== 中心公式 ======== -->
+  <rect x="275" y="120" width="110" height="100" fill="#f7f7f7" stroke="#8a3b00" stroke-width="2"/>
+  <text x="330" y="182" font-size="26" font-weight="bold" text-anchor="middle" fill="#8a3b00">f = 1/T</text>
+
+  <!-- ======== 右框：频率 f ======== -->
+  <rect x="420" y="105" width="200" height="130" fill="#ffffff" stroke="#222222" stroke-width="1.8"/>
+  <text x="520" y="136" font-size="17" font-weight="bold" text-anchor="middle" fill="#222222">频率 f</text>
+  <line x1="436" y1="148" x2="604" y2="148" stroke="#999999" stroke-width="1"/>
+  <text x="520" y="174" font-size="14" text-anchor="middle" fill="#222222">每秒重复变化的次数</text>
+  <text x="520" y="196" font-size="14" text-anchor="middle" fill="#222222">反映变化的快慢</text>
+  <text x="520" y="224" font-size="15" text-anchor="middle" fill="#1a4f8a">单位：赫兹(Hz)</text>
+
+  <!-- 连接箭头 -->
+  <line x1="240" y1="170" x2="268" y2="170" stroke="#222222" stroke-width="2"/>
+  <polygon points="275,170 261,164 261,176" fill="#222222"/>
+  <line x1="385" y1="170" x2="413" y2="170" stroke="#222222" stroke-width="2"/>
+  <polygon points="420,170 406,164 406,176" fill="#222222"/>
+  <text x="330" y="248" font-size="14" text-anchor="middle" fill="#555555">两者互为倒数</text>
+
+  <!-- ======== 底部示例框 ======== -->
+  <rect x="40" y="272" width="580" height="98" fill="#f7f7f7" stroke="#999999" stroke-width="1.5"/>
+  <text x="330" y="298" font-size="15" font-weight="bold" text-anchor="middle" fill="#222222">换算示例</text>
+  <line x1="56" y1="308" x2="604" y2="308" stroke="#999999" stroke-width="1"/>
+  <text x="330" y="332" font-size="14" text-anchor="middle" fill="#222222">T = 0.1s 时，f = 1 ÷ 0.1 = 10Hz</text>
+  <text x="330" y="358" font-size="14" text-anchor="middle" fill="#8a3b00">T = 0.02s 时，f = 1 ÷ 0.02 = 50Hz（市电）　—　T 用秒(s)，f 用赫兹(Hz)</text>
+</svg>

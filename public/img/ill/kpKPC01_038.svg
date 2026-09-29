@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 400">
+  <rect x="0" y="0" width="660" height="400" fill="#ffffff"/>
+  <g font-family="sans-serif" fill="#1a1a1a">
+    <text x="330" y="34" font-size="20" font-weight="bold" text-anchor="middle">磁极的性质：异极相吸，同极相斥</text>
+
+    <!-- 上半：异极相吸 N—S -->
+    <rect x="110" y="95" width="80" height="40" fill="#d9d9d9" stroke="#1a1a1a" stroke-width="2"/>
+    <rect x="190" y="95" width="80" height="40" fill="#4a4a4a" stroke="#1a1a1a" stroke-width="2"/>
+    <text x="150" y="122" font-size="20" font-weight="bold" text-anchor="middle">S</text>
+    <text x="230" y="122" font-size="20" font-weight="bold" text-anchor="middle" fill="#ffffff">N</text>
+
+    <rect x="390" y="95" width="80" height="40" fill="#d9d9d9" stroke="#1a1a1a" stroke-width="2"/>
+    <rect x="470" y="95" width="80" height="40" fill="#4a4a4a" stroke="#1a1a1a" stroke-width="2"/>
+    <text x="430" y="122" font-size="20" font-weight="bold" text-anchor="middle">S</text>
+    <text x="510" y="122" font-size="20" font-weight="bold" text-anchor="middle" fill="#ffffff">N</text>
+
+    <!-- 相向箭头：吸引 -->
+    <line x1="330" y1="115" x2="298" y2="115" stroke="#1a1a1a" stroke-width="2.5"/>
+    <polygon points="288,115 304,108 304,122" fill="#1a1a1a"/>
+    <line x1="330" y1="115" x2="362" y2="115" stroke="#1a1a1a" stroke-width="2.5"/>
+    <polygon points="372,115 356,108 356,122" fill="#1a1a1a"/>
+    <text x="330" y="168" font-size="16" text-anchor="middle">N 极靠近 S 极：相互吸引，彼此靠拢（异极相吸）</text>
+
+    <line x1="60" y1="200" x2="600" y2="200" stroke="#999999" stroke-width="1.5" stroke-dasharray="8 6"/>
+
+    <!-- 下半：同极相斥 N—N -->
+    <rect x="110" y="235" width="80" height="40" fill="#d9d9d9" stroke="#1a1a1a" stroke-width="2"/>
+    <rect x="190" y="235" width="80" height="40" fill="#4a4a4a" stroke="#1a1a1a" stroke-width="2"/>
+    <text x="150" y="262" font-size="20" font-weight="bold" text-anchor="middle">S</text>
+    <text x="230" y="262" font-size="20" font-weight="bold" text-anchor="middle" fill="#ffffff">N</text>
+
+    <rect x="390" y="235" width="80" height="40" fill="#4a4a4a" stroke="#1a1a1a" stroke-width="2"/>
+    <rect x="470" y="235" width="80" height="40" fill="#d9d9d9" stroke="#1a1a1a" stroke-width="2"/>
+    <text x="430" y="262" font-size="20" font-weight="bold" text-anchor="middle" fill="#ffffff">N</text>
+    <text x="510" y="262" font-size="20" font-weight="bold" text-anchor="middle">S</text>
+
+    <!-- 背向箭头：排斥 -->
+    <line x1="325" y1="255" x2="295" y2="255" stroke="#1a1a1a" stroke-width="2.5"/>
+    <polygon points="285,255 301,248 301,262" fill="#1a1a1a"/>
+    <line x1="335" y1="255" x2="365" y2="255" stroke="#1a1a1a" stroke-width="2.5"/>
+    <polygon points="375,255 359,248 359,262" fill="#1a1a1a"/>
+    <text x="330" y="308" font-size="16" text-anchor="middle">N 极靠近 N 极：相互排斥，彼此推开（同极相斥）</text>
+
+    <rect x="140" y="338" width="380" height="40" fill="none" stroke="#555555" stroke-width="1.5" rx="6"/>
+    <text x="330" y="364" font-size="15" text-anchor="middle" font-weight="bold">N—S 相吸，N—N、S—S 相斥</text>
+  </g>
+</svg>

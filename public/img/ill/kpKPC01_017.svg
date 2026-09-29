@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 400" font-family="sans-serif">
+  <rect x="0" y="0" width="660" height="400" fill="#ffffff"/>
+  <text x="330" y="34" font-size="21" font-weight="bold" text-anchor="middle" fill="#222222">电阻的并联等效电阻电路</text>
+
+  <!-- 电池（左侧竖放） -->
+  <line x1="120" y1="100" x2="120" y2="185" stroke="#222222" stroke-width="2"/>
+  <line x1="106" y1="185" x2="134" y2="185" stroke="#222222" stroke-width="2.5"/>
+  <line x1="113" y1="195" x2="127" y2="195" stroke="#222222" stroke-width="2.5"/>
+  <line x1="120" y1="195" x2="120" y2="320" stroke="#222222" stroke-width="2"/>
+  <text x="84" y="196" font-size="15" text-anchor="middle" fill="#222222">E=6V</text>
+
+  <!-- 顶部干路 -->
+  <line x1="120" y1="100" x2="280" y2="100" stroke="#222222" stroke-width="2"/>
+  <polygon points="200,100 187,94 187,106" fill="#222222"/>
+  <text x="196" y="88" font-size="15" text-anchor="middle" fill="#222222">I</text>
+
+  <!-- 节点 A -->
+  <circle cx="280" cy="100" r="4" fill="#222222"/>
+
+  <!-- 支路1：R1 直行 -->
+  <line x1="280" y1="100" x2="320" y2="100" stroke="#222222" stroke-width="2"/>
+  <rect x="320" y="85" width="60" height="30" fill="#ffffff" stroke="#222222" stroke-width="2"/>
+  <line x1="380" y1="100" x2="450" y2="100" stroke="#222222" stroke-width="2"/>
+  <text x="350" y="74" font-size="16" text-anchor="middle" fill="#222222">R1=6Ω</text>
+  <polygon points="438,100 426,94 426,106" fill="#222222"/>
+  <text x="432" y="126" font-size="14" text-anchor="middle" fill="#1a4f8a">I1</text>
+
+  <!-- 支路2：R2 下行 -->
+  <line x1="280" y1="100" x2="280" y2="240" stroke="#222222" stroke-width="2"/>
+  <line x1="280" y1="240" x2="320" y2="240" stroke="#222222" stroke-width="2"/>
+  <rect x="320" y="225" width="60" height="30" fill="#ffffff" stroke="#222222" stroke-width="2"/>
+  <line x1="380" y1="240" x2="450" y2="240" stroke="#222222" stroke-width="2"/>
+  <line x1="450" y1="240" x2="450" y2="100" stroke="#222222" stroke-width="2"/>
+  <text x="350" y="214" font-size="16" text-anchor="middle" fill="#222222">R2=12Ω</text>
+  <polygon points="438,240 426,234 426,246" fill="#222222"/>
+  <text x="432" y="266" font-size="14" text-anchor="middle" fill="#1a4f8a">I2</text>
+  <text x="262" y="175" font-size="14" fill="#555555">头头相接</text>
+
+  <!-- 节点 B 与回线 -->
+  <circle cx="450" cy="100" r="4" fill="#222222"/>
+  <text x="468" y="176" font-size="14" fill="#555555">尾尾相连</text>
+  <line x1="450" y1="100" x2="520" y2="100" stroke="#222222" stroke-width="2"/>
+  <line x1="520" y1="100" x2="520" y2="320" stroke="#222222" stroke-width="2"/>
+  <line x1="120" y1="320" x2="520" y2="320" stroke="#222222" stroke-width="2"/>
+
+  <!-- 等效电阻计算框 -->
+  <rect x="545" y="130" width="105" height="130" fill="#f7f7f7" stroke="#999999" stroke-width="1.5"/>
+  <text x="597" y="158" font-size="15" font-weight="bold" text-anchor="middle" fill="#222222">等效电阻</text>
+  <line x1="555" y1="170" x2="640" y2="170" stroke="#999999" stroke-width="1"/>
+  <text x="597" y="196" font-size="14" text-anchor="middle" fill="#222222">1/R=1/R1+1/R2</text>
+  <text x="597" y="222" font-size="14" text-anchor="middle" fill="#1a4f8a">R=R1R2/(R1+R2)</text>
+  <text x="597" y="248" font-size="14" text-anchor="middle" fill="#8a3b00">=6×12÷18=4Ω</text>
+
+  <!-- 底部说明 -->
+  <text x="330" y="362" font-size="15" text-anchor="middle" fill="#222222">各支路两端电压相等，均为 6V；总电阻按"积比和"计算</text>
+</svg>

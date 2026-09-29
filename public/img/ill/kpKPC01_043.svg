@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 400">
+  <rect x="0" y="0" width="660" height="400" fill="#ffffff"/>
+  <g font-family="sans-serif" fill="#1a1a1a">
+    <text x="330" y="32" font-size="20" font-weight="bold" text-anchor="middle">通电导体的磁场：与磁铁磁场一样具有大小和方向</text>
+
+    <!-- 左图：通电，磁针偏转 -->
+    <line x1="80" y1="110" x2="280" y2="110" stroke="#1a1a1a" stroke-width="5"/>
+    <line x1="130" y1="110" x2="170" y2="110" stroke="#ffffff" stroke-width="5"/>
+    <line x1="132" y1="110" x2="164" y2="110" stroke="#1a1a1a" stroke-width="2"/>
+    <polygon points="174,110 160,103 160,117" fill="#1a1a1a"/>
+    <text x="148" y="94" font-size="15" font-weight="bold">I</text>
+    <line x1="80" y1="110" x2="80" y2="180" stroke="#1a1a1a" stroke-width="2"/>
+    <line x1="280" y1="110" x2="280" y2="180" stroke="#1a1a1a" stroke-width="2"/>
+    <line x1="80" y1="180" x2="125" y2="180" stroke="#1a1a1a" stroke-width="2"/>
+    <line x1="125" y1="165" x2="125" y2="195" stroke="#1a1a1a" stroke-width="3"/>
+    <line x1="142" y1="172" x2="142" y2="188" stroke="#1a1a1a" stroke-width="3"/>
+    <line x1="142" y1="180" x2="190" y2="180" stroke="#1a1a1a" stroke-width="2"/>
+    <circle cx="190" cy="180" r="3.5" fill="#1a1a1a"/>
+    <circle cx="235" cy="180" r="3.5" fill="#1a1a1a"/>
+    <line x1="190" y1="180" x2="231" y2="162" stroke="#1a1a1a" stroke-width="2"/>
+    <line x1="235" y1="180" x2="280" y2="180" stroke="#1a1a1a" stroke-width="2"/>
+    <text x="133" y="215" font-size="13" text-anchor="middle">电池</text>
+    <text x="212" y="152" font-size="13" text-anchor="middle">开关</text>
+    <!-- 磁针：偏转 -->
+    <polygon points="180,128 188,150 180,172 172,150" transform="rotate(40 180 150)" fill="#dddddd" stroke="#1a1a1a" stroke-width="1.5"/>
+    <circle cx="180" cy="150" r="3" fill="#1a1a1a"/>
+    <text x="206" y="128" font-size="14" font-weight="bold">N</text>
+    <text x="152" y="178" font-size="14" font-weight="bold">S</text>
+    <path d="M 216 128 A 40 40 0 0 1 220 164" fill="none" stroke="#888888" stroke-width="1.5"/>
+    <polygon points="221,172 214,160 227,160" fill="#888888"/>
+    <text x="180" y="245" font-size="15" font-weight="bold" text-anchor="middle">通电：磁针偏转</text>
+
+    <!-- 右图：断电，磁针复原 -->
+    <line x1="410" y1="110" x2="610" y2="110" stroke="#1a1a1a" stroke-width="5"/>
+    <text x="478" y="94" font-size="15" fill="#555555">无电流</text>
+    <line x1="410" y1="110" x2="410" y2="180" stroke="#1a1a1a" stroke-width="2"/>
+    <line x1="610" y1="110" x2="610" y2="180" stroke="#1a1a1a" stroke-width="2"/>
+    <line x1="410" y1="180" x2="455" y2="180" stroke="#1a1a1a" stroke-width="2"/>
+    <line x1="455" y1="165" x2="455" y2="195" stroke="#1a1a1a" stroke-width="3"/>
+    <line x1="472" y1="172" x2="472" y2="188" stroke="#1a1a1a" stroke-width="3"/>
+    <line x1="472" y1="180" x2="520" y2="180" stroke="#1a1a1a" stroke-width="2"/>
+    <circle cx="520" cy="180" r="3.5" fill="#1a1a1a"/>
+    <circle cx="565" cy="180" r="3.5" fill="#1a1a1a"/>
+    <line x1="520" y1="180" x2="561" y2="162" stroke="#1a1a1a" stroke-width="2"/>
+    <line x1="565" y1="180" x2="610" y2="180" stroke="#1a1a1a" stroke-width="2"/>
+    <text x="463" y="215" font-size="13" text-anchor="middle">电池</text>
+    <text x="542" y="152" font-size="13" text-anchor="middle">开关断开</text>
+    <!-- 磁针：复原指南北 -->
+    <polygon points="510,118 518,150 510,182 502,150" fill="#dddddd" stroke="#1a1a1a" stroke-width="1.5"/>
+    <circle cx="510" cy="150" r="3" fill="#1a1a1a"/>
+    <text x="530" y="122" font-size="14" font-weight="bold">N</text>
+    <text x="530" y="186" font-size="14" font-weight="bold">S</text>
+    <text x="510" y="245" font-size="15" font-weight="bold" text-anchor="middle">断电：磁针复原</text>
+
+    <!-- 结论框 -->
+    <rect x="90" y="278" width="480" height="86" fill="none" stroke="#555555" stroke-width="1.5" rx="6"/>
+    <text x="330" y="310" font-size="15" text-anchor="middle" font-weight="bold">通电导体产生的磁场与磁铁的磁场一样，都具有大小和方向</text>
+    <text x="330" y="336" font-size="14" text-anchor="middle" fill="#333333">通电→磁场使磁针偏转；断电→磁场消失，磁针回到原来的指向</text>
+    <text x="330" y="358" font-size="14" text-anchor="middle" fill="#333333">磁场方向随电流方向改变，磁场强弱随电流大小改变</text>
+  </g>
+</svg>

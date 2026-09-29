@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 400" font-family="sans-serif">
+  <rect x="0" y="0" width="660" height="400" fill="#ffffff"/>
+  <text x="330" y="26" font-size="19" font-weight="bold" fill="#1a1a1a" text-anchor="middle">实物连接图与电路图的对照画法</text>
+
+  <!-- ===== 上行：实物连接图 ===== -->
+  <!-- 干电池 -->
+  <rect x="60" y="88" width="34" height="54" rx="8" fill="#ffffff" stroke="#222" stroke-width="2.2"/>
+  <rect x="68" y="80" width="18" height="9" rx="3" fill="#ffffff" stroke="#222" stroke-width="2"/>
+  <text x="53" y="94" font-size="13" fill="#222" text-anchor="end">＋</text>
+  <!-- 开关实物 -->
+  <rect x="190" y="54" width="12" height="12" fill="#ffffff" stroke="#222" stroke-width="2"/>
+  <rect x="246" y="54" width="12" height="12" fill="#ffffff" stroke="#222" stroke-width="2"/>
+  <line x1="194" y1="56" x2="248" y2="38" stroke="#222" stroke-width="2.5"/>
+  <!-- 灯泡实物 -->
+  <circle cx="440" cy="112" r="26" fill="#ffffff" stroke="#222" stroke-width="2.2"/>
+  <path d="M434,123 L434,106 L440,117 L446,106 L446,123" fill="none" stroke="#222" stroke-width="1.8"/>
+  <rect x="432" y="138" width="16" height="9" rx="2" fill="#ffffff" stroke="#222" stroke-width="2"/>
+  <!-- 实物连线 -->
+  <polyline points="77,80 77,60 190,60" fill="none" stroke="#222" stroke-width="2"/>
+  <polyline points="258,60 440,60 440,86" fill="none" stroke="#222" stroke-width="2"/>
+  <polyline points="440,147 440,165 77,165 77,142" fill="none" stroke="#222" stroke-width="2"/>
+  <text x="255" y="190" font-size="14" font-weight="bold" fill="#222" text-anchor="middle">实物连接图（直观，但画得慢、连接不易看清）</text>
+
+  <!-- ===== 中：对应虚线 ===== -->
+  <line x1="77" y1="196" x2="77" y2="248" stroke="#888" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <line x1="224" y1="196" x2="224" y2="248" stroke="#888" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <line x1="440" y1="196" x2="440" y2="248" stroke="#888" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="330" y="226" font-size="14" fill="#555" text-anchor="middle">符号与实物一一对应</text>
+
+  <!-- ===== 下行：电路图 ===== -->
+  <!-- 电池符号（左竖线） -->
+  <line x1="63" y1="290" x2="91" y2="290" stroke="#222" stroke-width="3"/>
+  <line x1="70" y1="300" x2="84" y2="300" stroke="#222" stroke-width="2"/>
+  <!-- 开关符号（顶线中点） -->
+  <circle cx="212" cy="270" r="3.5" fill="#ffffff" stroke="#222" stroke-width="2"/>
+  <circle cx="248" cy="270" r="3.5" fill="#ffffff" stroke="#222" stroke-width="2"/>
+  <line x1="214" y1="268" x2="246" y2="250" stroke="#222" stroke-width="2"/>
+  <!-- 灯泡符号（圆内打叉） -->
+  <circle cx="440" cy="306" r="20" fill="#ffffff" stroke="#222" stroke-width="2.2"/>
+  <line x1="427" y1="293" x2="453" y2="319" stroke="#222" stroke-width="2"/>
+  <line x1="453" y1="293" x2="427" y2="319" stroke="#222" stroke-width="2"/>
+  <!-- 电路连线 -->
+  <polyline points="77,270 77,290" fill="none" stroke="#222" stroke-width="2"/>
+  <polyline points="77,300 77,340 440,340 440,326" fill="none" stroke="#222" stroke-width="2"/>
+  <polyline points="440,286 440,270 248,270" fill="none" stroke="#222" stroke-width="2"/>
+  <polyline points="212,270 77,270" fill="none" stroke="#222" stroke-width="2"/>
+  <text x="258" y="372" font-size="14" font-weight="bold" fill="#222" text-anchor="middle">电路图（符号简洁，连接关系一目了然）</text>
+
+  <!-- ===== 右侧要点框 ===== -->
+  <rect x="495" y="52" width="152" height="186" rx="8" fill="#f7f7f7" stroke="#222" stroke-width="1.8"/>
+  <text x="571" y="78" font-size="15" font-weight="bold" fill="#222" text-anchor="middle">电路图特点</text>
+  <text x="507" y="106" font-size="13.5" fill="#1a5c2e">√ 符号对应元件</text>
+  <text x="507" y="132" font-size="13.5" fill="#1a5c2e">√ 连线表连接</text>
+  <text x="507" y="158" font-size="13.5" fill="#1a5c2e">√ 简洁、易看清</text>
+  <text x="507" y="184" font-size="13.5" fill="#8a1f1f">× 形状不必像实物</text>
+  <text x="507" y="210" font-size="13.5" fill="#8a1f1f">× 位置不必同实物</text>
+
+  <line x1="40" y1="384" x2="620" y2="384" stroke="#bbb" stroke-width="1"/>
+</svg>

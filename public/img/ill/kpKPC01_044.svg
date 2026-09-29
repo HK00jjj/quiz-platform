@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 400">
+  <rect x="0" y="0" width="660" height="400" fill="#ffffff"/>
+  <g font-family="sans-serif" fill="#1a1a1a">
+    <text x="330" y="32" font-size="20" font-weight="bold" text-anchor="middle">右手螺旋定则（螺旋管）：拇指指向管内磁感线方向</text>
+
+    <!-- 通电螺旋管 -->
+    <path d="M 200 210 A 15 20 0 0 1 230 210 A 15 20 0 0 1 260 210 A 15 20 0 0 1 290 210 A 15 20 0 0 1 320 210 A 15 20 0 0 1 350 210 A 15 20 0 0 1 380 210 A 15 20 0 0 1 410 210 A 15 20 0 0 1 440 210" fill="none" stroke="#1a1a1a" stroke-width="2.5"/>
+    <line x1="200" y1="210" x2="160" y2="210" stroke="#1a1a1a" stroke-width="2"/>
+    <line x1="440" y1="210" x2="480" y2="210" stroke="#1a1a1a" stroke-width="2"/>
+    <text x="145" y="216" font-size="16" font-weight="bold" text-anchor="end">S</text>
+    <text x="492" y="216" font-size="16" font-weight="bold">N</text>
+    <!-- 管内磁感线：向右 -->
+    <line x1="225" y1="210" x2="405" y2="210" stroke="#444444" stroke-width="2" stroke-dasharray="7 5"/>
+    <polygon points="418,210 402,203 402,217" fill="#444444"/>
+    <text x="320" y="262" font-size="15" text-anchor="middle">管内磁感线方向 →</text>
+    <text x="320" y="286" font-size="14" text-anchor="middle" fill="#555555">（拇指所指的方向）</text>
+    <!-- 电流沿绕组方向 -->
+    <polygon points="215,196 224,188 228,199" fill="#1a1a1a"/>
+    <polygon points="275,196 284,188 288,199" fill="#1a1a1a"/>
+    <polygon points="335,196 344,188 348,199" fill="#1a1a1a"/>
+    <text x="320" y="172" font-size="14" text-anchor="middle">环形电流方向（沿四指弯曲方向）</text>
+
+    <!-- 右手示意：掌+四指+拇指 -->
+    <rect x="380" y="52" width="62" height="56" rx="12" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+    <line x1="380" y1="66" x2="352" y2="66" stroke="#1a1a1a" stroke-width="8" stroke-linecap="round"/>
+    <line x1="380" y1="80" x2="348" y2="80" stroke="#1a1a1a" stroke-width="8" stroke-linecap="round"/>
+    <line x1="380" y1="94" x2="352" y2="94" stroke="#1a1a1a" stroke-width="8" stroke-linecap="round"/>
+    <line x1="380" y1="108" x2="356" y2="108" stroke="#1a1a1a" stroke-width="8" stroke-linecap="round"/>
+    <line x1="442" y1="74" x2="474" y2="74" stroke="#1a1a1a" stroke-width="10" stroke-linecap="round"/>
+    <polygon points="488,74 470,64 470,84" fill="#1a1a1a"/>
+    <text x="411" y="132" font-size="14" text-anchor="middle">右手</text>
+    <text x="330" y="60" font-size="14" text-anchor="end">四指顺电流方向握管</text>
+    <line x1="336" y1="64" x2="352" y2="76" stroke="#555555" stroke-width="1"/>
+    <text x="510" y="62" font-size="14">拇指所指方向</text>
+    <text x="510" y="82" font-size="14">= 管内磁感线方向</text>
+    <line x1="492" y1="74" x2="506" y2="70" stroke="#555555" stroke-width="1"/>
+
+    <!-- 结论框 -->
+    <rect x="130" y="316" width="400" height="60" fill="none" stroke="#555555" stroke-width="1.5" rx="6"/>
+    <text x="330" y="342" font-size="15" text-anchor="middle" font-weight="bold">螺旋管：四指 = 电流方向，拇指 = 磁感线方向</text>
+    <text x="330" y="366" font-size="14" text-anchor="middle" fill="#333333">拇指指向管内磁感线的指向，即 N 极所在端</text>
+  </g>
+</svg>

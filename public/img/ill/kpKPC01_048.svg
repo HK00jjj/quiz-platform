@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 400">
+  <rect x="0" y="0" width="660" height="400" fill="#ffffff"/>
+  <g font-family="sans-serif" fill="#1a1a1a">
+    <text x="330" y="32" font-size="20" font-weight="bold" text-anchor="middle">左手定则：拇指指向安培力方向</text>
+
+    <!-- 磁感线：从左垂直射向掌心 -->
+    <line x1="70" y1="150" x2="252" y2="150" stroke="#444444" stroke-width="1.5" stroke-dasharray="7 5"/>
+    <polygon points="264,150 250,144 250,156" fill="#444444"/>
+    <line x1="70" y1="190" x2="252" y2="190" stroke="#444444" stroke-width="1.5" stroke-dasharray="7 5"/>
+    <polygon points="264,190 250,184 250,196" fill="#444444"/>
+    <line x1="70" y1="230" x2="252" y2="230" stroke="#444444" stroke-width="1.5" stroke-dasharray="7 5"/>
+    <polygon points="264,230 250,224 250,236" fill="#444444"/>
+    <text x="150" y="120" font-size="15" text-anchor="middle">磁感线 B</text>
+    <text x="140" y="272" font-size="14" text-anchor="middle">垂直穿入掌心</text>
+    <line x1="180" y1="260" x2="256" y2="222" stroke="#555555" stroke-width="1"/>
+
+    <!-- 左手示意：掌+四指（向上=电流）+拇指（向右=受力） -->
+    <ellipse cx="330" cy="196" rx="58" ry="64" fill="#ffffff" stroke="#1a1a1a" stroke-width="2.5"/>
+    <line x1="303" y1="140" x2="303" y2="96" stroke="#1a1a1a" stroke-width="11" stroke-linecap="round"/>
+    <line x1="321" y1="134" x2="321" y2="90" stroke="#1a1a1a" stroke-width="11" stroke-linecap="round"/>
+    <line x1="339" y1="134" x2="339" y2="90" stroke="#1a1a1a" stroke-width="11" stroke-linecap="round"/>
+    <line x1="357" y1="140" x2="357" y2="96" stroke="#1a1a1a" stroke-width="11" stroke-linecap="round"/>
+    <line x1="386" y1="180" x2="440" y2="180" stroke="#1a1a1a" stroke-width="13" stroke-linecap="round"/>
+    <polygon points="458,180 436,169 436,191" fill="#1a1a1a"/>
+    <text x="330" y="200" font-size="13" text-anchor="middle" fill="#888888">掌心</text>
+
+    <!-- 三要素标注 -->
+    <text x="330" y="66" font-size="15" text-anchor="middle" font-weight="bold">四指 → 导体中的电流方向</text>
+    <line x1="330" y1="72" x2="330" y2="84" stroke="#555555" stroke-width="1"/>
+    <text x="500" y="142" font-size="15" text-anchor="middle" font-weight="bold">拇指 → 安培力方向</text>
+    <line x1="468" y1="150" x2="442" y2="170" stroke="#555555" stroke-width="1"/>
+
+    <!-- 结论框 -->
+    <rect x="90" y="296" width="480" height="76" fill="none" stroke="#555555" stroke-width="1.5" rx="6"/>
+    <text x="330" y="326" font-size="15" text-anchor="middle" font-weight="bold">掌心迎磁感线，四指指电流，拇指指受力</text>
+    <text x="330" y="354" font-size="14" text-anchor="middle" fill="#333333">磁感线、电流、安培力三者方向两两垂直，拇指所指即导体所受安培力的方向</text>
+  </g>
+</svg>

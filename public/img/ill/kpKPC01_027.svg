@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 400" font-family="sans-serif">
+  <defs>
+    <marker id="ah" markerWidth="9" markerHeight="9" refX="7.5" refY="4" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0.5 L8,4 L0,7.5 z" fill="#333333"/>
+    </marker>
+  </defs>
+  <rect x="0" y="0" width="660" height="400" fill="#ffffff"/>
+  <text x="330" y="25" font-size="17" fill="#1a1a1a" text-anchor="middle" font-weight="bold">有效值热效应等效对比图</text>
+
+  <rect x="55" y="45" width="255" height="310" rx="8" fill="none" stroke="#999999" stroke-width="1" stroke-dasharray="5 4"/>
+  <text x="182" y="66" font-size="15" fill="#8b1a1a" text-anchor="middle">交流电 i 通过电热丝</text>
+  <line x1="70" y1="180" x2="70" y2="78" stroke="#333333" stroke-width="1.5" marker-end="url(#ah)"/>
+  <line x1="70" y1="130" x2="302" y2="130" stroke="#333333" stroke-width="1.5" marker-end="url(#ah)"/>
+  <text x="54" y="88" font-size="14" fill="#1a1a1a">i</text>
+  <text x="290" y="150" font-size="14" fill="#1a1a1a">t</text>
+  <path d="M70,130 C88.33,77.5 106.67,77.5 125,130 C143.33,182.5 161.67,182.5 180,130 C198.33,77.5 216.67,77.5 235,130 C253.33,182.5 271.67,182.5 290,130" fill="none" stroke="#8b1a1a" stroke-width="2.2"/>
+  <line x1="180" y1="192" x2="180" y2="236" stroke="#333333" stroke-width="1.5" marker-end="url(#ah)"/>
+  <rect x="150" y="240" width="60" height="55" fill="#ffffff" stroke="#333333" stroke-width="2"/>
+  <text x="220" y="272" font-size="15" fill="#1a1a1a">R</text>
+  <line x1="180" y1="295" x2="180" y2="312" stroke="#333333" stroke-width="1.5"/>
+  <line x1="163" y1="312" x2="197" y2="312" stroke="#333333" stroke-width="2"/>
+  <line x1="169" y1="318" x2="191" y2="318" stroke="#333333" stroke-width="2"/>
+  <line x1="175" y1="324" x2="185" y2="324" stroke="#333333" stroke-width="2"/>
+  <text x="180" y="345" font-size="15" fill="#8b1a1a" text-anchor="middle">发热 Q₁</text>
+
+  <rect x="355" y="45" width="255" height="310" rx="8" fill="none" stroke="#999999" stroke-width="1" stroke-dasharray="5 4"/>
+  <text x="482" y="66" font-size="15" fill="#1a3a6b" text-anchor="middle">直流电 I 通过相同电热丝</text>
+  <line x1="370" y1="180" x2="370" y2="78" stroke="#333333" stroke-width="1.5" marker-end="url(#ah)"/>
+  <line x1="370" y1="130" x2="612" y2="130" stroke="#333333" stroke-width="1.5" marker-end="url(#ah)"/>
+  <text x="354" y="88" font-size="14" fill="#1a1a1a">i</text>
+  <text x="600" y="150" font-size="14" fill="#1a1a1a">t</text>
+  <line x1="370" y1="95" x2="600" y2="95" stroke="#1a3a6b" stroke-width="2.4"/>
+  <text x="608" y="100" font-size="14" fill="#1a3a6b">I</text>
+  <line x1="490" y1="192" x2="490" y2="236" stroke="#333333" stroke-width="1.5" marker-end="url(#ah)"/>
+  <rect x="460" y="240" width="60" height="55" fill="#ffffff" stroke="#333333" stroke-width="2"/>
+  <text x="530" y="272" font-size="15" fill="#1a1a1a">R</text>
+  <line x1="490" y1="295" x2="490" y2="312" stroke="#333333" stroke-width="1.5"/>
+  <line x1="473" y1="312" x2="507" y2="312" stroke="#333333" stroke-width="2"/>
+  <line x1="479" y1="318" x2="501" y2="318" stroke="#333333" stroke-width="2"/>
+  <line x1="485" y1="324" x2="495" y2="324" stroke="#333333" stroke-width="2"/>
+  <text x="490" y="345" font-size="15" fill="#1a3a6b" text-anchor="middle">发热 Q₂</text>
+
+  <text x="332" y="205" font-size="24" fill="#1a1a1a" text-anchor="middle">⇔</text>
+
+  <text x="330" y="380" font-size="15" fill="#1a1a1a" text-anchor="middle">Q₁ = Q₂：交流电的有效值 = 产生相同热量的直流值 I</text>
+  <text x="330" y="397" font-size="14" fill="#666666" text-anchor="middle">交流仪表读数、市电 220V 指的都是有效值</text>
+</svg>

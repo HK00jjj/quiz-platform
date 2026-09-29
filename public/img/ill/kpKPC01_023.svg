@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 400" font-family="sans-serif">
+  <rect x="0" y="0" width="660" height="400" fill="#ffffff"/>
+  <text x="330" y="32" font-size="21" font-weight="bold" text-anchor="middle" fill="#222222">正弦交流电的周期与频率</text>
+
+  <!-- 坐标轴 -->
+  <line x1="80" y1="320" x2="80" y2="80" stroke="#222222" stroke-width="2"/>
+  <polygon points="80,70 74,84 86,84" fill="#222222"/>
+  <line x1="80" y1="210" x2="440" y2="210" stroke="#222222" stroke-width="2"/>
+  <polygon points="450,210 436,204 436,216" fill="#222222"/>
+  <text x="66" y="94" font-size="16" font-style="italic" fill="#222222">u</text>
+  <text x="444" y="232" font-size="16" font-style="italic" fill="#222222">t</text>
+  <text x="64" y="228" font-size="15" fill="#222222">O</text>
+
+  <!-- 峰值虚线 -->
+  <line x1="80" y1="115" x2="260" y2="115" stroke="#999999" stroke-width="1.2" stroke-dasharray="5,4"/>
+  <text x="86" y="108" font-size="14" fill="#555555">Um</text>
+
+  <!-- 正弦波一个周期（80~440，半周期宽180） -->
+  <path d="M 80 210 C 124 76.7 216 76.7 260 210 C 304 343.3 396 343.3 440 210" fill="none" stroke="#1a4f8a" stroke-width="2.5"/>
+
+  <!-- 一个周期的双向箭头标注 -->
+  <line x1="80" y1="300" x2="440" y2="300" stroke="#8a3b00" stroke-width="1.8"/>
+  <polygon points="80,300 94,294 94,306" fill="#8a3b00"/>
+  <polygon points="440,300 426,294 426,306" fill="#8a3b00"/>
+  <line x1="80" y1="288" x2="80" y2="312" stroke="#8a3b00" stroke-width="1.5"/>
+  <line x1="440" y1="288" x2="440" y2="312" stroke="#8a3b00" stroke-width="1.5"/>
+  <text x="260" y="290" font-size="16" font-weight="bold" text-anchor="middle" fill="#8a3b00">T = 0.02s（一个周期）</text>
+
+  <!-- 右侧换算框 -->
+  <rect x="470" y="100" width="165" height="140" fill="#f7f7f7" stroke="#999999" stroke-width="1.5"/>
+  <text x="552" y="130" font-size="15" font-weight="bold" text-anchor="middle" fill="#222222">周期与频率</text>
+  <line x1="482" y1="142" x2="623" y2="142" stroke="#999999" stroke-width="1"/>
+  <text x="552" y="168" font-size="15" text-anchor="middle" fill="#222222">f = 1/T</text>
+  <text x="552" y="196" font-size="14" text-anchor="middle" fill="#1a4f8a">f = 1÷0.02s</text>
+  <text x="552" y="222" font-size="15" font-weight="bold" text-anchor="middle" fill="#8a3b00">= 50Hz</text>
+
+  <!-- 底部说明 -->
+  <text x="330" y="356" font-size="15" text-anchor="middle" fill="#222222">周期 T：交流电重复变化一次所需的时间，单位秒(s)</text>
+  <text x="330" y="382" font-size="15" text-anchor="middle" fill="#222222">频率 f：每秒重复变化的次数，单位赫兹(Hz)；T=0.02s 即每秒重复 50 次</text>
+</svg>
