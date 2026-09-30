@@ -40,7 +40,7 @@ import { DIAGRAM_IDS } from './image-map.js'
 export const TYPE_LIST = ['单选题', '多选题', '判断题', '填空题', '简答题', '计算分析题', '综合设计/故障诊断题']
 const DIFFS = ['基础', '应用', '综合']
 const COG = ['记忆', '理解', '应用', '分析', '评价', '创造']
-const DOMAINS = Array.from({ length: 33 }, (_, i) => `K${i + 1}`)
+const DOMAINS = Array.from({ length: 35 }, (_, i) => `K${i + 1}`) // 2026-09-30 K34/K35 扩域同步（kp_check K_DOMAINS 已 K1~K35，站点白名单滞后修正）
 const META_MAP = { 基础: ['记忆', '理解'], 应用: ['应用', '分析'], 综合: ['评价', '创造'] }
 /* v8.0 解析长度口径（2026-09-28，用户拍板「正解取消+误诊简化」后下限重校）：
    下限 200/160/120 → 170/130/100（解析预算重分配 427→约320 字/题，见《流程提速分析与优化方案_20260928.md》附录 A.5）；
@@ -142,6 +142,7 @@ export class Validator {
         continue
       }
       this.checkCommon(it)
+      this.checkTypeOption(it)
       if (TYPE_LIST.includes(type)) {
         this.checkMetaMapping(it)
         this.checkAnalysis(it)
@@ -198,7 +199,7 @@ export class Validator {
     const d = str(it.难度)
     if (!DIFFS.includes(d)) this.err(w, `难度“${d}”非法`)
     const dom = str(it.知识域)
-    if (!DOMAINS.includes(dom)) this.err(w, `知识域“${dom}”非法，应取K1~K33`)
+    if (!DOMAINS.includes(dom)) this.err(w, `知识域“${dom}”非法，应取K1~K35`)
     const cog = str(it.认知层级)
     if (!COG.includes(cog)) this.err(w, `认知层级“${cog}”非法`)
     if (!str(it.知识点).trim()) this.err(w, '“知识点”为空')
@@ -248,6 +249,33 @@ export class Validator {
     const bodyLen = a.replace(/【[^】]*】/g, '').trim().length
     const floor = ANALYSIS_FLOOR[type] ?? ANALYSIS_FLOOR_DEFAULT
     if (bodyLen < floor) this.warn(w, `“解析”正文仅 ${bodyLen} 字，低于 v8.0 信息量下限 ${floor} 字——解析过于简单，须按【概念】【推导】【误诊】【记忆点】四段重写（概念含关系式、推导步步有据、误诊两层+错因标签、记忆点带本题特征参数）`)
+  }
+  /* 【INC-20260930-01 · 题型-选项一致性（全题型硬校验，2026-09-30 新增）】
+     背景：KPC02 批 9 题「4 选 1 单选题」被标为「计算分析题」入库——原 checkSubjective 只查
+     答案文本形态、完全不看「选项」字段，且 run() 只在单选/多选分支调 checkChoice，
+     故该错配能一路通过闸2、闸4、闸9 入库；前端 isChoice 仅认单选/多选
+     （Practice.jsx:90），结果只渲染"誊写作答"框、无 ABCD 选项，用户无法作答
+     （2026-09-30 第三次报障的直接原因）。
+     两条判据（均为错误级，任一命中即阻断入库）：
+       ① 主观题型（简答题 / 计算分析题 / 综合设计·故障诊断题）不得携带任何选项；
+       ② 题干含空作答括号（　）／（ ）／() 且答案为 1~6 个拉丁字母 → 属选择题形态，
+          题型必须是单选/多选。该判据是"最高命中率"口径：判断题答案为「正确/错误」、
+          填空题含 {} 且答案为文本，天然不命中；题干带（）的判断题亦不命中（答案非字母）。
+     —— 本规则为唯一真源（platform 侧 validate_all.mjs 直接 import 本文件，自动继承）。 */
+  checkTypeOption(it) {
+    const w = whereOf(it)
+    const type = str(it.题型)
+    const SUBJECTIVE = ['简答题', '计算分析题', '综合设计/故障诊断题']
+    const CHOICE = ['单选题', '多选题']
+    const opts = Array.isArray(it.选项) ? it.选项.map((o) => str(o)).filter((s) => s.trim() !== '') : []
+    if (SUBJECTIVE.includes(type) && opts.length > 0) {
+      this.err(w, `题型「${type}」属主观题型却携带 ${opts.length} 个选项——选择题须标为「单选题/多选题」；确为计算/简答须删除“选项”字段`)
+    }
+    const stem = str(it.题干)
+    const ans = str(it.答案).trim()
+    if (!CHOICE.includes(type) && /（\s*）|\(\s*\)|（\s*　\s*）/.test(stem) && /^[A-F]{1,6}$/.test(ans)) {
+      this.err(w, `题型「${type}」与题干/答案形态矛盾：题干含作答括号、答案为字母「${ans}」= 选择题形态，须改为「单选题/多选题」（否则前端不渲染选项、无法作答）`)
+    }
   }
   checkChoice(it) {
     const w = whereOf(it)
