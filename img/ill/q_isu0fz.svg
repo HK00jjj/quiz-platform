@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 340" font-family="sans-serif">
+  <rect x="0" y="0" width="660" height="340" fill="#ffffff"/>
+  <text x="330" y="28" font-size="17" fill="#1a1a1a" text-anchor="middle" font-weight="bold">图1-17 电阻并联电路（R1、R2 头头相接、尾尾相连）</text>
+
+  <!-- 上下母线 -->
+  <line x1="100" y1="110" x2="560" y2="110" stroke="#333" stroke-width="2"/>
+  <line x1="100" y1="280" x2="560" y2="280" stroke="#333" stroke-width="2"/>
+  <!-- 电源在左侧 -->
+  <line x1="100" y1="110" x2="100" y2="175" stroke="#333" stroke-width="2"/>
+  <line x1="100" y1="215" x2="100" y2="280" stroke="#333" stroke-width="2"/>
+  <g stroke="#333" stroke-width="2" fill="none">
+    <line x1="82" y1="175" x2="118" y2="175"/>
+    <line x1="90" y1="195" x2="110" y2="195"/>
+  </g>
+  <line x1="100" y1="175" x2="100" y2="195" stroke="#333" stroke-width="2"/>
+  <text x="52" y="192" font-size="14" fill="#1a1a1a">E=6V</text>
+
+  <!-- 支路1 R1=6Ω -->
+  <line x1="260" y1="110" x2="260" y2="170" stroke="#333" stroke-width="2"/>
+  <rect x="248" y="170" width="24" height="60" fill="#fff" stroke="#333" stroke-width="2"/>
+  <line x1="260" y1="230" x2="260" y2="280" stroke="#333" stroke-width="2"/>
+  <text x="300" y="205" font-size="14" fill="#1a1a1a">R1=6Ω</text>
+
+  <!-- 支路2 R2=12Ω -->
+  <line x1="440" y1="110" x2="440" y2="170" stroke="#333" stroke-width="2"/>
+  <rect x="428" y="170" width="24" height="60" fill="#fff" stroke="#333" stroke-width="2"/>
+  <line x1="440" y1="230" x2="440" y2="280" stroke="#333" stroke-width="2"/>
+  <text x="480" y="205" font-size="14" fill="#1a1a1a">R2=12Ω</text>
+
+  <!-- 电流标注 -->
+  <path d="M 265 130 l 0 0" stroke="#1a5fb4" stroke-width="2"/>
+  <path d="M 212 110 l 16 0 m -7 -5 l 7 5 l -7 5" stroke="#1a5fb4" stroke-width="2" fill="none"/>
+  <text x="176" y="90" font-size="14" fill="#1a5fb4">I=1.5A</text>
+  <text x="292" y="132" font-size="13" fill="#1a5fb4">I1=1A</text>
+  <text x="472" y="132" font-size="13" fill="#1a5fb4">I2=0.5A</text>
+
+  <text x="330" y="326" font-size="14" fill="#666" text-anchor="middle">各支路电压均为 6V；I1=6/6=1A、I2=6/12=0.5A；干路 I=I1+I2=1.5A</text>
+</svg>

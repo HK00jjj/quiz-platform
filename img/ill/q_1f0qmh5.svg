@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 430" font-family="sans-serif">
+  <rect x="0" y="0" width="660" height="430" fill="#ffffff"/>
+  <text x="330" y="28" font-size="17" fill="#1a1a1a" text-anchor="middle" font-weight="bold">图1-43 自感实验电路（HL1 与线圈 L 串联：通电缓亮、断电缓灭）</text>
+
+  <!-- 回路 -->
+  <line x1="100" y1="90" x2="162" y2="90" stroke="#333" stroke-width="2"/>
+  <line x1="100" y1="90" x2="100" y2="250" stroke="#333" stroke-width="2"/>
+  <line x1="100" y1="250" x2="280" y2="250" stroke="#333" stroke-width="2"/>
+  <line x1="310" y1="250" x2="560" y2="250" stroke="#333" stroke-width="2"/>
+  <line x1="560" y1="250" x2="560" y2="90" stroke="#333" stroke-width="2"/>
+  <line x1="518" y1="90" x2="560" y2="90" stroke="#333" stroke-width="2"/>
+
+  <!-- HL1 灯泡 -->
+  <circle cx="190" cy="90" r="28" fill="#fff" stroke="#333" stroke-width="2"/>
+  <line x1="170" y1="70" x2="210" y2="110" stroke="#333" stroke-width="1.8"/>
+  <line x1="210" y1="70" x2="170" y2="110" stroke="#333" stroke-width="1.8"/>
+  <line x1="218" y1="90" x2="300" y2="90" stroke="#333" stroke-width="2"/>
+  <text x="190" y="48" font-size="14" text-anchor="middle" fill="#c01c28" font-weight="bold">HL1 支路灯泡</text>
+
+  <!-- 开关 S -->
+  <circle cx="300" cy="90" r="4" fill="#333"/>
+  <circle cx="360" cy="90" r="4" fill="#333"/>
+  <line x1="303" y1="87" x2="352" y2="62" stroke="#333" stroke-width="2.4"/>
+  <text x="330" y="52" font-size="14" text-anchor="middle" fill="#1a1a1a">开关 S</text>
+  <line x1="360" y1="90" x2="440" y2="90" stroke="#333" stroke-width="2"/>
+
+  <!-- 线圈 L -->
+  <g stroke="#1a5fb4" stroke-width="2.4" fill="none">
+    <path d="M 440 90 a 13 15 0 0 1 26 0 a 13 15 0 0 1 26 0 a 13 15 0 0 1 26 0"/>
+  </g>
+  <text x="479" y="48" font-size="14" text-anchor="middle" fill="#1a5fb4" font-weight="bold">线圈 L（自感系数 L）</text>
+
+  <!-- 电源 -->
+  <g stroke="#333" stroke-width="2" fill="none">
+    <line x1="280" y1="232" x2="280" y2="268"/>
+    <line x1="300" y1="240" x2="300" y2="260"/>
+  </g>
+  <line x1="280" y1="250" x2="310" y2="250" stroke="#333" stroke-width="2"/>
+  <text x="295" y="292" font-size="14" text-anchor="middle" fill="#1a1a1a">直流电源 E</text>
+  <text x="272" y="228" font-size="13" fill="#c01c28">+</text>
+  <text x="306" y="228" font-size="13" fill="#1a5fb4">−</text>
+
+  <!-- 电流方向 -->
+  <path d="M 245 118 l 18 0 m -8 -5 l 8 5 l -8 5" stroke="#1a5fb4" stroke-width="2" fill="none"/>
+
+  <!-- 现象说明（置于电路图下方，不压图） -->
+  <text x="330" y="330" font-size="14" fill="#555" text-anchor="middle">合闸瞬间：线圈电流由 0 渐增，L 产生阻碍电流增大的自感电动势 → 灯泡逐渐亮起</text>
+  <text x="330" y="358" font-size="14" fill="#555" text-anchor="middle">拉闸瞬间：电流减小，L 产生阻碍电流减小的自感电动势（相当于电源）→ 灯泡延续片刻才熄灭</text>
+  <text x="330" y="390" font-size="14" fill="#2a7a2a" text-anchor="middle">电流稳定不变后，自感电动势消失（自感电动势只存在于电流变化过程中）</text>
+</svg>
