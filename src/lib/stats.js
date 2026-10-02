@@ -29,7 +29,9 @@ export const DOMAIN_NAMES = {
   K25: '电动汽车与电驱动', K26: '智能电网与能源互联网', K27: '人工智能与电气结合',
   K28: '电力系统分析与运行', K29: '高电压与高压电器', K30: '电气安规与特种作业',
   K31: '轨道交通牵引供电', K32: '职业素养与求职', K33: '嵌入式与微机控制',
-  K34: '电工测量与仪表', K35: '电气控制线路'
+  K34: '电工测量与仪表', K35: '电气控制线路',
+  K36: '锂电池原理与材料', K37: '锂电池制造工艺', K38: '动力电池与新型电池',
+  K39: '非标自动化机构设计', K40: '机械传动与标准件'
 }
 export const domainLabel = (k) => (k ? DOMAIN_NAMES[k] ?? k : '')
 export const isObjective = (type) => OBJECTIVE_TYPES.includes(type)

@@ -40,7 +40,7 @@ import { DIAGRAM_IDS } from './image-map.js'
 export const TYPE_LIST = ['单选题', '多选题', '判断题', '填空题', '简答题', '计算分析题', '综合设计/故障诊断题']
 const DIFFS = ['基础', '应用', '综合']
 const COG = ['记忆', '理解', '应用', '分析', '评价', '创造']
-const DOMAINS = Array.from({ length: 35 }, (_, i) => `K${i + 1}`) // 2026-09-30 K34/K35 扩域同步（kp_check K_DOMAINS 已 K1~K35，站点白名单滞后修正）
+const DOMAINS = Array.from({ length: 40 }, (_, i) => `K${i + 1}`) // 2026-09-30 K39/K40 扩域同步（书 E《自动化机构设计工程师速成宝典 实战篇》接入；上次 K36/K37/K38 同日锂电书 D）
 const META_MAP = { 基础: ['记忆', '理解'], 应用: ['应用', '分析'], 综合: ['评价', '创造'] }
 /* v8.0 解析长度口径（2026-09-28，用户拍板「正解取消+误诊简化」后下限重校）：
    下限 200/160/120 → 170/130/100（解析预算重分配 427→约320 字/题，见《流程提速分析与优化方案_20260928.md》附录 A.5）；
@@ -199,7 +199,7 @@ export class Validator {
     const d = str(it.难度)
     if (!DIFFS.includes(d)) this.err(w, `难度“${d}”非法`)
     const dom = str(it.知识域)
-    if (!DOMAINS.includes(dom)) this.err(w, `知识域“${dom}”非法，应取K1~K35`)
+    if (!DOMAINS.includes(dom)) this.err(w, `知识域“${dom}”非法，应取K1~K40`)
     const cog = str(it.认知层级)
     if (!COG.includes(cog)) this.err(w, `认知层级“${cog}”非法`)
     if (!str(it.知识点).trim()) this.err(w, '“知识点”为空')

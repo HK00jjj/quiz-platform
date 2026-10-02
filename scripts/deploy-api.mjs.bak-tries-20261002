@@ -87,21 +87,7 @@ for (const f of files) {
   if (++i % 10 === 0) console.log('blobs:', i, '/', files.length)
 }
 
-/* 2026-10-02（KPE03 攒批部署实测）：dist 增至 1145 文件（231 张 KPE03 图资产 + 历史图库 +
-   orphan 保留窗口），单次 trees POST 触发 GitHub 422「request timed out / input too large」。
-   按 GitHub 官方建议改增量建树：base_tree 分批链式构建（每批 ~250 条，新树继承 base 全部
-   条目并叠加本批），链尾树即完整树——最终仍只产生一个 commit，PATCH ref 幂等不变。 */
-const parentCommit = await req('GET', `/repos/${repo}/git/commits/${parentSha}`)
-const BATCH = 250
-let baseTree = parentCommit.tree.sha
-const totalBatches = Math.ceil(tree.length / BATCH)
-for (let s = 0; s < tree.length; s += BATCH) {
-  const batch = tree.slice(s, s + BATCH)
-  const t = await req('POST', `/repos/${repo}/git/trees`, { base_tree: baseTree, tree: batch })
-  baseTree = t.sha
-  console.log(`trees: batch ${Math.floor(s / BATCH) + 1}/${totalBatches} -> ${t.sha.slice(0, 10)} (${batch.length} entries)`)
-}
-const newTree = { sha: baseTree }
+const newTree = await req('POST', `/repos/${repo}/git/trees`, { tree })
 console.log('new tree:', newTree.sha)
 
 const commit = await req('POST', `/repos/${repo}/git/commits`, {
