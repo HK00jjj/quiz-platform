@@ -6,7 +6,7 @@
    ③ pickVoice：选声优先级（晓晓Natural > 云希Natural > Natural > 常见微软本地音 > 任意zh） */
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
-import { chunkSpeechText, cleanSpeechText, normalizeSpeech, pickVoice, chunkMaxFor, TTS_RATE, RATE_MIN, RATE_MAX, RATE_STEP, clampRate, fmtRate, ttsRate, sliceForResume, listVoices, voiceQualityOf, voiceAccent, voiceLabel, ttsVoicePref, resolveVoiceByName, zhLike, voiceDiag, cloudTtsUrl, cloudSpd, engineFor, isCloudVoice, isEdgeVoice, EDGE_VOICES, CLOUD_VOICES, CLOUD_CHUNK_MAX, CLOUD_CHUNK_MAX_EDGE, cloudChunkMaxFor, cloudSupported, CLOUD_VOICE_ID, CLOUD_DEFAULT_VOICE, prefetchCloudFirst, gaTrimRange, speakCloudGA, currentPauseTag } from '../src/lib/tts.js'
+import { chunkSpeechText, cleanSpeechText, normalizeSpeech, pickVoice, chunkMaxFor, TTS_RATE, RATE_MIN, RATE_MAX, RATE_STEP, clampRate, fmtRate, ttsRate, sliceForResume, listVoices, voiceQualityOf, voiceAccent, voiceLabel, ttsVoicePref, resolveVoiceByName, zhLike, voiceDiag, cloudTtsUrl, cloudSpd, engineFor, isCloudVoice, isEdgeVoice, EDGE_VOICES, CLOUD_VOICES, CLOUD_CHUNK_MAX, CLOUD_CHUNK_MAX_EDGE, CLOUD_FIRST_CHUNK_MAX, cloudChunkMaxFor, cloudSupported, CLOUD_VOICE_ID, CLOUD_DEFAULT_VOICE, prefetchCloudFirst, gaTrimRange, speakCloudGA, currentPauseTag } from '../src/lib/tts.js'
 
 let n = 0
 const ok = (cond, msg) => { n++; assert.ok(cond, msg) }
@@ -326,7 +326,7 @@ ok(/export function engineFor\(autoQuality, pref, cloudOK\) \{[\s\S]*?return 'cl
 ok((ttsSrc.match(/schedule\(idx \+ 1\)/g) || []).length >= 3, '⑱-16 排程接力链闭合：schedule(idx+1) 递归出现 ≥3 处（place 失败跳块/正常续链/decode 失败续链）')
 ok(/const place = \(idx, buf\) => \{[\s\S]*?src\.start\(t, start \/ sr, dur\)/.test(ttsSrc), '⑱-17 place 排程本体：decode 完成钉上时间线（trim→fade→start(when,offset,dur)）')
 ok(/place\(idx, buf\)[\s\S]{0,200}?if \(idx \+ 1 < sess\.urls\.length\) schedule\(idx \+ 1\)/.test(ttsSrc), '⑱-18 then 正常路径续链：place 成功后必须 schedule(idx+1)，绝不断链')
-ok(/for \(let k = 1; k < sess\.urls\.length; k\+\+\) gaDecode\(sess\.urls\[k\]\)\.catch\(\(\) => \{\}\)/.test(ttsSrc), '⑱-19 全块并行预取（塞 gaCache，串行链秒取消网络等待；串行排程保顺序）')
+ok(/const pump = \(\) => \{[\s\S]{0,220}?gaDecode\(sess\.urls\[k\]\)/.test(ttsSrc) && /inflight < 2/.test(ttsSrc) && /inflight--/.test(ttsSrc), '⑱-19 滚动预取泵（2026-10-04 更新 INC-20261004-02：原全块并发预取撞限流→部分块被踢缓存→串行链现场合成=每段一停；改并发≤2 滚动泵，与 schedule 共享 promise 零重复请求）')
 /* ⑱-20 响度链（2026-09-15 傍晚"声音太小"）：微软合成 MP3 实测 peak -5~-7.5dBFS / RMS ≈-24dBFS
    偏轻 → 会话级 master 增益 1.6x(+4.1dB) + 限幅器（-1.5dBFS 起压）兜底防削波；块输出接 master。 */
 ok(/sess\.master = ctx\.createGain\(\); sess\.master\.gain\.value = 1\.6/.test(ttsSrc) && /sess\.lim = ctx\.createDynamicsCompressor\(\)/.test(ttsSrc) && /g\.connect\(sess\.master\)/.test(ttsSrc) && /sess\.master\.connect\(sess\.lim\); sess\.lim\.connect\(ctx\.destination\)/.test(ttsSrc), '⑱-20 GA 响度链：master 1.6x → 限幅器 → destination（块输出接 master，实测 RMS -24dBFS 补响度）')
@@ -443,6 +443,15 @@ const F181 = normalizeSpeech('R =（24 − 1.2 − 0.3）/ 0.006 = 22.5 / 0.006 
 ok(F181.includes('括号24 减 1.2 减 0.3括号完除以0.006') && F181.includes('22.5除以0.006') && F181.includes('3750欧姆') && F181.includes('3.75千欧') && F181.includes('I平方R') && F181.includes('0.006平方 乘 3750') && F181.includes('0.135瓦'), '㉑-8a seq181 功耗计算串全要素（分数/减号/平方/单位；2026-10-04 起括号朗读）')
 const F347 = normalizeSpeech('额定线电流I=P/(√3·U·cosφ·η)=15000/(1.732×380×0.85×0.9)≥29.8A')
 ok(F347.includes('P除以括号根号3乘U乘功率因数乘伊塔括号完') && F347.includes('15000除以括号1.732乘380乘0.85乘0.9括号完') && F347.includes('大于等于29.8安'), '㉑-8b seq347 线电流公式串（√3/·/cosφ/η/≥ 全要素；2026-10-04 起括号朗读）')
+
+/* ── ㉒ 播放流畅度（2026-10-04 用户报"无法第一时间开始播放 + 每读一段停几秒"；根因=
+   首块 150 字合成 RTT ~2.2s + 全块并发预取撞限流（部分块被踢缓存→串行链现场合成）
+   + 预取/schedule 失败无重试（跳块丢内容）+ 恢复场景直进 Practice 无首题预热）── */
+ok(CLOUD_FIRST_CHUNK_MAX === 70 && CLOUD_FIRST_CHUNK_MAX < CLOUD_CHUNK_MAX && CLOUD_FIRST_CHUNK_MAX <= CLOUD_CHUNK_MAX_EDGE, '㉒-1 首块单独上限 70（合成 RTT 与块长正相关，150→70 首响近半；首块播放 ~10s 足够预取泵备好后续块）')
+ok(/const attempt = async \(\) => \{[\s\S]{0,200}?decodeAudioData/.test(ttsSrc) && /await sleep\(800\)[\s\S]{0,400}await sleep\(1600\)/.test(ttsSrc), '㉒-2 gaWarm 3 次退避重试（原一次失败静默踢缓存→串行链现场合成=长停顿）')
+ok(/const retried = new Set\(\)/.test(ttsSrc) && /retried\.add\(idx\)[\s\S]{0,120}sleep\(1200\)\.then\(\(\) => \{ if \(tok !== token \|\| sess\.done\) return; schedule\(idx\) \}\)/.test(ttsSrc), '㉒-3 schedule 单块失败兜底重试一轮（原一次失败即跳块丢内容；仍失败才跳块保连续）')
+ok((ttsSrc.match(/Math\.min\(CLOUD_FIRST_CHUNK_MAX, cm\)/g) || []).length >= 3, '㉒-4 speak/prefetchCloudFirst/prefetchGACache 切块同参（URL 一致性铁律：预载命中要求 chunks[0] URL 逐字节一致）')
+ok(/prefetchGACache\(stemSpokenOf\(q\)\)/.test(practiceSrc) && /\[ttsOK, ttsOn, q\?\.id\]/.test(practiceSrc), '㉒-5 Practice 恢复场景预热当前题题干（刷新直进不经过 Learn 手势→原全额 RTT 首响；静音中不预热不烧配额）')
 
 /* ── ㉒ 括号朗读 + 全面跳读/错读排查（2026-10-04；数据=tts_symbol_report2.json：全库 7102 题
    /394 万字符取证。用户实测"括号不会朗读、只读括号内内容"→ 括号读法 + 同类跳读符号全补）── */

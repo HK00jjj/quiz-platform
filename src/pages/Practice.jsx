@@ -536,6 +536,15 @@ export default function Practice() {
       if (parts.length > 1) prefetchGACache(spokenOf(q, { correct: true, expectedParts: parts }, ord))
     }
   }, [ttsOK, index, q?.id, phase, showAnswer, ttsOn])
+  /* 当前题题干预热（2026-10-04 播放流畅度修复）：Learn 入口有手势预热（run() 内
+     prefetchGACache 首题），但刷新后 store 恢复 sessionQuestions 直进 Practice 时不经过
+     Learn——首题题干全额合成 RTT（约 2s+）才开口。这里 ttsOn 且题目就绪即预取当前题
+     题干进 GA 缓存；startStemLoop→speak 的 chunks[0] 与本预载同参同 URL，共享同一
+     promise（gaCache 按 URL 幂等），开口免网络等待。静音中不预热（不烧合成配额）。 */
+  useEffect(() => {
+    if (!ttsOK || !ttsOn || !q) return
+    prefetchGACache(stemSpokenOf(q))
+  }, [ttsOK, ttsOn, q?.id])
   /* 卸载兜底：离开练习页/进结算页时，不留一条还在说的声音；朗读句柄与面板轮询一并清掉 */
   useEffect(() => () => { stopSpeak(); stopStemLoop(); clearInterval(panelPoll.current) }, [])
 

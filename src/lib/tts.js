@@ -881,7 +881,7 @@ export async function speak(raw, { rate = ttsRate(), onDone, tag } = {}) {
     try { window.speechSynthesis?.cancel() } catch { /* ignore */ }
     handoverCloud()
     const cm = cloudChunkMaxFor(pref)
-    const chunks = chunkSpeechText(raw, cm, CLOUD_CHUNK_MAX)
+    const chunks = chunkSpeechText(raw, cm, Math.min(CLOUD_FIRST_CHUNK_MAX, cm))
     if (!chunks.length) return false
     /* 云端分支不再 sleep(120)：stopCloud 是同步 pause，无引擎复位需求；
        这 120ms 原是给系统语音 cancel 落地留的，省掉后首块更快开口 */
@@ -899,7 +899,8 @@ export async function speak(raw, { rate = ttsRate(), onDone, tag } = {}) {
     try { window.speechSynthesis?.cancel() } catch { /* ignore */ }
     handoverCloud()
     const cvoice = CLOUD_DEFAULT_VOICE
-    const cchunks = chunkSpeechText(raw, cloudChunkMaxFor(cvoice), CLOUD_CHUNK_MAX)
+    const ccm = cloudChunkMaxFor(cvoice)
+    const cchunks = chunkSpeechText(raw, ccm, Math.min(CLOUD_FIRST_CHUNK_MAX, ccm))
     if (!cchunks.length || !cloudSupported()) return false
     if (my !== token) return false
     const r = await speakCloudLine(cchunks, rate, onDone, my, cvoice, tag)
@@ -982,11 +983,16 @@ export function cloudSpd(rate) {
 /* 云端块长：URL 安全（实测 2000 字会 414），150 字/块 ≈ URL 1.5KB，留足余量 */
 export const CLOUD_CHUNK_MAX = 150
 /* 2026-09-15（用户实测"句号后面顿一下"）：微软两跳代理线路后端实测上限 max:300
-   （450 字返回 {"error":"text too long","max":300}）——后续块提到 300，块边界减半；
-   首块仍 150（首响快：合成 RTT 与块长正相关，实测 150 字热合成 ≈2.2s）。
-   百度备用线路维持 150。两值经 chunkSpeechText(raw, cm, CLOUD_CHUNK_MAX) 组合：
-   首块 ≤150，后续 ≤300。 */
+   （450 字返回 {"error":"text too long","max":300}）——后续块提到 300，块边界减半。
+   百度备用线路维持 150。两值经 chunkSpeechText(raw, cm, CLOUD_FIRST_CHUNK_MAX) 组合：
+   首块 ≤70，后续 ≤300。 */
 export const CLOUD_CHUNK_MAX_EDGE = 300
+/* 首块单独上限（2026-10-04 播放流畅度修复，用户报"无法第一时间开始播放"）：
+   合成 RTT 与块长正相关（150 字热合成实测 ≈2.2s），70 字 ≈1.2s——首块越小首响越快；
+   首块播放的 ~10s（70 字 @1.35× ≈ 6.7 字/s）足够预取泵在后台备好后续块。
+   speak()/prefetchGACache/prefetchCloudFirst 四处切块必须同参（URL 一致性铁律：
+   预载命中要求 chunks[0] 的 URL 逐字节一致）。 */
+export const CLOUD_FIRST_CHUNK_MAX = 70
 /* 云端线路块长决策：微软神经音（zh-* 两跳代理）用大块，百度用小块 */
 export const cloudChunkMaxFor = (voice) => isEdgeVoice(voice) ? CLOUD_CHUNK_MAX_EDGE : CLOUD_CHUNK_MAX
 export function cloudTtsUrl(text, rate = TTS_RATE, voice = CLOUD_DEFAULT_VOICE) {
@@ -1106,16 +1112,34 @@ function gaCtxOf() {
 /* 解码缓存（跨会话复用）：重读/同题重出（三遍判定制）时 decode 一次即秒开；
    失败的 url 从缓存剔除，允许下次重试。 */
 const gaCache = new Map()
+/* gaWarm（2026-10-04 重写）：fetch+decode 带 3 次退避重试（800/1600ms）。
+   原版一次失败即静默踢出缓存——滚动预取撞限流（429/并发排队）时，串行链播到
+   那块才发现缓存没货，现场重新合成 = 一个完整 RTT（2~5s），正是用户听到的
+   "每读一段就暂停片刻"。同 URL 并发共享同一 promise（cache 先 set），不重复请求。 */
 function gaWarm(url) {
   if (gaCache.has(url)) return gaCache.get(url)
-  const p = (async () => {
+  const attempt = async () => {
     const ctx = gaCtxOf()
     const r = await fetch(url)
     if (!r.ok) throw new Error('http ' + r.status)
     const ab = await r.arrayBuffer()
     const buf = await (ctx.decodeAudioData(ab.slice(0)))
     return buf
-  })()
+  }
+  const run = async () => {
+    try {
+      return await attempt()
+    } catch (e1) {
+      await sleep(800)
+      try {
+        return await attempt()
+      } catch (e2) {
+        await sleep(1600)
+        return attempt()
+      }
+    }
+  }
+  const p = run()
   gaCache.set(url, p)
   p.catch(() => gaCache.delete(url))
   return p
@@ -1197,8 +1221,9 @@ export function speakCloudGA(chunks, rate, onDone, my, voice, tag) {
   /* schedule(idx)：串行接力链——decode 完成即 place，随后 schedule(idx+1)。
      【2026-09-15 下午事故修复】初版只排第一块：排完块 idx 后只"预解码"了下一块、
      没有递归 schedule，中间块又没挂 onended → 首块（以句号收尾）播完即永久静音。
-     网络等待由下面的全块并行预取吃掉：预取先到 → gaDecode 命中缓存秒排（无缝）；
+     网络等待由下面的滚动预取泵吃掉：预取先到 → gaDecode 命中缓存秒排（无缝）；
      预取未到 → t=currentTime+0.03 接在当前播，块间最多再等一个 RTT。 */
+  const retried = new Set()
   const schedule = (idx) => {
     if (tok !== token || sess.done) return
     gaDecode(sess.urls[idx]).then((buf) => {
@@ -1209,12 +1234,35 @@ export function speakCloudGA(chunks, rate, onDone, my, voice, tag) {
       if (idx + 1 < sess.urls.length) schedule(idx + 1)
     }).catch(() => {
       if (tok !== token || sess.done) return
-      if (idx + 1 < sess.urls.length) schedule(idx + 1)      // 单块失败跳过，绝不整段挂死
+      /* 2026-10-04 兜底重试：gaWarm 内部已带 3 次退避重试，但端点瞬时抖动（连续
+         超时/重启窗口）仍可能全败——原版一次失败即跳块，听感"跳过一段内容"。
+         这里 1.2s 后整体再试一轮，仍失败才跳块保连续（取舍：连续性 > 单块内容）。 */
+      if (!retried.has(idx)) {
+        retried.add(idx)
+        sleep(1200).then(() => { if (tok !== token || sess.done) return; schedule(idx) })
+        return
+      }
+      if (idx + 1 < sess.urls.length) schedule(idx + 1)
       else { sess.done = true; if (ga === sess) ga = null; if (session === sess) session = null; if (onDone) onDone() }
     })
   }
   try { if (ctx.state === 'suspended') { const p = ctx.resume(); if (p && p.catch) p.catch(() => {}) } } catch { /* ignore */ }
-  for (let k = 1; k < sess.urls.length; k++) gaDecode(sess.urls[k]).catch(() => {})   // 全块并行预取（塞 gaCache，供串行链秒取）
+  /* 滚动预取泵（2026-10-04 播放流畅度修复）：原"全块并发预取"在长解析 10+ 块时同一
+     时刻打到合成端点 → 限流/并发排队，部分块迟迟不 ready 或 429；被 gaWarm 踢出
+     缓存后，串行链播到那块才现场合成 = 用户听到的"每读一段停几秒"。
+     改为滚动泵：同时在飞 ≤2，块播放时长（70/300 字 ≈ 10~45s）远大于合成 RTT
+     （2~4s），播放进度永远跑在预取前面；与 schedule 共享同一 promise（gaCache
+     按 URL 幂等），零重复请求。 */
+  let inflight = 0, cursor = 1
+  const pump = () => {
+    if (tok !== token || sess.done) return
+    while (inflight < 2 && cursor < sess.urls.length) {
+      const k = cursor++
+      inflight++
+      gaDecode(sess.urls[k]).catch(() => {}).finally(() => { inflight--; pump() })
+    }
+  }
+  pump()
   schedule(0)
   return true
 }
@@ -1321,7 +1369,7 @@ export function prefetchCloudFirst(raw, rate = ttsRate()) {
   /* 与 speak() 云端分支完全同参切块（cm + firstMax）——chunks[0] 的 URL 必须逐字节一致，
      否则预载命中判定落空 */
   const cm = cloudChunkMaxFor(useVoice)
-  const chunks = chunkSpeechText(raw, cm, CLOUD_CHUNK_MAX)
+  const chunks = chunkSpeechText(raw, cm, Math.min(CLOUD_FIRST_CHUNK_MAX, cm))
   if (!chunks.length) return false
   /* GA 线（微软代理）：预取 = fetch+decode 进 gaCache，开口时免网络免解码 */
   if (isEdgeVoice(useVoice) && webAudioOK()) {
@@ -1344,7 +1392,7 @@ export function prefetchGACache(raw, rate = ttsRate()) {
   const pref = ttsVoicePref()
   const useVoice = isCloudVoice(pref) ? pref : CLOUD_DEFAULT_VOICE
   const cm = cloudChunkMaxFor(useVoice)
-  const chunks = chunkSpeechText(raw, cm, CLOUD_CHUNK_MAX)
+  const chunks = chunkSpeechText(raw, cm, Math.min(CLOUD_FIRST_CHUNK_MAX, cm))
   if (!chunks.length) return false
   if (!isEdgeVoice(useVoice)) {
     /* AV批 · 百度线补预热（修"点播报要等 2~3s 才出声"）：百度线没有 GA 管线，
