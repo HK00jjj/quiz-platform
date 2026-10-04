@@ -124,9 +124,20 @@ export function normalizeSpeech(raw) {
   /* ⓪ 全角/变体码点归一（2026-09-27 公式读音审计：＝56 处此前完全不读"等于"；
      ＞＜全角 4 处；µ MICRO SIGN(U+00B5) 与 μ 希腊 mu(U+03BC) 双码点防御性归一） */
   s = s.replace(/＝/g, '=').replace(/＞/g, '>').replace(/＜/g, '<').replace(/％/g, '%')
+  s = s.replace(/＋/g, '+')                              // 2026-10-04：全角加号 181 处归一，交 ②-c 三分（正/加）
+  s = s.replace(/\u0130/g, 'I')                          // 2026-10-04：İ 相量符号（U+0130 带点 I，差动保护 |Σİ| 4 处）→ I
+  /* markdown 加粗对先剥离（双星，全库仅 1 处）。单星斜体不设规则：全库扫描 54 处 *
+     全为数学乘号（2*pi*R*C 的乘号会被斜体配对误吃），剩余孤立 * 一律转"乘"。
+     必须在 normalizeSpeech 内做而非 cleanSpeechText——那边 [*] 一刀切删除会把乘号
+     语义一起丢；先剥加粗对再乘化，两个语义都保住。 */
+  s = s.replace(/\*{2}([^*\n]{1,32}?)\*{2}/g, '$1')
+  s = s.replace(/\s*\*\s*/g, '乘')
+  /* |Z| 绝对值竖线（2026-10-04 重写）：原版直接删除丢失绝对值语义（|Σİ|、|U_AB|、|I_N|、
+     20lg|G| 共 106 处取证全为绝对值义）→ 配对读前缀"绝对值X"，未配对残留才删除。
+     用前缀而非"X的绝对值"：分母语境（U/|Z|）以中文"绝"开头，不会落到 ②-g 5) 的
+     字母并列零宽规则（那里会误读"或"），由 8) 收尾前瞻"绝对值"接住 → "U除以绝对值Z" */
+  s = s.replace(/\|([^|\n]{1,24})\|/g, '绝对值$1').replace(/\|/g, '')
   s = s.replace(/\u00B5/g, 'μ')
-  /* |Z| 绝对值竖线：先删——否则 "U/|Z|" 的分母以 | 开头，除法判定失配后斜杠残留 */
-  s = s.replace(/\|/g, '')
   /* 上标撇号（U₁'、Uo' 一次侧标记）与弧分符号 ′″：删除（"P 1'/(根号3U N)" 的撇号
      会让除法分母判定失配） */
   s = s.replace(/[\u2032\u2033']/g, '')
@@ -145,7 +156,7 @@ export function normalizeSpeech(raw) {
      大小写，全库 4 处接触电阻 0.5mΩ 被读成"兆欧"（差 9 个数量级）；MΩ 139 处绝缘电阻不受影响 */
   s = s.replace(/([kK])\s?Ω/g, '千欧').replace(/M\s?Ω/g, '兆欧').replace(/m\s?Ω/g, '毫欧')
   s = s.replace(/μ\s?F/g, '微法').replace(/μ\s?A/g, '微安').replace(/μ\s?s/g, '微秒')
-    .replace(/μ\s?H/g, '微亨').replace(/μ\s?m/g, '微米')
+    .replace(/μ\s?H/g, '微亨').replace(/μ\s?m/g, '微米').replace(/μ\s?V\b/g, '微伏')
   s = s.replace(/Ω/g, '欧姆')
   s = s.replace(/(℃|°\s?C)/g, '摄氏度').replace(/℉/g, '华氏度')
   /* 2026-09-27：mA（毫安，全库 771 处）与 MA（兆安）按大小写区分（原 [mM] 一律读"毫安"） */
@@ -171,6 +182,17 @@ export function normalizeSpeech(raw) {
     .replace(/(\d(?:\.\d+)?)\s?mm\b/g, '$1毫米').replace(/(\d(?:\.\d+)?)\s?cm\b/g, '$1厘米')
     .replace(/(\d(?:\.\d+)?)\s?km\b/g, '$1千米').replace(/(\d(?:\.\d+)?)\s?MPa\b/g, '$1兆帕')
     .replace(/(\d(?:\.\d+)?)\s?kPa\b/g, '$1千帕').replace(/(\d(?:\.\d+)?)\s?Pa\b/g, '$1帕')
+    /* 2026-10-04 补（全库扫描取证）：视在功率 VA 39 处 / MVA 1 处（"3.5MVA容量"、"55VA"）；
+       无功 var 9 处（"2009var"、"单位是 var"，kvar 已先行）；dB 45 处 + dBm 7 处
+       （"20lg|G|，单位dB"、TEV 超声检测）；焦耳 J 58 处（"13200J"、"1W×1s=1J"）；
+       电感 H 裸用（"L=0.2H"、"1H=1000mH"——lookbehind 排除型号 "A72H"，
+       负向断言排除化学式 "2H₂"）；纳秒 ns 11 处（"1ns"、"5/50ns"） */
+    .replace(/(\d(?:\.\d+)?)\s?MVA\b/g, '$1兆伏安').replace(/(\d(?:\.\d+)?)\s?VA\b/g, '$1伏安')
+    .replace(/(\d(?:\.\d+)?)\s?var\b/g, '$1乏').replace(/\bvar\b/g, '乏')
+    .replace(/(\d(?:\.\d+)?)\s?dBm\b/g, '$1分贝毫瓦').replace(/(\d(?:\.\d+)?)\s?dB\b/g, '$1分贝').replace(/\bdB\b/g, '分贝')
+    .replace(/(\d(?:\.\d+)?)\s?J\b/g, '$1焦')
+    .replace(/(?<![A-Za-z0-9.])(\d(?:\.\d+)?)\s?H(?![₀-₉A-Za-z])\b/g, '$1亨')
+    .replace(/(\d(?:\.\d+)?)\s?ns\b/g, '$1纳秒')
     .replace(/(\d(?:\.\d+)?)\s?r\/min\b/gi, '$1转每分').replace(/(\d(?:\.\d+)?)\s?°(?!\s?[CF])/g, '$1度')
   /* ①-c 时间/长度基本单位（2026-09-27 补，全库实测裸用：min 115 / s·h·m 数十处；
      必须排在 ms/Wh/kWh/mΩ/mA 等复合单位之后，min 必须先于 m，否则 "5min" 被拆成"5米in"） */
@@ -210,6 +232,14 @@ export function normalizeSpeech(raw) {
      删除，读 "I 0.0" 反而干净。‰ 9 处同理前置） */
   s = s.replace(/(\d+(?:\.\d+)?)\s?%/g, '百分之$1').replace(/(\d+(?:\.\d+)?)\s?‰/g, '千分之$1')
     .replace(/%/g, '').replace(/‰/g, '')
+  /* ②-f0 上标负号（2026-10-04 补，全库 37 处：SIL3 约 10⁻³~10⁻⁴、10⁻⁶F、10⁻⁷Ω·m）——
+     原版 ⁻ 不在"的X次方"捕获集也不在残留删除集，"10⁻³" 会读成孤零零的"十"。
+     必须先于 ²³ 与孤立上标删除（⁻ 后可跟 ²/³） */
+  s = s.replace(/([0-9A-Za-z)）])\u207B([⁰¹²³⁴⁵⁶⁷⁸⁹]+)/g,
+    (m, b, sup) => {
+      const M = { '⁰': '0', '¹': '1', '²': '2', '³': '3', '⁴': '4', '⁵': '5', '⁶': '6', '⁷': '7', '⁸': '8', '⁹': '9' }
+      return `${b}的负${[...sup].map((c) => M[c] ?? '').join('')}次方`
+    })
   /* ②-f 上标/下标 Unicode（2026-09-27 补：⁶ 21 处等其余上标此前被引擎吞掉；
      下标 ₁₂₃₀ 共 108 处（U₁、Q₁、tanφ₁）同理。**必须先于斜杠规则**——
      否则 "U²/R" 的分子 "U²" 含 ² 不在分词字符集内，除法判定失配。
@@ -217,7 +247,7 @@ export function normalizeSpeech(raw) {
   s = s.replace(/([0-9A-Za-z)）])²/g, '$1平方').replace(/([0-9A-Za-z)）])³/g, '$1立方')
   s = s.replace(/([0-9A-Za-z)）])[⁰¹⁴⁵⁶⁷⁸⁹]/g, (m, b) => `${b}的${SUP_READ[m[m.length - 1]]}次方`)
   s = s.replace(/([0-9A-Za-z)）])ⁿ/g, '$1的n次方')
-  s = s.replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹ⁿ]/g, '')                     // 残留孤立上标（引擎读不出）直接删
+  s = s.replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹ⁿ\u207B]/g, '')               // 残留孤立上标（引擎读不出）直接删（2026-10-04 补 ⁻）
   s = s.replace(/[₀₁₂₃₄₅₆₇₈₉]/g, (c) => SUB_READ[c])        // U₁ → U1（后续"字母紧贴数字"规则拆成 U 1）
   /* ②-g 斜杠（2026-09-27 重写，INC-20260927-04：全库 / 4051 处原一律读"或"，而
      U/R、220/0.5、40/0.5 这类除法大量存在＝语义错误；但并列义也占多数（380/220V 配电、
@@ -242,6 +272,11 @@ export function normalizeSpeech(raw) {
     })
   s = s.replace(/(\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)(?=[\u4e00-\u9fa5])/g, '$1 或 $2')
   s = s.replace(/(\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)/g, '$1除以$2')
+  /* 2026-10-04 补（读音错误排查）：数字/字母编号分母（1/C1、1/R1、3/F11 电容串联/分压
+     分式）→ "除以"——句首无运算符前缀时会落进 5) 字母并列零宽规则被误读"或"，
+     同一公式串里 "+1/C2"（有加号前缀）读"除以"而 "1/C1" 读"或"，前后不一致。
+     分母收紧为"字母+数字"编号形态（C1/R1），避开 "380/220V"（数字分母）与单字母分母。 */
+  s = s.replace(/(?<=\d)\s*\/\s*(?=[A-Za-z]\d)/g, '除以')
   /* 零宽断言版：链式并列 U/V/W、L1/L2/L3、R/S/T 中每个斜杠都要命中（捕获组版会因
      共享字符被上一匹配消费而漏掉中间的斜杠，残留 "/W" 被引擎念成"斜杠"） */
   s = s.replace(/(?<=[\w)）.．])\s*\/\s*(?=[\w(（.．])/g, ' 或 ')
@@ -262,7 +297,7 @@ export function normalizeSpeech(raw) {
   s = s.replace(/(?<=[\u4e00-\u9fa5])\s*\/\s*(?=[A-Za-z])/g, '或')
   /* 8) 拉丁左侧收尾：数学词右随（Ud/根号2、U/(根号3U N)）→ "除以"；单位复合（V/微秒）
      → "每"；普通中文（KNX/路创、EMC/接地、VOH/耐压）→ "或" */
-  s = s.replace(/(?<=[A-Za-z0-9])\s*\/\s*(?=根号|√|加|减|百分之|\(|（)/g, '除以')
+  s = s.replace(/(?<=[A-Za-z0-9])\s*\/\s*(?=根号|√|加|减|百分之|绝对值|\(|（)/g, '除以')   // 2026-10-04 加"绝对值"（U/|Z| → U除以绝对值Z）
   s = s.replace(/(?<=[A-Za-z])\s*\/\s*(?=微秒|毫秒|秒|毫安|千安|毫米|厘米|米|摄氏度)/g, '每')
   s = s.replace(/(?<=[A-Za-z])\s*\/\s*(?=[\u4e00-\u9fa5])/g, '或')
   /* 9) 希腊字母语境收尾（2026-09-27 全库复扫：Δ/τ/φ 在 ③ 才转中文，斜杠规则需用希腊码点）：
@@ -286,9 +321,36 @@ export function normalizeSpeech(raw) {
   /* ②-i 三角函数读法（cosφ/tanφ/sinφ 是全库高频；必须在 ③ 希腊字母替换之前，
      否则会变成"cos斐"。工程口语：cosφ = 功率因数。） */
   s = s.replace(/cos\s?φ/gi, '功率因数').replace(/tan\s?φ/gi, '正切').replace(/sin\s?φ/gi, '正弦')
+  /* ②-j 杂项数学/标注符号（2026-10-04 全库扫描补：∠18 相量角（220∠0°）、∈1/∩∪⊆ 5（集合）、
+     ⊥1/∥1（几何）、∫∮2（积分）、分数 8、⇒3/↔2（推导箭头）、省略号 18、@2（冲击波形
+     25kA@8/20μs）、P&ID 6 处（管道仪表流程图，& → 读 "P I D"）、孤立 & 兜底"和"） */
+  s = s.replace(/∠/g, '相角').replace(/∈/g, '属于').replace(/∩/g, '交').replace(/∪/g, '并')
+    .replace(/[⊆⊂]/g, '包含于').replace(/⊥/g, '垂直于').replace(/∥/g, '平行于').replace(/[∫∮]/g, '积分')
+    .replace(/½/g, '二分之一').replace(/¼/g, '四分之一').replace(/¾/g, '四分之三')
+    .replace(/⅓/g, '三分之一').replace(/⅔/g, '三分之二').replace(/⅛/g, '八分之一')
+    .replace(/⇒/g, '则').replace(/↔/g, '与')
+    .replace(/[…‥]/g, '，').replace(/@/g, '，')
+    .replace(/P&ID/g, 'PID').replace(/&/g, '和')
+  /* ②-k 幂符号 ^（2026-10-04 补，全库 47 处：10^6、CU^2、e^(−τs)、(ΣNt)^(1/3)、e^{−t/τ}）。
+     必须在 −→减/下标规则之后（前瞻容忍已成形的"负/减"），在 ③-b 括号读法之前（要抓
+     ^(…)/^{…} 的括号内容）；三形各转"的…次方"，残留 ^ 转停顿 */
+  s = s.replace(/\^\{([^{}\n]{1,24})\}/g, '的($1)次方')
+  s = s.replace(/\^\(([^()\n]{1,24})\)/g, '的($1)次方')
+  s = s.replace(/\^([负减]?[0-9A-Za-z.\u0391-\u03C9]{1,12})/g, '的$1次方')
+  s = s.replace(/\^/g, '，')
+  /* ②-l 圆周率拼写 pi（2026-10-04：2*pi*f*C、2*pi*R*C）——小写敏感，先于 TOKEN 词典 */
+  s = s.replace(/\bpi\b/g, '派')
   /* ③ 希腊字母（工程口语常用译名，2026-09-27 补全 ζ/Φ/Θ/Λ/∑ 等，τ 修正为"陶"） */
   s = s.replace(/[Α-Ωα-ω]/g, (c) => GREEK_READ[c] ?? c)
   s = s.replace(/∑/g, '西格玛').replace(/△/g, '三角形')                // ∑(U+2211) 不在希腊区、△接法读"三角形"（ΔU 电压增量仍读德尔塔）
+  /* ③-b 括号读法（2026-10-04 用户实测修复："括号不会朗读、只读括号内内容"——（）()
+     原样送引擎被中文引擎跳过；全库 31764 对全角 + 2217 对半角。位置约束：必须在
+     斜杠七段式（②-g）/乘号前瞻/正负号/下标/^ 幂等一切依赖括号字面的规则完成之后；
+     ⓪ 层已把 markdown/【】/{} 之外的括号语义消化完。空括号（判断题填空位，全库
+     2623 处"（　）"）读一次"括号"；左括号读"括号"、右括号读"括号完"（数学分组
+     听感清晰：R1R2 除以 括号 R1加R2 括号完）。 */
+  s = s.replace(/（[\s\u3000]*）|\([\s]*\)/g, '括号')
+  s = s.replace(/[（(]/g, '括号').replace(/[）)]/g, '括号完')
   /* ④-b 连字符与"字母紧贴数字"：TN-S→TN S、RS485→RS 485、L1→L 1、GB50168→GB 50168
      （中文引擎会把 "TN-S" 念成"T N 杠 S"、"L1" 念成整团）。 */
   s = s.replace(/([A-Za-z])\s?-\s?([A-Za-z0-9])/g, '$1 $2')
@@ -306,6 +368,7 @@ export function normalizeSpeech(raw) {
     IEC: 'I E C', CT: 'C T', PT: 'P T', TTL: 'T T L', MOV: 'M O V', RC: 'R C', IO: 'I O',
     IP: 'I P', RS: 'R S', GTO: 'G T O', SCR: 'S C R', RTU: 'R T U', OPC: 'O P C', MQTT: 'M Q T T',
     AI: 'A I', AO: 'A O', DI: 'D I', DO: 'D O', GB: '国标', IR: 'I R',   // IR=ΔU=IR 压降（2026-09-27 题库实证）
+    PI: 'P I',   // 2026-10-04：PI 调节器逐字母（小写 pi 已在 ②-l 转"派"，两形态都要有读法）
     PNP: 'P N P', SIL: 'S I L', LVD: 'L V D', ELV: 'E L V', SELV: 'S E L V', PELV: 'P E L V'
   }
   s = s.replace(/\b[A-Za-z]{2,8}\b/g, (w) => TOKEN_READ[w.toUpperCase()] ?? w)
@@ -329,6 +392,7 @@ export function cleanSpeechText(raw) {
   if (!s0) return ''                               // 纯空白先归空，防止被换行转换洗成一个孤立「，」
   return normalizeSpeech(s0)
     .replace(/\s*\[[^\]]*[:：][^\]]*\]/g, '')      // [错因:概念缺失] 等内部标注
+    .replace(/\[([^\[\]\n]{1,24})\]/g, '，$1，')   // 2026-10-04：错因剥离后残留的数学方括号（牛[顿]、[f(0+)−f(∞)]）读内容带停顿
     .replace(/【([^】]{1,8})】/g, '$1，')           // 【概念】→ 概念，
     .replace(/\{([^{}]*)\}/g, '$1')                // 占位符只留内容（空占位＝删）
     .replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{FE00}-\u{FE0F}]/gu, '')
@@ -353,7 +417,13 @@ function safeCutIndex(text, cut, max) {
   /* 断点还必须满足：左边不留悬挂算子/左括号，右边不出现孤立的右括号 */
   const okCut = (k) => {
     const left = text[k - 1], right = text[k]
+    /* 2026-10-04 扩词保护：跨过空格仍是同一英文短语的两个方向都拦——
+       "of | Protection"（词尾+空格+词）与 "of |Protection"（空格+词首）此前
+       靠括号平衡检查间接兜住，括号转读法后暴露为词跨块。 */
+    const skipSp = (i, d) => { while (i >= 0 && i < text.length && /\s/.test(text[i])) i += d; return i }
     if (isWordChar(left) && isWordChar(right)) return false
+    if (isWordChar(right) && isWordChar(text[skipSp(k - 1, -1)])) return false   // 词␣|词 / 词␣␣|词
+    if (isWordChar(left) && isWordChar(text[skipSp(k, 1)])) return false         // 词|␣词
     if (unbalanced(text.slice(0, k))) return false
     if (/[=（(+\-×÷·]$/.test(text.slice(0, k))) return false
     if (/^[)）]/.test(text.slice(k))) return false

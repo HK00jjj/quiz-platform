@@ -54,13 +54,17 @@ check("gate retired: 换挡声明字段不再被校验（任意值均不产生�
 
 // ── 2026-09-12 全流程颗粒度对齐：知识域枚举闸回归锁（域统计链的入库端入口） ──
 // ── 2026-09-16 v6.12 K28~K33 扩域：枚举扩至 K1~K33，消息与边界用例同步 ──
+// ── 2026-10-04 断言腐化修复（INC-20261004-01）：validate.js 已历 K34~K43 三轮扩域
+//    （2026-09-30 K39/K40、2026-10-03 K41/K42/K43），消息文案为"应取K1~K43"，
+//    本组断言未随扩域同步、长期红——现对齐现状：消息锚 K1~K43，越界用例改 K44 ──
 check('非法知识域 K99 = error', hasMsg(validateItems([base({ 知识域: 'K99' })], false), '知识域'))
-check('非法知识域 K99 = error（消息含 K1~K33 提示）', hasMsg(validateItems([base({ 知识域: '电机学' })], false), '应取K1~K33'))
+check('非法知识域 K99 = error（消息含 K1~K43 提示）', hasMsg(validateItems([base({ 知识域: '电机学' })], false), '应取K1~K43'))
 check('缺失知识域 = error', hasMsg(validateItems([{ ...base(), 知识域: undefined }], false), '缺少字段“知识域”'))
 check('边界 K27 合法', !hasMsg(validateItems([base({ 知识域: 'K27' })], false), '知识域'))
-check('边界 K33 合法（新增域尾界）', !hasMsg(validateItems([base({ 知识域: 'K33' })], false), '知识域'))
+check('边界 K43 合法（新增域尾界）', !hasMsg(validateItems([base({ 知识域: 'K43' })], false), '知识域'))
+check('扩域 K34/K41 合法（2026-09-30/10-03 两轮扩域）', !hasMsg(validateItems([base({ 知识域: 'K34' }), base({ 知识域: 'K41', 知识点: 'x2' })], false), '知识域'))
 check('新增域 K28/K30/K31 合法', !hasMsg(validateItems([base({ 知识域: 'K28' }), base({ 知识域: 'K30', 知识点: 'x2' }), base({ 知识域: 'K31', 知识点: 'x3' })], false), '知识域'))
-check('K34 越界 = error（新尾界外仍拦截）', hasMsg(validateItems([base({ 知识域: 'K34' })], false), '应取K1~K33'))
+check('K44 越界 = error（尾界外仍拦截）', hasMsg(validateItems([base({ 知识域: 'K44' })], false), '应取K1~K43'))
 
 
 console.log(`\nregression: ${pass} pass, ${fail} fail`)

@@ -15,10 +15,13 @@ const base = (over = {}) => ({
   解析: '【推导】x【误诊】选B者误以为y【记忆点】z', ...over
 })
 
-// ① 无标签：行为不变（存量题不失效），且不得出现"错因"相关错误
+// ① 无标签：行为不变（存量题不失效），且不得出现"错因"相关**错误**
+//   2026-10-04 断言腐化修复（INC-20261004-01）：v8.0 信息量下限**告警**文案含"错因标签"
+//   提示词（"误诊两层+错因标签"），原"任何消息不含错因"过严误报——本用例原意即错误级
+//   （与 ②~⑤ 的 errs() 口径一致），存量题无标签不应产生错因相关错误。 */
 {
   const r = validateItems([base()], false)
-  check('no tag: no cause-related error', r.every((i) => !i.message.includes('错因')))
+  check('no tag: no cause-related error', r.every((i) => !(i.level === '错误' && i.message.includes('错因'))))
 }
 
 // ② 合法枚举标签：放行

@@ -423,14 +423,14 @@ ok(normalizeSpeech('1=L+、2=M') === '1 等于 L正、2 等于 M' && normalizeSp
 // ㉑-6 斜杠三段式（INC-20260927-04）
 ok(normalizeSpeech('I=U/R=220/22=10A') === 'I 等于 U除以R 等于 220除以22 等于 10安', '㉑-6a 欧姆定律整串：除法读"除以"（原读"或"）')
 ok(normalizeSpeech('0.0175×40/0.5=1.4Ω') === '0.0175乘40除以0.5 等于 1.4欧姆', '㉑-6b 电阻率计算：乘号后除法')
-ok(normalizeSpeech('R=R1R2/(R1+R2)') === 'R 等于 R 1R 2除以(R 1加R 2)', '㉑-6c 并联电阻公式整串')
+ok(normalizeSpeech('R=R1R2/(R1+R2)') === 'R 等于 R 1R 2除以括号R 1加R 2括号完', '㉑-6c 并联电阻公式整串（2026-10-04 起括号读"括号…括号完"）')
 ok(normalizeSpeech('380/220V') === '380 或 220伏' && normalizeSpeech('50/60Hz') === '50 或 60赫兹', '㉑-6d 数字/数字+中文单位 → 或（并列电压/频率）')
 ok(normalizeSpeech('S/S端子') === 'S 或 S端子' && normalizeSpeech('NPN/PNP') === 'N P N 或 P N P' && normalizeSpeech('NO/NC') === 'NO 或 NC', '㉑-6e 字母并列 → 或（S/S 端子、NPN/PNP、NO/NC）')
 ok(normalizeSpeech('GB/T 50168') === '国标 T 50168', '㉑-6f GB/T → 国标 T')
 ok(normalizeSpeech('e=−L·di/dt') === 'e 等于 减L乘电流变化率', '㉑-6g di/dt → 电流变化率（u=L·di/dt 感应电动势）')
 ok(normalizeSpeech('R=ρL/S') === 'R 等于 柔L除以S', '㉑-6h 电阻率公式：ρ 在分子（希腊字母入分子字符集）')
 ok(normalizeSpeech('P=U²/R') === 'P 等于 U平方除以R', '㉑-6i U²/R：上标转换先于斜杠判定')
-ok(normalizeSpeech('（2-1.0）/2=50%') === '（2-1.0）除以2 等于 百分之50', '㉑-6j 括号闭合后斜杠 + 百分号前置')
+ok(normalizeSpeech('（2-1.0）/2=50%') === '括号2-1.0括号完除以2 等于 百分之50', '㉑-6j 括号闭合后斜杠 + 百分号前置（2026-10-04 起括号朗读）')
 ok(normalizeSpeech('0.0175Ω·mm²/m') === '0.0175欧姆乘平方毫米每米', '㉑-6k 电阻率单位 Ω·mm²/m → 欧姆乘平方毫米每米')
 // ㉑-7 波浪号/比较符/百分号/全角
 ok(normalizeSpeech('0~10V') === '0到10伏' && normalizeSpeech('5～10mm') === '5到10毫米', '㉑-7a ~ 区间 → 到（全库 816 处）')
@@ -440,8 +440,51 @@ ok(normalizeSpeech('F∝U²') === 'F正比于U平方' && normalizeSpeech('Ⅰ类
 ok(normalizeSpeech('M>1') === 'M大于1' && normalizeSpeech('≥29.8A') === '大于等于29.8安', '㉑-7e 调制系数与 ≥')
 // ㉑-8 真实整题公式串（题库 seq 181/347 原句）
 const F181 = normalizeSpeech('R =（24 − 1.2 − 0.3）/ 0.006 = 22.5 / 0.006 = 3750Ω，即3.75kΩ；功耗 P = I²R = 0.006² × 3750 = 0.135W。')
-ok(F181.includes('（24 减 1.2 减 0.3）除以0.006') && F181.includes('22.5除以0.006') && F181.includes('3750欧姆') && F181.includes('3.75千欧') && F181.includes('I平方R') && F181.includes('0.006平方 乘 3750') && F181.includes('0.135瓦'), '㉑-8a seq181 功耗计算串全要素（分数/减号/平方/单位）')
+ok(F181.includes('括号24 减 1.2 减 0.3括号完除以0.006') && F181.includes('22.5除以0.006') && F181.includes('3750欧姆') && F181.includes('3.75千欧') && F181.includes('I平方R') && F181.includes('0.006平方 乘 3750') && F181.includes('0.135瓦'), '㉑-8a seq181 功耗计算串全要素（分数/减号/平方/单位；2026-10-04 起括号朗读）')
 const F347 = normalizeSpeech('额定线电流I=P/(√3·U·cosφ·η)=15000/(1.732×380×0.85×0.9)≥29.8A')
-ok(F347.includes('P除以(根号3乘U乘功率因数乘伊塔)') && F347.includes('15000除以(1.732乘380乘0.85乘0.9)') && F347.includes('大于等于29.8安'), '㉑-8b seq347 线电流公式串（√3/·/cosφ/η/≥ 全要素）')
+ok(F347.includes('P除以括号根号3乘U乘功率因数乘伊塔括号完') && F347.includes('15000除以括号1.732乘380乘0.85乘0.9括号完') && F347.includes('大于等于29.8安'), '㉑-8b seq347 线电流公式串（√3/·/cosφ/η/≥ 全要素；2026-10-04 起括号朗读）')
+
+/* ── ㉒ 括号朗读 + 全面跳读/错读排查（2026-10-04；数据=tts_symbol_report2.json：全库 7102 题
+   /394 万字符取证。用户实测"括号不会朗读、只读括号内内容"→ 括号读法 + 同类跳读符号全补）── */
+// ㉒-1 括号读法（核心修复）
+ok(normalizeSpeech('（编译生成梯形图）') === '括号编译生成梯形图括号完', '㉒-1a 全角括号 → 括号…括号完（原样送引擎被跳过）')
+ok(normalizeSpeech('I=U/(RBC+RL)') === 'I 等于 U除以括号RBC加RL括号完', '㉒-1b 半角括号数学分组同样朗读（除以判定先于括号转换）')
+ok(normalizeSpeech('判断该说法是否正确。（　）') === '判断该说法是否正确。括号', '㉒-1c 判断题空括号（含全角空格，全库 2623 处）读一次"括号"')
+ok(normalizeSpeech('热继电器(FR)动作') === '热继电器括号FR括号完动作', '㉒-1d 半角空括号特判在先、非空括号照读')
+// ㉒-2 绝对值（原版直接删 → 语义丢失）
+ok(normalizeSpeech('IΔ=|Σİ|') === 'I德尔塔 等于 绝对值西格玛I', '㉒-2a |X| → 绝对值X（İ 相量点先归一为 I；前缀形式让分母判定落入"除以"收尾）')
+ok(normalizeSpeech('U/|Z|=2.2') === 'U除以绝对值Z 等于 2.2', '㉒-2b 分母绝对值语境：除以判定（②-g 8) 前瞻加"绝对值"；5) 字母并列零宽不再误抢）')
+ok(normalizeSpeech('20lg|G|') === '20lg绝对值G', '㉒-2c 20lg|G| 波特图幅值')
+// ㉒-3 缺失单位（全库扫描取证）
+ok(normalizeSpeech('65816VA≈65.8kVA') === '65816伏安约等于65.8千伏安', '㉒-3a VA 伏安（kVA 先行不冲突）')
+ok(normalizeSpeech('3.5MVA容量') === '3.5兆伏安容量', '㉒-3b MVA 兆伏安')
+ok(normalizeSpeech('2009var≈2.01kvar') === '2009乏约等于2.01千乏' && normalizeSpeech('单位是 var') === '单位是 乏', '㉒-3c var 无功单位（裸用与数字后）')
+ok(normalizeSpeech('30dB') === '30分贝' && normalizeSpeech('单位dB') === '单位分贝' && normalizeSpeech('25dBm') === '25分贝毫瓦', '㉒-3d dB/dBm 分贝（EMC/TEV 检测）')
+ok(normalizeSpeech('13200J') === '13200焦' && normalizeSpeech('1W×1s=1J') === '1瓦乘1秒 等于 1焦', '㉒-3e J 焦耳')
+ok(normalizeSpeech('L=0.2H') === 'L 等于 0.2亨' && normalizeSpeech('1H=1000mH') === '1亨 等于 1000毫亨', '㉒-3f 电感 H → 亨（mH 先行）')
+ok(normalizeSpeech('A72H') === 'A 72H' && normalizeSpeech('2H₂') === '2H 2', '㉒-3g 型号 "A72H" 与化学式 "2H₂" 不误读成"亨"（H 保留交引擎读字母）')
+ok(normalizeSpeech('1ns') === '1纳秒' && normalizeSpeech('5/50ns脉冲') === '5 或 50纳秒脉冲', '㉒-3h ns 纳秒（5/50ns 波形标称走并列"或"，与 380/220V 同口径）')
+ok(normalizeSpeech('0.5μV') === '0.5微伏', '㉒-3i μV 微伏（原无规则）')
+// ㉒-4 幂与上标负号
+ok(normalizeSpeech('10^-7 F') === '10的负7次方 F', '㉒-4a 10^-7 → 10的负7次方（负号成形后前瞻容忍）')
+ok(normalizeSpeech('W=0.5*CU^2') === 'W 等于 0.5乘CU的2次方', '㉒-4b 数学乘号 * → 乘（markdown 强调对先剥不误伤）+ CU^2')
+ok(normalizeSpeech('e^(−τs)') === 'e的括号减陶s括号完次方', '㉒-4c e^(−τs) 幂内括号读法（U+2212 → 减在先；②-k 转出的括号再经 ③-b 朗读）')
+ok(normalizeSpeech('10⁻³') === '10的负3次方' && normalizeSpeech('1.7×10⁻⁶m²') === '1.7乘10的负6次方平方米', '㉒-4d 上标负号 ⁻ → 的负X次方（原 10⁻³ 读孤零零"十"）')
+ok(normalizeSpeech('10⁻²') === '10的负2次方', '㉒-4e ⁻ 后跟 ²/³ 同样覆盖')
+// ㉒-5 杂项符号
+ok(normalizeSpeech('220∠0°') === '220相角0度', '㉒-5a ∠ → 相角（相量表示）')
+ok(cleanSpeechText('刀体长度∈{100,150}') === '刀体长度属于100,150', '㉒-5b ∈ → 属于（{} 由 cleanSpeechText 剥成内容）')
+ok(normalizeSpeech('较大力矩⇒手握近柄尾') === '较大力矩则手握近柄尾' && normalizeSpeech('频率↔次数') === '频率与次数', '㉒-5c ⇒ → 则；↔ → 与')
+ok(normalizeSpeech('1/C1+1/C2+…') === '1除以C 1加1除以C 2加，', '㉒-5d 省略号 → 停顿；句首分式 1/C1 → 除以（原被字母并列规则误读"或"，与 +1/C2 的"除以"同串不一致）')
+ok(normalizeSpeech('25kA@8/20μs') === '25千安，8 或 20微秒', '㉒-5e @（冲击波形标注）→ 停顿（8/20μs 波形标称走并列"或"，同 5/50ns 口径）')
+ok(normalizeSpeech('P&ID管道仪表流程图') === 'P I D管道仪表流程图', '㉒-5f P&ID → PID → TOKEN 词典逐字母 P I D（& 不读"和"）')
+ok(normalizeSpeech('2*3.1416*3000/60') === '2乘3.1416乘3000除以60', '㉒-5g 连续数学乘号 * → 乘')
+ok(normalizeSpeech('2*pi*R*C') === '2乘派乘R乘C' && normalizeSpeech('PI控制') === 'P I控制', '㉒-5h pi 拼写 → 派；大写 PI 调节器逐字母')
+ok(normalizeSpeech('10＋第三环') === '10加第三环', '㉒-5i 全角＋ → 加（181 处）')
+ok(normalizeSpeech('½') === '二分之一' && normalizeSpeech('¾') === '四分之三', '㉒-5j 分数字符')
+ok(normalizeSpeech('Ki∫e') === 'Ki积分e', '㉒-5k ∫ → 积分')
+// ㉒-6 cleanSpeechText 层：错因剥离后残留方括号
+ok(cleanSpeechText('法定单位牛[顿]（符号N）') === '法定单位牛，顿，括号符号N括号完', '㉒-6 错因标注剥离后残留数学方括号 → 内容带停顿（[错因:] 仍照剥）')
+ok(!/\[错因/.test(cleanSpeechText('A「短路」错。[错因:概念缺失]')), '㉒-6b [错因:] 内部标注仍被剥掉（方括号新规则不影响错因剥离）')
 
 console.log(`\ntts.regression：${n} 断言全绿`)
