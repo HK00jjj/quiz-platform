@@ -6,7 +6,7 @@
    ③ pickVoice：选声优先级（晓晓Natural > 云希Natural > Natural > 常见微软本地音 > 任意zh） */
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
-import { chunkSpeechText, cleanSpeechText, normalizeSpeech, pickVoice, chunkMaxFor, TTS_RATE, RATE_MIN, RATE_MAX, RATE_STEP, clampRate, fmtRate, ttsRate, sliceForResume, listVoices, voiceQualityOf, voiceAccent, voiceLabel, ttsVoicePref, resolveVoiceByName, zhLike, voiceDiag, cloudTtsUrl, cloudSpd, engineFor, isCloudVoice, isEdgeVoice, EDGE_VOICES, CLOUD_VOICES, CLOUD_CHUNK_MAX, CLOUD_CHUNK_MAX_EDGE, CLOUD_FIRST_CHUNK_MAX, cloudChunkMaxFor, cloudSupported, CLOUD_VOICE_ID, CLOUD_DEFAULT_VOICE, prefetchCloudFirst, gaTrimRange, speakCloudGA, currentPauseTag } from '../src/lib/tts.js'
+import { chunkSpeechText, cleanSpeechText, normalizeSpeech, pickVoice, chunkMaxFor, TTS_RATE, RATE_MIN, RATE_MAX, RATE_STEP, clampRate, fmtRate, ttsRate, migrateRate, breathText, chunkTailPause, PAUSE_AFTER_SENT, PAUSE_AFTER_CLAUSE, PAUSE_AFTER_OTHER, sliceForResume, listVoices, voiceQualityOf, voiceAccent, voiceLabel, ttsVoicePref, resolveVoiceByName, zhLike, voiceDiag, cloudTtsUrl, cloudSpd, engineFor, isCloudVoice, isEdgeVoice, EDGE_VOICES, CLOUD_VOICES, CLOUD_CHUNK_MAX, CLOUD_CHUNK_MAX_EDGE, CLOUD_FIRST_CHUNK_MAX, cloudChunkMaxFor, cloudSupported, CLOUD_VOICE_ID, CLOUD_DEFAULT_VOICE, prefetchCloudFirst, gaTrimRange, speakCloudGA, currentPauseTag } from '../src/lib/tts.js'
 
 let n = 0
 const ok = (cond, msg) => { n++; assert.ok(cond, msg) }
@@ -22,16 +22,20 @@ const longNoPunct = '长'.repeat(233)
 ok(chunkSpeechText(longNoPunct).every((c) => c.length <= 50), '①-4 无标点超长句硬切 ≤50')
 ok(chunkSpeechText(longNoPunct).join('') === '长'.repeat(233), '①-5 硬切不丢字')
 
-// 3) 拼回等价：多段落混合文本切块后连起来 = 清洗后原文（一个字不丢）
+/* 3) 拼回等价：多段落混合文本切块后连起来 = 清洗后原文（一个字不丢）
+   2026-10-04 二改：清洁层在分句标点后插换行当"呼吸停顿"（实测 +0.3s 静音/处），
+   块边界可能恰好落在换行处、被 trim——换行无字符语义（停顿由播放器块间停顿补足），
+   故等价性按"忽略空白"比对；真实字符丢失仍会被抓出。 */
 const mixed = '第一步合上QS。观察KM1是否吸合，若吸合则主回路正常；若不吸合！检查控制回路。\n用万用表测量线圈电压→应为380V。'
-ok(chunkSpeechText(mixed).join('') === cleanSpeechText(mixed), '①-6 拼回等价（含换行/箭头清洗）')
+const nows = (s) => s.replace(/[\s\u3000]/g, '')
+ok(nows(chunkSpeechText(mixed).join('')) === nows(cleanSpeechText(mixed)), '①-6 拼回等价（含换行/箭头清洗；2026-10-04 起忽略纯空白差异——呼吸换行）')
 ok(chunkSpeechText(mixed).every((c) => c.length <= 50), '①-7 混合文本所有块 ≤50')
 
 // 4) 断点优先级：单句超长时在次级断点（，、：）回退切，切点落在断点后
 const longSentence = '这是一个特别长的句子没有句号但是有逗号，逗号之后还有很长很长的内容继续往下延伸，一直延伸到超过五十个字的切块上限为止，看看切块函数会把它切在哪里'
 const cs = chunkSpeechText(longSentence)
 ok(cs.every((c) => c.length <= 50), '①-8 次级断点切块 ≤50')
-ok(cs.join('') === cleanSpeechText(longSentence), '①-9 次级断点切块不丢字')
+ok(nows(cs.join('')) === nows(cleanSpeechText(longSentence)), '①-9 次级断点切块不丢字（2026-10-04 起忽略纯空白差异——呼吸换行）')
 ok(cs.some((c) => c.endsWith('，')), '①-10 至少一块以逗号收尾（断点回退生效，非纯硬切）')
 
 // 5) 短句合并：多个短句合进同一块（减少引擎块间机械停顿）
@@ -81,15 +85,21 @@ ok(chunkMaxFor(null) === 50, '④-4 无音色时保守取 50')
 const longText = '解析'.repeat(120)
 ok(chunkSpeechText(longText, chunkMaxFor(ONLINE_NATURAL)).length < chunkSpeechText(longText, 50).length, '④-5 同一长文在 180 分块下块数更少')
 
-/* ── ⑤ 语速：自定义（无档位）+ 默认 1.35（用户 2026-09-13 晚第四轮定稿）── */
-ok(TTS_RATE === 1.35, '⑤-1 默认语速 1.35（未设置偏好时）')
+/* ── ⑤ 语速：自定义（无档位）+ 默认 1.10（2026-10-04 二改：1.35 → 1.10，"节奏赶"）── */
+ok(TTS_RATE === 1.10, '⑤-1 默认语速 1.10（2026-10-04 二改；1.35 实测 ≈6.9 字/秒 = 413 字/分，比中文旁白基准快 ≈70%）')
 ok(RATE_MIN === 0.5 && RATE_MAX === 2, '⑤-2 自定义区间 0.5~2.0（引擎上限 2.0，超了会失真/卡死）')
 ok(clampRate(1.42) === 1.42, '⑤-3 任意自定义值原样通过（1.42）')
 ok(clampRate(0.2) === 0.5, '⑤-4 低于下限夹到 0.5')
 ok(clampRate(9) === 2, '⑤-5 高于上限夹到 2.0')
 ok(clampRate('1.137') === 1.14, '⑤-6 字符串入参 + 两位小数取整')
-ok(clampRate('abc') === TTS_RATE, '⑤-7 非法入参回落默认 1.35')
-ok(ttsRate() === 1.35, '⑤-8 Node 无 window 环境取默认值且不抛错（回归脚本可直接跑）')
+ok(clampRate('abc') === TTS_RATE, '⑤-7 非法入参回落默认 1.10')
+ok(ttsRate() === 1.10, '⑤-8 Node 无 window 环境取默认值且不抛错（回归脚本可直接跑）')
+/* 2026-10-04 一次性迁移：存量存的恰是旧默认 1.35（=从未主动调过）→ 跟到 1.10；
+   任何其他值都是主动选择，原样尊重；迁移只做一次（标记 qp.tts.pacing2） */
+ok(migrateRate('1.35', null).rate === 1.10 && migrateRate('1.35', null).migrated === true, '⑤-10 存量 1.35（旧默认）→ 迁移到 1.10')
+ok(migrateRate('1.35', '1').rate === 1.35 && migrateRate('1.35', '1').migrated === false, '⑤-11 已迁移过则不再动（幂等，不反复改用户偏好）')
+ok(migrateRate('1.4', null).rate === 1.4 && migrateRate('0.9', null).rate === 0.9, '⑤-12 用户主动设过的值（1.4/0.9）原样尊重，不迁移')
+ok(migrateRate(null, null).rate === 1.10 && migrateRate('', null).rate === 1.10 && migrateRate('abc', null).rate === 1.10, '⑤-13 未设置/空/非法 → 新默认 1.10')
 /* 真机实测（2026-09-13 晚）：步进 0.05 时滑块把 1.42 吸附成 1.40（网格 0.5+0.05n），
    既然要"自定义、不要预设"，步进收细到 0.01 并加显示格式化 */
 ok(RATE_STEP === 0.01, '⑤-9 滑块步进 0.01（任意百分位可调，不被网格吸附）')
@@ -187,7 +197,7 @@ const boundaryOK = (chunks) => {
 ok(boundaryOK(chunkSpeechText(REAL_181, 12)), '⑪-1 真实题 seq181：数字/单位不被切碎（3750Ω 不可切成 "375"+"0Ω"）')
 ok(boundaryOK(chunkSpeechText(REAL_1588, 24)), '⑪-2 真实题 seq1588：拉丁词不被切两半（Layer of Protection 保持完整）')
 ok(boundaryOK(chunkSpeechText(REAL_347, 18)), '⑪-3 真实题 seq347：括号不跨块、公式不悬挂算子')
-ok(chunkSpeechText(REAL_1588, 24).join('') === cleanSpeechText(REAL_1588), '⑪-4 边界保护只移断点、不改内容（拼接恒等）')
+ok(chunkSpeechText(REAL_1588, 24).join('').replace(/[\s\u3000]/g, '') === cleanSpeechText(REAL_1588).replace(/[\s\u3000]/g, ''), '⑪-4 边界保护只移断点、不改内容（拼接恒等；2026-10-04 起忽略纯空白差异——呼吸换行）')
 /* ⑫ 数学排版符号（真实原文高频：U+2212 减号、上标、下标、等号、间隔号） */
 ok(/减/.test(normalizeSpeech('24 − 1.2')) && !/−/.test(normalizeSpeech('24 − 1.2')), '⑫-1 U+2212 减号 → 减（否则引擎可能吞掉）')
 ok(normalizeSpeech('I²R') === 'I平方R' && normalizeSpeech('0.006²') === '0.006平方', '⑫-2 上标 ²/³ → 平方/立方（不念"二次方符号"）')
@@ -299,7 +309,7 @@ const cs16 = chunkSpeechText(long16, CLOUD_CHUNK_MAX_EDGE, CLOUD_CHUNK_MAX)
 ok(cs16.length > 1, '⑯-1 长文按新参数分为多块')
 ok(cs16[0].length <= CLOUD_CHUNK_MAX, '⑯-2 首块 ≤150（首响优先）')
 ok(cs16.slice(1).every((c) => c.length <= CLOUD_CHUNK_MAX_EDGE), '⑯-3 后续块 ≤300（后端实测上限）')
-ok(cs16.join('') === cleanSpeechText(long16), '⑯-4 firstMax 分块拼接恒等（不丢字）')
+ok(nows(cs16.join('')) === nows(cleanSpeechText(long16)), '⑯-4 firstMax 分块拼接恒等（不丢字；2026-10-04 起忽略纯空白差异——呼吸换行）')
 ok(chunkSpeechText(long16, 200).every((c) => c.length <= 200), '⑯-5 默认参数兼容：单参时 firstMax=max')
 ok(cloudChunkMaxFor('zh-CN-YunjianNeural') === CLOUD_CHUNK_MAX_EDGE, '⑯-6 微软两跳线块长 300')
 ok(cloudChunkMaxFor(CLOUD_VOICE_ID) === CLOUD_CHUNK_MAX, '⑯-7 百度线块长 150')
@@ -540,5 +550,24 @@ ok(normalizeSpeech('380/220V') === '380 或 220伏' && normalizeSpeech('S/S端�
 const LONG_PAREN = '该保护（在三相短路且电压跌落超过额定值百分之七十时才动作）应优先采用；绕组绝缘（端子松脱导致）会下降，电缆（单芯截面积0.5平方毫米，铜电阻率0.0175Ω·mm²/m）连接至PLC输入端。'
 ok(boundaryOK(chunkSpeechText(REAL_181, 12)) && boundaryOK(chunkSpeechText(REAL_1588, 24)) && boundaryOK(chunkSpeechText(REAL_347, 18)), '㉒-7j 三处真实题原文：括号对不跨块、"括号完"不腰斩（2026-10-04 修复锁）')
 ok(boundaryOK(chunkSpeechText(LONG_PAREN, 20, 30)) && boundaryOK(chunkSpeechText(LONG_PAREN, 50, 70)), '㉒-7k 长括号 + 小/大块长两种参数下配平不变量均成立')
+
+/* ── ㉓ 播报节奏（2026-10-04 二改 · 用户："连续朗读节奏放慢一些、避免听众觉得赶"；
+   取证 = tools/probe_pacing.mjs / probe_variants.mjs：本地复刻合成 + mpg123 解码量测。
+   目标口径：句法停顿落在"逗号 300~500ms / 句号 600~800ms"舒适带内，整体 ≈4.4 字/秒）── */
+// ㉓-1 呼吸标记：分句标点后插换行（实测每个 +0.3s 真实静音）；顿号排除（并列表项不拆碎）
+ok(breathText('甲，乙；丙：丁、戊。') === '甲，\n乙；\n丙：\n丁、戊。', '㉓-1a 呼吸换行只加在 ，；： 之后，顿号/句号不加')
+ok(breathText('甲，\n乙') === '甲，\n乙', '㉓-1b 已有换行不重复插（幂等）')
+ok(breathText('') === '' && breathText(null) === '', '㉓-1c 空入参安全')
+ok(chunkSpeechText('甲，乙。').join('').indexOf('，\n') >= 0, '㉓-1d 切块入口即带呼吸换行（送引擎文本确实生效）')
+// ㉓-2 空格无用（写进断言防回退：这是实测否掉的方案，别人别再试）
+ok(cleanSpeechText('甲，乙。') === '甲，乙。' && breathText('甲，乙。').indexOf('， ') < 0, '㉓-2 不用空格加停顿（实测空格对引擎完全无效：总时长一字不差）')
+// ㉓-3 块间停顿表（播放器侧）
+ok(chunkTailPause('…结束。') === PAUSE_AFTER_SENT && chunkTailPause('…等下？') === PAUSE_AFTER_SENT, '㉓-3a 句末（。？！）→ 0.20s（与引擎自带 ~0.6s 合成 ≈0.8s，落在 600~800ms 舒适带）')
+ok(chunkTailPause('…其次，') === PAUSE_AFTER_CLAUSE && chunkTailPause('…其一；') === PAUSE_AFTER_CLAUSE, '㓂-3b 分句末（，；）→ 0.14s')
+ok(chunkTailPause('…结尾无标点') === PAUSE_AFTER_OTHER, '㉓-3c 无标点收尾 → 0.08s（最小呼吸）')
+ok(chunkTailPause('…结束。\n') === PAUSE_AFTER_SENT && chunkTailPause('') === PAUSE_AFTER_OTHER, '㉓-3d 尾随空白/换行忽略；空串安全')
+ok(PAUSE_AFTER_SENT > PAUSE_AFTER_CLAUSE && PAUSE_AFTER_CLAUSE > PAUSE_AFTER_OTHER, '㉓-3e 停顿量级 句末 > 分句 > 其他')
+// ㉓-4 语速默认值区间（防止有人把 1.35 那种"复听档"再设回来）
+ok(TTS_RATE >= 1.0 && TTS_RATE <= 1.15, '㉓-4 默认语速落在"教程/朗读"舒适档 1.0~1.15（研究口径：朗读 1.0×、教程 0.85×、短视频 1.15~1.25×）')
 
 console.log(`\ntts.regression：${n} 断言全绿`)

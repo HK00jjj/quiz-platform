@@ -25,12 +25,19 @@
       下一题（speechSynthesis 是浏览器全局单例，不随组件卸载而停）。 */
 
 /* 播报语速（用户 2026-09-13 晚定稿：**自定义、不要预设档位**）。
-   默认 1.35×（用户 1.25 → 1.5 → 1.35 三轮实测后的取值；中文 TTS 基线 ≈4~5 字/秒，
-   1.35× ≈ 200~220 wpm 属"熟悉内容复听"舒适区；2.0× 以上理解率下滑——
-   Murphy/Hoover/Ritter 2018：叙述文本 2.5× 起理解率骤降）。
+   默认 1.10×（2026-10-04 二改，用户报"连续朗读节奏赶、听众觉得赶"）。
+   取证（tools/probe_pacing.mjs，本地复刻合成 + mpg123 解码量测，528 字真实解析样本）：
+   · 1.35× 云健 = 总时长 76.6s → 折算 ≈6.9 字/秒（413 字/分），比中文旁白基准快 ≈70%；
+   · 1.10× 晓晓 = 101.7s ≈5.2 字/秒（311 字/分）；叠加下面的"换行呼吸"后 ≈4.4 字/秒（264 字/分），
+     落在舒适叙述区间（研究口径：朗读/教程类 0.85~1.1×；TTS skill 中文默认 4 字/秒；
+     Murphy/Hoover/Ritter 2018：叙述文本 2.5× 起理解率骤降——1.35 属"熟悉内容复听"档）。
    调速与开关合并为一个「声音」控件（解析区点开 → 滑块无级调 + 开关），
-   0.5~2.0 之间任意值，0.05 步进，落 localStorage `qp.tts.rate`。 */
-export const TTS_RATE = 1.35
+   0.5~2.0 之间任意值，0.01 步进，落 localStorage `qp.tts.rate`。 */
+export const TTS_RATE = 1.10
+/* 旧默认（2026-09-13~10-04）。用户存的值恰等于它 = 从未主动调过 → 一次性跟到新默认；
+   任何其他值都是主动选择，原样尊重（迁移标记 qp.tts.pacing2，只做一次）。 */
+const RATE_PREV_DEFAULT = 1.35
+const LS_RATE_MIGRATED = 'qp.tts.pacing2'
 export const RATE_MIN = 0.5
 export const RATE_MAX = 2
 export const RATE_STEP = 0.01   // 滑块步进：真机实测 0.05 会让 1.42 被吸附成 1.40（网格 0.5+0.05n）
@@ -44,11 +51,21 @@ export function clampRate(v) {
 export function fmtRate(v) {
   return String(Math.round(clampRate(v) * 100) / 100)
 }
+/* 存量语速存储的读取（纯函数，便于回归断言）：返回 { rate, migrated } */
+export function migrateRate(raw, migratedFlag) {
+  if (raw === null || raw === '' || raw === undefined) return { rate: TTS_RATE, migrated: false }
+  const n = Number(raw)
+  if (!isFinite(n)) return { rate: TTS_RATE, migrated: false }
+  if (n === RATE_PREV_DEFAULT && !migratedFlag) return { rate: TTS_RATE, migrated: true }
+  return { rate: clampRate(n), migrated: false }
+}
 export function ttsRate() {
   try {
-    const raw = typeof window !== 'undefined' ? window.localStorage.getItem(LS_RATE) : null
-    if (raw === null || raw === '') return TTS_RATE
-    return clampRate(raw)
+    if (typeof window === 'undefined') return TTS_RATE
+    const st = window.localStorage
+    const { rate, migrated } = migrateRate(st.getItem(LS_RATE), st.getItem(LS_RATE_MIGRATED))
+    if (migrated) { st.setItem(LS_RATE_MIGRATED, '1'); st.setItem(LS_RATE, String(rate)) }
+    return rate
   } catch { return TTS_RATE }   // 隐私模式等：用默认
 }
 export function setTtsRate(v) {
@@ -497,6 +514,19 @@ function safeCutIndex(text, cut, max) {
   return Math.min(cut, max)
 }
 
+/* 呼吸停顿标记（2026-10-04 二改 · 用户："连续朗读节奏放慢一些，避免听众觉得赶"）
+   —— 放在**切块层**（送引擎的唯一入口），不动 cleanSpeechText 的通用契约。
+   取证（tools/probe_variants.mjs：本地复刻合成 + mpg123 解码量测，两个真实解析样本）：
+   · 标点后插半角/全角/窄空格 → **完全无效**（总时长一字不差；引擎不吃空格）；
+   · 标点后插换行 → **每个标点实测 +0.3s 真实静音**：419 字样本停顿合计 18.55s→27.84s、
+     总时长 +11%（84.19→94.30s）；528 字样本 23.07s→29.40s、停顿 P90 0.43s→0.63s。
+   Edge 端点禁止自定义 SSML（rany2/edge-tts README：只允许单 voice + 单 prosody，无 <break>），
+   换行即"段落停顿"，是这条链路上唯一可用的加呼吸手段。
+   **只加在分句级标点（，；：）**：顿号（、）连接并列表项，停 0.3s 会把"U、V、W"念碎，故排除。 */
+export function breathText(text) {
+  return String(text ?? '').replace(/([，；：])(?!\n)/g, '$1\n')
+}
+
 /* 按句读切块（≤max 字/块）。先在强句读（。！？；!?;）断句，短句就近合并进同块；
    单句超长再在次级断点（，、：）回退切，实在没有断点才硬切。
    返回的块拼起来 = 清洗后的原文（无空格文本下严格成立；边界保护只改断点位置不改内容）。
@@ -504,7 +534,7 @@ function safeCutIndex(text, cut, max) {
    后续块加大=块边界少=句号处停顿少（每块是独立合成音频，自带首尾静音，
    块边界≈句号边界，用户实测"每个句号后面顿一下"）。 */
 export function chunkSpeechText(raw, max = 50, firstMax = max) {
-  const text = cleanSpeechText(raw)
+  const text = breathText(cleanSpeechText(raw))
   if (!text) return []
   const chunks = []
   let buf = ''
@@ -1056,6 +1086,7 @@ export const EDGE_VOICES = [
   { id: 'zh-CN-YunxiNeural', label: '云希（男声·解说）' },
   { id: 'zh-CN-XiaoyiNeural', label: '晓伊（女声·活泼）' },
   { id: 'zh-CN-YunyangNeural', label: '云扬（男声·新闻）' },
+  { id: 'zh-CN-YunxiaNeural', label: '云夏（男声·轻快）' },   // 2026-10-04 补齐：代理白名单本就有，前端此前漏列
   { id: 'zh-CN-liaoning-XiaobeiNeural', label: '小北（东北官话）' },
   { id: 'zh-CN-shaanxi-XiaoniNeural', label: '小妮（陕西官话）' },
   { id: 'zh-HK-HiuMaanNeural', label: '曉曼（粤语）' },
@@ -1252,6 +1283,19 @@ export function gaTrimRange(data, TH = 0.01) {
   for (let i = n - 1; i >= start; i--) { if (Math.abs(data[i]) >= TH) { end = i + 1; break } }
   return { start, end }
 }
+/* 块尾停顿表（2026-10-04 二改，见 place() 注释）：句末/分句/其他 三档，导出便于回归断言 */
+export const PAUSE_AFTER_SENT = 0.20
+export const PAUSE_AFTER_CLAUSE = 0.14
+export const PAUSE_AFTER_OTHER = 0.08
+export function chunkTailPause(txt) {
+  const s = String(txt ?? '').replace(/[\s\u3000]+$/, '')
+  const c = s.slice(-1)
+  /* 注意：''.indexOf('') === 0 → 空串会被误判成句末（㉓-3d 断言抓到），必须先判空 */
+  if (!c) return PAUSE_AFTER_OTHER
+  if ('。！？!?'.indexOf(c) >= 0) return PAUSE_AFTER_SENT
+  if ('；;，,、：:'.indexOf(c) >= 0) return PAUSE_AFTER_CLAUSE
+  return PAUSE_AFTER_OTHER
+}
 let ga = null          // { mode:'cloud', ga:true, tok, tag, urls, i, nextAt, sources, paused, done, chunks, voiceName }
 function stopGASources() {
   const s = ga
@@ -1285,9 +1329,12 @@ export function speakCloudGA(chunks, rate, onDone, my, voice, tag) {
   sess.lim.threshold.value = -1.5; sess.lim.knee.value = 0; sess.lim.ratio.value = 20
   sess.lim.attack.value = 0.002; sess.lim.release.value = 0.12
   sess.master.connect(sess.lim); sess.lim.connect(ctx.destination)
-  const FADE = 0.005
-  /* place(idx, buf)：把已解码的一块钉上时间线。顺序由 schedule 串行链保证，
-     绝不并行排程——并行 decode 完成次序不定，谁先到谁先排会把内容排乱。 */
+  const FADE = 0.018
+  /* 块间呼吸（2026-10-04 二改）：块由独立音频拼成，边界本身是人造的，没有停顿会"顶字"。
+     文本层换行已给分句标点 ≈+0.3s；这里补句子级呼吸——句末 +0.20s（与引擎自带 ~0.6s
+     合成 ≈0.8s，正落在研究口径"句号 600~800ms"内），分句 +0.14s，其他 +0.08s。
+     注意：这是**显式、固定**的停顿（毫秒级可预测），与 2026-10-04 修的"等合成 RTT 才接上"
+     那种不可控长空档（数秒、被误认为"每段一停"）性质相反。 */
   const place = (idx, buf) => {
     const ch = buf.getChannelData(0)
     const { start, end } = gaTrimRange(ch)
@@ -1304,7 +1351,7 @@ export function speakCloudGA(chunks, rate, onDone, my, voice, tag) {
     src.connect(g); g.connect(sess.master)
     src.start(t, start / sr, dur)
     sess.sources.push(src)
-    sess.nextAt = t + dur
+    sess.nextAt = t + dur + chunkTailPause(sess.chunks[idx])
     sess.i = idx + 1
     if (idx === sess.urls.length - 1) {
       src.onended = () => {
