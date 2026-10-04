@@ -119,6 +119,16 @@ const GREEK_READ = {
   υ: '宇普西龙', Υ: '宇普西龙', φ: '斐', Φ: '斐', χ: '凯',
   ψ: '普赛', Ψ: '普赛', ω: '欧米伽', Ω: '欧姆'
 }
+/* 括号读法分级（2026-10-04 二改，用户实测"读完会读个括号完"）：
+   短且不含运算内容的括号只读括号内内容、不打"括号…括号完"标记——（A）（伺服）（灭弧栅）
+   （常开）（约2伏）这类标注读内容就够，起止标记纯属噪音（全库 ≤5 字括号 8515 对，占 27%）。
+   含运算符/分式词（（2-1.0）/2、（1/3）次方）或较长的括号保留标记：数学分组与长旁注
+   需要起止提示，否则运算次序会被听错、插入语边界无从判断。 */
+const PAREN_PLAIN_MAX = 5
+const PAREN_OP = /[+\-−×÷/·^=<>≥≤%]|除以|等于|大于|小于|不等于|加|减|乘|次方|平方|立方/
+function shortPlainParen(t) {
+  return t.length <= PAREN_PLAIN_MAX && !PAREN_OP.test(t)
+}
 export function normalizeSpeech(raw) {
   let s = String(raw ?? '')
   /* ⓪ 全角/变体码点归一（2026-09-27 公式读音审计：＝56 处此前完全不读"等于"；
@@ -277,6 +287,15 @@ export function normalizeSpeech(raw) {
      同一公式串里 "+1/C2"（有加号前缀）读"除以"而 "1/C1" 读"或"，前后不一致。
      分母收紧为"字母+数字"编号形态（C1/R1），避开 "380/220V"（数字分母）与单字母分母。 */
   s = s.replace(/(?<=\d)\s*\/\s*(?=[A-Za-z]\d)/g, '除以')
+  /* 2026-10-04 补（读音错误排查 · 分母为括号/上标的分式）：左侧为拉丁/数字/上标时，
+     下面的链式并列规则（L282 `(?<=[\w)）.．])\s*\/\s*(?=[\w(（.．])` → "或"）会抢先命中，
+     把确定无疑的分式读成并列——实测 R1R2/(R1+R2)、1/(2πfC)、U/(4.44fN)、X/(Y+Z)、
+     600r/(kW·h) 全部读"或"（语义反了）。这两条必须在链式规则之前：
+     ① 斜杠后紧跟括号分组 → 除以（左为 ) 的中文分母如 瓦/(平方米·K) 由 L312 兜住，不冲突）；
+     ② 上标已转"平方/立方"后接斜杠 → 除以（U²t/R → U平方t除以R；单位"平方米/秒"
+        因"米"不在 [A-Za-z0-9] 内不命中，仍走 L283 的"每"，不受影响）。 */
+  s = s.replace(/(?<=[A-Za-z0-9\u00b2\u00b3\u2070\u00b9\u2074\u2075\u2076\u2077\u2078\u2079])\s*\/\s*(?=[（(])/g, '除以')
+  s = s.replace(/(平方|立方)([A-Za-z0-9]*)\s*\/\s*(?=[A-Za-z0-9\u0391-\u03C9])/g, '$1$2除以')
   /* 零宽断言版：链式并列 U/V/W、L1/L2/L3、R/S/T 中每个斜杠都要命中（捕获组版会因
      共享字符被上一匹配消费而漏掉中间的斜杠，残留 "/W" 被引擎念成"斜杠"） */
   s = s.replace(/(?<=[\w)）.．])\s*\/\s*(?=[\w(（.．])/g, ' 或 ')
@@ -347,10 +366,24 @@ export function normalizeSpeech(raw) {
      原样送引擎被中文引擎跳过；全库 31764 对全角 + 2217 对半角。位置约束：必须在
      斜杠七段式（②-g）/乘号前瞻/正负号/下标/^ 幂等一切依赖括号字面的规则完成之后；
      ⓪ 层已把 markdown/【】/{} 之外的括号语义消化完。空括号（判断题填空位，全库
-     2623 处"（　）"）读一次"括号"；左括号读"括号"、右括号读"括号完"（数学分组
-     听感清晰：R1R2 除以 括号 R1加R2 括号完）。 */
-  s = s.replace(/（[\s\u3000]*）|\([\s]*\)/g, '括号')
-  s = s.replace(/[（(]/g, '括号').replace(/[）)]/g, '括号完')
+     2623 处"（　）"）读一次"括号"。2026-10-04 二改（用户实测"读完会读个括号完"）：
+     **分级打标记**——短且无运算内容的括号（≤5 字）只读内容（（伺服）→伺服、（A）→A）；
+     含运算符或较长的括号保留"括号…括号完"（数学分组听感清晰：R1R2 除以 括号 R1加R2 括号完；
+     （2-1.0）/2 的括号是运算次序，不能省）。 */
+  s = s.replace(/（[\s\u3000]*）|\(\s*\)/g, '括号')          // 空括号（判断题填空位）读一次"括号"
+  s = s.replace(/（([^（）]*)）|\(([^()]*)\)/g, (m, a, b, off, whole) => {
+    const t = String(a ?? b ?? '').trim()
+    if (!t) return '括号'
+    if (!shortPlainParen(t)) return `括号${t}括号完`
+    /* 去标记后要防黏连：（2）（3）→"23"会被念成"二十三"，I(A)→"IA"会被念成一个词。
+       内容为拉丁/数字时，只要相邻字符不是空白/中文标点，就补一个空格隔开。 */
+    const before = whole[off - 1] ?? '', after = whole[off + m.length] ?? ''
+    const gap = (c) => c !== '' && !/[\s，。、；：？！、）】》]/.test(c)
+    const padL = /^[A-Za-z0-9]/.test(t) && gap(before) ? ' ' : ''
+    const padR = /[A-Za-z0-9]$/.test(t) && gap(after) ? ' ' : ''
+    return padL + t + padR
+  })
+  s = s.replace(/[（(]/g, '括号').replace(/[）)]/g, '括号完')  // 未配对的残留（截断/错配）
   /* ④-b 连字符与"字母紧贴数字"：TN-S→TN S、RS485→RS 485、L1→L 1、GB50168→GB 50168
      （中文引擎会把 "TN-S" 念成"T N 杠 S"、"L1" 念成整团）。 */
   s = s.replace(/([A-Za-z])\s?-\s?([A-Za-z0-9])/g, '$1 $2')
@@ -403,17 +436,42 @@ export function cleanSpeechText(raw) {
     .trim()
 }
 
+/* 括号配对还原（2026-10-04 新增 · 修"读完会读个括号完"的根因）：
+   ③-b 把 （） 转成"括号 / 括号完"之后，原先基于括号字面的平衡检查**彻底失效**
+   （（）这两个字符已不存在于送引擎文本里，unbalanced() 恒为 false）——切块于是把括号对
+   切进两块，听者听到孤立的"括号完"（全库取证：4952 块整块只有"括号完"没有"括号"，
+   涉及 2230 题；另有 3539 块孤立"括号"）。
+   这里按词语栈式配对还原。无闭合的"括号"（判断题空括号读法、截断文本）不构成配对，
+   视为中性——否则每个判断题的"（　）"都会把后面所有块黏成一块。 */
+function parenPairs(text) {
+  const re = /括号完|括号/g
+  const stack = []
+  const pairs = []
+  let m
+  while ((m = re.exec(text))) {
+    if (m[0] === '括号完') { if (stack.length) pairs.push([stack.pop(), m.index]) }
+    else stack.push(m.index)
+  }
+  return pairs
+}
+
 /* 切块边界保护（2026-09-14 晚新增）：把候选断点往后挪，避免把"词"切断。
    全库实测被抓到的硬 bug（`tts-text-audit.mjs`）：
    · 拉丁词被切两半 13 处：`…与LOPA（La` | `yer of Prote…`（Layer of Protection）；
    · 数字被切碎 27 处：`…= 375` | `0Ω，即3.75kΩ`（3750Ω 被念成"三七五"+"零欧姆"）；
    · 括号跨块 6 处：`…0.9` | `)≥79.8A`。
-   规则：断点处若"右侧是拉丁字母/数字，或左侧是拉丁字母"，或**括号不平衡**，则把断点前移到
-   该词/数字的起点；找不到安全位置就继续往后找下一个标点（最多多看 12 字，仍不行则按原逻辑硬切）。 */
+   规则：断点处若"右侧是拉丁字母/数字，或左侧是拉丁字母"，或**括号不平衡**（含"括号/
+   括号完"词语配对，见 parenPairs），则把断点前移/后移；窗口内找不到安全位置就**扩窗**
+   （前移 60 / 后探 80 字）——宁可块略长，也不把括号对切到两块里。 */
 function safeCutIndex(text, cut, max) {
   const isWordChar = (c) => /[A-Za-z0-9.]/.test(c || '')
   const unbalanced = (s) => (s.split('（').length - s.split('）').length) !== 0
     || (s.split('(').length - s.split(')').length) !== 0
+  const pairs = parenPairs(text)
+  /* 配对内部判定：断点 k 表示 head=text.slice(0,k)。左词元占 [o,o+2)、右词元占 [c,c+3)，
+     端点必须整词落在同一侧——否则会出现"…公共端括 | 号完的接线方向…"这种把
+     "括号完"三个字腰斩的块（2026-10-04 实测残留 608 处），引擎会把"括""号完"当两个词念。 */
+  const insidePair = (k) => pairs.some(([o, c]) => k > o && k < c + 3)
   /* 断点还必须满足：左边不留悬挂算子/左括号，右边不出现孤立的右括号 */
   const okCut = (k) => {
     const left = text[k - 1], right = text[k]
@@ -424,6 +482,9 @@ function safeCutIndex(text, cut, max) {
     if (isWordChar(left) && isWordChar(right)) return false
     if (isWordChar(right) && isWordChar(text[skipSp(k - 1, -1)])) return false   // 词␣|词 / 词␣␣|词
     if (isWordChar(left) && isWordChar(text[skipSp(k, 1)])) return false         // 词|␣词
+    if (insidePair(k)) return false                                    // 配对内部：绝不切
+    if (/括号?$/.test(text.slice(0, k))) return false                  // 左不留"括"/"括号"
+    if (/^(?:括号完|号完)/.test(text.slice(k))) return false           // 右不出现腰斩的"括号完"
     if (unbalanced(text.slice(0, k))) return false
     if (/[=（(+\-×÷·]$/.test(text.slice(0, k))) return false
     if (/^[)）]/.test(text.slice(k))) return false
@@ -431,6 +492,8 @@ function safeCutIndex(text, cut, max) {
   }
   for (let k = cut; k > 0 && k > cut - 24; k--) if (okCut(k)) return k
   for (let k = cut + 1; k < Math.min(text.length, cut + 24); k++) if (okCut(k)) return k
+  for (let k = cut; k > 0 && k > cut - 60; k--) if (okCut(k)) return k
+  for (let k = cut + 1; k < Math.min(text.length, cut + 80); k++) if (okCut(k)) return k
   return Math.min(cut, max)
 }
 
@@ -466,6 +529,41 @@ export function chunkSpeechText(raw, max = 50, firstMax = max) {
     buf += sent
   }
   flush()
+  /* 硬保证（2026-10-04）：任何块都不得切开"括号…括号完"配对，也不得把"括号完"三个字
+     腰斩（切块把括号对拆开时，听者会在下一块的头/中部听到孤立或破碎的"括号完"——
+     用户报"读完会读个括号完"）。safeCutIndex 已在次级断点处规避，"句读合并 + flush"
+     路径这里做兜底：在块的拼接串上按字符区间重新配对，凡配对或词元跨块即合并。
+     只合并"有闭合的配对"：判断题空括号的孤立"括号"不触发合并，避免整题黏成一块。 */
+  const joined = chunks.join('')
+  const bounds = []
+  for (let i = 0, p = 0; i < chunks.length; i++) { bounds.push([p, p + chunks[i].length]); p += chunks[i].length }
+  const chunkOf = (p) => { for (let i = 0; i < bounds.length; i++) if (p >= bounds[i][0] && p < bounds[i][1]) return i; return bounds.length - 1 }
+  const crossing = new Set()
+  const mark = (i, j) => { for (let k = i; k < j; k++) crossing.add(k) }
+  const toks = []
+  const re = /括号完|括号/g
+  let tm
+  while ((tm = re.exec(joined))) toks.push({ s: tm.index, e: tm.index + tm[0].length, close: tm[0] === '括号完' })
+  const stack = []
+  for (const t of toks) {
+    const ci = chunkOf(t.s), cj = chunkOf(t.e - 1)
+    if (ci !== cj) mark(ci, cj)                      // 词元本身被切断（"括"|"号完"）
+    if (!t.close) { stack.push(t); continue }
+    if (!stack.length) continue
+    const o = stack.pop()
+    const oi = chunkOf(o.s), oj = chunkOf(t.e - 1)
+    if (oi !== oj) mark(oi, oj)                      // 配对跨块
+  }
+  if (crossing.size) {
+    const merged = []
+    let acc = ''
+    for (let i = 0; i < chunks.length; i++) {
+      acc += chunks[i]
+      if (!crossing.has(i)) { merged.push(acc); acc = '' }
+    }
+    if (acc) { if (merged.length) merged[merged.length - 1] += acc; else merged.push(acc) }
+    return merged
+  }
   return chunks
 }
 

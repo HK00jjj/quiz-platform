@@ -151,15 +151,39 @@ ok(cleanSpeechText('电流互感器二次侧严禁{开路}。') === '电流互�
 const REAL_181 = 'R =（24 − 1.2 − 0.3）/ 0.006 = 22.5 / 0.006 = 3750Ω，即3.75kΩ；功耗 P = I²R = 0.006² × 3750 = 0.135W。'
 const REAL_1588 = '与LOPA（Layer of Protection Analysis）方法是上下游工具，不能颠倒分析时序。'
 const REAL_347 = '额定线电流I=P/(√3·U·cosφ·η)=15000/(1.732×380×0.85×0.9)≥29.8A，与C项写法等价。'
-const boundaryOK = (chunks) => chunks.every((c, i) => {
-  const n = chunks[i + 1]
-  if (!n) return true
-  if (/[A-Za-z0-9.]$/.test(c) && /^[A-Za-z0-9]/.test(n)) return false          // 词/数字被切断
-  if (/[=（(+\-×÷·]$/.test(c)) return false                                    // 末尾悬挂算子或左括号
-  if (/^[)）]/.test(n)) return false                                           // 开头孤立右括号
-  if ((c.split('（').length - c.split('）').length) !== 0) return false          // 块内括号不配平
-  return true
-})
+/* 2026-10-04 更新：③-b 把 （） 转成"括号/括号完"后，基于括号字面的配平检查已失效，
+   镜像改为**词元区间配对**（与 tts.js parenPairs + chunkSpeechText 兜底合并同口径）：
+   ① "括号完"三个字不得被腰斩；② 配对的"括号…括号完"不得跨块。 */
+const chunkBounds = (chunks) => {
+  const bounds = []
+  for (let i = 0, p = 0; i < chunks.length; i++) { bounds.push([p, p + chunks[i].length]); p += chunks[i].length }
+  return bounds
+}
+const boundaryOK = (chunks) => {
+  const joined = chunks.join('')
+  const bounds = chunkBounds(chunks)
+  const chunkOf = (p) => { for (let i = 0; i < bounds.length; i++) if (p >= bounds[i][0] && p < bounds[i][1]) return i; return bounds.length - 1 }
+  const toks = []
+  const re = /括号完|括号/g
+  let m
+  while ((m = re.exec(joined))) toks.push({ s: m.index, e: m.index + m[0].length, close: m[0] === '括号完' })
+  for (const t of toks) if (chunkOf(t.s) !== chunkOf(t.e - 1)) return false     // 词元被腰斩
+  const stack = []
+  for (const t of toks) {
+    if (!t.close) { stack.push(t); continue }
+    if (!stack.length) continue
+    const o = stack.pop()
+    if (chunkOf(o.s) !== chunkOf(t.e - 1)) return false                        // 配对跨块
+  }
+  return chunks.every((c, i) => {
+    const n = chunks[i + 1]
+    if (!n) return true
+    if (/[A-Za-z0-9.]$/.test(c) && /^[A-Za-z0-9]/.test(n)) return false          // 词/数字被切断
+    if (/[=（(+\-×÷·]$/.test(c)) return false                                    // 末尾悬挂算子或左括号
+    if (/^[)）]/.test(n)) return false                                           // 开头孤立右括号
+    return true
+  })
+}
 ok(boundaryOK(chunkSpeechText(REAL_181, 12)), '⑪-1 真实题 seq181：数字/单位不被切碎（3750Ω 不可切成 "375"+"0Ω"）')
 ok(boundaryOK(chunkSpeechText(REAL_1588, 24)), '⑪-2 真实题 seq1588：拉丁词不被切两半（Layer of Protection 保持完整）')
 ok(boundaryOK(chunkSpeechText(REAL_347, 18)), '⑪-3 真实题 seq347：括号不跨块、公式不悬挂算子')
@@ -459,7 +483,7 @@ ok(/prefetchGACache\(stemSpokenOf\(q\)\)/.test(practiceSrc) && /\[ttsOK, ttsOn, 
 ok(normalizeSpeech('（编译生成梯形图）') === '括号编译生成梯形图括号完', '㉒-1a 全角括号 → 括号…括号完（原样送引擎被跳过）')
 ok(normalizeSpeech('I=U/(RBC+RL)') === 'I 等于 U除以括号RBC加RL括号完', '㉒-1b 半角括号数学分组同样朗读（除以判定先于括号转换）')
 ok(normalizeSpeech('判断该说法是否正确。（　）') === '判断该说法是否正确。括号', '㉒-1c 判断题空括号（含全角空格，全库 2623 处）读一次"括号"')
-ok(normalizeSpeech('热继电器(FR)动作') === '热继电器括号FR括号完动作', '㉒-1d 半角空括号特判在先、非空括号照读')
+ok(normalizeSpeech('热继电器(FR)动作') === '热继电器 FR 动作', '㉒-1d 半角空括号特判在先；短括号（FR）去标记只读内容、两侧补空格防黏连（2026-10-04 分级）')
 // ㉒-2 绝对值（原版直接删 → 语义丢失）
 ok(normalizeSpeech('IΔ=|Σİ|') === 'I德尔塔 等于 绝对值西格玛I', '㉒-2a |X| → 绝对值X（İ 相量点先归一为 I；前缀形式让分母判定落入"除以"收尾）')
 ok(normalizeSpeech('U/|Z|=2.2') === 'U除以绝对值Z 等于 2.2', '㉒-2b 分母绝对值语境：除以判定（②-g 8) 前瞻加"绝对值"；5) 字母并列零宽不再误抢）')
@@ -493,7 +517,28 @@ ok(normalizeSpeech('10＋第三环') === '10加第三环', '㉒-5i 全角＋ →
 ok(normalizeSpeech('½') === '二分之一' && normalizeSpeech('¾') === '四分之三', '㉒-5j 分数字符')
 ok(normalizeSpeech('Ki∫e') === 'Ki积分e', '㉒-5k ∫ → 积分')
 // ㉒-6 cleanSpeechText 层：错因剥离后残留方括号
-ok(cleanSpeechText('法定单位牛[顿]（符号N）') === '法定单位牛，顿，括号符号N括号完', '㉒-6 错因标注剥离后残留数学方括号 → 内容带停顿（[错因:] 仍照剥）')
+ok(cleanSpeechText('法定单位牛[顿]（符号N）') === '法定单位牛，顿，符号N', '㉒-6 错因标注剥离后残留数学方括号 → 内容带停顿（[错因:] 仍照剥）；（符号N）短括号去标记（2026-10-04 分级）')
 ok(!/\[错因/.test(cleanSpeechText('A「短路」错。[错因:概念缺失]')), '㉒-6b [错因:] 内部标注仍被剥掉（方括号新规则不影响错因剥离）')
+
+/* ── ㉒-7 括号分级 + 跨块不拆 + 分母为括号的除法（2026-10-04 二改；用户实测"读完会
+   读个括号完"：根因=③-b 把括号转成词语后 safeCutIndex 的括号配平检查失效，切块把括号对
+   切进两块 → 孤立/腰斩的"括号完"；同时 L282 并列规则把 …/(…) 分式读成"或"。
+   全库复扫口径（7402 题本地快照）：跨块题段 2306 → 0）── */
+// ㉒-7 分级：短且无运算内容的括号去标记（防黏连补空格）
+ok(normalizeSpeech('（伺服）') === '伺服' && normalizeSpeech('NPN型（低电平）输出') === 'N P N型低电平输出', '㉒-7a 短中文括号（伺服）（低电平）去标记只读内容')
+ok(normalizeSpeech('正确做法是（A）。') === '正确做法是 A。' && normalizeSpeech('（吨）') === '吨', '㉒-7b 选项标签/单字短括号去标记，句读相邻不加空格')
+ok(normalizeSpeech('（2）（3）') === '2 3', '㉒-7c 相邻短括号补空格，避免"23"被读成"二十三"（黏连防护）')
+// ㉒-7 分级：含运算内容/较长的括号保留标记
+ok(normalizeSpeech('（编译生成梯形图）') === '括号编译生成梯形图括号完' && normalizeSpeech('（2-1.0）/2=50%') === '括号2-1.0括号完除以2 等于 百分之50', '㉒-7d 长括号与含运算符的短括号（2-1.0）保留"括号…括号完"（数学分组不能省）')
+ok(normalizeSpeech('I=U/(RBC+RL)') === 'I 等于 U除以括号RBC加RL括号完', '㉒-7e 含运算符的括号分组保留标记（除以判定先于括号转换）')
+// ㉒-7 分母为括号/上标的分式不得读"或"（L282 并列规则抢先的修复）
+ok(normalizeSpeech('1/(2πfC)') === '1除以 2派fC' && normalizeSpeech('U/(4.44fN)') === 'U除以括号4.44fN括号完', '㉒-7f 分母为括号的无前缀分式 → 除以（原读"或"，语义反）')
+ok(normalizeSpeech('U²/R') === 'U平方除以R' && normalizeSpeech('U²t/R') === 'U平方t除以R', '㉒-7g 上标（平方）后接斜杠 → 除以（原读"或"）')
+ok(normalizeSpeech('X/(Y+Z)') === 'X除以括号Y加Z括号完' && normalizeSpeech('600r/(kW·h)') === '600r除以千瓦时', '㉒-7h 变量/电表常数分式 → 除以')
+ok(normalizeSpeech('380/220V') === '380 或 220伏' && normalizeSpeech('S/S端子') === 'S 或 S端子' && normalizeSpeech('0.0175Ω·mm²/m') === '0.0175欧姆乘平方毫米每米', '㉒-7i 回归护栏：并列参数"或"、中文/字母并列"或"、单位复合"每"均未被新规则误伤')
+// ㉒-7 跨块不拆（硬不变量：任一真实/长括号文本，配对与词元必须整块）
+const LONG_PAREN = '该保护（在三相短路且电压跌落超过额定值百分之七十时才动作）应优先采用；绕组绝缘（端子松脱导致）会下降，电缆（单芯截面积0.5平方毫米，铜电阻率0.0175Ω·mm²/m）连接至PLC输入端。'
+ok(boundaryOK(chunkSpeechText(REAL_181, 12)) && boundaryOK(chunkSpeechText(REAL_1588, 24)) && boundaryOK(chunkSpeechText(REAL_347, 18)), '㉒-7j 三处真实题原文：括号对不跨块、"括号完"不腰斩（2026-10-04 修复锁）')
+ok(boundaryOK(chunkSpeechText(LONG_PAREN, 20, 30)) && boundaryOK(chunkSpeechText(LONG_PAREN, 50, 70)), '㉒-7k 长括号 + 小/大块长两种参数下配平不变量均成立')
 
 console.log(`\ntts.regression：${n} 断言全绿`)

@@ -26,7 +26,11 @@ export default function Login() {
     setError(null)
     const err = await signIn(email.trim(), password)
     if (err) {
-      setError('密码不对，再试一次？')
+      /* INC-20261004-07：supabase 通道被网络阻断（SNI 抖动）时 error.message 为
+         "fetch failed" 类文本——此前一律显示「密码不对」，把环境故障伪装成凭据错误。
+         现按错误形态区分：网络类给通道指引，凭据类才提示密码。 */
+      const net = /fetch|network|timeout|econn|tls|ssl|abort/i.test(String(err))
+      setError(net ? '网络通道被阻断了（不是密码的问题）——请确认代理已开启，或稍后再试' : '密码不对，再试一次？')
       setBusy(false)
       const box = document.querySelector('.login-gate-inner')
       if (box) {

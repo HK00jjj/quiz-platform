@@ -280,7 +280,8 @@ async function reloadAll(opts = {}) {
     }
   } catch (e) {
     console.error('[reload] 云端拉取失败', e)
-    useStore.setState({ syncError: '云端同步失败：' + (e && e.message ? e.message : '网络异常') + '（点击关闭）' })
+    /* 「（点击关闭）」由 App.jsx 显示层统一追加（口径一处定义），此处不得自带——否则重复显示 */
+    useStore.setState({ syncError: '云端同步失败：' + (e && e.message ? e.message : '网络异常') })
   }
 }
 function scheduleReload() {

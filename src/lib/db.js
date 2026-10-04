@@ -159,8 +159,11 @@ export class CloudRepo {
        拉取失败降级 null（配图缺失不影响刷题主流程），attach 侧负责 merge 进 localStorage。 */
     /* 【2026-10-04 快照层】questions 大表（~13MB/次）改走「bank_rev 指纹 + IndexedDB 快照」：
        先花一次 <100B 轻查询取版本号，命中本地快照则跳过全量拉取。 */
-    const revRow = await this.client.from('settings').select('value').eq('key', 'bank_rev').maybeSingle()
-      .catch(() => ({ data: null }))
+    /* 【INC-20261004-08 复发】PostgrestBuilder 是 thenable 不是真 Promise，链上没有 .catch——
+       同坑第二次（前科 INC-20260921-03 见下方 imgmap 行注释）。必须先 Promise.resolve() 包装再 .catch。 */
+    const revRow = await Promise.resolve(
+      this.client.from('settings').select('value').eq('key', 'bank_rev').maybeSingle()
+    ).catch(() => ({ data: null }))
     const rev = revRow?.data?.value?.v ?? 0
     const snap = await snapGet('questions')
     let qRaw = null
