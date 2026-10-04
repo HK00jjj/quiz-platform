@@ -46,14 +46,16 @@ function booksPayload(s) {
 /* 防回环：realtime 订阅了 settings 表，存一次就会触发一次 reload；
    若 reload 又无条件再存，就会无限循环。所以内容没变就不写。 */
 let lastBooksJson = ''
-async function persistBooks(s) {
+/* removed（2026-10-04 防覆盖闸 2.0）：删书场景的 tombstone 透传（{bookIds, assignIds}），
+   供 repo.saveBooks 合并时显式剔除——其余场景一律三路合并、绝不静默删键（INC-20261004-05 根治）。 */
+async function persistBooks(s, removed = null) {
   const payload = booksPayload(s)
   const json = JSON.stringify(payload)
-  if (json === lastBooksJson) return
+  if (json === lastBooksJson && !removed) return
   lastBooksJson = json
   saveBooksLocal(payload)
   if (DEMO) return
-  try { await repo.saveBooks(payload) } catch (e) {
+  try { await repo.saveBooks(payload, removed) } catch (e) {
     console.error('[books] 云端保存失败，已降级本机', e)
     useStore.setState({ syncError: '题库列表云端保存失败，已暂存本机' })
   }
@@ -700,7 +702,8 @@ export const useStore = create((set, get) => ({
         set({ syncError: '云端删除失败，本机已移除该题库' })
       }
     }
-    await persistBooks(get())
+    /* tombstone（防覆盖闸 2.0）：显式告知合并层这些键是删除意图，否则并集合并会复活书壳 */
+    await persistBooks(get(), { bookIds: [id], assignIds: ids })
   },
 
   startSession: async (mode, opts = {}) => {

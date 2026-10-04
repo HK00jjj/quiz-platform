@@ -35,7 +35,9 @@ const SUITE = [
   /* 2026-09-13 解析语音播报：切块规避 Chrome 15s 中断 + 选声优先级（lib/tts.js） */
   { name: '解析播报TTS回归', cmd: 'node', args: ['tests/tts.regression.mjs'] },
   /* 2026-09-13 ③续考进度云化：恢复源选择语义（ts 新者胜/缺端兜底/无效过滤） */
-  { name: '续考进度恢复源回归', cmd: 'node', args: ['tests/exam-progress.regression.mjs'] }
+  { name: '续考进度恢复源回归', cmd: 'node', args: ['tests/exam-progress.regression.mjs'] },
+  /* 2026-10-04 防覆盖闸 2.0（INC-20261004-05 根治）：saveBooks 三路合并语义锁 */
+  { name: 'books合并防覆盖回归', cmd: 'node', args: ['tests/books-merge.regression.mjs'] }
 ]
 
 let failed = 0

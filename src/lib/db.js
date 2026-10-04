@@ -2,6 +2,43 @@
 import { client } from './supabase'
 import { fmtDate } from './dates'
 
+/* ========== 题库快照层（2026-10-04 egress 降耗）==========
+   背景：fetchAllPaged('questions') 每次打开站点全量拉 ~13MB（7252 题），
+   月 egress 超免费层 5GB（组织收到 11-01 限制预警）。
+   方案：IndexedDB 快照 + settings key='bank_rev' 版本号指纹——
+   rev 命中 → questions 直接读本地快照（零大流量）；rev 不匹配/无快照 → 全量拉并落快照。
+   失效纪律（写入侧主动 bump，不猜测内容）：流水线入库/PATCH 题面后必须 bump_bank_rev。
+   所有快照异常（隐私模式/配额/IDB 不可用）均静默降级全量拉，行为与旧版完全一致。 */
+const IDB_NAME = 'qbank-cache', IDB_STORE = 'snapshots'
+function idbOpen() {
+  return new Promise((res, rej) => {
+    const rq = indexedDB.open(IDB_NAME, 1)
+    rq.onupgradeneeded = () => rq.result.createObjectStore(IDB_STORE)
+    rq.onsuccess = () => res(rq.result)
+    rq.onerror = () => rej(rq.error)
+  })
+}
+async function snapGet(key) {
+  try {
+    const db = await idbOpen()
+    return await new Promise((res, rej) => {
+      const rq = db.transaction(IDB_STORE).objectStore(IDB_STORE).get(key)
+      rq.onsuccess = () => res(rq.result ?? null); rq.onerror = () => rej(rq.error)
+    })
+  } catch { return null }
+}
+async function snapPut(key, val) {
+  try {
+    const db = await idbOpen()
+    await new Promise((res, rej) => {
+      const tx = db.transaction(IDB_STORE, 'readwrite')
+      tx.objectStore(IDB_STORE).put(val, key)
+      tx.oncomplete = () => res(); tx.onerror = () => rej(tx.error)
+    })
+    return true
+  } catch { return false }
+}
+
 const toQuestion = (r) => {
   const q = { id: r.id, seq: r.seq, type: r.type, stem: r.stem, answer: r.answer }
   if (r.difficulty) q.difficulty = r.difficulty
@@ -120,8 +157,22 @@ export class CloudRepo {
        （属性体系 2026-09-18 新增；question_stats 为 S4 回流表，Bank 质量展示用。） */
     /* 逐题配图映射（2026-09-21）：settings key='imgmap' 行（{qid: spec}，零 DDL，与 books 同款通路）。
        拉取失败降级 null（配图缺失不影响刷题主流程），attach 侧负责 merge 进 localStorage。 */
-    const [q, c, r, s, b, img, attrs, qas, stats] = await Promise.all([
-      this.fetchAllPaged('questions', 'id'),
+    /* 【2026-10-04 快照层】questions 大表（~13MB/次）改走「bank_rev 指纹 + IndexedDB 快照」：
+       先花一次 <100B 轻查询取版本号，命中本地快照则跳过全量拉取。 */
+    const revRow = await this.client.from('settings').select('value').eq('key', 'bank_rev').maybeSingle()
+      .catch(() => ({ data: null }))
+    const rev = revRow?.data?.value?.v ?? 0
+    const snap = await snapGet('questions')
+    let qRaw = null
+    if (snap && snap.rev === rev && Array.isArray(snap.rows) && snap.rows.length) {
+      qRaw = snap.rows
+      console.info(`[loadAll] questions 命中本地快照 rev=${rev}（${qRaw.length} 行，省 ~13MB 出站流量）`)
+    } else {
+      qRaw = await this.fetchAllPaged('questions', 'id')
+      const saved = await snapPut('questions', { rev, rows: qRaw, at: Date.now() })
+      if (saved) console.info(`[loadAll] questions 全量拉取 ${qRaw.length} 行并已落快照 rev=${rev}`)
+    }
+    const [c, r, s, b, img, attrs, qas, stats] = await Promise.all([
       this.fetchAllPaged('review_cards', 'question_id'),
       this.fetchAllPaged('answer_records', 'id'),
       this.client.from('settings').select('value').eq('key', 'app').maybeSingle(),
@@ -142,7 +193,7 @@ export class CloudRepo {
     /* §66 修复：fetchAllPaged 直接返回行数组（无 .data 包装）——
        此前 return 仍用旧写法 q.data.map → undefined.map 必炸，登录后加载 100% 失败 */
     return {
-      questions: q.map(toQuestion),
+      questions: qRaw.map(toQuestion),
       cards: c.map(toCard),
       records: r.map(toRecord),
       settings: { dailyGoal: 20, ...(s.data?.value ?? {}) },
@@ -153,9 +204,40 @@ export class CloudRepo {
       questionStats: stats.map(toStat),
     }
   }
-  /* 书本映射入库；失败不抛——调用方会降级到 localStorage（方案 10.5 崩溃兜底） */
-  async saveBooks(value) {
-    const { error } = await this.client.from('settings').upsert({ key: 'books', value })
+  /* 书本映射入库；失败不抛——调用方会降级到 localStorage（方案 10.5 崩溃兜底）。
+     【2026-10-04 防覆盖闸 2.0 · INC-20261004-05 根治】books 整值写回已三度冲掉流水线
+     新入库题的归属（2026-09-30 两起 + 10-04 KPF01 150 题）——根因是长开页面持有旧快照，
+     任意一次切书/开题就把旧 assign 整值 upsert 覆盖云端新值。
+     新语义=「写前读云端 → 三路合并 → 写合并结果」（与流水线 REPAIR 脚本同构）：
+       ① assign：并集——云端新键（流水线入库收养）+ 本地键保留；同键值冲突本地赢
+          （移题 A→B 是用户意图，必须生效）；
+       ② books：并集，同 id 冲突本地赢（改名/换色意图）；
+       ③ order：本地序为准，云端独有新书 append 尾部；
+       ④ activeBookId：本地赢（当前意图）；
+       ⑤ removed tombstone（删书场景）：显式剔除后才允许删除，其余场景绝不静默删键。
+     云端读取失败时抛错（调用方 persistBooks 已 catch 降级本机）——绝不带旧快照盲写。 */
+  async saveBooks(value, removed = null) {
+    let base = null
+    try { base = await this.loadBooksRaw() } catch (e) { throw e }
+    let finalValue = value
+    if (base && base.books && base.order) {
+      const removedBooks = new Set(removed?.bookIds ?? [])
+      const removedAssign = new Set(removed?.assignIds ?? [])
+      const order = [...(value.order ?? [])].filter((x) => !removedBooks.has(x))
+      const seen = new Set(order)
+      for (const x of base.order ?? []) if (!seen.has(x) && !removedBooks.has(x) && base.books[x]) { order.push(x); seen.add(x) }
+      const merged = {
+        activeBookId: value.activeBookId ?? base.activeBookId,
+        order,
+        books: { ...base.books, ...value.books },
+        assign: { ...base.assign, ...value.assign },
+      }
+      for (const id of removedBooks) delete merged.books[id]
+      for (const id of removedAssign) delete merged.assign[id]
+      finalValue = merged
+    }
+    /* base===null：books 行不存在（真·全新装机）→ 维持原语义整写 */
+    const { error } = await this.client.from('settings').upsert({ key: 'books', value: finalValue })
     if (error) throw error
   }
   /* 防覆盖闸专用（2026-09-12 事故整改）：单独复核 books 行。
