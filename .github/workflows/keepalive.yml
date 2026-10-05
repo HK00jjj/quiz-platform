@@ -1,0 +1,41 @@
+name: Supabase Keep Alive
+
+# 防免费层 7 天不活跃自动暂停（社区标准方案 orishnal/supabase-keep-db-live 模式）
+# - RPC 模式（首选）：调 keepalive_ping RPC 产生真实 DB 写活动（需在 Supabase 控制台执行
+#   待执行_keepalive保活_20261006.sql 建立函数，执行后本 workflow 自动生效该模式）
+# - REST 根 fallback：RPC 未就绪时仅证明可达性（防暂停效力弱，但保底可用）
+# 频率依据：7 天阈值 × 每日 1 次 = 7 倍余量；public repo Actions 免费；每次 egress <1KB 可忽略
+on:
+  schedule:
+    - cron: '17 17 * * *'   # UTC 17:17 = 北京时间 01:17（每日低峰）
+  workflow_dispatch:        # 手动触发（验证用）
+
+jobs:
+  keepalive:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase (RPC preferred, REST root fallback)
+        env:
+          SUPABASE_URL: https://khtpnbzfjggezlmnnsgt.supabase.co
+          SUPABASE_ANON_KEY: sb_publishable_VonNsePJIpR1wCmEFmYa1g_YiYADATR
+        run: |
+          set -e
+          CODE=$(curl -s -o /tmp/rpc.json -w "%{http_code}" -X POST \
+            "${SUPABASE_URL}/rest/v1/rpc/keepalive_ping" \
+            -H "apikey: ${SUPABASE_ANON_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" \
+            -H "Content-Type: application/json" -d '{}' || echo "000")
+          if [ "$CODE" = "200" ]; then
+            echo "RPC keepalive OK: $(cat /tmp/rpc.json)"
+            exit 0
+          fi
+          echo "RPC unavailable (HTTP $CODE) -> REST root fallback"
+          ROOT=$(curl -s -o /tmp/root.json -w "%{http_code}" "${SUPABASE_URL}/rest/v1/" \
+            -H "apikey: ${SUPABASE_ANON_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" || echo "000")
+          echo "REST root HTTP $ROOT"
+          if [ "$ROOT" != "200" ]; then
+            echo "::error::Supabase unreachable (root HTTP $ROOT)"
+            exit 1
+          fi
+          echo "REST fallback OK（执行 keepalive SQL 后自动升级为 RPC 真实活动模式）"
