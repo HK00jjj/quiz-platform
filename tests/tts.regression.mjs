@@ -27,7 +27,10 @@ ok(chunkSpeechText(longNoPunct).join('') === '长'.repeat(233), '①-5 硬切不
    块边界可能恰好落在换行处、被 trim——换行无字符语义（停顿由播放器块间停顿补足），
    故等价性按"忽略空白"比对；真实字符丢失仍会被抓出。 */
 const mixed = '第一步合上QS。观察KM1是否吸合，若吸合则主回路正常；若不吸合！检查控制回路。\n用万用表测量线圈电压→应为380V。'
-const nows = (s) => s.replace(/[\s\u3000]/g, '')
+/* 2026-10-05 口径 v3 起，旁注剥离会在拉丁|拉丁 邻接处补"，"分隔（给切块留真断点），
+   呼吸换行也会被块边界 trim——故拼接等价比对剥离 空白+顿逗（都是停顿标记，无字符语义）；
+   真实字符丢失仍会被抓出。 */
+const nows = (s) => s.replace(/[\s\u3000，、]/g, '')
 ok(nows(chunkSpeechText(mixed).join('')) === nows(cleanSpeechText(mixed)), '①-6 拼回等价（含换行/箭头清洗；2026-10-04 起忽略纯空白差异——呼吸换行）')
 ok(chunkSpeechText(mixed).every((c) => c.length <= 50), '①-7 混合文本所有块 ≤50')
 
@@ -161,9 +164,9 @@ ok(cleanSpeechText('电流互感器二次侧严禁{开路}。') === '电流互�
 const REAL_181 = 'R =（24 − 1.2 − 0.3）/ 0.006 = 22.5 / 0.006 = 3750Ω，即3.75kΩ；功耗 P = I²R = 0.006² × 3750 = 0.135W。'
 const REAL_1588 = '与LOPA（Layer of Protection Analysis）方法是上下游工具，不能颠倒分析时序。'
 const REAL_347 = '额定线电流I=P/(√3·U·cosφ·η)=15000/(1.732×380×0.85×0.9)≥29.8A，与C项写法等价。'
-/* 2026-10-04 更新：③-b 把 （） 转成"括号/括号完"后，基于括号字面的配平检查已失效，
+/* 2026-10-04 更新：③-b 把 （） 转成"括号/括号"后，基于括号字面的配平检查已失效，
    镜像改为**词元区间配对**（与 tts.js parenPairs + chunkSpeechText 兜底合并同口径）：
-   ① "括号完"三个字不得被腰斩；② 配对的"括号…括号完"不得跨块。 */
+   ① "括号"三个字不得被腰斩；② 配对的"括号…括号"不得跨块。 */
 const chunkBounds = (chunks) => {
   const bounds = []
   for (let i = 0, p = 0; i < chunks.length; i++) { bounds.push([p, p + chunks[i].length]); p += chunks[i].length }
@@ -174,9 +177,9 @@ const boundaryOK = (chunks) => {
   const bounds = chunkBounds(chunks)
   const chunkOf = (p) => { for (let i = 0; i < bounds.length; i++) if (p >= bounds[i][0] && p < bounds[i][1]) return i; return bounds.length - 1 }
   const toks = []
-  const re = /括号完|括号/g
+  const re = /括号/g
   let m
-  while ((m = re.exec(joined))) toks.push({ s: m.index, e: m.index + m[0].length, close: m[0] === '括号完' })
+  while ((m = re.exec(joined))) toks.push({ s: m.index, e: m.index + m[0].length, close: m[0] === '括号' })
   for (const t of toks) if (chunkOf(t.s) !== chunkOf(t.e - 1)) return false     // 词元被腰斩
   const stack = []
   for (const t of toks) {
@@ -457,14 +460,14 @@ ok(normalizeSpeech('1=L+、2=M') === '1 等于 L正、2 等于 M' && normalizeSp
 // ㉑-6 斜杠三段式（INC-20260927-04）
 ok(normalizeSpeech('I=U/R=220/22=10A') === 'I 等于 U除以R 等于 220除以22 等于 10安', '㉑-6a 欧姆定律整串：除法读"除以"（原读"或"）')
 ok(normalizeSpeech('0.0175×40/0.5=1.4Ω') === '0.0175乘40除以0.5 等于 1.4欧姆', '㉑-6b 电阻率计算：乘号后除法')
-ok(normalizeSpeech('R=R1R2/(R1+R2)') === 'R 等于 R 1R 2除以括号R 1加R 2括号完', '㉑-6c 并联电阻公式整串（2026-10-04 起括号读"括号…括号完"）')
+ok(normalizeSpeech('R=R1R2/(R1+R2)') === 'R 等于 R 1R 2除以括号R 1加R 2括号', '㉑-6c 并联电阻公式整串（2026-10-04 起括号读"括号…括号"）')
 ok(normalizeSpeech('380/220V') === '380 或 220伏' && normalizeSpeech('50/60Hz') === '50 或 60赫兹', '㉑-6d 数字/数字+中文单位 → 或（并列电压/频率）')
 ok(normalizeSpeech('S/S端子') === 'S 或 S端子' && normalizeSpeech('NPN/PNP') === 'N P N 或 P N P' && normalizeSpeech('NO/NC') === 'NO 或 NC', '㉑-6e 字母并列 → 或（S/S 端子、NPN/PNP、NO/NC）')
 ok(normalizeSpeech('GB/T 50168') === '国标 T 50168', '㉑-6f GB/T → 国标 T')
 ok(normalizeSpeech('e=−L·di/dt') === 'e 等于 减L乘电流变化率', '㉑-6g di/dt → 电流变化率（u=L·di/dt 感应电动势）')
 ok(normalizeSpeech('R=ρL/S') === 'R 等于 柔L除以S', '㉑-6h 电阻率公式：ρ 在分子（希腊字母入分子字符集）')
 ok(normalizeSpeech('P=U²/R') === 'P 等于 U平方除以R', '㉑-6i U²/R：上标转换先于斜杠判定')
-ok(normalizeSpeech('（2-1.0）/2=50%') === '括号2-1.0括号完除以2 等于 百分之50', '㉑-6j 括号闭合后斜杠 + 百分号前置（2026-10-04 起括号朗读）')
+ok(normalizeSpeech('（2-1.0）/2=50%') === '括号2-1.0括号除以2 等于 百分之50', '㉑-6j 括号闭合后斜杠 + 百分号前置（2026-10-04 起括号朗读）')
 ok(normalizeSpeech('0.0175Ω·mm²/m') === '0.0175欧姆乘平方毫米每米', '㉑-6k 电阻率单位 Ω·mm²/m → 欧姆乘平方毫米每米')
 // ㉑-7 波浪号/比较符/百分号/全角
 ok(normalizeSpeech('0~10V') === '0到10伏' && normalizeSpeech('5～10mm') === '5到10毫米', '㉑-7a ~ 区间 → 到（全库 816 处）')
@@ -474,9 +477,9 @@ ok(normalizeSpeech('F∝U²') === 'F正比于U平方' && normalizeSpeech('Ⅰ类
 ok(normalizeSpeech('M>1') === 'M大于1' && normalizeSpeech('≥29.8A') === '大于等于29.8安', '㉑-7e 调制系数与 ≥')
 // ㉑-8 真实整题公式串（题库 seq 181/347 原句）
 const F181 = normalizeSpeech('R =（24 − 1.2 − 0.3）/ 0.006 = 22.5 / 0.006 = 3750Ω，即3.75kΩ；功耗 P = I²R = 0.006² × 3750 = 0.135W。')
-ok(F181.includes('括号24 减 1.2 减 0.3括号完除以0.006') && F181.includes('22.5除以0.006') && F181.includes('3750欧姆') && F181.includes('3.75千欧') && F181.includes('I平方R') && F181.includes('0.006平方 乘 3750') && F181.includes('0.135瓦'), '㉑-8a seq181 功耗计算串全要素（分数/减号/平方/单位；2026-10-04 起括号朗读）')
+ok(F181.includes('括号24 减 1.2 减 0.3括号除以0.006') && F181.includes('22.5除以0.006') && F181.includes('3750欧姆') && F181.includes('3.75千欧') && F181.includes('I平方R') && F181.includes('0.006平方 乘 3750') && F181.includes('0.135瓦'), '㉑-8a seq181 功耗计算串全要素（分数/减号/平方/单位；2026-10-04 起括号朗读）')
 const F347 = normalizeSpeech('额定线电流I=P/(√3·U·cosφ·η)=15000/(1.732×380×0.85×0.9)≥29.8A')
-ok(F347.includes('P除以括号根号3乘U乘功率因数乘伊塔括号完') && F347.includes('15000除以括号1.732乘380乘0.85乘0.9括号完') && F347.includes('大于等于29.8安'), '㉑-8b seq347 线电流公式串（√3/·/cosφ/η/≥ 全要素；2026-10-04 起括号朗读）')
+ok(F347.includes('P除以括号根号3乘U乘功率因数乘伊塔括号') && F347.includes('15000除以括号1.732乘380乘0.85乘0.9括号') && F347.includes('大于等于29.8安'), '㉑-8b seq347 线电流公式串（√3/·/cosφ/η/≥ 全要素；2026-10-04 起括号朗读）')
 
 /* ── ㉒ 播放流畅度（2026-10-04 用户报"无法第一时间开始播放 + 每读一段停几秒"；根因=
    首块 150 字合成 RTT ~2.2s + 全块并发预取撞限流（部分块被踢缓存→串行链现场合成）
@@ -490,9 +493,9 @@ ok(/prefetchGACache\(stemSpokenOf\(q\)\)/.test(practiceSrc) && /\[ttsOK, ttsOn, 
 /* ── ㉒ 括号朗读 + 全面跳读/错读排查（2026-10-04；数据=tts_symbol_report2.json：全库 7102 题
    /394 万字符取证。用户实测"括号不会朗读、只读括号内内容"→ 括号读法 + 同类跳读符号全补）── */
 // ㉒-1 括号读法（核心修复）
-ok(normalizeSpeech('（编译生成梯形图）') === '括号编译生成梯形图括号完', '㉒-1a 全角括号 → 括号…括号完（原样送引擎被跳过）')
-ok(normalizeSpeech('I=U/(RBC+RL)') === 'I 等于 U除以括号RBC加RL括号完', '㉒-1b 半角括号数学分组同样朗读（除以判定先于括号转换）')
-ok(normalizeSpeech('判断该说法是否正确。（　）') === '判断该说法是否正确。括号', '㉒-1c 判断题空括号（含全角空格，全库 2623 处）读一次"括号"')
+ok(normalizeSpeech('（编译生成梯形图）') === '编译生成梯形图', '㉒-1a 长旁注（编译生成梯形图）不读括号只读内容（2026-10-05 口径 v3：只有公式才读）')
+ok(normalizeSpeech('I=U/(RBC+RL)') === 'I 等于 U除以括号RBC加RL括号', '㉒-1b 半角括号数学分组同样朗读（除以判定先于括号转换）')
+ok(chunkSpeechText('判断该说法是否正确。（　）').join('') === '判断该说法是否正确。括号', '㉒-1c 判断题空括号（含全角空格，全库 2623 处）读一次"括号"')
 ok(normalizeSpeech('热继电器(FR)动作') === '热继电器 FR 动作', '㉒-1d 半角空括号特判在先；短括号（FR）去标记只读内容、两侧补空格防黏连（2026-10-04 分级）')
 // ㉒-2 绝对值（原版直接删 → 语义丢失）
 ok(normalizeSpeech('IΔ=|Σİ|') === 'I德尔塔 等于 绝对值西格玛I', '㉒-2a |X| → 绝对值X（İ 相量点先归一为 I；前缀形式让分母判定落入"除以"收尾）')
@@ -511,7 +514,7 @@ ok(normalizeSpeech('0.5μV') === '0.5微伏', '㉒-3i μV 微伏（原无规则�
 // ㉒-4 幂与上标负号
 ok(normalizeSpeech('10^-7 F') === '10的负7次方 F', '㉒-4a 10^-7 → 10的负7次方（负号成形后前瞻容忍）')
 ok(normalizeSpeech('W=0.5*CU^2') === 'W 等于 0.5乘CU的2次方', '㉒-4b 数学乘号 * → 乘（markdown 强调对先剥不误伤）+ CU^2')
-ok(normalizeSpeech('e^(−τs)') === 'e的括号减陶s括号完次方', '㉒-4c e^(−τs) 幂内括号读法（U+2212 → 减在先；②-k 转出的括号再经 ③-b 朗读）')
+ok(normalizeSpeech('e^(−τs)') === 'e的括号减陶s括号次方', '㉒-4c e^(−τs) 幂内括号读法（U+2212 → 减在先；②-k 转出的括号再经 ③-b 朗读）')
 ok(normalizeSpeech('10⁻³') === '10的负3次方' && normalizeSpeech('1.7×10⁻⁶m²') === '1.7乘10的负6次方平方米', '㉒-4d 上标负号 ⁻ → 的负X次方（原 10⁻³ 读孤零零"十"）')
 ok(normalizeSpeech('10⁻²') === '10的负2次方', '㉒-4e ⁻ 后跟 ²/³ 同样覆盖')
 // ㉒-5 杂项符号
@@ -531,24 +534,23 @@ ok(cleanSpeechText('法定单位牛[顿]（符号N）') === '法定单位牛，�
 ok(!/\[错因/.test(cleanSpeechText('A「短路」错。[错因:概念缺失]')), '㉒-6b [错因:] 内部标注仍被剥掉（方括号新规则不影响错因剥离）')
 
 /* ── ㉒-7 括号分级 + 跨块不拆 + 分母为括号的除法（2026-10-04 二改；用户实测"读完会
-   读个括号完"：根因=③-b 把括号转成词语后 safeCutIndex 的括号配平检查失效，切块把括号对
-   切进两块 → 孤立/腰斩的"括号完"；同时 L282 并列规则把 …/(…) 分式读成"或"。
+   读个括号"：根因=③-b 把括号转成词语后 safeCutIndex 的括号配平检查失效，切块把括号对
+   切进两块 → 孤立/腰斩的"括号"；同时 L282 并列规则把 …/(…) 分式读成"或"。
    全库复扫口径（7402 题本地快照）：跨块题段 2306 → 0）── */
 // ㉒-7 分级：短且无运算内容的括号去标记（防黏连补空格）
 ok(normalizeSpeech('（伺服）') === '伺服' && normalizeSpeech('NPN型（低电平）输出') === 'N P N型低电平输出', '㉒-7a 短中文括号（伺服）（低电平）去标记只读内容')
 ok(normalizeSpeech('正确做法是（A）。') === '正确做法是 A。' && normalizeSpeech('（吨）') === '吨', '㉒-7b 选项标签/单字短括号去标记，句读相邻不加空格')
 ok(normalizeSpeech('（2）（3）') === '2 3', '㉒-7c 相邻短括号补空格，避免"23"被读成"二十三"（黏连防护）')
-// ㉒-7 分级：含运算内容/较长的括号保留标记
-ok(normalizeSpeech('（编译生成梯形图）') === '括号编译生成梯形图括号完' && normalizeSpeech('（2-1.0）/2=50%') === '括号2-1.0括号完除以2 等于 百分之50', '㉒-7d 长括号与含运算符的短括号（2-1.0）保留"括号…括号完"（数学分组不能省）')
-ok(normalizeSpeech('I=U/(RBC+RL)') === 'I 等于 U除以括号RBC加RL括号完', '㉒-7e 含运算符的括号分组保留标记（除以判定先于括号转换）')
+ok(normalizeSpeech('（2-1.0）/2=50%') === '括号2-1.0括号除以2 等于 百分之50', '㉒-7d 含运算符的括号分组保留"括号…括号"（（2-1.0）/2 的括号是运算次序）')
+ok(normalizeSpeech('I=U/(RBC+RL)') === 'I 等于 U除以括号RBC加RL括号', '㉒-7e 含运算符的括号分组保留标记（除以判定先于括号转换）')
 // ㉒-7 分母为括号/上标的分式不得读"或"（L282 并列规则抢先的修复）
-ok(normalizeSpeech('1/(2πfC)') === '1除以 2派fC' && normalizeSpeech('U/(4.44fN)') === 'U除以括号4.44fN括号完', '㉒-7f 分母为括号的无前缀分式 → 除以（原读"或"，语义反）')
+ok(normalizeSpeech('1/(2πfC)') === '1除以 2派fC' && normalizeSpeech('U/(4.44fN)') === 'U除以 4.44fN', '㉒-7f 分母为括号的无前缀分式 → 除以（原读"或"，语义反；2026-10-05 起无算符的括号内容不再读标记，"除以"一词已承担结构）')
 ok(normalizeSpeech('U²/R') === 'U平方除以R' && normalizeSpeech('U²t/R') === 'U平方t除以R', '㉒-7g 上标（平方）后接斜杠 → 除以（原读"或"）')
-ok(normalizeSpeech('X/(Y+Z)') === 'X除以括号Y加Z括号完' && normalizeSpeech('600r/(kW·h)') === '600r除以千瓦时', '㉒-7h 变量/电表常数分式 → 除以')
+ok(normalizeSpeech('X/(Y+Z)') === 'X除以括号Y加Z括号' && normalizeSpeech('600r/(kW·h)') === '600r除以千瓦时', '㉒-7h 变量分式保留分组；电表常数括号内容无算符只读内容（2026-10-05 口径 v3）')
 ok(normalizeSpeech('380/220V') === '380 或 220伏' && normalizeSpeech('S/S端子') === 'S 或 S端子' && normalizeSpeech('0.0175Ω·mm²/m') === '0.0175欧姆乘平方毫米每米', '㉒-7i 回归护栏：并列参数"或"、中文/字母并列"或"、单位复合"每"均未被新规则误伤')
 // ㉒-7 跨块不拆（硬不变量：任一真实/长括号文本，配对与词元必须整块）
 const LONG_PAREN = '该保护（在三相短路且电压跌落超过额定值百分之七十时才动作）应优先采用；绕组绝缘（端子松脱导致）会下降，电缆（单芯截面积0.5平方毫米，铜电阻率0.0175Ω·mm²/m）连接至PLC输入端。'
-ok(boundaryOK(chunkSpeechText(REAL_181, 12)) && boundaryOK(chunkSpeechText(REAL_1588, 24)) && boundaryOK(chunkSpeechText(REAL_347, 18)), '㉒-7j 三处真实题原文：括号对不跨块、"括号完"不腰斩（2026-10-04 修复锁）')
+ok(boundaryOK(chunkSpeechText(REAL_181, 12)) && boundaryOK(chunkSpeechText(REAL_1588, 24)) && boundaryOK(chunkSpeechText(REAL_347, 18)), '㉒-7j 三处真实题原文：括号对不跨块、"括号"不腰斩（2026-10-04 修复锁）')
 ok(boundaryOK(chunkSpeechText(LONG_PAREN, 20, 30)) && boundaryOK(chunkSpeechText(LONG_PAREN, 50, 70)), '㉒-7k 长括号 + 小/大块长两种参数下配平不变量均成立')
 
 /* ── ㉓ 播报节奏（2026-10-04 二改 · 用户："连续朗读节奏放慢一些、避免听众觉得赶"；
@@ -569,5 +571,32 @@ ok(chunkTailPause('…结束。\n') === PAUSE_AFTER_SENT && chunkTailPause('') =
 ok(PAUSE_AFTER_SENT > PAUSE_AFTER_CLAUSE && PAUSE_AFTER_CLAUSE > PAUSE_AFTER_OTHER, '㉓-3e 停顿量级 句末 > 分句 > 其他')
 // ㉓-4 语速默认值区间（防止有人把 1.35 那种"复听档"再设回来）
 ok(TTS_RATE >= 1.0 && TTS_RATE <= 1.15, '㉓-4 默认语速落在"教程/朗读"舒适档 1.0~1.15（研究口径：朗读 1.0×、教程 0.85×、短视频 1.15~1.25×）')
+
+/* ── ㉔ 括号口径 v3（2026-10-05 · 用户明确："只要公式才读括号，其他情况不读括号"）──
+   判据 PAREN_MATH：无歧义数学符号 / 加减号紧邻数字 / 中文算符一侧为数字字母。
+   全库取证（probe_paren_policy.mjs）：31888 对中仅 899 种 1234 次朗读（全为真公式）。 */
+// ㉔-1 公式分组：保留"括号…括号"
+ok(normalizeSpeech('R=R1R2/(R1+R2)') === 'R 等于 R 1R 2除以括号R 1加R 2括号', '㉔-1a 并联电阻公式分组保留')
+ok(normalizeSpeech('（2-1.0）/2=50%') === '括号2-1.0括号除以2 等于 百分之50', '㉔-1b 运算次序括号保留')
+ok(normalizeSpeech('（1/3）') === '括号1除以3括号' && normalizeSpeech('（24 − 1.2 − 0.3）') === '括号24 减 1.2 减 0.3括号', '㉔-1c 分式/减法串保留')
+ok(normalizeSpeech('瓦/(平方米·K)') === '瓦除以括号平方米乘K括号', '㉔-1d 单位分母保留（平方米乘K）')
+// ㉔-2 幂内分组永远读（②-k 直接产词形，不走旁注判据）
+ok(normalizeSpeech('e^(−τs)') === 'e的括号减陶s括号次方' && normalizeSpeech('(ΣNt)^(1/3)') === '西格玛Nt 的括号1除以3括号次方' && normalizeSpeech('10^-6') === '10的负6次方', '㉔-2 幂内分组保留；裸上标形式不受影响')
+// ㉔-3 旁注：一律只读内容（含长旁注——v2 分级版会读，v3 不读）
+ok(normalizeSpeech('绕组绝缘（端子松脱导致）会下降。') === '绕组绝缘端子松脱导致会下降。', '㉔-3a 中文旁注不读括号')
+ok(normalizeSpeech('该保护（在三相短路且电压跌落超过额定值百分之七十时才动作）应优先采用。').indexOf('括号') < 0, '㉔-3b 超长旁注也不读括号')
+ok(normalizeSpeech('（完全相同可直接互换）') === '完全相同可直接互换' && normalizeSpeech('（gG熔断器或SPD专用断路器）') === 'gG熔断器或S P D专用断路器', '㉔-3c 中英混排旁注不读括号')
+ok(normalizeSpeech('热继电器(FR)动作') === '热继电器 FR 动作' && normalizeSpeech('正确做法是（A）。') === '正确做法是 A。', '㉔-3d 标签括号只读内容（拉丁邻接补空格防黏连）')
+ok(normalizeSpeech('（2）（3）') === '2 3', '㉔-3e 相邻旁注防黏连')
+// ㉔-4 散文词不误判成公式（含算符字但无数学邻接）
+ok(normalizeSpeech('（减少发热）') === '减少发热' && normalizeSpeech('（减速电机）') === '减速电机', '㉔-4a "减少/减速"不是减法')
+ok(normalizeSpeech('（TN-S系统）') === 'T N S系统', '㉔-4b 型号连字符不是减号')
+// ㉔-5 拉丁短语旁注剥离后补逗号（给切块留真断点，防硬切词中间）
+ok(normalizeSpeech('与LOPA（Layer of Protection Analysis）方法是上下游工具。') === '与LOPA，Layer of Protection Analysis 方法是上下游工具。', '㉔-5 拉丁|拉丁 邻接补逗号分隔（"与LOPA，Layer…"）')
+// ㉔-6 空括号（判断题填空位）仍读一次"括号"
+ok(chunkSpeechText('判断该说法是否正确。（　）').join('') === '判断该说法是否正确。括号', '㉔-6 空括号读一次"括号"（作答位提示，非旁注）')
+
+// ㉔-7 用户原例锁形（2026-10-05）：（4+6）读作"括号4加6括号"——收尾同形，不读"括号完"
+ok(normalizeSpeech('（4+6）等于10。') === '括号4加6括号等于10。', '㉔-7 用户原例：（4+6）→ 括号4加6括号（收尾不读完）')
 
 console.log(`\ntts.regression：${n} 断言全绿`)
