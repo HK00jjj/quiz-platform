@@ -387,19 +387,18 @@ export function normalizeSpeech(raw) {
   s = s.replace(/∑/g, '西格玛').replace(/△/g, '三角形')                // ∑(U+2211) 不在希腊区、△接法读"三角形"（ΔU 电压增量仍读德尔塔）
   /* ③-b 括号读法（位置约束：必须在斜杠七段式（②-g）/乘号前瞻/正负号/下标/^ 幂等一切
      依赖括号字面的规则完成之后；⓪ 层已把 markdown/【】/{} 之外的括号语义消化完）。
-     口径沿革：2026-10-04 首改"括号全部朗读"（用户实测"括号不会朗读只读内容"）→ 二改
-     "≤5 字分级"（用户实测"读完会读个括号完"）→ **2026-10-05 三改（现行）**：用户明确
-     "只要公式才读括号，其他情况不读括号"——判据见文件头 PAREN_MATH（isFormulaParen），
-     全库 31888 对中仅 1234 对（真公式）朗读，其余 30654 对旁注只读内容；
-     空括号（判断题填空位，全库 2623 处"（　）"）读一次"括号"（作答位提示）。
-     2026-10-05 晨补充（用户举例"（4+6）读作括号4+6括号"）：**收尾标记也是"括号"**（不是
-     "括号完"）。开口/闭口同形 → 配对改按出现序奇偶（parenPairs 栈式），空括号用私有区
-     占位符 U+E000 过-blocker（不被 /括号/g 命中），切块出口统一转"括号"。 */
-  const EMPTY_PAREN = '\uE000'   // 私有区占位 → 切块出口转"括号"（避免空括号搅乱奇偶配对）
-  s = s.replace(/（[\s\u3000]*）|\(\s*\)/g, EMPTY_PAREN)     // 空括号（判断题填空位）
+     口径沿革：2026-10-04 首改"括号全部朗读"→ 10-04 二改"≤5 字分级"→ 10-05 三改"只有
+     公式才读"→ **10-05 午 四改（现行）**：用户"还是会读括号，帮我去掉，只有公式里才读"
+     ——**空括号（判断题填空位"（　）"，全库 2623 处）也不读了**（它不是公式；用户听到的
+     "还是会读括号"主要就是判断题尾这声"括号"）。现行规则汇总：
+     · 公式括号（isFormulaParen）→ 读"括号…括号"（收尾同形，用户例：（4+6）→括号4加6括号）；
+     · 其余（旁注/标签/空括号）→ 一律不读括号本身，只读内容（空括号无内容=整对删除）。
+     开/闭同形 → 配对按栈式奇偶（parenPairs）；v3.1 的 U+E000 空括号占位符随之移除
+     （空括号不再发声，无需过-blocker）。 */
+  s = s.replace(/（[\s\u3000]*）|\(\s*\)/g, '')              // 空括号（判断题填空位）：删除，不读
   s = s.replace(/（([^（）]*)）|\(([^()]*)\)/g, (m, a, b, off, whole) => {
     const t = String(a ?? b ?? '').trim()
-    if (!t) return EMPTY_PAREN
+    if (!t) return ''
     if (isFormulaParen(t)) return `括号${t}括号`
     /* 旁注：去标记只读内容。补分隔防两类问题：
        ①黏连：（2）（3）→"23"被念成"二十三"、I(A)→"IA"被念成一个词 → 邻接非空白/标点时补空格；
@@ -415,7 +414,7 @@ export function normalizeSpeech(raw) {
     const sepR = alnumEnd ? (isAlnum(after) ? '，' : (soft(after) ? ' ' : '')) : ''
     return sepL + t + sepR
   })
-  s = s.replace(/[（(]/g, '括号').replace(/[）)]/g, '括号')  // 未配对的残留（截断/错配）；闭口同形"括号"
+  s = s.replace(/[（(）)]/g, '')  // 未配对的残留括号字符（截断/嵌套剥完的外壳）：删除，不读
   /* ④-b 连字符与"字母紧贴数字"：TN-S→TN S、RS485→RS 485、L1→L 1、GB50168→GB 50168
      （中文引擎会把 "TN-S" 念成"T N 杠 S"、"L1" 念成整团）。 */
   s = s.replace(/([A-Za-z])\s?-\s?([A-Za-z0-9])/g, '$1 $2')
@@ -474,8 +473,8 @@ export function cleanSpeechText(raw) {
    切进两块，听者听到孤立的"括号完"（全库取证：4952 块整块只有"括号完"没有"括号"，
    涉及 2230 题；另有 3539 块孤立"括号"）。
    2026-10-05 起开口/闭口**同形**（都是"括号"，用户指定收尾不读"括号完"）→ 栈式配对天然
-   等价于"出现序奇偶配对"：栈空=开口，栈非空=闭口并弹栈配对。空括号读法已改用私有区
-   占位符 U+E000（不被 /括号/g 命中），不会搅乱配对；判断题空括号因此仍是中性。 */
+   等价于"出现序奇偶配对"：栈空=开口，栈非空=闭口并弹栈配对。2026-10-05 午起空括号整对
+   删除不再发声（占位符 U+E000 已随之移除），配对只剩公式对，更干净。 */
 function parenPairs(text) {
   const re = /括号/g
   const stack = []
@@ -577,7 +576,7 @@ export function chunkSpeechText(raw, max = 50, firstMax = max) {
      腰斩（切块把括号对拆开时，听者会在下一块的头/中部听到孤立或破碎的标记——
      用户报"读完会读个括号完"）。safeCutIndex 已在次级断点处规避，"句读合并 + flush"
      路径这里做兜底：在块的拼接串上按字符区间重新配对（开/闭同形 → 栈式奇偶配对），
-     凡配对或词元跨块即合并。空括号是 U+E000 占位（不匹配 /括号/g），不会误配对。 */
+     凡配对或词元跨块即合并。2026-10-05 午起空括号整对删除（U+E000 占位符已移除）。 */
   const joined = chunks.join('')
   const bounds = []
   for (let i = 0, p = 0; i < chunks.length; i++) { bounds.push([p, p + chunks[i].length]); p += chunks[i].length }
@@ -597,18 +596,17 @@ export function chunkSpeechText(raw, max = 50, firstMax = max) {
     const oi = chunkOf(o.s), oj = chunkOf(t.e - 1)
     if (oi !== oj) mark(oi, oj)                      // 配对跨块
   }
-  const toSpoken = (s) => s.replace(/\uE000/g, '括号')   // U+E000 空括号占位 → 朗读"括号"
   if (crossing.size) {
     const merged = []
     let acc = ''
     for (let i = 0; i < chunks.length; i++) {
       acc += chunks[i]
-      if (!crossing.has(i)) { merged.push(toSpoken(acc)); acc = '' }
+      if (!crossing.has(i)) { merged.push(acc); acc = '' }
     }
-    if (acc) { if (merged.length) merged[merged.length - 1] += toSpoken(acc); else merged.push(toSpoken(acc)) }
+    if (acc) { if (merged.length) merged[merged.length - 1] += acc; else merged.push(acc) }
     return merged
   }
-  return chunks.map(toSpoken)
+  return chunks
 }
 
 /* 选声优先级（2026-09-15 用户指定：默认改用**云健**）：
