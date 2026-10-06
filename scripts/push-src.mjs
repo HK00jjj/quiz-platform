@@ -69,13 +69,27 @@ for (const e of extras) {
 // 把本脚本自己也备份进分支，下次续传无需重写（rel 重复时下面的 Map 会自然去重）
 files.push({ rel: 'scripts/push-src.mjs', p: process.argv[1] })
 
+/* SKIP_RE（2026-10-06 复原，INC-20261006-02）：09-11 版曾实装、后在某次改写中丢失
+   （skill §3.6 "文档与代码对不上"警告的再次实锤）——app/.env（含密钥）一直被重复
+   备份进公开仓库 src 分支。默认排除 .env*、*.timestamp-*.mjs、.github/workflows/**
+   （QP_SRC_INCLUDE_CI=1 时尝试纳入 CI，404/422 由下方动态降级兜底）。
+   被跳过且远端存在的路径会作为 sha:null 删除条目发出——即备份同时把它们清出
+   分支 HEAD（.env 由此从 HEAD 移除；历史 blob 仍需重建历史+轮换密钥才能根治）。 */
+const INCLUDE_CI = process.env.QP_SRC_INCLUDE_CI === '1'
+const isSkipped = (rel) =>
+  /(^|\/)\.env(\.|$)/.test(rel) ||
+  /\.timestamp-[^/]*\.mjs$/.test(rel) ||
+  (!INCLUDE_CI && /^\.github\/workflows\//.test(rel))
 const local = new Map()
 let totalBytes = 0
+const skipped = []
 for (const f of files) {
+  if (isSkipped(f.rel)) { skipped.push(f.rel); continue }
   const buf = readFileSync(f.p)
   totalBytes += buf.length
   local.set(f.rel, { sha: blobSha(buf), size: buf.length, buf })
 }
+if (skipped.length) console.log(`SKIP_RE 跳过 ${skipped.length} 个: ${skipped.slice(0, 8).join(', ')}${skipped.length > 8 ? ' …' : ''}`)
 console.log(`待推送: ${local.size} 个文件, ${(totalBytes / 1048576).toFixed(2)} MB`)
 
 // ---------- 2. 分支是否已存在（续传用） ----------
@@ -116,17 +130,43 @@ await Promise.all(Array.from({ length: 3 }, async () => {
 /* 降级（2026-09-09）：classic PAT 只有 repo scope 时，写 .github/workflows/* 会被
    GitHub 以 404 掩盖（blob 能传、树里含该路径必 404）。此处 404 后自动剔除 .github/**
    重试一次，保证其余源码备份不中断；CI 文件等 token 补上 workflow scope 后重跑即可。 */
-const treeBody = [...local.entries()].map(([rel, v]) => ({ path: rel, mode: '100644', type: 'blob', sha: v.sha }))
+/* base_tree 差量建树（2026-10-06，INC-20261006-01）：全量树 POST（~1350 条）实测
+   404（scope 掩盖）与 504/502（服务端超时）交替出现，10 连试打穿即崩（当日两轮均败）。
+   改为 deploy-api.mjs 同款 base_tree 模式：只发「相对远端 HEAD 的变更条目 + 删除条目
+   （sha:null）」，请求体从 1359 条缩到本轮 22 条；未提及的路径经 base_tree 继承，
+   与全量树语义等价（含删除语义）。无 base（新建分支）时回退全量，老行为保留。 */
+let baseTreeSha = null
+const diffEntries = []
+if (parentSha && remote.size) {
+  const head = await req('GET', `/repos/${repo}/git/commits/${parentSha}`)
+  baseTreeSha = head.tree.sha
+  for (const [rel, v] of local) if (remote.get(rel) !== v.sha) diffEntries.push({ path: rel, mode: '100644', type: 'blob', sha: v.sha })
+  for (const rel of remote.keys()) if (!local.has(rel)) diffEntries.push({ path: rel, mode: '100644', type: 'blob', sha: null })
+  const adds = diffEntries.filter((x) => x.sha).length
+  console.log(`base_tree 差量建树：base=${baseTreeSha.slice(0, 10)}，变更 ${adds} 条 + 删除 ${diffEntries.length - adds} 条`)
+}
+const treeBody = baseTreeSha
+  ? diffEntries
+  : [...local.entries()].map(([rel, v]) => ({ path: rel, mode: '100644', type: 'blob', sha: v.sha }))
 let newTree
 try {
-  newTree = await req('POST', `/repos/${repo}/git/trees`, { tree: treeBody })
+  /* 2026-10-06 关键修复：差量条目必须携带 base_tree——sha:null 删除项不带 base_tree
+     发送 = 确定性 422 GitRPC::BadObjectState（当日 run3/4/5 三连败的真正根因，
+     探针带 base_tree 全 201 已对照实锤）。全量模式（新分支）不需要。 */
+  newTree = await req('POST', `/repos/${repo}/git/trees`, baseTreeSha ? { base_tree: baseTreeSha, tree: treeBody } : { tree: treeBody })
 } catch (e) {
-  if (!/git\/trees -> 404/.test(String(e?.message ?? e))) throw e
+  /* 2026-10-06（INC-20261006-01）：实测 GitHub 对含 .github/workflows 条目的树请求，
+     报错会在 404（scope 掩盖）与 422 GitRPC::BadObjectState / 5xx 之间翻转——
+     req() 打穿后抛的「末错误」未必是 404，旧正则只认 404 导致降级永不触发。
+     现把 422 一并纳入降级判定（剔 .github 重试一次）；剔除后仍失败则如实抛出。 */
+  if (!/git\/trees -> (404|422)/.test(String(e?.message ?? e))) throw e
   const kept = treeBody.filter((x) => !x.path.startsWith('.github/'))
   const skipped = treeBody.length - kept.length
   if (kept.length === treeBody.length) throw e
-  console.log(`⚠ 建 tree 404（token 缺 workflow scope），剔除 ${skipped} 个 .github/ 条目后重试`)
-  newTree = await req('POST', `/repos/${repo}/git/trees`, { tree: kept })
+  console.log(`⚠ 建 tree 404/422（token 缺 workflow scope），剔除 ${skipped} 个 .github/ 条目后重试`)
+  /* 2026-10-06 修复：降级重试必须保持与主请求同构——差量模式带 base_tree
+     （否则「只含 kept 条目的树」会被当完整树提交，src 分支被截断）；全量模式照旧。 */
+  newTree = await req('POST', `/repos/${repo}/git/trees`, baseTreeSha ? { base_tree: baseTreeSha, tree: kept } : { tree: kept })
 }
 console.log('new tree:', newTree.sha)
 
@@ -147,15 +187,22 @@ else await req('POST', `/repos/${repo}/git/refs`, { ref: `refs/heads/${BRANCH}`,
 const check = await req('GET', `/repos/${repo}/git/trees/${BRANCH}?recursive=1`)
 const rmap = new Map()
 for (const e of check.tree) if (e.type === 'blob') rmap.set(e.path, e.sha)
-/* 降级模式下 .github/** 本就不在远端：校验时同样剔除，避免永远 MISMATCH */
+/* 降级模式下 .github/** 本就不在远端：校验时同样剔除，避免永远 MISMATCH；
+   2026-10-06 增补：SKIP_RE 排除路径（.env* 等）若因降级剔除而残留远端 HEAD，
+   计入 tolerated 并明示（不静默、也不误报 MISMATCH）。 */
 const degraded = newTree.sha !== null && [...local.keys()].some((k) => k.startsWith('.github/')) && ![...rmap.keys()].some((k) => k.startsWith('.github/'))
 const want = degraded ? [...local.keys()].filter((k) => !k.startsWith('.github/')) : [...local.keys()]
-const miss = [], diff = [], extra = []
+const miss = [], diff = [], extra = [], tolerated = []
 for (const rel of want) {
   if (!rmap.has(rel)) miss.push(rel)
   else if (rmap.get(rel) !== local.get(rel).sha) diff.push(rel)
 }
-for (const rel of rmap.keys()) if (!local.has(rel) && !(degraded && rel.startsWith('.github/'))) extra.push(rel)
+for (const rel of rmap.keys()) {
+  if (local.has(rel)) continue
+  if (isSkipped(rel) || (degraded && rel.startsWith('.github/'))) { tolerated.push(rel); continue }
+  extra.push(rel)
+}
+if (tolerated.length) console.log(`⚠ 远端残留但不在备份范围（SKIP_RE/降级剔除）: ${tolerated.slice(0, 8).join(', ')}${tolerated.length > 8 ? ' …' : ''}`)
 if (degraded) console.log('⚠ 本轮为降级备份：.github/** 未推送（token 缺 workflow scope），补 scope 后重跑 push-src 即可补齐')
 console.log(`\n回读校验: 本地 ${local.size} / 远端 ${rmap.size}，缺失 ${miss.length}，不一致 ${diff.length}，多余 ${extra.length}`)
 ;[...miss, ...diff, ...extra].slice(0, 20).forEach(x => console.log('  ✗ ' + x))

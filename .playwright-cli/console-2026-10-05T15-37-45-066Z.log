@@ -1,0 +1,2 @@
+[   26437ms] [INFO] [loadAll] 静态包拉取 8175 行并已落快照 rev=9（走 GitHub Pages，不记 Supabase egress） @ https://hk00jjj.github.io/quiz-platform/assets/index-5pjuDjHp.js:111
+[   38423ms] [INFO] [loadAll] 静态包命中本地快照 rev=9（8175 行，内容态 0 流量） @ https://hk00jjj.github.io/quiz-platform/assets/index-5pjuDjHp.js:111

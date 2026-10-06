@@ -1,6 +1,7 @@
 // GitHub Git Data API 部署：dist → gh-pages（无需 git 直连）
 // 用法: node deploy-api.mjs <token> <dist目录> [提交信息]
 import { readFileSync, readdirSync, statSync } from 'fs'
+import { createHash } from 'crypto'
 
 const COMMIT_MSG = process.argv[4] || 'chore: 部署构建产物'
 
@@ -78,13 +79,35 @@ const ref = await req('GET', `/repos/${repo}/git/ref/heads/gh-pages`)
 const parentSha = ref.object.sha
 console.log('parent commit:', parentSha)
 
+/* 2026-10-05（当日 GitHub 建树接口间歇 422 timeout，重试成本高）：本地预计算 git blob sha1
+   （sha1("blob " + len + "\\0" + content)），与父树的 path→sha 比对，**内容未变化的文件直接
+   跳过上传**——重试/攒批场景下 1273 个文件往往只有十几个真变化，重试从 ~25 分钟降到 ~2 分钟。
+   父树缺失/truncated 时退回全量上传（安全兜底）。 */
+let parentTreeMap = null
+try {
+  const pt = await req('GET', `/repos/${repo}/git/trees/${(await req('GET', `/repos/${repo}/git/commits/${parentSha}`)).tree.sha}?recursive=1`)
+  if (pt && !pt.truncated) {
+    parentTreeMap = new Map(pt.tree.filter((e) => e.type === 'blob').map((e) => [e.path, e.sha]))
+    console.log('parent tree entries:', parentTreeMap.size)
+  } else console.log('parent tree truncated/missing → 全量上传')
+} catch (e) { console.log('parent tree 获取失败 → 全量上传:', String(e.message).slice(0, 80)) }
+
+const gitBlobSha = (p) => {
+  const buf = readFileSync(p)
+  return createHash('sha1').update('blob ' + buf.length + '\0').update(buf).digest('hex')
+}
+const changed = parentTreeMap
+  ? files.filter((f) => parentTreeMap.get(f.rel) !== gitBlobSha(f.p))
+  : files
+console.log('changed files:', changed.length, '/', files.length, '（其余内容未变化，跳过上传）')
+
 const tree = []
 let i = 0
-for (const f of files) {
+for (const f of changed) {
   const b64 = readFileSync(f.p).toString('base64')
   const blob = await req('POST', `/repos/${repo}/git/blobs`, { content: b64, encoding: 'base64' })
   tree.push({ path: f.rel, mode: '100644', type: 'blob', sha: blob.sha })
-  if (++i % 10 === 0) console.log('blobs:', i, '/', files.length)
+  if (++i % 10 === 0) console.log('blobs:', i, '/', changed.length)
 }
 
 /* 2026-10-02（KPE03 攒批部署实测）：dist 增至 1145 文件（231 张 KPE03 图资产 + 历史图库 +
@@ -104,14 +127,44 @@ for (let s = 0; s < tree.length; s += BATCH) {
 const newTree = { sha: baseTree }
 console.log('new tree:', newTree.sha)
 
-const commit = await req('POST', `/repos/${repo}/git/commits`, {
+const makeCommit = (treeSha, parent) => req('POST', `/repos/${repo}/git/commits`, {
   message: COMMIT_MSG,
-  tree: newTree.sha,
-  parents: [parentSha],
+  tree: treeSha,
+  parents: [parent],
   author: { name: 'HK00jjj', email: 'hk00jjj@users.noreply.github.com', date: new Date().toISOString() },
   committer: { name: 'HK00jjj', email: 'hk00jjj@users.noreply.github.com', date: new Date().toISOString() }
 })
+let commit = await makeCommit(newTree.sha, parentSha)
 console.log('new commit:', commit.sha)
 
-await req('PATCH', `/repos/${repo}/git/refs/heads/gh-pages`, { sha: commit.sha })
+/* 2026-10-05（INC-20261005-02 固化 · 社区最佳实践佐证）：长部署链（blob 上传可达 30 分钟）
+   期间 gh-pages 可能被并发会话推进，PATCH refs 报 422「Update is not a fast forward」/409。
+   处置=绝不 force push：现场重读 head → 以新 head 的 tree 为 base 用【同一份 tree 条目】
+   （blob 内容寻址全复用，零重传）重建增量树 → 重 commit（parent=新 head）→ 重 PATCH。
+   最多收敛 3 轮；成功后回读 ref 校验真的推进了（"verify the push landed"——
+   PATCH 200 但 ref 没动是静默失败，无人值守部署必须拦）。 */
+const ffPatch = async (sha) => req('PATCH', `/repos/${repo}/git/refs/heads/gh-pages`, { sha })
+for (let round = 0; ; round++) {
+  try {
+    await ffPatch(commit.sha)
+    break
+  } catch (e) {
+    if (!/-> (422|409)\b/.test(String(e.message)) || round >= 2) throw e
+    console.log(`ref 冲突（第 ${round + 1} 轮）：远端 head 已被并发部署推进，现场重读并重建增量树…`)
+    const head2 = await req('GET', `/repos/${repo}/git/ref/heads/gh-pages`)
+    const pc2 = await req('GET', `/repos/${repo}/git/commits/${head2.object.sha}`)
+    let bt = pc2.tree.sha
+    for (let s = 0; s < tree.length; s += BATCH) {
+      const t = await req('POST', `/repos/${repo}/git/trees`, { base_tree: bt, tree: tree.slice(s, s + BATCH) })
+      bt = t.sha
+    }
+    commit = await makeCommit(bt, head2.object.sha)
+    console.log(`rebuilt on ${head2.object.sha.slice(0, 8)}: tree ${bt.slice(0, 10)} commit ${commit.sha}`)
+  }
+}
+const after = await req('GET', `/repos/${repo}/git/ref/heads/gh-pages`)
+if (after.object.sha !== commit.sha) {
+  throw new Error(`部署校验失败：gh-pages=${after.object.sha} 期望=${commit.sha}（ref 未推进，静默失败嫌疑）`)
+}
+console.log('ref verified:', commit.sha)
 console.log('API DEPLOY DONE')

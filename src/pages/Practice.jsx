@@ -58,7 +58,10 @@ function Stem({ q }) {
 
 /* 解析分节渲染（2026-09-19 · 审查 P0-2）：把 v7.1 解析的「【概念】…【推导】…【正解】…
    【误诊】…【记忆点】…」切成「小标题 + 正文」，长解析不再是一堵墙。
-   纯前端字符串处理——不改数据、不改 store；无标记（旧格式）时回退为单段，保证不炸。 */
+   纯前端字符串处理——不改数据、不改 store；无标记（旧格式）时回退为单段，保证不炸。
+   2026-10-06（用户指令）：显示时把【记忆点】提到最前（结论先行）。仅显示层重排——
+   存储文本与 validate 的写作顺序校验（概念→推导→误诊→记忆点）不变，出题口径不受影响。 */
+const EXPL_DISP_ORDER = { '记忆点': 0 }
 function Expl({ text }) {
   const raw = String(text ?? '')
   const parts = raw.split(/【(概念|推导|正解|误诊|记忆点)】/)
@@ -69,6 +72,8 @@ function Expl({ text }) {
     if (body) secs.push([parts[i], body])
   }
   if (!secs.length) return <p>{raw}</p>
+  /* 稳定排序：记忆点置顶，其余段保持原文相对顺序；无记忆点段的题原序不炸 */
+  secs.sort((a, b) => (EXPL_DISP_ORDER[a[0]] ?? 1) - (EXPL_DISP_ORDER[b[0]] ?? 1))
   return (
     <>
       {secs.map(([name, body], k) => (

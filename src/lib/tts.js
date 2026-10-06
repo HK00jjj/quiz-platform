@@ -193,6 +193,18 @@ export function normalizeSpeech(raw) {
   s = s.replace(/(℃|°\s?C)/g, '摄氏度').replace(/℉/g, '华氏度')
   /* 2026-09-27：mA（毫安，全库 771 处）与 MA（兆安）按大小写区分（原 [mM] 一律读"毫安"） */
   s = s.replace(/([kK])\s?V\b/g, '千伏').replace(/kV/g, '千伏').replace(/m\s?A\b/g, '毫安').replace(/M\s?A\b/g, '兆安')
+  /* 2026-10-05 补（全库残留英文单位审计 · 用户"W/J 还是只读英文"；工具 probe_unit_audit.mjs）：
+     电池 mAh 112 处（"2500mAh"）、安时 Ah 17、安秒 As 3（"1C 等于 1As"）、千焦 kJ 12、
+     千克 kg 117（"500kg"、"Wh 或 kg"）、摩尔 mol 25（"96500C 或 mol"，书 F 化学量纲）。
+     **必须先于下面的 V/A/W 块**（mAh 先于 mA，否则被拆成"毫安h"；Ah/As 先于 A）。
+     库仑 C 有意不加：电池语境"0.5C"是充放电倍率而非库仑（书 F），歧义留白。 */
+  s = s.replace(/(\d(?:\.\d+)?)\s?mAh\b/gi, '$1毫安时')
+    .replace(/(\d(?:\.\d+)?)\s?Ah\b/g, '$1安时')
+    .replace(/(\d(?:\.\d+)?)\s?As\b/g, '$1安秒')
+    .replace(/(\d(?:\.\d+)?)\s?kJ\b/g, '$1千焦')
+    .replace(/(\d(?:\.\d+)?)\s?kg\b/g, '$1千克').replace(/(?<=[\s、（与或和])kg\b/g, '千克')
+    .replace(/\bmol\b/g, '摩尔')
+    .replace(/\bWh\b/g, '瓦时')
   /* 2026-09-15（用户实测"220伏读成220v"）：**单独的 V/A/W 是纯拉丁字母，中文引擎按字母念**
      ——必须映射成中文单位。负向断言防误伤：A 后不接字母/型类组（避免 "12AB" 选项串、"2A型"）；
      V/W 要求词边界（"6V6" 电子管型号、"VFD" 缩写不受影响）。 */
@@ -380,6 +392,10 @@ export function normalizeSpeech(raw) {
   s = s.replace(/\^\(([^()\n]{1,24})\)/g, '的括号$1括号次方')
   s = s.replace(/\^([负减]?[0-9A-Za-z.\u0391-\u03C9]{1,12})/g, '的$1次方')
   s = s.replace(/\^/g, '，')
+  /* ②-m 次方后置单位（2026-10-05 · 用户"W/J 还是只读英文"）：上标/^ 转"的N次方"后，
+     数字邻接断开，原 (\d)W/J 规则落空——"3.6乘10的6次方 J"读"J"、"次方 W乘s"读"W"。
+     次方后紧跟的 W/J 补读"瓦/焦"（后随字母排除：Jx 是扩散通量符号，不是焦耳）。 */
+  s = s.replace(/(?<=次方)\s?W(?![A-Za-z])/g, '瓦').replace(/(?<=次方)\s?J(?![A-Za-z])/g, '焦')
   /* ②-l 圆周率拼写 pi（2026-10-04：2*pi*f*C、2*pi*R*C）——小写敏感，先于 TOKEN 词典 */
   s = s.replace(/\bpi\b/g, '派')
   /* ③ 希腊字母（工程口语常用译名，2026-09-27 补全 ζ/Φ/Θ/Λ/∑ 等，τ 修正为"陶"） */
@@ -433,7 +449,13 @@ export function normalizeSpeech(raw) {
     IP: 'I P', RS: 'R S', GTO: 'G T O', SCR: 'S C R', RTU: 'R T U', OPC: 'O P C', MQTT: 'M Q T T',
     AI: 'A I', AO: 'A O', DI: 'D I', DO: 'D O', GB: '国标', IR: 'I R',   // IR=ΔU=IR 压降（2026-09-27 题库实证）
     PI: 'P I',   // 2026-10-04：PI 调节器逐字母（小写 pi 已在 ②-l 转"派"，两形态都要有读法）
-    PNP: 'P N P', SIL: 'S I L', LVD: 'L V D', ELV: 'E L V', SELV: 'S E L V', PELV: 'P E L V'
+    PNP: 'P N P', SIL: 'S I L', LVD: 'L V D', ELV: 'E L V', SELV: 'S E L V', PELV: 'P E L V',
+    /* 2026-10-05 补（残留英文单位审计）：额定电流 In 96（"额定电流In=63安"，读"in"不可懂）、
+       P=UI 的 UI 183、PN 结 129、电气图形文字代号：断路器 QF/隔离开关 QS/热继电器 FR/
+       时间继电器 KT/中间继电器 KA/熔断器 FU/按钮 SB/行程开关 SQ/转换开关 SA/指示灯 HL/端子 XT、
+       多选答案 ABC 304/AB 151（"故选ABC"逐字母）。 */
+    IN: 'I N', UI: 'U I', PN: 'P N', QF: 'Q F', QS: 'Q S', FR: 'F R', KT: 'K T', KA: 'K A',
+    FU: 'F U', SB: 'S B', SQ: 'S Q', SA: 'S A', HL: 'H L', XT: 'X T', ABC: 'A B C', AB: 'A B'
   }
   s = s.replace(/\b[A-Za-z]{2,8}\b/g, (w) => TOKEN_READ[w.toUpperCase()] ?? w)
   /* ⑥ 轻声弱化保护（2026-09-16，用户实测"'功能'的'能'读不出来"）：

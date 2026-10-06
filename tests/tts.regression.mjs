@@ -51,7 +51,7 @@ ok(chunkSpeechText('Motor rated current is 12.5A, and the insulation class is F.
 
 /* ── ② 清洗 ── */
 ok(!/[✦★✓✗]/u.test(cleanSpeechText('✦ 连击 ✓ 答对 ✗')), '②-1 装饰符/对错符删除')
-ok(cleanSpeechText('按SB2→KM吸合') === '按SB 2，K M吸合', '②-2 箭头转停顿；SB2/KM 代号逐字母读（2026-09-15 词典新口径）')
+ok(cleanSpeechText('按SB2→KM吸合') === '按S B 2，K M吸合', '②-2 箭头转停顿；SB2/KM 代号逐字母读（2026-10-05 起 SB 入 TOKEN_READ 逐字母）')
 ok(cleanSpeechText('第一行\n第二行') === '第一行，第二行', '②-3 换行转停顿')
 ok(cleanSpeechText('**重点**与`代码`') === '重点与代码', '②-4 markdown 记号剥离')
 ok(cleanSpeechText('正常文字保持不变') === '正常文字保持不变', '②-5 正常文字原样')
@@ -445,7 +445,7 @@ ok(normalizeSpeech('0.6mA') === '0.6毫安' && normalizeSpeech('5MA') === '5兆�
 ok(normalizeSpeech('5min') === '5分钟' && normalizeSpeech('0.4s') === '0.4秒' && normalizeSpeech('0.5 h') === '0.5小时' && normalizeSpeech('20m') === '20米', '㉑-2a min/s/h/m 基本单位（原无规则）')
 ok(normalizeSpeech('2.5mm²') === '2.5平方毫米' && normalizeSpeech('25m³') === '25立方米' && normalizeSpeech('4m²') === '4平方米', '㉑-2b 面积/体积单位整体读（原 mm² 读"毫米平方"）')
 // ㉑-3 上下标
-ok(normalizeSpeech('3.6×10⁶ J') === '3.6乘10的6次方 J', '㉑-3a 10⁶ → 10的6次方（原上标被吞）')
+ok(normalizeSpeech('3.6×10⁶ J') === '3.6乘10的6次方焦', '㉑-3a 10⁶ → 10的6次方；次方后置单位 J→焦（2026-10-05 用户"J 还是读英文"）')
 ok(normalizeSpeech('U₁') === 'U 1' && normalizeSpeech('Q₁−Q₂') === 'Q 1减Q 2', '㉑-3b 下标 ₁₂ → 数字（U+2212 → 减）')
 ok(normalizeSpeech('tanφ₁') === '正切1', '㉑-3c tanφ₁ → 正切1')
 // ㉑-4 希腊字母补全与修正
@@ -496,7 +496,7 @@ ok(/prefetchGACache\(stemSpokenOf\(q\)\)/.test(practiceSrc) && /\[ttsOK, ttsOn, 
 ok(normalizeSpeech('（编译生成梯形图）') === '编译生成梯形图', '㉒-1a 长旁注（编译生成梯形图）不读括号只读内容（2026-10-05 口径 v3：只有公式才读）')
 ok(normalizeSpeech('I=U/(RBC+RL)') === 'I 等于 U除以括号RBC加RL括号', '㉒-1b 半角括号数学分组同样朗读（除以判定先于括号转换）')
 ok(chunkSpeechText('判断该说法是否正确。（　）').join('') === '判断该说法是否正确。', '㉒-1c 判断题空括号（含全角空格，全库 2623 处）2026-10-05 午起整对删除不读')
-ok(normalizeSpeech('热继电器(FR)动作') === '热继电器 FR 动作', '㉒-1d 半角空括号特判在先；短括号（FR）去标记只读内容、两侧补空格防黏连（2026-10-04 分级）')
+ok(normalizeSpeech('热继电器(FR)动作') === '热继电器 F R 动作', '㉒-1d 半角空括号特判在先；短括号（FR）去标记只读内容、两侧补空格防黏连；FR 入 TOKEN_READ 逐字母（2026-10-05）')
 // ㉒-2 绝对值（原版直接删 → 语义丢失）
 ok(normalizeSpeech('IΔ=|Σİ|') === 'I德尔塔 等于 绝对值西格玛I', '㉒-2a |X| → 绝对值X（İ 相量点先归一为 I；前缀形式让分母判定落入"除以"收尾）')
 ok(normalizeSpeech('U/|Z|=2.2') === 'U除以绝对值Z 等于 2.2', '㉒-2b 分母绝对值语境：除以判定（②-g 8) 前瞻加"绝对值"；5) 字母并列零宽不再误抢）')
@@ -586,7 +586,7 @@ ok(normalizeSpeech('e^(−τs)') === 'e的括号减陶s括号次方' && normaliz
 ok(normalizeSpeech('绕组绝缘（端子松脱导致）会下降。') === '绕组绝缘端子松脱导致会下降。', '㉔-3a 中文旁注不读括号')
 ok(normalizeSpeech('该保护（在三相短路且电压跌落超过额定值百分之七十时才动作）应优先采用。').indexOf('括号') < 0, '㉔-3b 超长旁注也不读括号')
 ok(normalizeSpeech('（完全相同可直接互换）') === '完全相同可直接互换' && normalizeSpeech('（gG熔断器或SPD专用断路器）') === 'gG熔断器或S P D专用断路器', '㉔-3c 中英混排旁注不读括号')
-ok(normalizeSpeech('热继电器(FR)动作') === '热继电器 FR 动作' && normalizeSpeech('正确做法是（A）。') === '正确做法是 A。', '㉔-3d 标签括号只读内容（拉丁邻接补空格防黏连）')
+ok(normalizeSpeech('热继电器(FR)动作') === '热继电器 F R 动作' && normalizeSpeech('正确做法是（A）。') === '正确做法是 A。', '㉔-3d 标签括号只读内容（拉丁邻接补空格防黏连）')
 ok(normalizeSpeech('（2）（3）') === '2 3', '㉔-3e 相邻旁注防黏连')
 // ㉔-4 散文词不误判成公式（含算符字但无数学邻接）
 ok(normalizeSpeech('（减少发热）') === '减少发热' && normalizeSpeech('（减速电机）') === '减速电机', '㉔-4a "减少/减速"不是减法')
@@ -598,5 +598,15 @@ ok(chunkSpeechText('判断该说法是否正确。（　）').join('') === '判�
 
 // ㉔-7 用户原例锁形（2026-10-05）：（4+6）读作"括号4加6括号"——收尾同形，不读"括号完"
 ok(normalizeSpeech('（4+6）等于10。') === '括号4加6括号等于10。', '㉔-7 用户原例：（4+6）→ 括号4加6括号（收尾不读完）')
+
+/* ── ㉕ 残留英文单位修复（2026-10-05 · 用户"电工单位还是有些只读英文，比如 w 不读瓦、J 不读焦"；
+   取证=probe_unit_audit.mjs：normalizeSpeech 后仍以拉丁形态的词元全库审计）── */
+ok(normalizeSpeech('某手机电池标称容量为2500mAh。') === '某手机电池标称容量为2500毫安时。' && normalizeSpeech('1C 等于 1As') === '1C 等于 1安秒', '㉕-1 mAh→毫安时（112 处）、As→安秒（mAh 必须先于 mA 规则）')
+ok(normalizeSpeech('量程0到500kg的称重传感器') === '量程0到500千克的称重传感器' && normalizeSpeech('单位分别为Wh 或 kg') === '单位分别为瓦时 或 千克', '㉕-2 kg→千克（117 处；\\b 在数字后不成立，需数字邻接+分隔符邻接双规则）')
+ok(normalizeSpeech('96500C 或 mol') === '96500C 或 摩尔' && normalizeSpeech('单位为mol') === '单位为摩尔', '㉕-3 mol→摩尔（25 处，书 F 化学量纲）')
+ok(normalizeSpeech('断路器额定电流In 等于 63安') === '断路器额定电流I N 等于 63安' && normalizeSpeech('有功功率P=UI') === '有功功率P 等于 U I' && normalizeSpeech('PN结压降') === 'P N结压降', '㉕-4 In/UI/PN 代号与物理量逐字母（原读英文单词 in 不可懂）')
+ok(normalizeSpeech('主回路：QF断路器、QS隔离开关、KT时间继电器、KA中间继电器、FU熔断器、SB按钮、SQ行程开关、SA转换开关、HL指示灯、XT端子。') === '主回路：Q F断路器、Q S隔离开关、K T时间继电器、K A中间继电器、F U熔断器、S B按钮、S Q行程开关、S A转换开关、H L指示灯、X T端子。', '㉕-5 电气图形文字代号逐字母（QF/QS/KT/KA/FU/SB/SQ/SA/HL/XT）')
+ok(normalizeSpeech('3.6×10⁶ W·s') === '3.6乘10的6次方瓦乘s', '㉕-6 次方后置 W→瓦（U、V、W 三相相序不转瓦——专项排除已验证）')
+ok(normalizeSpeech('比例常数k称为标准速率常数') === '比例常数k称为标准速率常数' && normalizeSpeech('三相应按U、V、W排序') === '三相应按U、V、W排序', '㉕-7 回归护栏：变量 k、相序 U/V/W 不被单位规则误伤')
 
 console.log(`\ntts.regression：${n} 断言全绿`)

@@ -34,7 +34,7 @@ check('multi answer unsorted = error', errs(validateItems([base({ 题型: '多�
   check('parseBackup carries imageMap', bk && bk.imageMap && bk.imageMap.q1 === 'tpl_din_wiring')
 }
 // 2026-09-04 新增：B类语义下沉机器检查（按消息精确断言，避免被“数组应为21元素”等顶层错误污染）
-const hasMsg = (issues, kw) => issues.some((i) => i.message.includes(kw))
+const hasMsg = (issues, kw) => issues.some((i) => kw instanceof RegExp ? kw.test(i.message) : i.message.includes(kw))   // 2026-10-05 支持正则（尾界动态化）
 // 2026-09-08 通用性整改：方案对比降为启发式告警（漏检由闸4 评审兜底）——断言级别为告警且无错误级
 check('short-answer scheme-comparison = warning', (() => {
   const iss = validateItems([base({ 题型: '简答题', 选项: undefined, 题干: '给出两种方案并说明取舍', 答案: '1.a；2.b', 解析: '【推导】x【记忆点】z' })], true)
@@ -56,15 +56,19 @@ check("gate retired: 换挡声明字段不再被校验（任意值均不产生�
 // ── 2026-09-16 v6.12 K28~K33 扩域：枚举扩至 K1~K33，消息与边界用例同步 ──
 // ── 2026-10-04 断言腐化修复（INC-20261004-01）：validate.js 已历 K34~K43 三轮扩域
 //    （2026-09-30 K39/K40、2026-10-03 K41/K42/K43），消息文案为"应取K1~K43"，
-//    本组断言未随扩域同步、长期红——现对齐现状：消息锚 K1~K43，越界用例改 K44 ──
+//    本组断言未随扩域同步、长期红——2026-10-05 二次复发（K44/K45/K46 扩域后锚点又 stale）：
+//    根治=validate.js 报错文案改动态"应取K1~K${DOMAINS.length}"，测试侧改正则匹配不再锁死数字 ──
 check('非法知识域 K99 = error', hasMsg(validateItems([base({ 知识域: 'K99' })], false), '知识域'))
-check('非法知识域 K99 = error（消息含 K1~K43 提示）', hasMsg(validateItems([base({ 知识域: '电机学' })], false), '应取K1~K43'))
+check('非法知识域 K99 = error（消息含动态尾界提示）', hasMsg(validateItems([base({ 知识域: '电机学' })], false), /应取K1~K\d+/))
 check('缺失知识域 = error', hasMsg(validateItems([{ ...base(), 知识域: undefined }], false), '缺少字段“知识域”'))
 check('边界 K27 合法', !hasMsg(validateItems([base({ 知识域: 'K27' })], false), '知识域'))
-check('边界 K43 合法（新增域尾界）', !hasMsg(validateItems([base({ 知识域: 'K43' })], false), '知识域'))
+check('边界 K43 合法（2026-10-03 扩域尾界，现居界内）', !hasMsg(validateItems([base({ 知识域: 'K43' })], false), '知识域'))
 check('扩域 K34/K41 合法（2026-09-30/10-03 两轮扩域）', !hasMsg(validateItems([base({ 知识域: 'K34' }), base({ 知识域: 'K41', 知识点: 'x2' })], false), '知识域'))
 check('新增域 K28/K30/K31 合法', !hasMsg(validateItems([base({ 知识域: 'K28' }), base({ 知识域: 'K30', 知识点: 'x2' }), base({ 知识域: 'K31', 知识点: 'x3' })], false), '知识域'))
-check('K44 越界 = error（尾界外仍拦截）', hasMsg(validateItems([base({ 知识域: 'K44' })], false), '应取K1~K43'))
+// INC-20261005-01 固化：越界锚点=尾界+1（2026-10-06 K66 扩域后尾界=66 → 锚点 K67），消息用正则不再锁死数字
+check('扩域 K47/K65 合法（2026-10-05 新增批 19 域）', !hasMsg(validateItems([base({ 知识域: 'K47', 知识点: 'x4' }), base({ 知识域: 'K65', 知识点: 'x5' })], false), '知识域'))
+check('扩域 K66 合法（2026-10-06 3C与锂电批：显示与光学模组工艺）', !hasMsg(validateItems([base({ 知识域: 'K66', 知识点: 'x6' })], false), '知识域'))
+check('K67 越界 = error（尾界外仍拦截，动态消息）', hasMsg(validateItems([base({ 知识域: 'K67' })], false), /应取K1~K\d+/))
 
 
 console.log(`\nregression: ${pass} pass, ${fail} fail`)

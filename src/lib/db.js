@@ -38,6 +38,90 @@ async function snapPut(key, val) {
     return true
   } catch { return false }
 }
+async function snapDel(key) {
+  try {
+    const db = await idbOpen()
+    await new Promise((res, rej) => {
+      const tx = db.transaction(IDB_STORE, 'readwrite')
+      tx.objectStore(IDB_STORE).delete(key)
+      tx.oncomplete = () => res(); tx.onerror = () => rej(tx.error)
+    })
+    return true
+  } catch { return false }
+}
+
+/* ========== 题库静态包通路（2026-10-05 egress 根治 · 方案 B）==========
+   背景：快照层（2026-10-04）只救「老设备重复进站」，救不了新设备首拉 13MB 与
+   rev bump 后全员重拉——这些流量全部记 Supabase egress 账（免费层 5GB/月已爆，
+   10-05 诊断：当前周期 8.039GB，11-01 宽限期结束必 402）。
+   方案：内容态读路径整体搬到 GitHub Pages 静态 JSON（免费、不计 Supabase egress）：
+     data/bank-meta.json —— rev 指纹（<100B，每次进站带 ?t= 破缓存探测一次）
+     data/bank.json      —— { rev, rows, extras }（rows=questions 全表原始行，
+                            extras={imgMap, attributes, questionAttributes, questionStats}）
+   命中语义：IDB 快照(fmt:2).rev === meta.rev → 内容全部读本地（本次进站对内容态
+   流量=0）；miss → 拉一次 bank.json（走 Pages，与 Supabase 无关）并落快照。
+   Supabase 每次进站只剩用户态四表：review_cards / answer_records / settings.app/books。
+   一致性双保险：bank.json 自带 rev，拉到后必须 === meta.rev，不等即抛错走
+   Supabase 回退通路（数据正确性优先于省钱，绝不把旧内容落成新 rev 的快照）。
+   回退保障：meta/bank fetch 失败或形状异常 → loadAllFromSupabase()（=2026-10-04
+   版全流程，行为与旧版完全一致）。静态包缺失只影响省钱，不影响可用性。
+   写侧纪律（pipeline/export_static_bank.mjs 头注释同款）：凡动 questions/imgmap/
+   attributes 三表内容 → bump_bank_rev → export_static_bank → 重新构建部署，缺一不可。 */
+const bankMetaUrl = () => (import.meta.env?.BASE_URL ?? '/') + 'data/bank-meta.json'
+const bankUrl = () => (import.meta.env?.BASE_URL ?? '/') + 'data/bank.json'
+async function fetchBankMeta() {
+  const r = await fetch(`${bankMetaUrl()}?t=${Date.now()}`, { cache: 'no-store' })
+  if (!r.ok) throw new Error('bank-meta HTTP ' + r.status)
+  const meta = await r.json()
+  if (meta?.fmt !== 1 || !Number.isFinite(meta.rev) || !Number.isFinite(meta.questionCount)) {
+    throw new Error('bank-meta 形状异常: ' + JSON.stringify(meta).slice(0, 120))
+  }
+  return meta
+}
+async function loadAllStatic(repo) {
+  const meta = await fetchBankMeta()
+  let qRaw = null, extras = null
+  const snap = await snapGet('bank')
+  const snapOk = !!(snap && snap.fmt === 2 && snap.rev === meta.rev
+    && Array.isArray(snap.rows) && snap.rows.length === meta.questionCount
+    && snap.extras && typeof snap.extras === 'object')
+  if (snapOk) {
+    qRaw = snap.rows; extras = snap.extras
+    console.info(`[loadAll] 静态包命中本地快照 rev=${meta.rev}（${qRaw.length} 行，内容态 0 流量）`)
+  } else {
+    const r = await fetch(`${bankUrl()}?t=${meta.rev}`, { cache: 'no-store' })
+    if (!r.ok) throw new Error('bank.json HTTP ' + r.status)
+    const pack = await r.json()
+    /* 双保险：内容包 rev 必须与 meta.rev 一致——Pages 600s 缓存窗口内新旧错配时
+       走 Supabase 回退（全量拉），绝不把旧内容落成新 rev 快照（错位会固化到下次 bump）。 */
+    if (pack?.rev !== meta.rev || !Array.isArray(pack.rows) || !pack.rows.length) {
+      throw new Error(`bank.json rev 错位: pack=${pack?.rev} meta=${meta.rev}`)
+    }
+    qRaw = pack.rows; extras = pack.extras ?? {}
+    const saved = await snapPut('bank', { fmt: 2, rev: meta.rev, rows: qRaw, extras, at: Date.now() })
+    if (saved) {
+      console.info(`[loadAll] 静态包拉取 ${qRaw.length} 行并已落快照 rev=${meta.rev}（走 GitHub Pages，不记 Supabase egress）`)
+      snapDel('questions')   // 一次性迁移：清 2026-10-04 版旧快照（约 13MB，白占 IDB 配额）
+    }
+  }
+  const [c, r, s, b] = await Promise.all([
+    repo.fetchAllPaged('review_cards', 'question_id'),
+    repo.fetchAllPaged('answer_records', 'id'),
+    repo.client.from('settings').select('value').eq('key', 'app').maybeSingle(),
+    repo.client.from('settings').select('value').eq('key', 'books').maybeSingle(),
+  ])
+  return {
+    questions: qRaw.map(toQuestion),
+    cards: c.map(toCard),
+    records: r.map(toRecord),
+    settings: { dailyGoal: 20, ...(s.data?.value ?? {}) },
+    books: b.data?.value ?? null,
+    imgMap: (extras.imgMap && typeof extras.imgMap === 'object' && !Array.isArray(extras.imgMap)) ? extras.imgMap : null,
+    attributes: (extras.attributes ?? []).map(toAttr),
+    questionAttributes: (extras.questionAttributes ?? []).map(toQA),
+    questionStats: (extras.questionStats ?? []).map(toStat),
+  }
+}
 
 const toQuestion = (r) => {
   const q = { id: r.id, seq: r.seq, type: r.type, stem: r.stem, answer: r.answer }
@@ -149,7 +233,17 @@ export class CloudRepo {
     if (rows.length < total) throw new Error('fetchAllPaged: 拉取不完整 ' + rows.length + '/' + total + '(' + table + ')')
     return rows
   }
+  /* 静态包优先（2026-10-05 方案 B），任何异常回退 Supabase 全量通路（2026-10-04 版原样保留）。 */
   async loadAll() {
+    try {
+      const data = await loadAllStatic(this)
+      if (data) return data
+    } catch (e) {
+      console.warn('[loadAll] 静态包通路失败，回退 Supabase 全量拉取', e)
+    }
+    return this.loadAllFromSupabase()
+  }
+  async loadAllFromSupabase() {
     /* 【2026-09-20 AH批】属性三表原为「第一批 await 完成后再串行拉」——瀑布实测第二批
        到 4602ms 才起步（第一批 4600ms 才结束），白多一整轮 RTT（约 +696ms）。
        三表各自独立、失败均降级为空数组（DDL 未执行或网络异常时仅诊断页显示"未就绪"，
