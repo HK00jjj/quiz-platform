@@ -8,7 +8,7 @@ import { IconRetry, IconShuffle, IconNew, IconFilter, IconLearn, IconImport } fr
 import { buildSession, lastResultMap, TYPES, DIFFICULTIES, domainLabel, filtersKey } from '../lib/stats'
 import { abilityOf, zoneAdvice, masteryGate, RANKS, PROMOTION_EXAM, MASTERY, EXAM_ATTEMPTS, EXAM_WRONGS_KEY } from '../lib/ability.js'
 import { gradeObjective } from '../lib/validate'
-import { unlockCloudAudio, prefetchGACache } from '../lib/tts.js'
+import { unlockCloudAudio, prefetchGACache, ttsEnabled } from '../lib/tts.js'
 import { stemSpokenOf } from '../lib/validate'
 import { isDue } from '../lib/fsrs'
 import { recallDue, buildRecallItems, weakDomains, RECALL_GRADES } from '../lib/recall'
@@ -456,7 +456,9 @@ export default function Learn() {
       （自 validate 引，防口径漂移）；失败静默，开口时自然回退合成 RTT 老路径。 */
     if (n > 0) {
       const qs = useStore.getState().sessionQuestions
-      if (qs && qs[0]) prefetchGACache(stemSpokenOf(qs[0]))
+      /* 2026-10-07 复查补 gate：ttsEnabled() 为持久化偏好（与练习页开关 setTtsEnabled 同步），
+         静音中不预载——不烧合成配额，与 ⑱-24 系列口径一致。 */
+      if (ttsEnabled() && qs && qs[0]) prefetchGACache(stemSpokenOf(qs[0]))
     }
     if (n > 0) navigate('/practice')
   }

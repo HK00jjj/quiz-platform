@@ -18,7 +18,7 @@ import React, { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store'
 import { pathState, MASTERED, PATH_GRAPH } from '../lib/path'
-import { unlockCloudAudio, prefetchGACache } from '../lib/tts.js'
+import { unlockCloudAudio, prefetchGACache, ttsEnabled } from '../lib/tts.js'
 import { stemSpokenOf } from '../lib/validate'
 
 const pct = (x) => (x == null ? '—' : (x * 100).toFixed(0) + '%')
@@ -121,7 +121,8 @@ export default function Path() {
            tools/tts_rtt_probe.cjs）。stemSpokenOf 与练习页同口径，失败静默。 */
         unlockCloudAudio()
         const qs = useStore.getState().sessionQuestions
-        if (qs && qs[0]) prefetchGACache(stemSpokenOf(qs[0]))
+        /* 2026-10-07 复查补 gate：ttsEnabled() 持久化偏好，静音中不预载（与 ⑱-24 口径一致） */
+        if (ttsEnabled() && qs && qs[0]) prefetchGACache(stemSpokenOf(qs[0]))
         nav('/practice')
       }
     } finally {

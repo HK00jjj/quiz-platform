@@ -767,7 +767,9 @@ export default function Practice() {
        幂等共享 promise）：答对=免费幂等，答错=揭晓开口时缓存大概率已命中。失败静默。
        守卫：显式选了系统音色（pref 为本机音名）时 speak() 走 native 线不消费 gaCache，
        预载是纯浪费请求——只有自动档/云端音色才预载。 */
-    { const pv = ttsVoicePref(); if (!pv || isCloudVoice(pv)) {
+    { const pv = ttsVoicePref(); if (ttsOn && (!pv || isCloudVoice(pv))) {
+      /* 2026-10-07 复查补 ttsOn 闸：静音中不预载（不烧合成配额，与 ⑱-24 系列口径一致）；
+         揭晓后手动开声由 L1164 重读/现场合成兜底 */
       try { prefetchCloudFirst(spokenOf(q, gradeObjective(q, inputText), shuffleRef.current.order)) } catch { /* 预载失败静默：揭晓走老路径 */ }
     } }
     /* F1 反馈分级：review 先自查（提交判分但延迟启封、特效静默）——
