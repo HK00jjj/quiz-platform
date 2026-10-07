@@ -6,7 +6,7 @@
    ③ pickVoice：选声优先级（晓晓Natural > 云希Natural > Natural > 常见微软本地音 > 任意zh） */
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
-import { chunkSpeechText, cleanSpeechText, normalizeSpeech, pickVoice, chunkMaxFor, TTS_RATE, RATE_MIN, RATE_MAX, RATE_STEP, clampRate, fmtRate, ttsRate, migrateRate, breathText, chunkTailPause, PAUSE_AFTER_SENT, PAUSE_AFTER_CLAUSE, PAUSE_AFTER_OTHER, sliceForResume, listVoices, voiceQualityOf, voiceAccent, voiceLabel, ttsVoicePref, resolveVoiceByName, zhLike, voiceDiag, cloudTtsUrl, cloudSpd, engineFor, isCloudVoice, isEdgeVoice, EDGE_VOICES, CLOUD_VOICES, CLOUD_CHUNK_MAX, CLOUD_CHUNK_MAX_EDGE, CLOUD_FIRST_CHUNK_MAX, cloudChunkMaxFor, cloudSupported, CLOUD_VOICE_ID, CLOUD_DEFAULT_VOICE, prefetchCloudFirst, gaTrimRange, speakCloudGA, currentPauseTag } from '../src/lib/tts.js'
+import { chunkSpeechText, cleanSpeechText, normalizeSpeech, pickVoice, chunkMaxFor, TTS_RATE, RATE_MIN, RATE_MAX, RATE_STEP, clampRate, fmtRate, ttsRate, migrateRate, breathText, chunkTailPause, PAUSE_AFTER_SENT, PAUSE_AFTER_CLAUSE, PAUSE_AFTER_OTHER, sliceForResume, listVoices, voiceQualityOf, voiceAccent, voiceLabel, ttsVoicePref, resolveVoiceByName, zhLike, voiceDiag, cloudTtsUrl, cloudSpd, isCloudVoice, isEdgeVoice, EDGE_VOICES, CLOUD_VOICES, CLOUD_CHUNK_MAX, CLOUD_CHUNK_MAX_EDGE, CLOUD_FIRST_CHUNK_MAX, cloudChunkMaxFor, cloudSupported, CLOUD_VOICE_ID, CLOUD_DEFAULT_VOICE, prefetchCloudFirst, gaTrimRange, speakCloudGA, currentPauseTag } from '../src/lib/tts.js'   // engineFor 已删（2026-10-06 死代码清理），import 同步移除
 
 let n = 0
 const ok = (cond, msg) => { n++; assert.ok(cond, msg) }
@@ -285,15 +285,9 @@ ok(EDGE_VOICES.length >= 5 && EDGE_VOICES[0].id === 'zh-CN-YunjianNeural', '⑪-
 ok(CLOUD_VOICES.some((v) => v.name === CLOUD_VOICE_ID), '⑪-18 云端表含百度备用线路')
 ok(isCloudVoice('zh-CN-YunjianNeural') && isCloudVoice(CLOUD_VOICE_ID) && !isCloudVoice('Microsoft Huihui'), '⑪-19 isCloudVoice 只认云端 id')
 ok(isEdgeVoice('zh-CN-YunjianNeural') && !isEdgeVoice(CLOUD_VOICE_ID), '⑪-20 isEdgeVoice 区分两条线路')
-// ⑪-5 引擎决策：显式选择优先；自动档云端可用一律云端（2026-09-15 下午改：GA 管线零块边界，
-// 桌面 native 逐 utterance 网络合成有 0.3~1s 块间隙=句号卡顿主因）
-ok(engineFor('sapi', CLOUD_VOICE_ID, true) === 'cloud', '⑪-21 显式选云端 → cloud')
-ok(engineFor('natural', 'Microsoft Huihui', true) === 'sys', '⑪-22 显式选系统音 → sys')
-ok(engineFor('natural', null, true) === 'cloud', '⑪-23 自动 + 系统是神经音 → cloud（GA 零边界优先，不再省一跳留块间隙）')
-ok(engineFor('sapi', null, true) === 'cloud', '⑪-24 自动 + 系统只老式音 → cloud（与电脑端同音色）')
-ok(engineFor('network', null, true) === 'cloud', '⑪-25 自动 + 系统是网络音 → cloud')
-ok(engineFor(null, null, true) === 'cloud', '⑪-26 自动 + 本机无中文音 → cloud')
-ok(engineFor(null, null, false) === 'sys', '⑪-27 云端不可用时回落 sys（不臆造能力）')
+// ⑪-5 引擎决策：engineFor 独立函数已删（2026-10-06 审查 P2 死代码清理——自动档决策
+// 自 2026-09-15 起内联进 speak()，函数体全库零引用）。决策语义源码锁见 ⑱-15
+// （ttsSrc 在下方 ⑰ 组才读入，故此处不放源码断言）。
 ok(cloudSupported() === false, '⑪-28 Node 无 window → cloudSupported() 安全返回 false')
 
 /* ── ⑮ 云端双缓冲与手势预载（2026-09-15，修"读一段停一下 / 点开解析要等一会"）──
@@ -330,7 +324,7 @@ ok(/replace\(\/\\\{\[\^\{\}\]\*\\\}\/g, '空'\)/.test(validateSrc), '⑰-2 填�
 ok(/function startStemLoop\(text, idx, qid\) \{/.test(practiceSrc) && /speak\(text, \{ tag: 'stem\|' \+ idx \+ '\|' \+ qid, onDone \}\)/.test(practiceSrc), '⑰-3 stem 开口接线（2026-09-16 升级循环朗读：effect 调 startStemLoop，循环本体内部 speak 带 stem tag）')
 ok(/const stemSpokenRef = useRef\(null\)/.test(practiceSrc), '⑰-4 stemSpokenRef「已读」闸存在（与 spokenKeyRef 分离，防叠音）')
 ok(practiceSrc.includes('[ttsOK, index, q?.id, phase, showAnswer, ttsOn]'), '⑰-5 stem effect 依赖数组含 phase/ttsOn（揭晓时不读、开关回开能接住）')
-ok(/const nxt = questions\[index \+ 1\][\s\S]{0,80}?if \(nxt\) prefetchGACache\(stemSpokenOf\(nxt\)\)/.test(practiceSrc), '⑰-6 翻题预载已升级（2026-09-15 晚）：GA 缓存线免疫 stopSpeak 清场，flipToNext 挂下一题题干预载——旧禁令"stopSpeak 清场会吃掉预载"只针对 <audio> src 预载，GA 缓存线不受影响（详见 ⑱-24e）')
+ok(/const nxt = questions\[index \+ 1\][\s\S]{0,80}?if \(nxt && ttsOn\) prefetchGACache\(stemSpokenOf\(nxt\)\)/.test(practiceSrc), '⑰-6 翻题预载已升级（2026-09-15 晚）：GA 缓存线免疫 stopSpeak 清场，flipToNext 挂下一题题干预载——旧禁令"stopSpeak 清场会吃掉预载"只针对 <audio> src 预载，GA 缓存线不受影响（详见 ⑱-24e）；2026-10-06 补 ttsOn 闸（静音中不预载）')
 ok(/import \{[^}]*unlockCloudAudio[^}]*\} from '\.\.\/lib\/tts\.js'/.test(learnSrc), '⑰-7 Learn.jsx 引入 unlockCloudAudio（import 口径放宽：允许并列其他导出）')
 ok(/async function run\(mode, opts = \{\}\) \{\s*\n\s*unlockCloudAudio\(\)/.test(learnSrc), '⑰-8 进练习手势内解锁云端 <audio>（移动端首题不被拦）')
 ok(/onClick=\{async \(\) => \{\s*\n\s*unlockCloudAudio\(\)\s*\/\/ 重开一轮/.test(practiceSrc), '⑰-9 再练错题手势内解锁云端 <audio>')
@@ -356,7 +350,7 @@ ok(/\{ rate = ttsRate\(\), onDone, tag \} = \{\}/.test(ttsSrc), '⑱-11 speak() 
 ok((practiceSrc.match(/tag: 'reveal\|'/g) || []).length >= 4, '⑱-12 Practice 四处解析播报均带 reveal tag（effect/开关/重读/换音色+调速）')
 ok(/tag: 'stem\|' \+ idx \+ '\|' \+ qid/.test(practiceSrc), '⑱-13 题干播报带 stem tag（2026-09-16 起在 startStemLoop 循环本体内）')
 ok(/currentPauseTag\(\) === expected && resumeSpeak\(stemLoopRef\.current \? stemLoopRef\.current\.onDone : undefined\)/.test(practiceSrc) && /const expected = \(revealed \? 'reveal\|' : 'stem\|'\) \+ index \+ '\|' \+ \(q \? q\.id : ''\)/.test(practiceSrc), '⑱-14 开关续播按上下文对表：tag 匹配才 resume（2026-09-16 起透传循环 onDone），过期暂停丢弃')
-ok(/export function engineFor\(autoQuality, pref, cloudOK\) \{[\s\S]*?return 'cloud'\s*\}/.test(ttsSrc), '⑱-15 engineFor：自动档云端可用一律 cloud（新决策表）')
+ok(/const autoCloud = !pref && cloudSupported\(\)/.test(ttsSrc) && /if \(!ttsSupported\(\) \|\| autoCloud\) \{/.test(ttsSrc) && /if \(isCloudVoice\(pref\)\) \{[\s\S]{0,200}?handoverCloud\(\)/.test(ttsSrc) && !/export function engineFor/.test(ttsSrc), '⑱-15 自动档决策内联 speak()：显式云端分支 + autoCloud 判定（2026-10-06 engineFor 死代码删除后接棒锁语义）')
 /* ⑱-16~19 串行排程链闭合锁（2026-09-15 下午事故）：初版只排第一块（排完只"预解码"未递归
    schedule，中间块无 onended）→ 首块以句号收尾播完即永久静音。E2E 当时未覆盖"第二块继续播"
    ——这组锁专堵该盲区：链必须递归闭合、排程本体抽取、全块并行预取、失败跳过也闭合。 */
@@ -381,12 +375,12 @@ ok(/ttsOK && !answered && !showAnswer && \([\s\S]{0,600}?onClick=\{toggleTts\}[\
 /* ⑱-24 预载提速（2026-09-15 晚"点解析/翻题就出声"）：解析与题干首块提前预合成进 GA
    缓存（gaCache），开口零网络零解码等待。三层预载接线 + GA-only 守卫（不碰 <audio>
    双缓冲、免疫 stopSpeak 清场——这是解除"翻题不挂预载"旧禁令的前提条件）。 */
-const gaPrefBody = ttsSrc.slice(ttsSrc.indexOf('export function prefetchGACache'), ttsSrc.indexOf('export function engineFor'))
+const gaPrefBody = ttsSrc.slice(ttsSrc.indexOf('export function prefetchGACache'))   // 2026-10-06 engineFor 删除后 prefetchGACache 为文件末位 export，slice 到文件尾
 ok(/export function prefetchGACache\(raw, rate = ttsRate\(\)\)/.test(ttsSrc) && /if \(!cloudSupported\(\) \|\| !webAudioOK\(\)\) return false/.test(gaPrefBody) && /gaWarm\(cloudTtsUrl\(chunks\[0\], rate, useVoice\)\); return true/.test(gaPrefBody), '⑱-24a prefetchGACache：云端线专属（cloudSupported+webAudioOK 守卫；2026-09-21 锚点修复 INC-20260921-11：守卫实现已从 isEdgeVoice 演进，GA 线 gaWarm 预热 URL 与 speak 云端分支同参不变）')
-ok(gaPrefBody.length > 0 && gaPrefBody.length < 1600 && /if \(cloudPlaying\) return false/.test(gaPrefBody) && /els\[0\] === cloudPlaying \? els\[1\] : els\[0\]/.test(gaPrefBody) && !/\.src = cloudTtsUrl/.test(gaPrefBody), '⑱-24b prefetchGACache 双缓冲纪律（2026-09-21 锚点修复）：百度线补预热（AV批有意设计）只热空闲元素、正在朗读时跳过，绝不抢正在播的元素；长度上限 1200→1600（voice/chunkMax 决策入体）')
+ok(gaPrefBody.length > 0 && gaPrefBody.length < 2000 && /if \(cloudPlaying\) return false/.test(gaPrefBody) && /els\[0\] === cloudPlaying \? els\[1\] : els\[0\]/.test(gaPrefBody) && !/\.src = cloudTtsUrl/.test(gaPrefBody), '⑱-24b prefetchGACache 双缓冲纪律（2026-09-21 锚点修复）：百度线补预热（AV批有意设计）只热空闲元素、正在朗读时跳过，绝不抢正在播的元素；长度上限 1200→1600→2000（voice/chunkMax 决策入体；2026-10-06 slice 终点改文件尾）')
 ok(/startStemLoop\(stemSpokenOf\(q\), index, q\.id\)[\s\S]{0,600}?prefetchGACache\(spokenOf\(q, null, ord\)\)/.test(practiceSrc), '⑱-24c 题干 effect 预载解析首块（null 版：选择/判断 expected===answer、简答 lastGrade 恒 null；2026-09-16 开口行改 startStemLoop，预载接线不变）')
 ok(/const parts = splitExpected\(q\)[\s\S]{0,80}?if \(parts\.length > 1\) prefetchGACache\(spokenOf\(q, \{ correct: true, expectedParts: parts \}, ord\)\)/.test(practiceSrc), '⑱-24d 填空多空补预载 expectedParts 版（splitExpected 真函数；单空两版 URL 相同 gaWarm 幂等不双请求）')
-ok(/const nxt = questions\[index \+ 1\][\s\S]{0,80}?if \(nxt\) prefetchGACache\(stemSpokenOf\(nxt\)\)/.test(practiceSrc), '⑱-24e 翻题手势预载下一题题干首块（360ms 翻牌动画=合成窗口，队列已定 index+1 即下一题）')
+ok(/const nxt = questions\[index \+ 1\][\s\S]{0,80}?if \(nxt && ttsOn\) prefetchGACache\(stemSpokenOf\(nxt\)\)/.test(practiceSrc), '⑱-24e 翻题手势预载下一题题干首块（360ms 翻牌动画=合成窗口，队列已定 index+1 即下一题；2026-10-06 补 ttsOn 闸：静音中不预载不烧配额）')
 ok((practiceSrc.match(/prefetchGACache\(stemSpokenOf\(qs\[0\]\)\)/g) || []).length >= 1 && (learnSrc.match(/prefetchGACache\(stemSpokenOf\(qs\[0\]\)\)/g) || []).length >= 1, '⑱-24f 入口预载首题：Learn run() + 结算页再练错题两处手势（装载时间=合成窗口）')
 ok(/export function stemSpokenOf/.test(validateSrc) && /import \{ gradeObjective, blanksOf, splitExpected, stemSpokenOf \} from '\.\.\/lib\/validate'/.test(practiceSrc), '⑱-24g stemSpokenOf/splitExpected 收敛 validate 真源（Practice/Learn 同口径引用防漂移）')
 

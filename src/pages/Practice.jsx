@@ -59,21 +59,28 @@ function Stem({ q }) {
 /* 解析分节渲染（2026-09-19 · 审查 P0-2）：把 v7.1 解析的「【概念】…【推导】…【正解】…
    【误诊】…【记忆点】…」切成「小标题 + 正文」，长解析不再是一堵墙。
    纯前端字符串处理——不改数据、不改 store；无标记（旧格式）时回退为单段，保证不炸。
-   2026-10-06（用户指令）：显示时把【记忆点】提到最前（结论先行）。仅显示层重排——
-   存储文本与 validate 的写作顺序校验（概念→推导→误诊→记忆点）不变，出题口径不受影响。 */
+   2026-10-06（用户指令）：显示与播报统一把【记忆点】提到最前（结论先行）。仅显示/播报层
+   重排——存储文本与 validate 的写作顺序校验（概念→推导→误诊→记忆点）不变，出题口径不受影响。 */
 const EXPL_DISP_ORDER = { '记忆点': 0 }
-function Expl({ text }) {
-  const raw = String(text ?? '')
-  const parts = raw.split(/【(概念|推导|正解|误诊|记忆点)】/)
-  if (parts.length < 3) return <p>{raw}</p>
+/* 共用「切分 + 置顶重排」（Expl 渲染与 spokenOf 播报同源，2026-10-06）：
+   返回 [标签, 正文][]；无标记（旧格式）或全空段返回 []，由调用方回退原文。
+   稳定排序：记忆点置顶，其余段保持原文相对顺序。 */
+function explSections(raw) {
+  const parts = String(raw ?? '').split(/【(概念|推导|正解|误诊|记忆点)】/)
+  if (parts.length < 3) return []
   const secs = []
   for (let i = 1; i < parts.length; i += 2) {
     const body = (parts[i + 1] ?? '').trim()
     if (body) secs.push([parts[i], body])
   }
-  if (!secs.length) return <p>{raw}</p>
-  /* 稳定排序：记忆点置顶，其余段保持原文相对顺序；无记忆点段的题原序不炸 */
+  if (!secs.length) return []
   secs.sort((a, b) => (EXPL_DISP_ORDER[a[0]] ?? 1) - (EXPL_DISP_ORDER[b[0]] ?? 1))
+  return secs
+}
+function Expl({ text }) {
+  const raw = String(text ?? '')
+  const secs = explSections(raw)
+  if (!secs.length) return <p>{raw}</p>
   return (
     <>
       {secs.map(([name, body], k) => (
@@ -90,6 +97,8 @@ function Expl({ text }) {
    与屏幕同源：选择题答案/解析里的选项字母都按洗牌后的【显示字母】重映射
    （v7.5 起与 remapExplLetters 共用 util.js 的单遍扫描重映射 remapOptionLetters），
    朗读出来的「选B」与屏幕上的 B 一致。
+   2026-10-06：解析分节顺序与屏幕一致（explSections 共用切分，记忆点置顶）；
+   读法层（tts.js）对【X】做纯正则转「X，」，与顺序无关。
    order 必须传本帧渲染用的洗牌序（shuffleRef.current），不能重掷。 */
 function spokenOf(q, lastGrade, order) {
   const isChoice = q.type === '单选题' || q.type === '多选题'
@@ -106,7 +115,15 @@ function spokenOf(q, lastGrade, order) {
       ? lastGrade.expectedParts.map((p, i) => lastGrade.expectedParts.length > 1 ? `第${i + 1}空：${p}` : p).join('　')
       : q.answer
   const parts = [`正确答案：${ans}`]
-  if (q.explanation) parts.push(`解析：${remap(q.explanation)}`)
+  if (q.explanation) {
+    /* 播报与屏幕同序（2026-10-06）：explSections 共用切分 + 记忆点置顶重排后重组；
+       无标记旧格式回退原文。remap 单遍字母映射与段落顺序无关，映射后重组等价。 */
+    const secs = explSections(q.explanation)
+    const expText = secs.length
+      ? secs.map(([name, body]) => `【${name}】${body}`).join('')
+      : q.explanation
+    parts.push(`解析：${remap(expText)}`)
+  }
   return parts.join('。')
 }
 
@@ -453,6 +470,14 @@ export default function Practice() {
     }
     wasRevealedRef.current = true
     if (!ttsOn) return                            // 静音中：不自动开口（揭晓后再开由开关 handler 接）
+    /* 下一题题干首块预载（2026-10-06 修"切题后播报迟 4~5s"）：实测首块（70 字）合成
+       RTT 0.6~3.7s（冷连接/瞬态失败更久，gaWarm 还有 0.8s 退避），而原预载点在
+       flipToNext 翻牌前 360ms——远盖不住 RTT，新题开口 = 剩余 RTT 全额暴露。
+       解析朗读窗口通常 10~60s，在这里预载 index+1 题干首块，翻题时 gaCache 必然命中。
+       gaCache 按 URL 幂等：与答题期/翻牌期预载同 URL 共享同一 promise，不重复合成。
+       主观题 showAnswer 路径同样经过本分支。放在 spokenKey 闸之前：每次揭晓拍都兜底。 */
+    const nxtR = questions[index + 1]
+    if (nxtR) prefetchGACache(stemSpokenOf(nxtR))
     const key = index + '|' + q.id
     if (spokenKeyRef.current === key) return      // 本题已读过：不重播（这是防叠音的闸）
     spokenKeyRef.current = key
@@ -540,6 +565,11 @@ export default function Practice() {
       const parts = splitExpected(q)
       if (parts.length > 1) prefetchGACache(spokenOf(q, { correct: true, expectedParts: parts }, ord))
     }
+    /* 下一题题干首块预载（2026-10-06）：答题期就开始合成 index+1 题干——即使用户不听
+       解析直接翻题，也有整个作答窗口做合成缓冲（实测 RTT 0.6~3.7s >> 翻牌 360ms 窗口）。
+       与 flipToNext / reveal effect 的同 URL 预载按 gaCache 幂等共享，零重复合成。 */
+    const nxtQ = questions[index + 1]
+    if (nxtQ) prefetchGACache(stemSpokenOf(nxtQ))
   }, [ttsOK, index, q?.id, phase, showAnswer, ttsOn])
   /* 当前题题干预热（2026-10-04 播放流畅度修复）：Learn 入口有手势预热（run() 内
      prefetchGACache 首题），但刷新后 store 恢复 sessionQuestions 直进 Practice 时不经过
@@ -774,9 +804,10 @@ export default function Practice() {
        发起 GA 预合成，360ms 翻牌动画正好是合成窗口，新题落地开口 gaCache 命中秒排。
        gaCache 是 JS Map，不受 stopSpeak 清场影响——解除"翻题不挂预载"旧禁令（该禁令
        针对 <audio> src 预载会被清场吃掉；GA 缓存线免疫）。队列已定（三遍判制重入队
-       发生在判分时），index+1 即下一题；末题越界由 if 守卫。 */
+       发生在判分时），index+1 即下一题；末题越界由 if 守卫。
+       2026-10-06 补 ttsOn 闸（审查 P2）：静音中不预载——不烧合成配额，与 ⑱-24 系列口径一致。 */
     const nxt = questions[index + 1]
-    if (nxt) prefetchGACache(stemSpokenOf(nxt))
+    if (nxt && ttsOn) prefetchGACache(stemSpokenOf(nxt))
     setFlipped(false)
     // 300ms = .q-flipper 退出时长，留 60ms 余量再切题
     setTimeout(() => { flying.current = false; next() }, 360)
@@ -836,9 +867,10 @@ export default function Practice() {
                   const n = await startSession('wrong', { size: 0 })
                   if (n > 0) {
                     startAt.current = Date.now(); setElapsed(0)
-                    /* 首题题干首块预载（2026-09-15 晚）：结算→练习页的路由/装载时间变成合成窗口 */
+                    /* 首题题干首块预载（2026-09-15 晚）：结算→练习页的路由/装载时间变成合成窗口。
+                       2026-10-06 补 ttsOn 闸（审查 P2）：静音中不预载——不烧合成配额。 */
                     const qs = useStore.getState().sessionQuestions
-                    if (qs && qs[0]) prefetchGACache(stemSpokenOf(qs[0]))
+                    if (ttsOn && qs && qs[0]) prefetchGACache(stemSpokenOf(qs[0]))
                   }
                   else navigate('/')
                 }}><IconRetry /> 再练错题（{wrongN}）</GiltBtn>
