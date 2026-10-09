@@ -1,7 +1,6 @@
-# src 备份说明（rev16 · scout346 批 10 题修复）
+# src 备份说明（rev17 · 剔除 253 道冷门面试题）
 
-- **时间**：2026-10-08 23:59（GMT+8）；commit 0f76fee（父 9dad404）
-- **内容**：scout346 批（346 题 scout 面经）健康体检后处置落库——4 题错误答案重写（q_1yzh1ec PLC漏/源型判别颠倒、q_azyw8px 电机异响断电判别因果颠倒、q_natlvox 桥式整流反接后果、q_79hei9e Y/△铭牌判读写反）+ 6 题存疑表述修正（q_2upwb5x/q_3vw5sru/q_7y7otx9/q_jrxojxo/q_yxxgi1f 答案，q_f3m70xf 解析）；其中 6 题解析同步修复。共 9 answer + 6 explanation = 15 字段 PATCH，回读+终验全过（stem 均未动）。
-- **发布链**：云端 PATCH → bump_bank_rev 15→16 → export_static_bank（rev16/9265 题/16.56MB）→ build（13.9s，bundle index-CJAe_RLs.js）→ purge-dist → deploy-api（commit 0f76fee，15 变更文件）→ push-src（本提交）→ verify-live。
-- **体检报告**：`装配调试维修面试题库_scout346题体检报告.xlsx/.md`（统计总览/体检明细 346 行/问题清单 10 条）；评审产物在 `2026-10-08-21-20-12/eval3/`（aggregated.json、fixes_def.mjs、fix10.mjs、verify10.mjs、cloud_backup_before_fix346.json）。
-- **教训登记**：INC-20261008-07（终验断言 undefined 误报，单字段补丁题被误判不一致；修正版 verify10.mjs 按补丁键集比对 PASS）。
+- **内容**：scout346 体检报告 + 用户「保留常见必问、剔除冷门不常见」指令。全库 1274 题按面试常见度分级（必问254/常见375/偶见392/冷门253，依据五类真实面试题源锚清单 + 5 组并行评审 + 边界人工复核），剔除 253 道冷门题（岗位错位/主题无关/理论深水区/极偏细节），本书 1274→1021 题，全库 9265→9012。
+- **执行链**：253 题完整行备份 + books value 备份 → DELETE questions（分批50）→ 回读零残留（9012）→ books.assign 同步清理（INC-20261008-04 纪律）→ 一致性校验（assign total=9012、本书=1021）→ bump rev 16→17 → export（rev17/9012）→ build → purge → deploy → push-src（本提交）→ VERIFY-LIVE-17。
+- **产物**：tier/all_tiers.json（全量分级）、tier/remove_final.json（253 id+理由）、tier/backup_delete253_full.json（删除行全量备份）、tier/backup_books_before_delete253.json（assign 备份）、剔除清单报告 `装配调试维修面试题库_剔除清单_待确认.md`。
+- **执行方式**：Supabase 遭遇 1.5h+ 长阻断窗口（SNI 特征重置，node/curl/代理全堵），由 watchdog_remove.mjs 无人值守穿窗执行全链。
