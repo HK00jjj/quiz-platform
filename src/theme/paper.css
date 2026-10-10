@@ -679,6 +679,18 @@
         答题页专属规则（.opt-row/.judge-card/.q-face-foot/.nav-sheet 等）保持原作用域不动。
    边界：不动任何 JSX 结构（除已改的类名）、不动逻辑与数据。
    ══════════════════════════════════════════════════════════════════════════ */
+/* INC-20261009-01 根因修复：令牌原本只挂 .app-shell，而登录门渲染在 .app-shell 之外
+   （App.jsx 登录分支无 Shell 包裹），N5「登录页纸面化」整段 var(--pp-*) 在登录页
+   IACVT——非继承属性回落 initial：.btn 的 background/border 塌成透明，color:#fff
+   是字面量却仍在 → 白字透明底，「进入题库」按钮隐形。这里把同一套令牌补挂 :root
+   （只含自定义属性，不给 html 添背景/文字副作用）；.app-shell 与 .in-practice 的
+   同名定义按更近作用域照旧胜出，站内零变化，仅登录页从「死规则」变为按 N5 设计生效。 */
+:root {
+  --pp-bg: #F2F0EB; --pp-paper: #FFFFFF;
+  --pp-fg: #121212; --pp-sub: #6B6B6B; --pp-faint: #73736E; --pp-hair: #E3E0D8;
+  --pp-acc: #2F5FD0; --pp-ok: #16794B; --pp-bad: #B3261E;
+  --pp-sans: Inter, "Roboto Flex", "PingFang SC", "HarmonyOS Sans SC", "Noto Sans SC", "Source Han Sans SC", "Microsoft YaHei Light", "Microsoft YaHei", system-ui, sans-serif;
+}
 .app-shell {
   --pp-bg: #F2F0EB; --pp-paper: #FFFFFF;
   --pp-fg: #121212; --pp-sub: #6B6B6B; --pp-faint: #73736E; --pp-hair: #E3E0D8;

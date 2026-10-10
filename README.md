@@ -1,6 +1,18 @@
-# src 备份说明（rev17 · 剔除 253 道冷门面试题）
+# rev18 发布备份说明（2026-10-09）
 
-- **内容**：scout346 体检报告 + 用户「保留常见必问、剔除冷门不常见」指令。全库 1274 题按面试常见度分级（必问254/常见375/偶见392/冷门253，依据五类真实面试题源锚清单 + 5 组并行评审 + 边界人工复核），剔除 253 道冷门题（岗位错位/主题无关/理论深水区/极偏细节），本书 1274→1021 题，全库 9265→9012。
-- **执行链**：253 题完整行备份 + books value 备份 → DELETE questions（分批50）→ 回读零残留（9012）→ books.assign 同步清理（INC-20261008-04 纪律）→ 一致性校验（assign total=9012、本书=1021）→ bump rev 16→17 → export（rev17/9012）→ build → purge → deploy → push-src（本提交）→ VERIFY-LIVE-17。
-- **产物**：tier/all_tiers.json（全量分级）、tier/remove_final.json（253 id+理由）、tier/backup_delete253_full.json（删除行全量备份）、tier/backup_books_before_delete253.json（assign 备份）、剔除清单报告 `装配调试维修面试题库_剔除清单_待确认.md`。
-- **执行方式**：Supabase 遭遇 1.5h+ 长阻断窗口（SNI 特征重置，node/curl/代理全堵），由 watchdog_remove.mjs 无人值守穿窗执行全链。
+## 本次内容变更
+- 新增 10 道高频补充题（来源：7 路联网调研缺口分析；半导体 4 + 锂电 3 + 机器人 1 + 视觉 1 + SMT 1）
+- 修正 2 道存量形态残留题（q_118zsfp 填空→简答 RobotStudio；q_5awq9s 单选→简答氦质谱检漏三步法）
+- 库总数：9012 → 9022；本书（b_l64s8t3lzb）assign：1021 → 1031
+- rev：17 → 18
+
+## 相关脚本与备份（E:/workbuddy-cc/2026-10-08-21-20-12/tier/）
+- new10.json：10 题命题数据（含 source 来源依据字段）
+- new10_payload.json：实际插入的完整行
+- insert10.mjs / insert_result.json：入库脚本与结果（新题 id 清单）
+- backup_books_before_insert10.json：books settings 改前备份
+- backup_fix2_before.json：2 道存量题改前完整行
+- watchdog_insert10.mjs / watchdog_run.log / watchdog_result.json：开窗看门狗（假证书劫持期）
+
+## 来源依据
+详见《装配调试维修面试题库_补题10道_来源依据报告.md》（同目录上级）
