@@ -1,18 +1,15 @@
-# rev18 发布备份说明（2026-10-09）
+# rev19 发布备份说明（2026-10-10）
 
 ## 本次内容变更
-- 新增 10 道高频补充题（来源：7 路联网调研缺口分析；半导体 4 + 锂电 3 + 机器人 1 + 视觉 1 + SMT 1）
-- 修正 2 道存量形态残留题（q_118zsfp 填空→简答 RobotStudio；q_5awq9s 单选→简答氦质谱检漏三步法）
-- 库总数：9012 → 9022；本书（b_l64s8t3lzb）assign：1021 → 1031
-- rev：17 → 18
+- 新增 8 道设备四连问缺口题（覆盖度审计驱动；软启动器 2 K4 / 电动葫芦 2 K35 / 变频器调试 2 K4 / 直流电机 1 K3 / 单相电机 1 K35，每题带 source 来源依据）
+- 库总数：9022 → 9030；本书（b_l64s8t3lzb）assign：1031 → 1039
+- rev：18 → 19
+
+## 审计背景
+用户问「面试指设备四连问（是什么/接线/调试/维修）是否覆盖现场常用设备」→ 对本书 1031 题做设备实体×四问维度矩阵审计（tier/audit_device2.mjs），发现设备级缺口（软启动器 2 题/行吊 1 题/UPS 1 题/直流 4 题无接线/单相 3 题无维修调试）与维度级缺口（调试仅 20%），按建议逐项补 8 题。
 
 ## 相关脚本与备份（E:/workbuddy-cc/2026-10-08-21-20-12/tier/）
-- new10.json：10 题命题数据（含 source 来源依据字段）
-- new10_payload.json：实际插入的完整行
-- insert10.mjs / insert_result.json：入库脚本与结果（新题 id 清单）
-- backup_books_before_insert10.json：books settings 改前备份
-- backup_fix2_before.json：2 道存量题改前完整行
-- watchdog_insert10.mjs / watchdog_run.log / watchdog_result.json：开窗看门狗（假证书劫持期）
-
-## 来源依据
-详见《装配调试维修面试题库_补题10道_来源依据报告.md》（同目录上级）
+- new8.json / new8_payload.json：命题数据与实际插入行
+- insert8.mjs / insert8_result.json：入库脚本（含字段值域预校验 + 4xx 立即失败）与结果
+- audit_device.mjs / audit_device2.mjs / audit_device_result.json / book_1031.json：审计脚本与数据
+- backup_books_before_insert8.json：books settings 改前备份
