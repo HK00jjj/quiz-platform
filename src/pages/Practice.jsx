@@ -143,6 +143,22 @@ export default function Practice() {
   const next = useStore((s) => s.next)
   const abortSession = useStore((s) => s.abortSession)
   const startSession = useStore((s) => s.startSession)
+  const browseTo = useStore((s) => s.browseTo)
+  /* ── 刷题模式（2026-10-11）──：进入后直接显示答案+解析，上一题/下一题自由翻页。
+     与答题模式（作答→判分→三遍判定→推卡）共用同一会话队列，顶部一键切换，偏好记忆在
+     localStorage（qa_browse）。刷题模式下不做答、不写 record、不推 FSRS 卡——
+     学习统计口径保持干净（题库使命：数据可信 > 展示好看）。 */
+  const [browse, setBrowse] = useState(() => {
+    try { return localStorage.getItem('qa_browse') === '1' } catch { return false }
+  })
+  function toggleBrowse() {
+    setBrowse((b) => {
+      const n = !b
+      try { localStorage.setItem('qa_browse', n ? '1' : '0') } catch { /* 隐私模式忽略 */ }
+      if (n) stopSpeak()          // 切入刷题模式：停掉可能正在读的题干，由解析播报接管
+      return n
+    })
+  }
 
   const q = questions[index]
   const objective = q && isObjective(q.type)
@@ -295,13 +311,13 @@ export default function Practice() {
         目标没变则被去重锁拦住，零动作。
      ③ 依赖里用 store 的 phase 而不是下面才声明的 answered（const 有 TDZ，会整页崩溃） */
   useEffect(() => {
-    const sealOK = seal === 'broken' || selfCheck
+    const sealOK = seal === 'broken' || selfCheck || browse   // 刷题模式（2026-10-11）解析常开，同样滚到位
     if (!sealOK) return
     document.documentElement.setAttribute('data-scrollfx', String(Date.now()))
     scrollToPanel(true)
     const t2 = setTimeout(() => scrollToPanel(true), 1500)
     return () => clearTimeout(t2)
-  }, [phase, showAnswer, seal, selfCheck])
+  }, [phase, showAnswer, seal, selfCheck, browse, index])
 
   /* 用时计时（#7）：结算后必须停表，否则结算页那个「用时」会一直往上跳
      （原来 deps 是 []，组件活着就永远 tick）。挂 phase：进结算就清 interval，
@@ -349,6 +365,12 @@ export default function Practice() {
         return
       }
       if (e.key === 'Enter') {
+        /* 刷题模式：Enter=下一题（↑↓/数字直选不生效——选项只读） */
+        if (browse) {
+          const nx = footBtns().find((b) => b.textContent.includes('下一题'))
+          if (nx) { e.preventDefault(); nx.click() }
+          return
+        }
         if (phase === 'feedback') {
           const nx = footBtns().find((b) => b.textContent.includes('下一题'))
           if (nx) { e.preventDefault(); nx.click(); return }
@@ -378,7 +400,7 @@ export default function Practice() {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [phase, objective, q?.id])
+  }, [phase, objective, q?.id, browse])
 
   /* ── 解析语音播报（2026-09-13，用户钦定：点开解析自动播 + 🔊 可关 + 语速 1.25）──
      时机与滚动 effect 对齐：挂 seal==='broken'（蜡封卸载、布局定型之后）才开读。
@@ -452,7 +474,8 @@ export default function Practice() {
        cracking 拍的 lastGrade 已是本笔判分值，spokenOf 不会读旧版；② broken 拍 effect 重跑
        时 spokenKeyRef 命中直接 return，不重播；③ wasRevealedRef 清场逻辑不受影响
        （切题拍 seal='intact' 仍走「真正离开揭晓态才清场」守卫）。 */
-    const revealed = (seal === 'broken' || seal === 'cracking') && (phase === 'feedback' || showAnswer)
+    /* 2026-10-11：刷题模式（browse）同属揭晓态——直接读答案+解析，不走题干朗读 */
+    const revealed = browse || ((seal === 'broken' || seal === 'cracking') && (phase === 'feedback' || showAnswer))
     if (!revealed || !q) {
       /* 2026-09-15 修正：无条件 stopSpeak 会跨两拍清场——第二拍（seal broken→intact）
          正好轰掉题干 effect 刚开的口。改为「只在真正离开揭晓态的那一拍清场」；
@@ -483,7 +506,7 @@ export default function Practice() {
     spokenKeyRef.current = key
     stopStemLoop()                                // 2026-09-16：揭晓开口前清朗读句柄——解析接管，题干到此为止
     speak(spokenOf(q, lastGrade, shuffleRef.current.order), { tag: 'reveal|' + index + '|' + q.id })
-  }, [ttsOK, seal, phase, showAnswer, index, q?.id, ttsOn])
+  }, [ttsOK, seal, phase, showAnswer, index, q?.id, ttsOn, browse])
   /* ── 自动读题干（2026-09-15，用户钦定：题卡到手自动读题干，选项不读）
      → 2026-09-16 一度升级为循环朗读，同日二改（用户钦定："题干修改成读一次，
      不自动重复读了"）→ 现行为：新题落地读【一遍】即止，绝不自动重读。
@@ -504,7 +527,7 @@ export default function Practice() {
   const stemKeyRef = useRef('')
   useLayoutEffect(() => {
     ttsOnRef.current = ttsOn
-    answerPhaseRef.current = phase !== 'answering' || showAnswer
+    answerPhaseRef.current = phase !== 'answering' || showAnswer || browse
     stemKeyRef.current = index + '|' + (q?.id ?? '')
   })
   function stopStemLoop() {
@@ -546,7 +569,7 @@ export default function Practice() {
   useEffect(() => {
     if (!ttsOK) return
     if (phase !== 'answering') return           // 揭晓(feedback)/结算(done)：解析播报的时段
-    if (showAnswer) return                      // 主观题已展开解析：也归解析播报
+    if (showAnswer || browse) return            // 主观题已展开解析 / 刷题模式：也归解析播报
     if (!q || !ttsOn) return                    // 静音中不自动开口；开关回开靠 ttsOn 依赖在这里接住
     const key = index + '|' + q.id
     if (stemSpokenRef.current === key) return   // 本题题干已读过：不重播（防叠音闸）
@@ -570,7 +593,7 @@ export default function Practice() {
        与 flipToNext / reveal effect 的同 URL 预载按 gaCache 幂等共享，零重复合成。 */
     const nxtQ = questions[index + 1]
     if (nxtQ) prefetchGACache(stemSpokenOf(nxtQ))
-  }, [ttsOK, index, q?.id, phase, showAnswer, ttsOn])
+  }, [ttsOK, index, q?.id, phase, showAnswer, ttsOn, browse])
   /* 当前题题干预热（2026-10-04 播放流畅度修复）：Learn 入口有手势预热（run() 内
      prefetchGACache 首题），但刷新后 store 恢复 sessionQuestions 直进 Practice 时不经过
      Learn——首题题干全额合成 RTT（约 2s+）才开口。这里 ttsOn 且题目就绪即预取当前题
@@ -654,8 +677,9 @@ export default function Practice() {
     ttsOnRef.current = next                    // 手动同步实时 ref：关声瞬间 go() 就要看到，不等 layout effect
     if (!next) { pauseSpeak(); return }        // 暂停在原处；句柄保留，续播接着读完这（仅有的）一遍
     unlockCloudAudio()                    // 恢复播报也在手势内：顺手解锁云端 <audio>/AudioContext
-    /* 2026-09-26：与揭晓 effect 同步——cracking 拍也算揭晓态（520ms 动画期间开声按解析续播口径走） */
-    const revealed = (seal === 'broken' || seal === 'cracking') && (phase === 'feedback' || showAnswer)
+    /* 2026-09-26：与揭晓 effect 同步——cracking 拍也算揭晓态（520ms 动画期间开声按解析续播口径走）；
+       2026-10-11：刷题模式同属揭晓态（读解析） */
+    const revealed = browse || ((seal === 'broken' || seal === 'cracking') && (phase === 'feedback' || showAnswer))
     const expected = (revealed ? 'reveal|' : 'stem|') + index + '|' + (q ? q.id : '')
     if (currentPauseTag() === expected && resumeSpeak(stemLoopRef.current ? stemLoopRef.current.onDone : undefined)) return
     // ↑ 续播透传朗读 onDone（2026-09-16）：native"记块位置重建链"分支需要它在读完时
@@ -681,8 +705,9 @@ export default function Practice() {
      表达了"我要听"。 */
   function replayTts() {
     if (!q) return
-    /* 2026-09-26：与揭晓 effect 同步——cracking 拍也算揭晓态（蜡封动画期间重读按解析口径走） */
-    const revealed = (seal === 'broken' || seal === 'cracking') && (phase === 'feedback' || showAnswer)
+    /* 2026-09-26：与揭晓 effect 同步——cracking 拍也算揭晓态（蜡封动画期间重读按解析口径走）；
+       2026-10-11：刷题模式同属揭晓态（读解析） */
+    const revealed = browse || ((seal === 'broken' || seal === 'cracking') && (phase === 'feedback' || showAnswer))
     if (!ttsOn) { setTtsOn(true); setTtsEnabled(true); ttsOnRef.current = true }
     unlockCloudAudio()                    // 重读按钮也是手势：解锁云端 <audio>，避免首次被浏览器拦
     clearTimeout(rateRetry.current)
@@ -912,6 +937,13 @@ export default function Practice() {
           <button className="chip tool" aria-expanded={helpOpen} title="快捷键与帮助（?）" onClick={() => setHelpOpen(true)}>
             <IconHelp />
           </button>
+          {/* 刷题模式开关（2026-10-11）：与答题模式共用同一会话队列，一键切换；
+              刷题=直接显示答案与解析+自由翻页，不判分不记卡 */}
+          <button className={'chip tool' + (browse ? ' on' : '')} aria-pressed={browse}
+            title={browse ? '当前：刷题模式（直接看答案与解析）。点击切回答题模式' : '当前：答题模式。点击进入刷题模式（直接显示答案与解析）'}
+            onClick={toggleBrowse}>
+            {browse ? '📖 刷题' : '✍️ 答题'}
+          </button>
           <button className="chip" style={{ fontSize: 11 }} onClick={() => { abortSession(); navigate('/') }}>✕ 退出</button>
       </div>
 
@@ -973,7 +1005,10 @@ export default function Practice() {
                 /* selected / cls / 点击全用原始字母 o.orig，只有渲染出来的前缀用 o.disp */
                 const selected = q.type === '单选题' ? choice === o.orig : multi.includes(o.orig)
                 let cls = ''
-                if (answered && grade) {
+                if (browse) {
+                  /* 刷题模式（2026-10-11）：选项只读，正确项挂 missed（薄荷线+✓）直接标出 */
+                  if (String(q.answer ?? '').includes(o.orig)) cls = 'missed'
+                } else if (answered && grade) {
                   const exp = grade.expected ?? ''
                   const inAns = exp.includes(o.orig)
                   if (selected && inAns) cls = 'right'
@@ -985,7 +1020,7 @@ export default function Practice() {
                      维持未答色）。正确答案在解析框里看，选项行不再复述。 */
                 } else if (selected) cls = 'selected'
                 return (
-                  <button key={o.oi} disabled={answered}
+                  <button key={o.oi} disabled={answered || browse}
                     role={q.type === '多选题' ? 'checkbox' : 'radio'}
                     aria-checked={selected}
                     className={`opt-row ${q.type === '多选题' ? 'square' : ''} ${cls}`}
@@ -1002,7 +1037,10 @@ export default function Practice() {
                 <div className="judge-pair">
                   {[['正确', '✓', 'j-true'], ['错误', '✗', 'j-false']].map(([label, rune, cls], jIdx) => {
                     let extra = ''
-                    if (answered && grade) {
+                    if (browse) {
+                      /* 刷题模式（2026-10-11）：正确项直接标出（q.answer 为「正确/错误」） */
+                      extra = label === q.answer ? 'missed' : ''
+                    } else if (answered && grade) {
                       /* 裁决通道（§35/§37，与 opt-row 同语义）：颜色跟「我答得对不对」走，
                          不跟选项身份走——旧逻辑给正确答案卡挂 selected，选对「错误」也红脸，
                          读起来像答错。§37 收窄：只有「我选的那张卡」有裁决色——
@@ -1014,7 +1052,7 @@ export default function Practice() {
                       extra = judge === label ? 'selected' : (judge ? 'dimmed' : '')
                     }
                     return (
-                      <button key={label} disabled={answered} className={`judge-card ${cls} ${extra}`}
+                      <button key={label} disabled={answered || browse} className={`judge-card ${cls} ${extra}`}
                         aria-pressed={judge === label} onClick={() => setJudge(label)}>
                         <span className="judge-label">{label}</span>
                       </button>
@@ -1033,7 +1071,7 @@ export default function Practice() {
                       <div key={i} className={'fill-item' + (ok ? ' right' : bad ? ' wronged' : '')}>
                         <span className="no font-cinzel">第{i + 1}空</span>
                         <div style={{ flex: 1 }}>
-                          <input className="rune-input" value={v} disabled={answered}
+                          <input className="rune-input" value={v} disabled={answered || browse}
                             onChange={(e) => setFills((f) => f.map((x, j) => j === i ? e.target.value : x))}
                             placeholder="导入答案…" />
                           {bad && <p className="fill-expected">正确答案：{expParts[i]}</p>}
@@ -1046,7 +1084,7 @@ export default function Practice() {
 
               {!objective && (
                 <div className="subjective-area">
-                  <textarea className="rune-textarea" value={text} disabled={answered}
+                  <textarea className="rune-textarea" value={text} disabled={answered || browse}
                     onChange={(e) => setText(e.target.value)}
                     placeholder={q.type === '计算分析题' ? '导入关键数值与推演过程…' : '在此导入你的解读…'} />
                   <p className="char-count">已导入 {text.length} 字</p>
@@ -1171,7 +1209,21 @@ export default function Practice() {
                 </button>
               </div>
             )}
-            {seal !== 'broken' && !selfCheck && (
+            {/* 刷题模式（2026-10-11）：解析区直接展开——参考答案+题库解析一屏可见，
+                不判分不推卡；展示层与答题揭晓完全同源（shownAnswer 已含洗牌字母换算） */}
+            {browse && (
+              <div className="grade-panel">
+                <div className="answer-scroll-box ok">
+                  <h5>参考答案</h5>
+                  <p>{shownAnswer}</p>
+                  {q.explanation && <>
+                    <p className="lab">题库解析</p>
+                    <Expl text={remapExplLetters(q.explanation)} />
+                  </>}
+                </div>
+              </div>
+            )}
+            {seal !== 'broken' && !selfCheck && !browse && (
               <div className={'seal-lock ' + seal}>
                 {/* 封缄是 .seal-wax 纯 CSS 糖豆（candy.css §65）：哥特蜡封三帧位图已下线（沉浸批1 A4） */}
                 <span className="seal-wax" aria-hidden="true" />
@@ -1256,7 +1308,16 @@ export default function Practice() {
           </div>
           <div className="q-face-foot">
                       <div className="q-face-rule" aria-hidden="true" />
-                      {!answered && (objective ? (
+                      {browse ? (
+                        /* 刷题模式（2026-10-11）：自由翻页，首尾循环；不判分不记卡 */
+                        <>
+                          <div className="self-judge-row">
+                            <GiltBtn tone="teal" onClick={() => browseTo(-1)}>‹ 上一题</GiltBtn>
+                            <GiltBtn onClick={() => browseTo(1)}>下一题 ›</GiltBtn>
+                          </div>
+                          <p className="kbd-hint">Enter = 下一题 · 不计成绩、不推进复习计划</p>
+                        </>
+                      ) : !answered && (objective ? (
                         <>
                           <GiltBtn size="lg" block className="reveal-btn" disabled={!canSubmit} onClick={doCheck}>
                             <IconReveal /> 查看解析

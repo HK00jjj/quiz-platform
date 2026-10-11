@@ -814,6 +814,15 @@ export const useStore = create((set, get) => ({
       maybeSaveResume(get())
     }
   },
+  /* 刷题模式（2026-10-11）：自由翻页导航——只移动 sessionIndex，不判分、不记 record、
+     不推 FSRS 卡、不写 summary（刷题=纯浏览，学习统计口径必须保持干净）。
+     delta 正负皆可，首尾循环（末题下一题回到第 1 题，便于连续刷）。 */
+  browseTo: (delta) => {
+    const { sessionIndex, sessionQuestions } = get()
+    if (!sessionQuestions.length) return
+    const n = (sessionIndex + delta + sessionQuestions.length) % sessionQuestions.length
+    set({ sessionIndex: n, phase: 'answering', lastGrade: null, lastRating: null, qStartAt: Date.now() })
+  },
   abortSession: () => {
     flushPendingRatings()  // 中途退出：未满 3 次的客观题按已答结果折算
     set({ ...emptySession })
