@@ -152,6 +152,11 @@ export default function Practice() {
     try { return localStorage.getItem('qa_browse') === '1' } catch { return false }
   })
   function toggleBrowse() {
+    /* 手势内解锁（2026-10-12 修"刷题模式不出声"）：刷题态的播报全部由 effect 触发
+       （切模式拍/翻题拍），脱离点击手势栈——移动端 AudioContext.resume / <audio>.play
+       会被自动播放策略拦下且静默失败。进/出刷题都在手势里顺手解锁两路通路，幂等无害。 */
+    unlockSpeech()
+    unlockCloudAudio()
     setBrowse((b) => {
       const n = !b
       try { localStorage.setItem('qa_browse', n ? '1' : '0') } catch { /* 隐私模式忽略 */ }
@@ -1312,8 +1317,10 @@ export default function Practice() {
                         /* 刷题模式（2026-10-11）：自由翻页，首尾循环；不判分不记卡 */
                         <>
                           <div className="self-judge-row">
-                            <GiltBtn tone="teal" onClick={() => browseTo(-1)}>‹ 上一题</GiltBtn>
-                            <GiltBtn onClick={() => browseTo(1)}>下一题 ›</GiltBtn>
+                            {/* 手势内解锁（2026-10-12）：翻题后的解析播报由 effect 开口，
+                                不在点击手势栈里——移动端首次翻题必须在这里解锁两路通路 */}
+                            <GiltBtn tone="teal" onClick={() => { unlockSpeech(); unlockCloudAudio(); browseTo(-1) }}>‹ 上一题</GiltBtn>
+                            <GiltBtn onClick={() => { unlockSpeech(); unlockCloudAudio(); browseTo(1) }}>下一题 ›</GiltBtn>
                           </div>
                           <p className="kbd-hint">Enter = 下一题 · 不计成绩、不推进复习计划</p>
                         </>

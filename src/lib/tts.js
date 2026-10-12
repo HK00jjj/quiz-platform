@@ -1048,9 +1048,29 @@ function runChunks(chunks, rate, onDone, my, voiceName, tag) {
 export async function speak(raw, { rate = ttsRate(), onDone, tag } = {}) {
   if (!ttsSupported() && !cloudSupported()) return false
   const my = ++token
+  /* native 兜底通道（2026-10-12 抽取复用）：云端"全块失败"时用它重说同一段。
+     原有语义：waitVoice → 切块 → cancel+120ms 复位 → runChunks（整段同音色）。
+     my 透传：沿用发起会话的 token——云端会话此时已 done 且未被打断（token 未变），
+     native 会话直接接管；期间任何打断（切题/新播报/静音）都会 token++ → 这里自动放弃。 */
+  const nativeRetry = async () => {
+    if (!ttsSupported() || my !== token) return false
+    const synth = window.speechSynthesis
+    const voice = await waitVoice(isMobileUA() ? 300 : 1500)
+    if (my !== token) return false
+    const chunks = chunkSpeechText(raw, chunkMaxFor(voice))
+    if (!chunks.length) return false
+    try { synth.cancel() } catch { /* ignore */ }
+    session = null
+    await sleep(CHUNK_GAP)
+    if (my !== token) return false
+    return runChunks(chunks, rate, onDone, my, voice ? voice.name : null, tag)
+  }
   /* ① 显式选了云端音色 → 直接走云端（不走系统语音表，手机也能出声）。
      tag：本条播报的上下文键（如 reveal|3|q12 / stem|3|q12），暂停/续播用它与
-     当前界面状态对表——不匹配的过期暂停会话由调用方丢弃，防止"续播出上一题的声音"。 */
+     当前界面状态对表——不匹配的过期暂停会话由调用方丢弃，防止"续播出上一题的声音"。
+     onAllFail（2026-10-12 修"云端 403 波全站哑"）：云端管线同步返回 true 属"会话已起"
+     而非"有声音"——全块合成失败时它静默 done（speakCloudGA 假成功），native 回落
+     永远不触发。此回调在"一块都没播出去"时由 speakCloudGA 触发，这里回落系统语音。 */
   const pref = ttsVoicePref()
   if (isCloudVoice(pref)) {
     try { window.speechSynthesis?.cancel() } catch { /* ignore */ }
@@ -1061,7 +1081,7 @@ export async function speak(raw, { rate = ttsRate(), onDone, tag } = {}) {
     /* 云端分支不再 sleep(120)：stopCloud 是同步 pause，无引擎复位需求；
        这 120ms 原是给系统语音 cancel 落地留的，省掉后首块更快开口 */
     if (my !== token) return false
-    return speakCloudLine(chunks, rate, onDone, my, pref, tag)
+    return speakCloudLine(chunks, rate, onDone, my, pref, tag, () => { nativeRetry() })
   }
   const autoCloud = !pref && cloudSupported()
   if (!ttsSupported() || autoCloud) {
@@ -1078,28 +1098,12 @@ export async function speak(raw, { rate = ttsRate(), onDone, tag } = {}) {
     const cchunks = chunkSpeechText(raw, ccm, Math.min(CLOUD_FIRST_CHUNK_MAX, ccm))
     if (!cchunks.length || !cloudSupported()) return false
     if (my !== token) return false
-    const r = await speakCloudLine(cchunks, rate, onDone, my, cvoice, tag)
+    const r = await speakCloudLine(cchunks, rate, onDone, my, cvoice, tag, () => { nativeRetry() })
     if (r) return r
     if (!ttsSupported()) return false          // 没有退路：到此为止
     /* 云端失败 → 继续往下走 native 回落 */
   }
-  const synth = window.speechSynthesis
-  /* 先拿到语音再开口（见 waitVoice 注释）；等待期间若被静音/新播报取代，直接放弃。
-     移动端只等 300ms：语音表要么恒空要么必超时，早降云端省 1.2s+ 首响延迟
-     （2026-09-15 下午：自动档已在上方提前走云端，能落到这里的只有显式系统音色
-     与云端失败回落，不再经过独立引擎决策函数）。 */
-  const voice = await waitVoice(isMobileUA() ? 300 : 1500)
-  if (my !== token) return false
-  const chunks = chunkSpeechText(raw, chunkMaxFor(voice))
-  if (!chunks.length) return false
-  /* 新一轮开口前一律 cancel：旧链可能正卡在块间隙（此时 speaking/pending 都是 false，
-     只看状态就漏 cancel），而 Edge 的云端神经音 cancel 落地有几拍延迟——不 cancel
-     就会新旧两条链叠着说。cancel 后留 120ms 让引擎状态复位再开口。 */
-  try { synth.cancel() } catch { /* ignore */ }
-  session = null
-  await sleep(CHUNK_GAP)
-  if (my !== token) return false
-  return runChunks(chunks, rate, onDone, my, voice ? voice.name : null, tag)
+  return nativeRetry()
 }
 
 /* ═══════════ 云端音色（2026-09-15，修「手机端选不了其他语音」）═══════════
@@ -1378,7 +1382,7 @@ function stopGASources() {
 function gaDecode(url) {
   return gaWarm(url)
 }
-export function speakCloudGA(chunks, rate, onDone, my, voice, tag) {
+export function speakCloudGA(chunks, rate, onDone, my, voice, tag, onAllFail) {
   if (!webAudioOK() || !cloudSupported() || !chunks || !chunks.length) return false
   const ctx = gaCtxOf()
   if (!ctx) return false
@@ -1388,6 +1392,12 @@ export function speakCloudGA(chunks, rate, onDone, my, voice, tag) {
   const sess = { mode: 'cloud', ga: true, tok, tag: tag || '', chunks, urls: [], i: 0, nextAt: 0, sources: [], paused: false, done: false, voiceName: useVoice }
   ga = sess
   session = sess
+  /* 全败回落（2026-10-12 修"云端 403 波全站哑"）：place 一次记一块；首块两次尝试
+     仍失败且 placed===0 时立即触发 onAllFail（整段必然无声，继续跳块毫无意义），
+     由 speak() 的调用方回落 native 重说同一段。placed>0 的跳块维持旧取舍
+     （连续性>单块内容），不触发回落。 */
+  sess.placed = 0
+  sess.onAllFail = typeof onAllFail === 'function' ? onAllFail : null
   sess.urls = chunks.map((t) => cloudTtsUrl(t, rate, useVoice))
   /* TTFA 埋点（2026-10-06 审查 P3）：t0=管线入口近似时刻，hit0=首块预载命中口径。
      place(0) 开口时上报差值——预载命中应 <50ms，未命中 ≈ 合成 RTT（实测 0.6~3.7s）。
@@ -1425,6 +1435,7 @@ export function speakCloudGA(chunks, rate, onDone, my, voice, tag) {
     src.connect(g); g.connect(sess.master)
     src.start(t, start / sr, dur)
     sess.sources.push(src)
+    sess.placed++
     sess.nextAt = t + dur + chunkTailPause(sess.chunks[idx])
     sess.i = idx + 1
     if (idx === 0 && window.__ttsfxArm) {
@@ -1464,6 +1475,16 @@ export function speakCloudGA(chunks, rate, onDone, my, voice, tag) {
         sleep(1200).then(() => { if (tok !== token || sess.done) return; schedule(idx) })
         return
       }
+      /* 全败回落闸（2026-10-12）：一块都没播出去（首块两次尝试也失败）→ 整段必然
+         无声，立即交还 speak() 的 onAllFail 走 native，不再空转跳块。 */
+      if (sess.placed === 0 && sess.onAllFail) {
+        sess.done = true
+        const cb = sess.onAllFail
+        if (ga === sess) ga = null
+        if (session === sess) session = null
+        try { cb() } catch { /* ignore */ }
+        return
+      }
       if (idx + 1 < sess.urls.length) schedule(idx + 1)
       else { sess.done = true; if (ga === sess) ga = null; if (session === sess) session = null; if (onDone) onDone() }
     })
@@ -1496,8 +1517,10 @@ function handoverCloud() {
 }
 /* 云端线路分派（2026-09-15 下午）：微软代理线 → GA 无缝管线（CORS 可读字节）；
    百度备用线无 CORS → 旧 <audio> 管线。 */
-function speakCloudLine(chunks, rate, onDone, my, voice, tag) {
-  if (isEdgeVoice(voice) && webAudioOK()) return speakCloudGA(chunks, rate, onDone, my, voice, tag)
+function speakCloudLine(chunks, rate, onDone, my, voice, tag, onAllFail) {
+  if (isEdgeVoice(voice) && webAudioOK()) return speakCloudGA(chunks, rate, onDone, my, voice, tag, onAllFail)
+  /* 百度备用线（legacy <audio>）暂不接 onAllFail：无 CORS 读不到字节，失败语义在
+     元素层；显式选百度音色的用户本就锁定了线路，回落系统语音反而违背选择（2026-10-12）。 */
   return speakCloud(chunks, rate, onDone, my, voice)
 }
 /* 暂停会话的上下文键（Practice 开关续播对表用；Node/无会话 → ''） */

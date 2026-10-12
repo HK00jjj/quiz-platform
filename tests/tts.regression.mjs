@@ -323,8 +323,8 @@ ok(/export function stemSpokenOf\(q\) \{/.test(validateSrc) && /import \{ gradeO
 ok(/replace\(\/\\\{\[\^\{\}\]\*\\\}\/g, '空'\)/.test(validateSrc), '⑰-2 填空 {…} 占位符读成「空」（占位里可能带着答案，不能外读；真源随 stemSpokenOf 迁至 validate）')
 ok(/function startStemLoop\(text, idx, qid\) \{/.test(practiceSrc) && /speak\(text, \{ tag: 'stem\|' \+ idx \+ '\|' \+ qid, onDone \}\)/.test(practiceSrc), '⑰-3 stem 开口接线（2026-09-16 升级循环朗读：effect 调 startStemLoop，循环本体内部 speak 带 stem tag）')
 ok(/const stemSpokenRef = useRef\(null\)/.test(practiceSrc), '⑰-4 stemSpokenRef「已读」闸存在（与 spokenKeyRef 分离，防叠音）')
-ok(practiceSrc.includes('[ttsOK, index, q?.id, phase, showAnswer, ttsOn]'), '⑰-5 stem effect 依赖数组含 phase/ttsOn（揭晓时不读、开关回开能接住）')
-ok(/const nxt = questions\[index \+ 1\][\s\S]{0,80}?if \(nxt && ttsOn\) prefetchGACache\(stemSpokenOf\(nxt\)\)/.test(practiceSrc), '⑰-6 翻题预载已升级（2026-09-15 晚）：GA 缓存线免疫 stopSpeak 清场，flipToNext 挂下一题题干预载——旧禁令"stopSpeak 清场会吃掉预载"只针对 <audio> src 预载，GA 缓存线不受影响（详见 ⑱-24e）；2026-10-06 补 ttsOn 闸（静音中不预载）')
+ok(practiceSrc.includes('[ttsOK, index, q?.id, phase, showAnswer, ttsOn, browse]'), '⑰-5 stem effect 依赖数组含 phase/ttsOn（揭晓时不读、开关回开能接住）+ browse（2026-10-11 刷题态不走题干 effect，切回答题拍由本 effect 接住）')
+ok(/const nxtQ = questions\[index \+ 1\][\s\S]{0,80}?if \(nxtQ\) prefetchGACache\(stemSpokenOf\(nxtQ\)\)/.test(practiceSrc), '⑰-6 翻题预载已升级（2026-09-15 晚）：GA 缓存线免疫 stopSpeak 清场，stem effect 挂下一题题干预载（ttsOn 闸在 effect 入口 line:if (!q || !ttsOn) return 统一收敛）——旧禁令"stopSpeak 清场会吃掉预载"只针对 <audio> src 预载，GA 缓存线不受影响（详见 ⑱-24e）；2026-10-06 ttsOn 闸收敛到 effect 入口（静音中整个 effect 不跑，不预载）')
 ok(/import \{[^}]*unlockCloudAudio[^}]*\} from '\.\.\/lib\/tts\.js'/.test(learnSrc), '⑰-7 Learn.jsx 引入 unlockCloudAudio（import 口径放宽：允许并列其他导出）')
 ok(/async function run\(mode, opts = \{\}\) \{\s*\n\s*unlockCloudAudio\(\)/.test(learnSrc), '⑰-8 进练习手势内解锁云端 <audio>（移动端首题不被拦）')
 ok(/onClick=\{async \(\) => \{\s*\n\s*unlockCloudAudio\(\)\s*\/\/ 重开一轮/.test(practiceSrc), '⑰-9 再练错题手势内解锁云端 <audio>')
@@ -393,7 +393,7 @@ ok(/export function stemSpokenOf/.test(validateSrc) && /import \{ gradeObjective
    行为级验证由线上真机 E2E（CDP）承担。 */
 ok(!/\bSTEM_LOOP_GAP\b/.test(practiceSrc), '⑲-1 轮间歇常量已删（单次朗读：读完即止，不存在"下一轮"）')
 ok(/const stemLoopRef = useRef\(null\)/.test(practiceSrc), '⑲-2 朗读句柄 ref 存在（🔊 暂停时保留，续播透传）')
-ok(/useLayoutEffect\(\(\) => \{\s*\n\s*ttsOnRef\.current = ttsOn\s*\n\s*answerPhaseRef\.current = phase !== 'answering' \|\| showAnswer\s*\n\s*stemKeyRef\.current = index \+ '\|' \+ \(q\?\.id \?\? ''\)\s*\n\s*\}\)/.test(practiceSrc), '⑲-3 实时状态 ref 用 useLayoutEffect 无依赖同步（go() 宏任务对表，commit 即新值无竞态）')
+ok(/useLayoutEffect\(\(\) => \{\s*\n\s*ttsOnRef\.current = ttsOn\s*\n\s*answerPhaseRef\.current = phase !== 'answering' \|\| showAnswer \|\| browse\s*\n\s*stemKeyRef\.current = index \+ '\|' \+ \(q\?\.id \?\? ''\)\s*\n\s*\}\)/.test(practiceSrc), '⑲-3 实时状态 ref 用 useLayoutEffect 无依赖同步（go() 宏任务对表，commit 即新值无竞态；2026-10-11 起 answerPhaseRef 含 browse——刷题态题干不开口）')
 ok(/function startStemLoop\(text, idx, qid\) \{[\s\S]*?const go = \(\) => \{[\s\S]*?stemLoopRef\.current = null[\s\S]*?speak\(text, \{ tag: 'stem\|' \+ idx \+ '\|' \+ qid, onDone \}\)/.test(practiceSrc) && !/setTimeout\(go,/.test(practiceSrc), '⑲-4 朗读本体：幂等头清旧句柄 → go() 对表 → onDone 仅落地句柄不重排（单次即止；loop.onDone 仍供续播透传）')
 ok(/if \(stemLoopRef\.current !== loop\) blocked = 'handover'/.test(practiceSrc) && /if \(!ttsOnRef\.current\) blocked = 'muted'/.test(practiceSrc) && /else if \(answerPhaseRef\.current\) blocked = 'revealed'/.test(practiceSrc) && /else if \(stemKeyRef\.current !== loop\.key\) blocked = 'switched'/.test(practiceSrc) && /if \(blocked\) return/.test(practiceSrc), '⑲-5 重开口四闸：句柄比对 + 静音不重开口 + 已揭晓/已提交即停（点解析即停）+ 已切题让位（2026-09-16 起为 blocked 链式探针形态，语义同旧 if-return）')
 ok(/spokenKeyRef\.current = key\s*\n\s*stopStemLoop\(\)/.test(practiceSrc), '⑲-6 揭晓开口解析前显式清循环句柄（timer 不再重入；正在读的链由解析 speak token++ 打断）')
@@ -602,5 +602,19 @@ ok(normalizeSpeech('断路器额定电流In 等于 63安') === '断路器额定�
 ok(normalizeSpeech('主回路：QF断路器、QS隔离开关、KT时间继电器、KA中间继电器、FU熔断器、SB按钮、SQ行程开关、SA转换开关、HL指示灯、XT端子。') === '主回路：Q F断路器、Q S隔离开关、K T时间继电器、K A中间继电器、F U熔断器、S B按钮、S Q行程开关、S A转换开关、H L指示灯、X T端子。', '㉕-5 电气图形文字代号逐字母（QF/QS/KT/KA/FU/SB/SQ/SA/HL/XT）')
 ok(normalizeSpeech('3.6×10⁶ W·s') === '3.6乘10的6次方瓦乘s', '㉕-6 次方后置 W→瓦（U、V、W 三相相序不转瓦——专项排除已验证）')
 ok(normalizeSpeech('比例常数k称为标准速率常数') === '比例常数k称为标准速率常数' && normalizeSpeech('三相应按U、V、W排序') === '三相应按U、V、W排序', '㉕-7 回归护栏：变量 k、相序 U/V/W 不被单位规则误伤')
+
+/* ── ㉖ 云端全败→native 回落 + 刷题流程手势解锁（2026-10-12 修"刷题模式不出声"）──
+   取证背景：微软 2026-10 起对 speech.platform.bing.com 合成 WS 全线 403（edge-tts
+   issue #491，10-10 多国/10-12 含美国），服务端已切 api.msedgeservices.com（Vercel 侧）。
+   前端教训：GA 管线同步返回 true 是"会话已起"而非"有声音"——全块失败静默 done，
+   native 回落永不触发 → 云端一断全站哑。本节锁住两条防线 + 刷题链解锁接线。 */
+ok(/sess\.placed = 0/.test(ttsSrc) && /sess\.onAllFail = typeof onAllFail === 'function' \? onAllFail : null/.test(ttsSrc), '㉖-1 GA 会话带全败回落闸句柄（placed 计数 + onAllFail）')
+ok(/sess\.placed\+\+/.test(ttsSrc), '㉖-2 place 成功即记 played（回落只看"有没有声"，不看有没有请求）')
+ok(/if \(sess\.placed === 0 && sess\.onAllFail\) \{[\s\S]{0,200}?try \{ cb\(\) \} catch/.test(ttsSrc), '㉖-3 首块两次尝试仍零播放 → 立即触发 onAllFail（整段必然无声，不空转跳块）')
+ok(/speakCloudLine\(chunks, rate, onDone, my, pref, tag, \(\) => \{ nativeRetry\(\) \}\)/.test(ttsSrc) && /speakCloudLine\(cchunks, rate, onDone, my, cvoice, tag, \(\) => \{ nativeRetry\(\) \}\)/.test(ttsSrc), '㉖-4 speak() 两个云端分支（显式音色/自动档）都挂 onAllFail→nativeRetry')
+ok(/const nativeRetry = async \(\) => \{[\s\S]{0,120}?if \(!ttsSupported\(\) \|\| my !== token\) return false/.test(ttsSrc) && /return runChunks\(chunks, rate, onDone, my, voice \? voice\.name : null, tag\)/.test(ttsSrc), '㉖-5 nativeRetry 透传原 token+onDone（期间任何打断 token++ 自动放弃）')
+ok(/function speakCloudLine\(chunks, rate, onDone, my, voice, tag, onAllFail\) \{/.test(ttsSrc) && /isEdgeVoice\(voice\) && webAudioOK\(\)\) return speakCloudGA\(chunks, rate, onDone, my, voice, tag, onAllFail\)/.test(ttsSrc), '㉖-6 speakCloudLine 透传 onAllFail（仅 GA 线；百度备用线不接——显式选线不违背）')
+ok(/function toggleBrowse\(\) \{\s*\n\s*\/\* 手势内解锁/.test(practiceSrc) && /unlockSpeech\(\)\s*\n\s*unlockCloudAudio\(\)/.test(practiceSrc), '㉖-7 切刷题/答题 chip 点击内解锁两路通路（刷题态播报全由 effect 触发，脱离手势栈）')
+ok(/unlockSpeech\(\); unlockCloudAudio\(\); browseTo\(-1\)/.test(practiceSrc) && /unlockSpeech\(\); unlockCloudAudio\(\); browseTo\(1\)/.test(practiceSrc), '㉖-8 刷题态上一题/下一题点击内解锁（Enter 走按钮 click 同链）')
 
 console.log(`\ntts.regression：${n} 断言全绿`)
