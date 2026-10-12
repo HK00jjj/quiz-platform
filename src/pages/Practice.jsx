@@ -480,7 +480,10 @@ export default function Practice() {
        cracking 拍的 lastGrade 已是本笔判分值，spokenOf 不会读旧版；② broken 拍 effect 重跑
        时 spokenKeyRef 命中直接 return，不重播；③ wasRevealedRef 清场逻辑不受影响
        （切题拍 seal='intact' 仍走「真正离开揭晓态才清场」守卫）。 */
-    /* 2026-10-11：刷题模式（browse）同属揭晓态——直接读答案+解析，不走题干朗读 */
+    /* 2026-10-11：刷题模式（browse）同属揭晓态。2026-10-12 用户指令升级：先读题干，
+       接着读完解析（旧版直接读答案+解析、跳过题干）——题干拼在播报文本最前，
+       与 v3「视觉锚题干」配套，听读顺序=题干→答案→解析。题干 effect 在 browse 下
+       有 answerPhaseRef 闸不开口，不会叠音。 */
     const revealed = browse || ((seal === 'broken' || seal === 'cracking') && (phase === 'feedback' || showAnswer))
     if (!revealed || !q) {
       /* 2026-09-15 修正：无条件 stopSpeak 会跨两拍清场——第二拍（seal broken→intact）
@@ -511,7 +514,11 @@ export default function Practice() {
     if (spokenKeyRef.current === key) return      // 本题已读过：不重播（这是防叠音的闸）
     spokenKeyRef.current = key
     stopStemLoop()                                // 2026-09-16：揭晓开口前清朗读句柄——解析接管，题干到此为止
-    speak(spokenOf(q, lastGrade, shuffleRef.current.order), { tag: 'reveal|' + index + '|' + q.id })
+    /* 2026-10-12（用户指令）：刷题模式先读题干再读解析——题干拼最前，一气呵成 */
+    const revealText = browse
+      ? stemSpokenOf(q) + '。' + spokenOf(q, lastGrade, shuffleRef.current.order)
+      : spokenOf(q, lastGrade, shuffleRef.current.order)
+    speak(revealText, { tag: 'reveal|' + index + '|' + q.id })
   }, [ttsOK, seal, phase, showAnswer, index, q?.id, ttsOn, browse])
   /* ── 自动读题干（2026-09-15，用户钦定：题卡到手自动读题干，选项不读）
      → 2026-09-16 一度升级为循环朗读，同日二改（用户钦定："题干修改成读一次，
