@@ -203,16 +203,23 @@ export default function Practice() {
      - 同目标（差 < 8px）的 smooth 不重复发起——不打断进行中的平滑滚动；
      - 校正拍兜解析图片/字体迟到的高度回填，同目标自动跳过；
      - behavior 一律显式指定，不再吃 CSS 隐式 smooth。 */
+  /* 揭晓滚动调度 v3（2026-10-12 · 用户指令「定位应该是题干位置，由用户去下滑看解析」）：
+     v2 锚定解析面板（grade-panel），揭晓后视线落在解析上——题没读就见答案，还要上划回题干。
+     v3 改锚题干（.q-stem）：揭晓 = 滚到题干顶部，用户从读题开始自然下滑到解析。
+     机制沿用 v2：一次揭晓至多 1 次 smooth 主拍 + 1 次校正拍，「揭晓指纹 + 目标去重锁」
+     两路驱动源（doCheck 兜底 / 揭晓 effect）共用；同目标（<8px）不重复发起；
+     校正拍兜解析图片/字体迟到的高度回填；behavior 一律显式指定。 */
   const revealScrollRef = useRef({ fp: null, lastTo: null })
 
   function scrollToPanel(smooth) {
     const sc = document.querySelector('.q-face-scroll')
-    const gp = document.querySelector('.grade-panel, .selfcheck-note') /* 解析正文优先——引导卡可见≠解析可见 */
-    if (!gp) return
+    const stem = document.querySelector('.q-stem') /* v3：锚题干，解析交给用户下滑 */
+    if (!stem) return
     const fp = index + '|' + (q ? q.id : '') + '|' + ((seal === 'broken' || selfCheck) ? 'rv' : 'st')
     if (revealScrollRef.current.fp !== fp) revealScrollRef.current = { fp, lastTo: null }
-    const g = gp.getBoundingClientRect()
-    if (g.top >= 8 && g.bottom <= window.innerHeight - 8) return   /* 完全可见不打扰 */
+    const g = stem.getBoundingClientRect()
+    /* 题干已在视口上部（含完全可见）→ 用户位置合适，不打扰 */
+    if (g.top >= 8 && g.top <= window.innerHeight * 0.4) return
     const lockHit = (target) => {
       const st = revealScrollRef.current
       if (st.lastTo != null && Math.abs(target - st.lastTo) < 8) return true
@@ -227,13 +234,7 @@ export default function Practice() {
       ;(window.__fx = window.__fx || []).push((smooth ? 's:' : 'c:') + Math.round(to))
       return
     }
-    const foot = document.querySelector('.q-face-foot')
-    const reserve = foot ? Math.min(foot.getBoundingClientRect().height + 16, 140) : 24
-    const avail = window.innerHeight - reserve - 16
-    const abs = g.height <= avail
-      ? window.scrollY + g.bottom - (window.innerHeight - reserve)
-      : window.scrollY + g.top - 24
-    const wto = Math.max(0, abs)
+    const wto = Math.max(0, window.scrollY + g.top - 24)
     if (lockHit(wto)) return
     window.scrollTo({ top: wto, behavior: smooth ? 'smooth' : 'auto' })
     ;(window.__fx = window.__fx || []).push((smooth ? 'sW:' : 'cW:') + Math.round(wto))
