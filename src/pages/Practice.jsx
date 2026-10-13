@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store'
@@ -160,7 +160,52 @@ export default function Practice() {
     setBrowse((b) => {
       const n = !b
       try { localStorage.setItem('qa_browse', n ? '1' : '0') } catch { /* 隐私模式忽略 */ }
-      if (n) stopSpeak()          // 切入刷题模式：停掉可能正在读的题干，由解析播报接管
+      if (n) { stopSpeak(); clearTimeout(autoTimer.current); autoTimer.current = 0 }          // 切入刷题模式：停掉可能正在读的题干，由解析播报接管；连播气口一并取消
+      return n
+    })
+  }
+
+  /* ── 播客连播模式（2026-10-12，用户指令"自动下一题语音连播，像播客一样听声学习"）──：
+     仅刷题态生效。开启后当前题「题干→答案→解析」播完（speak 的 onDone）→ 延时 600ms
+     → browseTo(1) 自动翻下一题继续播，队尾由 browseTo 的取模回卷自然循环。
+     停止语义：关开关（连播链断、当前题继续读完）、静音/暂停（onDone 不触发或挂起）、
+     切回答题模式（toggleBrowse 已 stopSpeak 清场）均自动断链。
+     开启瞬间：把 spokenKeyRef 清空并借 autoplay 进依赖触发 reveal effect 重跑——
+     当前题从头重读且这次带上 onDone，用户按一下立刻进入连播节奏，不会"按了没反应"。
+     偏好落 localStorage（qa_browse_autoplay），与 qa_browse 平级。 */
+  const [autoplay, setAutoplay] = useState(() => {
+    try { return localStorage.getItem('qa_browse_autoplay') === '1' } catch { return false }
+  })
+  const autoplayRef = useRef(autoplay)          // onDone 回调读实时值，不吃闭包旧值
+  const browseRef = useRef(browse)
+  browseRef.current = browse
+  const posRef = useRef({ index: 0, count: 0 }) // 连播队列位置实时镜像（回调不吃闭包旧值）
+  posRef.current = { index, count: questions.length }
+  const autoTimer = useRef(0)
+  const autoAdvance = useCallback(() => {
+    if (!autoplayRef.current || !browseRef.current) return
+    /* 「一直读，直到读完所有题」（2026-10-12 用户口径）：读到最后一道题即停，
+       不回卷——回卷无限循环永不"读完"；手动点下一题仍走 browseTo 的首尾循环 */
+    if (posRef.current.index >= posRef.current.count - 1) return
+    clearTimeout(autoTimer.current)
+    autoTimer.current = setTimeout(() => {       // 600ms 气口：题与题之间自然停顿
+      autoTimer.current = 0
+      if (autoplayRef.current && browseRef.current && posRef.current.index < posRef.current.count - 1) browseTo(1)
+    }, 600)
+  }, [browseTo])
+  useEffect(() => () => clearTimeout(autoTimer.current), [])
+  function toggleAutoplay() {
+    unlockSpeech(); unlockCloudAudio()
+    setAutoplay((a) => {
+      const n = !a
+      autoplayRef.current = n
+      try { localStorage.setItem('qa_browse_autoplay', n ? '1' : '0') } catch { /* 隐私模式忽略 */ }
+      if (!n) { clearTimeout(autoTimer.current); autoTimer.current = 0 }
+      else if (browseRef.current) {
+        /* 开启瞬间接上连播链：清已读闸 + autoplay 进依赖让 reveal effect 重跑，
+           当前题从头重读且这次带 onDone——按一下立刻进入连播节奏，不会"按了没反应" */
+        spokenKeyRef.current = null
+      }
       return n
     })
   }
@@ -518,8 +563,14 @@ export default function Practice() {
     const revealText = browse
       ? stemSpokenOf(q) + '。' + spokenOf(q, lastGrade, shuffleRef.current.order)
       : spokenOf(q, lastGrade, shuffleRef.current.order)
-    speak(revealText, { tag: 'reveal|' + index + '|' + q.id })
-  }, [ttsOK, seal, phase, showAnswer, index, q?.id, ttsOn, browse])
+    /* 播客连播（2026-10-12）：刷题态 + 连播开 → 读完回调 autoAdvance 翻下一题。
+       onDone 由 tts.js 的 token 闸保护：期间任何打断（切题/静音/新播报）都会 token++
+       短路回调，不会误触发翻题。读 autoplayRef 不吃闭包旧值。 */
+    speak(revealText, {
+      tag: 'reveal|' + index + '|' + q.id,
+      onDone: (browse && autoplayRef.current) ? autoAdvance : undefined,
+    })
+  }, [ttsOK, seal, phase, showAnswer, index, q?.id, ttsOn, browse, autoplay, autoAdvance])
   /* ── 自动读题干（2026-09-15，用户钦定：题卡到手自动读题干，选项不读）
      → 2026-09-16 一度升级为循环朗读，同日二改（用户钦定："题干修改成读一次，
      不自动重复读了"）→ 现行为：新题落地读【一遍】即止，绝不自动重读。
@@ -688,7 +739,7 @@ export default function Practice() {
     setTtsOn(next)
     setTtsEnabled(next)
     ttsOnRef.current = next                    // 手动同步实时 ref：关声瞬间 go() 就要看到，不等 layout effect
-    if (!next) { pauseSpeak(); return }        // 暂停在原处；句柄保留，续播接着读完这（仅有的）一遍
+    if (!next) { pauseSpeak(); clearTimeout(autoTimer.current); autoTimer.current = 0; return }   // 暂停在原处；句柄保留，续播接着读完这（仅有的）一遍；连播气口一并取消
     unlockCloudAudio()                    // 恢复播报也在手势内：顺手解锁云端 <audio>/AudioContext
     /* 2026-09-26：与揭晓 effect 同步——cracking 拍也算揭晓态（520ms 动画期间开声按解析续播口径走）；
        2026-10-11：刷题模式同属揭晓态（读解析） */
@@ -704,7 +755,14 @@ export default function Practice() {
     if (revealed && q && spokenKeyRef.current !== key) {
       spokenKeyRef.current = key
       stopStemLoop()                                 // 揭晓态开声：解析接管，终结题干朗读句柄
-      speak(spokenOf(q, lastGrade, shuffleRef.current.order), { tag: 'reveal|' + index + '|' + q.id })
+      /* 刷题态同口径：题干+答案+解析（2026-10-12 对齐 reveal effect/replayTts） */
+      const text = browse
+        ? stemSpokenOf(q) + '。' + spokenOf(q, lastGrade, shuffleRef.current.order)
+        : spokenOf(q, lastGrade, shuffleRef.current.order)
+      speak(text, {
+        tag: 'reveal|' + index + '|' + q.id,
+        onDone: (browse && autoplayRef.current) ? autoAdvance : undefined,
+      })
     } else if (!revealed && q && phase === 'answering' && !showAnswer) {
       /* 答题期开声且无可续的暂停会话（如间隙期静音）：再读一遍题干——单次口径，读完即止 */
       startStemLoop(stemSpokenOf(q), index, q.id)
@@ -727,7 +785,16 @@ export default function Practice() {
     if (revealed) {
       spokenKeyRef.current = index + '|' + q.id
       stopStemLoop()
-      speak(spokenOf(q, lastGrade, shuffleRef.current.order), { tag: 'reveal|' + index + '|' + q.id })
+      /* 2026-10-12 修"刷题模式点重读题干却从解析读起"（用户当轮反馈）：刷题态揭晓
+         播报口径=题干+答案+解析（见 reveal effect），重读必须同口径——只读 spokenOf
+         会跳过题干。连播开着时重读完毕继续 autoAdvance，连播链不断。 */
+      const text = browse
+        ? stemSpokenOf(q) + '。' + spokenOf(q, lastGrade, shuffleRef.current.order)
+        : spokenOf(q, lastGrade, shuffleRef.current.order)
+      speak(text, {
+        tag: 'reveal|' + index + '|' + q.id,
+        onDone: (browse && autoplayRef.current) ? autoAdvance : undefined,
+      })
     } else {
       startStemLoop(stemSpokenOf(q), index, q.id)
     }
@@ -957,6 +1024,15 @@ export default function Practice() {
             onClick={toggleBrowse}>
             {browse ? '📖 刷题' : '✍️ 答题'}
           </button>
+          {/* 播客连播开关（2026-10-12）：仅刷题态显示——播完本题自动翻下一题继续播，
+              像播客一样纯听学习；偏好记忆在 localStorage（qa_browse_autoplay） */}
+          {browse && (
+            <button className={'chip tool' + (autoplay ? ' on' : '')} aria-pressed={autoplay}
+              title={autoplay ? '当前：连播开（读完自动下一题）。点击停止连播' : '当前：连播关。点击开启——播完本题自动翻下一题，循环播报像播客'}
+              onClick={toggleAutoplay}>
+              {autoplay ? '⏭ 连播中' : '⏭ 连播'}
+            </button>
+          )}
           <button className="chip" style={{ fontSize: 11 }} onClick={() => { abortSession(); navigate('/') }}>✕ 退出</button>
       </div>
 
@@ -1330,7 +1406,7 @@ export default function Practice() {
                             <GiltBtn tone="teal" onClick={() => { unlockSpeech(); unlockCloudAudio(); browseTo(-1) }}>‹ 上一题</GiltBtn>
                             <GiltBtn onClick={() => { unlockSpeech(); unlockCloudAudio(); browseTo(1) }}>下一题 ›</GiltBtn>
                           </div>
-                          <p className="kbd-hint">Enter = 下一题 · 不计成绩、不推进复习计划</p>
+                          <p className="kbd-hint">Enter = 下一题 · {autoplay ? '连播中：读完自动下一题 · ' : ''}不计成绩、不推进复习计划</p>
                         </>
                       ) : !answered && (objective ? (
                         <>

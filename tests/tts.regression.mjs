@@ -617,4 +617,18 @@ ok(/function speakCloudLine\(chunks, rate, onDone, my, voice, tag, onAllFail\) \
 ok(/function toggleBrowse\(\) \{\s*\n\s*\/\* 手势内解锁/.test(practiceSrc) && /unlockSpeech\(\)\s*\n\s*unlockCloudAudio\(\)/.test(practiceSrc), '㉖-7 切刷题/答题 chip 点击内解锁两路通路（刷题态播报全由 effect 触发，脱离手势栈）')
 ok(/unlockSpeech\(\); unlockCloudAudio\(\); browseTo\(-1\)/.test(practiceSrc) && /unlockSpeech\(\); unlockCloudAudio\(\); browseTo\(1\)/.test(practiceSrc), '㉖-8 刷题态上一题/下一题点击内解锁（Enter 走按钮 click 同链）')
 
+/* ── ㉗ 播客连播模式（2026-10-12 · 用户指令"自动下一题语音连播，播客模式一样，听声音学习"）──
+   机制：刷题态揭晓播报 speak(..., { onDone: autoAdvance }) → 读完延时 600ms → browseTo(1)
+   （store 取模回卷=队尾自然循环）。锁住接线、停止语义与偏好持久化。 */
+ok(/const \[autoplay, setAutoplay\] = useState\(\(\) => \{[\s\S]{0,120}?qa_browse_autoplay/.test(practiceSrc), '㉗-1 连播状态初始化读 localStorage qa_browse_autoplay（与 qa_browse 平级）')
+ok(/onDone: \(browse && autoplayRef\.current\) \? autoAdvance : undefined/.test(practiceSrc) && (practiceSrc.match(/onDone: \(browse && autoplayRef\.current\) \? autoAdvance : undefined/g) || []).length === 3, '㉗-2 揭晓态三处 speak（reveal effect / toggleTts / replayTts）都按 browse+连播实时值接 onDone=autoAdvance')
+ok(/autoTimer\.current = setTimeout\(\(\) => \{[\s\S]{0,220}?browseTo\(1\)/.test(practiceSrc), '㉗-3 autoAdvance：读完延时气口后 browseTo(1)（带双闸，队尾停止见 ㉗-10）')
+ok(/if \(!autoplayRef\.current \|\| !browseRef\.current\) return/.test(practiceSrc), '㉗-4 autoAdvance 入口双闸（连播关/已离开刷题态不翻题）')
+ok(/else if \(browseRef\.current\) \{[\s\S]{0,160}?spokenKeyRef\.current = null/.test(practiceSrc), '㉗-5 开启瞬间清已读闸：当前题重读并接上连播链（不会"按了没反应"）')
+ok(/pauseSpeak\(\); clearTimeout\(autoTimer\.current\); autoTimer\.current = 0; return \}/.test(practiceSrc), '㉗-6 静音/暂停时取消连播气口（防静音状态空翻题停摆）')
+ok(/browse && \(\s*\n\s*<button className=\{'chip tool' \+ \(autoplay \? ' on' : ''\)\} aria-pressed=\{autoplay\}/.test(practiceSrc), '㉗-7 连播 chip 仅刷题态渲染，aria-pressed 跟随开关')
+ok(/\}, \[ttsOK, seal, phase, showAnswer, index, q\?\.id, ttsOn, browse, autoplay, autoAdvance\]\)/.test(practiceSrc), '㉗-8 reveal effect 依赖含 autoplay（开关切换触发重跑）')
+ok(/const text = browse\s*\n\s*\? stemSpokenOf\(q\) \+ '。' \+ spokenOf\(q, lastGrade, shuffleRef\.current\.order\)/.test(practiceSrc) && (practiceSrc.match(/\? stemSpokenOf\(q\) \+ '。' \+ spokenOf\(q, lastGrade, shuffleRef\.current\.order\)/g) || []).length === 3, '㉗-9 刷题态三处揭晓播报（reveal effect/toggleTts/replayTts）同口径=题干+答案+解析（修"重读题干却从解析读起"）')
+ok(/if \(posRef\.current\.index >= posRef\.current\.count - 1\) return/.test(practiceSrc) && /posRef\.current\.index < posRef\.current\.count - 1\) browseTo\(1\)/.test(practiceSrc), '㉗-10 连播读到最后一题即停不回卷（"直到读完所有题"；手动下一题仍首尾循环）')
+
 console.log(`\ntts.regression：${n} 断言全绿`)
